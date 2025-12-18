@@ -1,0 +1,9 @@
+activity_id,company_id,contact_id,opportunity_id,type,subject,description,due_datetime,owner,priority,status,created_at,completed_at
+ACT-ACME-FOLLOWUP1,ACME-MFG,C-ACME-ANNA,OPP-ACME-UPGRADE,Call,Follow up on upgrade proposal,Review pricing and address questions,2025-12-05T15:30:00Z,jsmith,High,Open,2025-11-10,
+ACT-ACME-RENEW-CALL,ACME-MFG,C-ACME-JOE,OPP-ACME-RENEWAL,Call,Discuss renewal options,Confirm renewal terms for March,2026-02-20T16:00:00Z,jsmith,Medium,Open,2025-11-01,
+ACT-BETA-QBR,BETA-TECH,C-BETA-LISA,,Meeting,Quarterly business review,Review usage and pipeline,2025-12-12T14:00:00Z,ljones,Medium,Open,2025-11-05,
+ACT-CROWN-CHECKIN,CROWN-FOODS,C-CROWN-MARIA,OPP-CROWN-RENEW,Call,Renewal check-in,Confirm satisfaction before renewal,2025-12-10T10:00:00Z,jsmith,High,Open,2025-11-02,
+ACT-DELTA-RENEW,DELTA-HEALTH,C-DELTA-ERIN,OPP-DELTA-RENEW,Call,Renewal discussion,Discuss renewal options,2025-08-25T15:00:00Z,amartin,High,Completed,2025-08-01,2025-08-25T16:00:00Z
+ACT-EAST-TRIAL-END,EASTERN-TRAVEL,C-EAST-SANJAY,OPP-EAST-TRIAL,Call,Trial wrap-up,Decide next steps after trial,2025-02-20T11:00:00Z,mmalik,Medium,Open,2025-02-01,
+ACT-FUSION-EXPANSION,FUSION-RETAIL,C-FUSION-EMMA,OPP-FUSION-UPSELL,Call,Discuss seat expansion,Confirm required new seats,2026-04-15T09:00:00Z,jsmith,Medium,Open,2025-10-25,
+ACT-HARBOR-KICKOFF,HARBOR-LOGISTICS,C-HARBOR-JACOB,OPP-HARBOR-NEW,Meeting,Implementation kickoff,Plan rollout milestones,2025-09-01T13:00:00Z,mmalik,High,Open,2025-08-15,

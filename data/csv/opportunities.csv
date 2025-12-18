@@ -1,0 +1,9 @@
+opportunity_id,company_id,primary_contact_id,name,stage,type,value,currency,source,owner,expected_close_date,created_at,updated_at,closed_at
+OPP-ACME-UPGRADE,ACME-MFG,C-ACME-ANNA,Acme Manufacturing - Pro to Enterprise upgrade,Proposal,Expansion,15000,USD,Existing Customer,jsmith,2025-12-15,2025-10-01,2025-11-10,
+OPP-ACME-RENEWAL,ACME-MFG,C-ACME-JOE,Acme Manufacturing - Annual renewal,Qualified,Renewal,24000,USD,Existing Customer,jsmith,2026-03-15,2025-09-15,2025-11-01,
+OPP-BETA-NEW,BETA-TECH,C-BETA-LISA,Beta Tech - New rollout,Negotiation,New Business,32000,USD,Referral,ljones,2025-12-31,2025-08-20,2025-11-02,
+OPP-CROWN-RENEW,CROWN-FOODS,C-CROWN-MARIA,Crown Foods - Subscription renewal,Proposal,Renewal,18000,USD,Existing Customer,jsmith,2025-12-20,2025-09-10,2025-10-30,
+OPP-DELTA-RENEW,DELTA-HEALTH,C-DELTA-ERIN,Delta Health - Renewal,Qualified,Renewal,22000,USD,Existing Customer,amartin,2025-09-01,2025-06-01,2025-08-15,
+OPP-EAST-TRIAL,EASTERN-TRAVEL,C-EAST-SANJAY,Eastern Travel - Trial to paid,New,New Business,8000,USD,Inbound,mmalik,2025-02-28,2025-01-10,2025-10-05,
+OPP-FUSION-UPSELL,FUSION-RETAIL,C-FUSION-EMMA,Fusion Retail - Seats expansion,Qualified,Expansion,12000,USD,Existing Customer,jsmith,2026-05-10,2025-07-01,2025-10-25,
+OPP-HARBOR-NEW,HARBOR-LOGISTICS,C-HARBOR-JACOB,Harbor Logistics - Initial rollout,Discovery,New Business,26000,USD,Outbound,mmalik,2025-08-30,2025-05-15,2025-11-10,

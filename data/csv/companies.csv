@@ -1,0 +1,9 @@
+company_id,name,primary_domain,status,plan,account_owner,industry,segment,region,renewal_date,created_at,updated_at,health_flags
+ACME-MFG,Acme Manufacturing,acmemfg.com,Active,Pro,jsmith,Manufacturing,Mid-market,North America,2026-03-31,2024-01-15,2025-11-01,healthy
+BETA-TECH,Beta Tech Solutions,betatech.io,Active,Standard,ljones,Software,SMB,Europe,2026-02-15,2024-03-20,2025-10-20,at-risk-low-activity
+CROWN-FOODS,Crown Foods,crownfoods.ca,Active,Pro,jsmith,Food & Beverage,SMB,North America,2025-12-20,2023-11-10,2025-10-30,healthy
+DELTA-HEALTH,Delta Health Clinics,deltahealth.org,Active,Standard,amartin,Healthcare,Mid-market,North America,2025-09-01,2023-09-01,2025-09-15,at-risk-renewal-soon
+EASTERN-TRAVEL,Eastern Travel Co.,easterntravel.co,Trial,Trial,mmalik,Travel,SMB,Asia,2025-01-31,2025-01-02,2025-10-05,new
+FUSION-RETAIL,Fusion Retail Group,fusionretail.com,Active,Pro,jsmith,Retail,Mid-market,Europe,2026-05-01,2023-08-18,2025-10-25,healthy
+GREEN-ENERGY,Green Energy Partners,greenenergy.net,Former,Cancelled,amartin,Energy,SMB,North America,2024-06-30,2022-05-20,2024-07-01,churned
+HARBOR-LOGISTICS,Harbor Logistics,harborlogistics.com,Active,Standard,mmalik,Logistics,SMB,North America,2025-08-15,2023-12-01,2025-11-10,health-check

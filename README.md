@@ -1,0 +1,1 @@
+This is an Acme CRM AI Companion (Act!/HHC‑style CRM: companies, contacts, activities, history, opportunities). 

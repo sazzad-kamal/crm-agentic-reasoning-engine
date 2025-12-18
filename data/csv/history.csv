@@ -1,0 +1,13 @@
+history_id,company_id,contact_id,opportunity_id,type,subject,description,source,occurred_at,owner,created_at
+HIST-ACME-CALL1,ACME-MFG,C-ACME-ANNA,OPP-ACME-UPGRADE,Call,Initial upgrade conversation,Discussed benefits of Enterprise plan,ManualLog,2025-10-05T15:30:00Z,jsmith,2025-10-05T16:00:00Z
+HIST-ACME-EMAIL1,ACME-MFG,C-ACME-JOE,OPP-ACME-UPGRADE,Email,Sent proposal,Shared pricing and proposal PDF,EmailSync,2025-10-08T11:20:00Z,jsmith,2025-10-08T11:25:00Z
+HIST-ACME-MEETING1,ACME-MFG,C-ACME-ANNA,OPP-ACME-UPGRADE,Meeting,Demo and Q&A,Walked through reporting and dashboards,Calendar,2025-10-20T14:00:00Z,jsmith,2025-10-20T15:30:00Z
+HIST-ACME-EMAIL2,ACME-MFG,C-ACME-JOE,,Email,Usage recap,Shared usage summary for last quarter,EmailSync,2025-11-01T09:15:00Z,jsmith,2025-11-01T09:20:00Z
+HIST-ACME-NOTE1,ACME-MFG,C-ACME-ANNA,,Note,Internal note,"Activity slowed down in last 30 days; watch for renewal risk",ManualLog,2025-11-10T10:05:00Z,jsmith,2025-11-10T10:06:00Z
+HIST-BETA-CALL1,BETA-TECH,C-BETA-LISA,OPP-BETA-NEW,Call,Scoping call,Discussed rollout requirements,ManualLog,2025-09-01T10:00:00Z,ljones,2025-09-01T11:00:00Z
+HIST-BETA-EMAIL1,BETA-TECH,C-BETA-OMAR,OPP-BETA-NEW,Email,Budget follow-up,Requested confirmation on budget,EmailSync,2025-10-01T13:00:00Z,ljones,2025-10-01T13:05:00Z
+HIST-CROWN-CALL1,CROWN-FOODS,C-CROWN-MARIA,OPP-CROWN-RENEW,Call,Renewal planning,Reviewed renewal options,ManualLog,2025-10-10T09:00:00Z,jsmith,2025-10-10T09:30:00Z
+HIST-DELTA-CALL1,DELTA-HEALTH,C-DELTA-ERIN,OPP-DELTA-RENEW,Call,Usage review,Reviewed clinic usage and pain points,ManualLog,2025-07-20T15:00:00Z,amartin,2025-07-20T15:30:00Z
+HIST-EAST-EMAIL1,EASTERN-TRAVEL,C-EAST-SANJAY,OPP-EAST-TRIAL,Email,Welcome to trial,Shared login and setup steps,EmailSync,2025-01-05T09:00:00Z,mmalik,2025-01-05T09:05:00Z
+HIST-FUSION-CALL1,FUSION-RETAIL,C-FUSION-EMMA,OPP-FUSION-UPSELL,Call,Seat expansion interest,Discussed need for more seats,ManualLog,2025-09-15T10:00:00Z,jsmith,2025-09-15T10:30:00Z
+HIST-HARBOR-CALL1,HARBOR-LOGISTICS,C-HARBOR-JACOB,OPP-HARBOR-NEW,Call,Discovery call,Explored logistics workflows,ManualLog,2025-06-01T14:00:00Z,mmalik,2025-06-01T14:30:00Z

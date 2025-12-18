@@ -197,11 +197,12 @@ class RetrievalBackend:
             normalize_embeddings=True,
         )
         
-        results = self.qdrant.search(
+        # Use query_points for qdrant-client >= 1.16
+        results = self.qdrant.query_points(
             collection_name=self.collection_name,
-            query_vector=query_embedding.tolist(),
+            query=query_embedding.tolist(),
             limit=k,
-        )
+        ).points
         
         return [(hit.id, hit.score) for hit in results]
     

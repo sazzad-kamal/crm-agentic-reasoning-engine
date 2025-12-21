@@ -1,6 +1,23 @@
-fastapi
-uvicorn[standard]
-httpx
+# =============================================================================
+# Backend Dependencies
+# =============================================================================
+
+# Web Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# HTTP Client
+httpx>=0.26.0
+
+# Data Validation & Settings
 pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Database (for CRM data)
 duckdb>=0.9.0
+
+# OpenAI (for LLM)
 openai>=1.0.0
+
+# Environment Variables
+python-dotenv>=1.0.0

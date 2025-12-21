@@ -4,14 +4,14 @@ on:
   push:
     branches: [main]
     paths:
-      - 'project1_rag/**'
-      - 'shared/**'
+      - 'backend/rag/**'
+      - 'backend/common/**'
       - '.github/workflows/rag-eval.yml'
   pull_request:
     branches: [main]
     paths:
-      - 'project1_rag/**'
-      - 'shared/**'
+      - 'backend/rag/**'
+      - 'backend/common/**'
   workflow_dispatch:  # Allow manual trigger
 
 env:
@@ -35,16 +35,16 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r project1_rag/requirements.txt
+          pip install -r requirements.txt
           pip install pytest pytest-cov
       
       - name: Run unit tests
         run: |
-          pytest project1_rag/tests/ -v --tb=short --ignore=project1_rag/tests/test_retrieval_quality.py
+          pytest backend/rag/tests/ -v --tb=short --ignore=backend/rag/tests/test_retrieval.py
       
       - name: Run retrieval quality tests
         run: |
-          pytest project1_rag/tests/test_retrieval_quality.py -v --tb=short
+          pytest backend/rag/tests/test_retrieval.py -v --tb=short
 
   lint:
     name: Lint & Type Check
@@ -64,16 +64,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install ruff mypy
-          pip install -r project1_rag/requirements.txt
+          pip install -r requirements.txt
       
       - name: Run Ruff linter
         run: |
-          ruff check project1_rag/ --select=E,F,W --ignore=E501
+          ruff check backend/rag/ --select=E,F,W --ignore=E501
         continue-on-error: true
       
       - name: Run type check
         run: |
-          mypy project1_rag/ --ignore-missing-imports --no-error-summary
+          mypy backend/rag/ --ignore-missing-imports --no-error-summary
         continue-on-error: true
 
   eval:
@@ -95,12 +95,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r project1_rag/requirements.txt
+          pip install -r requirements.txt
       
       - name: Check for eval questions
         id: check_eval
         run: |
-          if [ -f "project1_rag/eval_questions.json" ]; then
+          if [ -f "backend/rag/eval_questions.json" ]; then
             echo "eval_exists=true" >> $GITHUB_OUTPUT
           else
             echo "eval_exists=false" >> $GITHUB_OUTPUT
@@ -117,7 +117,7 @@ jobs:
           from pathlib import Path
           
           # Load eval questions
-          with open('project1_rag/eval_questions.json') as f:
+          with open('backend/rag/eval_questions.json') as f:
               questions = json.load(f)
           
           print(f'Loaded {len(questions)} evaluation questions')
@@ -161,7 +161,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r project1_rag/requirements.txt
+          pip install -r requirements.txt
       
       - name: Validate RAG config
         run: |
@@ -169,7 +169,7 @@ jobs:
           import os
           os.environ['OPENAI_API_KEY'] = 'test-key-for-validation'
           
-          from project1_rag.config import get_config, reset_config
+          from backend.rag.config import get_config, reset_config
           
           reset_config()
           config = get_config()

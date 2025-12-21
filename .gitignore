@@ -22,7 +22,17 @@ Thumbs.db
 
 # Logs
 *.log
+**/logs/*.jsonl
 
 # Generated data (can be recreated by running scripts)
 data/processed/
 data/qdrant/
+backend/data/processed/
+backend/data/qdrant/
+backend/data/logs/
+
+# Test artifacts
+playwright-report/
+test-results/
+frontend/playwright-report/
+frontend/test-results/

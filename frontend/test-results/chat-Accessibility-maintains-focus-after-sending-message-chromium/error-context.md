@@ -1,0 +1,270 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - link "Skip to main content" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - main [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e8]
+        - generic [ref=e13]:
+          - heading "Acme CRM AI Companion" [level=1] [ref=e14]
+          - paragraph [ref=e15]: Ask questions about your CRM accounts, activity, and pipeline.
+        - button "Browse CRM data" [ref=e16] [cursor=pointer]:
+          - generic [ref=e17]: 📊
+          - generic [ref=e18]: Browse Data
+      - log "Chat messages" [ref=e19]:
+        - list [ref=e20]:
+          - 'listitem "Conversation about: Test question" [ref=e21]':
+            - generic [ref=e22]:
+              - img [ref=e24]
+              - generic [ref=e26]:
+                - generic [ref=e27]: You
+                - heading "Test question" [level=3] [ref=e28]
+            - generic [ref=e29]:
+              - img [ref=e31]
+              - generic [ref=e33]:
+                - generic [ref=e34]: Assistant
+                - generic [ref=e35]:
+                  - generic [ref=e36]:
+                    - generic [ref=e37]:
+                      - strong [ref=e38]: Upcoming Renewals Summary
+                      - paragraph
+                      - paragraph [ref=e39]: "Based on the CRM data, here are the accounts with upcoming renewals:"
+                      - paragraph [ref=e40]:
+                        - text: • Several accounts have renewals coming up in the specified timeframe
+                        - text: • Review each account's health status before the renewal date
+                      - paragraph [ref=e41]:
+                        - strong [ref=e42]: "Suggested Actions:"
+                      - list [ref=e43]:
+                        - listitem [ref=e44]: Schedule check-in calls with at-risk accounts
+                        - listitem [ref=e45]: Prepare renewal proposals for key accounts
+                        - listitem [ref=e46]: Review recent activity levels to identify any concerns
+                    - button "Copy to clipboard" [ref=e47] [cursor=pointer]:
+                      - img [ref=e48]
+                  - list "1 source referenced" [ref=e50]:
+                    - generic [ref=e51]: "Sources:"
+                    - 'listitem "Document: Product Overview" [ref=e52]':
+                      - generic [ref=e53]: 📄
+                      - generic [ref=e54]: Product Overview
+                  - 'contentinfo "Response metadata: 14ms, Mode: data+docs" [ref=e55]': "14ms · Mode: data+docs"
+                  - 'list "Workflow steps: 5 of 5 completed" [ref=e56]':
+                    - generic [ref=e57]: "Steps:"
+                    - 'listitem "Understanding your question: Completed" [ref=e58]':
+                      - generic [ref=e59]: ✓
+                      - text: Understanding your question
+                    - 'listitem "Fetching CRM data: Completed" [ref=e60]':
+                      - generic [ref=e61]: ✓
+                      - text: Fetching CRM data
+                    - 'listitem "Checking documentation: Completed" [ref=e62]':
+                      - generic [ref=e63]: ✓
+                      - text: Checking documentation
+                    - 'listitem "Synthesizing answer: Completed" [ref=e64]':
+                      - generic [ref=e65]: ✓
+                      - text: Synthesizing answer
+                    - 'listitem "Generating suggestions: Completed" [ref=e66]':
+                      - generic [ref=e67]: ✓
+                      - text: Generating suggestions
+                  - group "Suggested follow-up questions" [ref=e68]:
+                    - generic [ref=e69]: "💡 Follow-up questions:"
+                    - 'button "Ask follow-up: What are the recent activities?" [ref=e70] [cursor=pointer]': What are the recent activities?
+                    - 'button "Ask follow-up: Show me the open opportunities" [ref=e71] [cursor=pointer]': Show me the open opportunities
+                    - 'button "Ask follow-up: Any upcoming renewals?" [ref=e72] [cursor=pointer]': Any upcoming renewals?
+      - search "Ask a question" [ref=e73]:
+        - textbox "Ask a question about your CRM" [active] [ref=e74]:
+          - /placeholder: Ask a question about your CRM...
+        - generic [ref=e75]: Press Enter to send your question
+        - button "Send message" [disabled] [ref=e76]: Send
+    - dialog "CRM Data Browser" [ref=e77]:
+      - generic [ref=e78]:
+        - heading "CRM Data" [level=2] [ref=e79]
+        - button "Close data browser" [ref=e80] [cursor=pointer]: ✕
+      - generic [ref=e82]:
+        - tablist [ref=e83]:
+          - tab "🏢 Companies" [selected] [ref=e84] [cursor=pointer]:
+            - generic [ref=e85]: 🏢
+            - generic [ref=e86]: Companies
+          - tab "👤 Contacts" [ref=e87] [cursor=pointer]:
+            - generic [ref=e88]: 👤
+            - generic [ref=e89]: Contacts
+          - tab "💰 Opportunities" [ref=e90] [cursor=pointer]:
+            - generic [ref=e91]: 💰
+            - generic [ref=e92]: Opportunities
+          - tab "📅 Activities" [ref=e93] [cursor=pointer]:
+            - generic [ref=e94]: 📅
+            - generic [ref=e95]: Activities
+          - tab "👥 Groups" [ref=e96] [cursor=pointer]:
+            - generic [ref=e97]: 👥
+            - generic [ref=e98]: Groups
+          - tab "📜 History" [ref=e99] [cursor=pointer]:
+            - generic [ref=e100]: 📜
+            - generic [ref=e101]: History
+        - generic [ref=e102]:
+          - textbox "Search Companies" [ref=e103]:
+            - /placeholder: Search companies...
+          - generic [ref=e104]: 8 of 8 records
+        - tabpanel [ref=e105]:
+          - table [ref=e107]:
+            - rowgroup [ref=e108]:
+              - row "Ask AI Company Id Name Primary Domain Status Plan Account Owner Industry Segment Region Renewal Date Created At Updated At Health Flags" [ref=e109]:
+                - columnheader [ref=e110]
+                - columnheader "Ask AI" [ref=e111]
+                - columnheader "Company Id" [ref=e112]
+                - columnheader "Name" [ref=e113]
+                - columnheader "Primary Domain" [ref=e114]
+                - columnheader "Status" [ref=e115]
+                - columnheader "Plan" [ref=e116]
+                - columnheader "Account Owner" [ref=e117]
+                - columnheader "Industry" [ref=e118]
+                - columnheader "Segment" [ref=e119]
+                - columnheader "Region" [ref=e120]
+                - columnheader "Renewal Date" [ref=e121]
+                - columnheader "Created At" [ref=e122]
+                - columnheader "Updated At" [ref=e123]
+                - columnheader "Health Flags" [ref=e124]
+            - rowgroup [ref=e125]:
+              - row "Expand Ask AI about this record ACME-MFG Acme Manufacturing acmemfg.com Active Pro jsmith Manufacturing Mid-market North America 2026-03-31 2024-01-15 2025-11-01 healthy" [ref=e126] [cursor=pointer]:
+                - cell "Expand" [ref=e127]:
+                  - button "Expand" [ref=e128]: ▶
+                - cell "Ask AI about this record" [ref=e129]:
+                  - button "Ask AI about this record" [ref=e130]: 💬
+                - cell "ACME-MFG" [ref=e131]
+                - cell "Acme Manufacturing" [ref=e132]
+                - cell "acmemfg.com" [ref=e133]
+                - cell "Active" [ref=e134]
+                - cell "Pro" [ref=e135]
+                - cell "jsmith" [ref=e136]
+                - cell "Manufacturing" [ref=e137]
+                - cell "Mid-market" [ref=e138]
+                - cell "North America" [ref=e139]
+                - cell "2026-03-31" [ref=e140]
+                - cell "2024-01-15" [ref=e141]
+                - cell "2025-11-01" [ref=e142]
+                - cell "healthy" [ref=e143]
+              - row "Expand Ask AI about this record BETA-TECH Beta Tech Solutions betatech.io Active Standard ljones Software SMB Europe 2026-02-15 2024-03-20 2025-10-20 at-risk-low-activity" [ref=e144] [cursor=pointer]:
+                - cell "Expand" [ref=e145]:
+                  - button "Expand" [ref=e146]: ▶
+                - cell "Ask AI about this record" [ref=e147]:
+                  - button "Ask AI about this record" [ref=e148]: 💬
+                - cell "BETA-TECH" [ref=e149]
+                - cell "Beta Tech Solutions" [ref=e150]
+                - cell "betatech.io" [ref=e151]
+                - cell "Active" [ref=e152]
+                - cell "Standard" [ref=e153]
+                - cell "ljones" [ref=e154]
+                - cell "Software" [ref=e155]
+                - cell "SMB" [ref=e156]
+                - cell "Europe" [ref=e157]
+                - cell "2026-02-15" [ref=e158]
+                - cell "2024-03-20" [ref=e159]
+                - cell "2025-10-20" [ref=e160]
+                - cell "at-risk-low-activity" [ref=e161]
+              - row "Expand Ask AI about this record CROWN-FOODS Crown Foods crownfoods.ca Active Pro jsmith Food & Beverage SMB North America 2025-12-20 2023-11-10 2025-10-30 healthy" [ref=e162] [cursor=pointer]:
+                - cell "Expand" [ref=e163]:
+                  - button "Expand" [ref=e164]: ▶
+                - cell "Ask AI about this record" [ref=e165]:
+                  - button "Ask AI about this record" [ref=e166]: 💬
+                - cell "CROWN-FOODS" [ref=e167]
+                - cell "Crown Foods" [ref=e168]
+                - cell "crownfoods.ca" [ref=e169]
+                - cell "Active" [ref=e170]
+                - cell "Pro" [ref=e171]
+                - cell "jsmith" [ref=e172]
+                - cell "Food & Beverage" [ref=e173]
+                - cell "SMB" [ref=e174]
+                - cell "North America" [ref=e175]
+                - cell "2025-12-20" [ref=e176]
+                - cell "2023-11-10" [ref=e177]
+                - cell "2025-10-30" [ref=e178]
+                - cell "healthy" [ref=e179]
+              - row "Expand Ask AI about this record DELTA-HEALTH Delta Health Clinics deltahealth.org Active Standard amartin Healthcare Mid-market North America 2025-09-01 2023-09-01 2025-09-15 at-risk-renewal-soon" [ref=e180] [cursor=pointer]:
+                - cell "Expand" [ref=e181]:
+                  - button "Expand" [ref=e182]: ▶
+                - cell "Ask AI about this record" [ref=e183]:
+                  - button "Ask AI about this record" [ref=e184]: 💬
+                - cell "DELTA-HEALTH" [ref=e185]
+                - cell "Delta Health Clinics" [ref=e186]
+                - cell "deltahealth.org" [ref=e187]
+                - cell "Active" [ref=e188]
+                - cell "Standard" [ref=e189]
+                - cell "amartin" [ref=e190]
+                - cell "Healthcare" [ref=e191]
+                - cell "Mid-market" [ref=e192]
+                - cell "North America" [ref=e193]
+                - cell "2025-09-01" [ref=e194]
+                - cell "2023-09-01" [ref=e195]
+                - cell "2025-09-15" [ref=e196]
+                - cell "at-risk-renewal-soon" [ref=e197]
+              - row "Expand Ask AI about this record EASTERN-TRAVEL Eastern Travel Co. easterntravel.co Trial Trial mmalik Travel SMB Asia 2025-01-31 2025-01-02 2025-10-05 new" [ref=e198] [cursor=pointer]:
+                - cell "Expand" [ref=e199]:
+                  - button "Expand" [ref=e200]: ▶
+                - cell "Ask AI about this record" [ref=e201]:
+                  - button "Ask AI about this record" [ref=e202]: 💬
+                - cell "EASTERN-TRAVEL" [ref=e203]
+                - cell "Eastern Travel Co." [ref=e204]
+                - cell "easterntravel.co" [ref=e205]
+                - cell "Trial" [ref=e206]
+                - cell "Trial" [ref=e207]
+                - cell "mmalik" [ref=e208]
+                - cell "Travel" [ref=e209]
+                - cell "SMB" [ref=e210]
+                - cell "Asia" [ref=e211]
+                - cell "2025-01-31" [ref=e212]
+                - cell "2025-01-02" [ref=e213]
+                - cell "2025-10-05" [ref=e214]
+                - cell "new" [ref=e215]
+              - row "Expand Ask AI about this record FUSION-RETAIL Fusion Retail Group fusionretail.com Active Pro jsmith Retail Mid-market Europe 2026-05-01 2023-08-18 2025-10-25 healthy" [ref=e216] [cursor=pointer]:
+                - cell "Expand" [ref=e217]:
+                  - button "Expand" [ref=e218]: ▶
+                - cell "Ask AI about this record" [ref=e219]:
+                  - button "Ask AI about this record" [ref=e220]: 💬
+                - cell "FUSION-RETAIL" [ref=e221]
+                - cell "Fusion Retail Group" [ref=e222]
+                - cell "fusionretail.com" [ref=e223]
+                - cell "Active" [ref=e224]
+                - cell "Pro" [ref=e225]
+                - cell "jsmith" [ref=e226]
+                - cell "Retail" [ref=e227]
+                - cell "Mid-market" [ref=e228]
+                - cell "Europe" [ref=e229]
+                - cell "2026-05-01" [ref=e230]
+                - cell "2023-08-18" [ref=e231]
+                - cell "2025-10-25" [ref=e232]
+                - cell "healthy" [ref=e233]
+              - row "Ask AI about this record GREEN-ENERGY Green Energy Partners greenenergy.net Former Cancelled amartin Energy SMB North America 2024-06-30 2022-05-20 2024-07-01 churned" [ref=e234]:
+                - cell [ref=e235]
+                - cell "Ask AI about this record" [ref=e236]:
+                  - button "Ask AI about this record" [ref=e237] [cursor=pointer]: 💬
+                - cell "GREEN-ENERGY" [ref=e238]
+                - cell "Green Energy Partners" [ref=e239]
+                - cell "greenenergy.net" [ref=e240]
+                - cell "Former" [ref=e241]
+                - cell "Cancelled" [ref=e242]
+                - cell "amartin" [ref=e243]
+                - cell "Energy" [ref=e244]
+                - cell "SMB" [ref=e245]
+                - cell "North America" [ref=e246]
+                - cell "2024-06-30" [ref=e247]
+                - cell "2022-05-20" [ref=e248]
+                - cell "2024-07-01" [ref=e249]
+                - cell "churned" [ref=e250]
+              - row "Expand Ask AI about this record HARBOR-LOGISTICS Harbor Logistics harborlogistics.com Active Standard mmalik Logistics SMB North America 2025-08-15 2023-12-01 2025-11-10 health-check" [ref=e251] [cursor=pointer]:
+                - cell "Expand" [ref=e252]:
+                  - button "Expand" [ref=e253]: ▶
+                - cell "Ask AI about this record" [ref=e254]:
+                  - button "Ask AI about this record" [ref=e255]: 💬
+                - cell "HARBOR-LOGISTICS" [ref=e256]
+                - cell "Harbor Logistics" [ref=e257]
+                - cell "harborlogistics.com" [ref=e258]
+                - cell "Active" [ref=e259]
+                - cell "Standard" [ref=e260]
+                - cell "mmalik" [ref=e261]
+                - cell "Logistics" [ref=e262]
+                - cell "SMB" [ref=e263]
+                - cell "North America" [ref=e264]
+                - cell "2025-08-15" [ref=e265]
+                - cell "2023-12-01" [ref=e266]
+                - cell "2025-11-10" [ref=e267]
+                - cell "health-check" [ref=e268]
+```

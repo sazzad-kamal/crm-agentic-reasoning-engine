@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useChat } from "../hooks/useChat";
 
 // Mock fetch
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+(globalThis as typeof globalThis & { fetch: typeof fetch }).fetch = mockFetch;
 
 describe("useChat", () => {
   beforeEach(() => {

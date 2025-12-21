@@ -52,12 +52,12 @@ load_dotenv(project_root / ".env")
 try:
     from backend.config import get_settings
     from backend.routes import router
-    from backend.middleware import RequestLoggingMiddleware, CacheControlMiddleware
+    from backend.middleware import RequestLoggingMiddleware, CacheControlMiddleware, RateLimitMiddleware
     from backend.exceptions import APIError, ErrorResponse
 except ImportError:
     from config import get_settings
     from routes import router
-    from middleware import RequestLoggingMiddleware, CacheControlMiddleware
+    from middleware import RequestLoggingMiddleware, CacheControlMiddleware, RateLimitMiddleware
     from exceptions import APIError, ErrorResponse
 
 # =============================================================================
@@ -159,11 +159,12 @@ Talk to your CRM data using natural language.
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        expose_headers=["X-Request-ID", "X-Response-Time"],
+        expose_headers=["X-Request-ID", "X-Response-Time", "X-RateLimit-Limit", "X-RateLimit-Remaining"],
     )
     
-    # Custom middleware
+    # Custom middleware (order matters - first added = last executed)
     app.add_middleware(CacheControlMiddleware)
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
     
     # ==========================================================================

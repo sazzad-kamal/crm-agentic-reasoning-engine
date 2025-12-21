@@ -12,3 +12,7 @@ export { ErrorBanner } from "./ErrorBanner";
 export { ErrorBoundary } from "./ErrorBoundary";
 export { SkipLink } from "./SkipLink";
 export { MessageSkeleton, ChatSkeleton } from "./Skeleton";
+export { Avatar } from "./Avatar";
+export { CopyButton } from "./CopyButton";
+export { MarkdownText } from "./MarkdownText";
+export { DataExplorer } from "./DataExplorer";

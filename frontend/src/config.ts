@@ -5,8 +5,8 @@
 // Get API URL from environment or default to localhost
 const getApiUrl = (): string => {
   // Check for Vite env variable
-  if (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_URL) {
-    return (import.meta as any).env.VITE_API_URL;
+  if (import.meta.env?.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
   }
   // Default for local development
   return "http://localhost:8000";

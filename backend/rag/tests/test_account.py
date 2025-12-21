@@ -364,6 +364,11 @@ class TestIntegration:
                 pytest.skip("No companies in index")
         except ValueError:
             pytest.skip("Private collection not ready")
+        except RuntimeError as e:
+            # Handle Qdrant file locking issue when another process has the lock
+            if "already accessed by another instance" in str(e):
+                pytest.skip("Qdrant storage locked by another process")
+            raise
         
         # Run a real question
         result = answer_account_question(

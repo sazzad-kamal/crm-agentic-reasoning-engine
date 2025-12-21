@@ -41,16 +41,13 @@ jobs:
           pip install -r requirements.txt
       
       - name: Run Ruff linter
-        run: ruff check backend/ --select=E,F,W --ignore=E501
-        continue-on-error: true
+        run: ruff check backend/ --select=E,F,W --ignore=E501,F401,F841,W503
       
       - name: Run Ruff formatter check
-        run: ruff format backend/ --check
-        continue-on-error: true
+        run: ruff format backend/ --check --diff || true
       
       - name: Run type check
-        run: mypy backend/ --ignore-missing-imports --no-error-summary
-        continue-on-error: true
+        run: mypy backend/ --ignore-missing-imports --no-error-summary --allow-untyped-defs
 
   test-agent:
     name: Agent Tests

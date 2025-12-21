@@ -7,6 +7,9 @@ import { StepsRow } from "./StepPill";
 import { MetaInfo } from "./MetaInfo";
 import { DataTables } from "./DataTables";
 import { FollowUpSuggestions } from "./FollowUpSuggestions";
+import { Avatar } from "./Avatar";
+import { CopyButton } from "./CopyButton";
+import { MarkdownText } from "./MarkdownText";
 
 interface MessageBlockProps {
   message: ChatMessage;
@@ -30,57 +33,70 @@ export const MessageBlock = memo(function MessageBlock({
       aria-label={`Conversation about: ${message.question.slice(0, 50)}${message.question.length > 50 ? "..." : ""}`}
     >
       {/* User Question */}
-      <div className="message__label message__label--user" aria-hidden="true">
-        You
-      </div>
-      <div className="message__question" role="heading" aria-level={3}>
-        {message.question}
+      <div className="message__row message__row--user">
+        <Avatar type="user" />
+        <div className="message__content">
+          <div className="message__label message__label--user" aria-hidden="true">
+            You
+          </div>
+          <div className="message__question" role="heading" aria-level={3}>
+            {message.question}
+          </div>
+        </div>
       </div>
 
       {/* Assistant Response */}
-      <div className="message__label message__label--assistant" aria-hidden="true">
-        Assistant
-      </div>
+      <div className="message__row message__row--assistant">
+        <Avatar type="assistant" />
+        <div className="message__content">
+          <div className="message__label message__label--assistant" aria-hidden="true">
+            Assistant
+          </div>
 
-      {response ? (
-        <div className="message__response">
-          {/* Answer Text */}
-          <div className="message__answer">{response.answer}</div>
+          {response ? (
+            <div className="message__response">
+              {/* Answer Text with Copy Button */}
+              <div className="message__answer-wrapper">
+                <MarkdownText text={response.answer} className="message__answer" />
+                <CopyButton text={response.answer} className="message__copy" />
+              </div>
 
-          {/* Sources */}
-          {config.features.showSources && response.sources && response.sources.length > 0 && (
-            <SourcesRow sources={response.sources} />
+              {/* Sources */}
+              {config.features.showSources && response.sources && response.sources.length > 0 && (
+                <SourcesRow sources={response.sources} />
+              )}
+
+              {/* Meta Info */}
+              {config.features.showLatency && response.meta && (
+                <MetaInfo meta={response.meta} />
+              )}
+
+              {/* Steps */}
+              {config.features.showSteps && response.steps && response.steps.length > 0 && (
+                <StepsRow steps={response.steps} />
+              )}
+
+              {/* Data Tables */}
+              {config.features.showDataTables && response.raw_data && (
+                <DataTables rawData={response.raw_data} />
+              )}
+
+              {/* Follow-up Suggestions */}
+              {config.features.showFollowUpSuggestions &&
+                response.follow_up_suggestions &&
+                response.follow_up_suggestions.length > 0 &&
+                onFollowUpClick && (
+                  <FollowUpSuggestions
+                    suggestions={response.follow_up_suggestions}
+                    onSuggestionClick={onFollowUpClick}
+                  />
+                )}
+            </div>
+          ) : (
+            <LoadingState text="Assistant is thinking..." />
           )}
-
-          {/* Meta Info */}
-          {config.features.showLatency && response.meta && (
-            <MetaInfo meta={response.meta} />
-          )}
-
-          {/* Steps */}
-          {config.features.showSteps && response.steps && response.steps.length > 0 && (
-            <StepsRow steps={response.steps} />
-          )}
-
-          {/* Data Tables */}
-          {config.features.showDataTables && response.raw_data && (
-            <DataTables rawData={response.raw_data} />
-          )}
-
-          {/* Follow-up Suggestions */}
-          {config.features.showFollowUpSuggestions &&
-            response.follow_up_suggestions &&
-            response.follow_up_suggestions.length > 0 &&
-            onFollowUpClick && (
-              <FollowUpSuggestions
-                suggestions={response.follow_up_suggestions}
-                onSuggestionClick={onFollowUpClick}
-              />
-            )}
         </div>
-      ) : (
-        <LoadingState />
-      )}
+      </div>
     </article>
   );
 });

@@ -4,11 +4,38 @@ import App from "../App";
 
 // Mock fetch
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+(globalThis as typeof globalThis & { fetch: typeof fetch }).fetch = mockFetch;
+
+// Default response for data explorer API calls
+const mockDataResponse = {
+  ok: true,
+  json: async () => ({
+    data: [],
+    total: 0,
+    columns: [],
+  }),
+};
 
 describe("App", () => {
   beforeEach(() => {
     mockFetch.mockReset();
+    // Always provide a default mock for data explorer endpoints
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/data/")) {
+        return Promise.resolve(mockDataResponse);
+      }
+      // Default for chat API - will be overridden by specific tests
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          answer: "Default response",
+          sources: [],
+          steps: [],
+          raw_data: {},
+          meta: { mode_used: "data", latency_ms: 100 },
+        }),
+      });
+    });
   });
 
   it("renders the header", () => {
@@ -18,7 +45,7 @@ describe("App", () => {
 
   it("renders example prompts in empty state", () => {
     render(<App />);
-    expect(screen.getByText(/Try asking one of these questions/i)).toBeInTheDocument();
+    expect(screen.getByText(/Try one of these to get started/i)).toBeInTheDocument();
   });
 
   it("renders the input bar", () => {
@@ -39,15 +66,20 @@ describe("App", () => {
   });
 
   it("submits question on form submit", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        answer: "Test answer",
-        sources: [],
-        steps: [],
-        raw_data: {},
-        meta: { mode_used: "data", latency_ms: 100 },
-      }),
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/data/")) {
+        return Promise.resolve(mockDataResponse);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          answer: "Test answer",
+          sources: [],
+          steps: [],
+          raw_data: {},
+          meta: { mode_used: "data", latency_ms: 100 },
+        }),
+      });
     });
 
     render(<App />);
@@ -57,12 +89,17 @@ describe("App", () => {
     fireEvent.submit(input.closest("form")!);
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalled();
     });
   });
 
   it("shows loading state while fetching", async () => {
-    mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/data/")) {
+        return Promise.resolve(mockDataResponse);
+      }
+      return new Promise(() => {}); // Never resolves for chat
+    });
 
     render(<App />);
     const input = screen.getByPlaceholderText(/Ask a question/i);
@@ -76,15 +113,20 @@ describe("App", () => {
   });
 
   it("clicking suggestion sends message", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        answer: "Answer",
-        sources: [],
-        steps: [],
-        raw_data: {},
-        meta: { mode_used: "data", latency_ms: 50 },
-      }),
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/data/")) {
+        return Promise.resolve(mockDataResponse);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          answer: "Answer",
+          sources: [],
+          steps: [],
+          raw_data: {},
+          meta: { mode_used: "data", latency_ms: 50 },
+        }),
+      });
     });
 
     render(<App />);

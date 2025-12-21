@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     # CORS Settings
     # ==========================================================================
     cors_origins: str = Field(
-        default="http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173",
+        default="http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175",
         description="Comma-separated list of allowed origins",
     )
 
@@ -46,9 +46,9 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     # ==========================================================================
-    # Rate Limiting (for future use)
+    # Rate Limiting
     # ==========================================================================
-    rate_limit_enabled: bool = Field(default=False)
+    rate_limit_enabled: bool = Field(default=True, description="Enable rate limiting")
     rate_limit_requests: int = Field(default=100, description="Requests per window")
     rate_limit_window: int = Field(default=60, description="Window in seconds")
 
@@ -68,8 +68,8 @@ class Settings(BaseSettings):
 
     @property
     def data_dir(self) -> Path:
-        """Get the data directory."""
-        return self.project_root / "data"
+        """Get the data directory (backend/data)."""
+        return Path(__file__).parent / "data"
 
     model_config = {
         "env_prefix": "ACME_",

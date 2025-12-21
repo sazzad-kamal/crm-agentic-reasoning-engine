@@ -65,3 +65,27 @@
 {"timestamp": "2025-12-21T17:55:09.459032", "question": "Show me pipeline", "mode_used": "data+docs", "latency_ms": 2, "source_count": 1}
 {"timestamp": "2025-12-21T17:55:10.058947", "question": "What's happening with Acme Manufacturing?", "mode_used": "data", "company_id": "ACME-MFG", "latency_ms": 597, "source_count": 4}
 {"timestamp": "2025-12-21T17:55:10.059504", "question": "How do I create an opportunity?", "mode_used": "docs", "latency_ms": 0, "source_count": 1}
+{"timestamp": "2025-12-21T20:18:47.642478", "question": "What's going on with Acme Manufacturing in the last 90 days?", "mode_used": "data", "company_id": "ACME-MFG", "latency_ms": 30, "source_count": 4}
+{"timestamp": "2025-12-21T20:18:47.642478", "question": "Which accounts have upcoming renewals in the next 90 days?", "mode_used": "data", "latency_ms": 0, "source_count": 1}
+{"timestamp": "2025-12-21T20:18:47.658267", "question": "Show the open pipeline for Beta Tech Solutions", "mode_used": "data", "company_id": "BETA-TECH", "latency_ms": 15, "source_count": 3}
+{"timestamp": "2025-12-21T20:18:47.674062", "question": "What's going on with Acme Manufacturing?", "mode_used": "data", "company_id": "ACME-MFG", "latency_ms": 15, "source_count": 4}
+{"timestamp": "2025-12-21T20:18:47.690076", "question": "What's going on with Acme Manufacturing?", "mode_used": "data", "company_id": "ACME-MFG", "latency_ms": 16, "source_count": 4}
+{"timestamp": "2025-12-21T20:18:47.690076", "question": "What's going on with NonExistent Corp XYZ?", "mode_used": "data+docs", "latency_ms": 0, "source_count": 2}
+{"timestamp": "2025-12-21T20:18:47.723923", "question": "What's going on with Acme Manufacturing?", "mode_used": "data", "company_id": "ACME-MFG", "latency_ms": 9, "source_count": 4}
+{"timestamp": "2025-12-21T20:18:47.740895", "question": "How do I create an opportunity?", "mode_used": "docs", "latency_ms": 0, "source_count": 1}
+{"timestamp": "2025-12-21T20:18:47.856593", "question": "Which accounts have renewals?", "mode_used": "data", "latency_ms": 0, "source_count": 0}
+{"timestamp": "2025-12-21T20:18:47.856593", "question": "Show me pipeline", "mode_used": "data+docs", "latency_ms": 0, "source_count": 1}
+{"timestamp": "2025-12-21T20:18:47.872492", "question": "What's happening with Acme Manufacturing?", "mode_used": "data", "company_id": "ACME-MFG", "latency_ms": 0, "source_count": 4}
+{"timestamp": "2025-12-21T20:18:47.888270", "question": "How do I create an opportunity?", "mode_used": "docs", "latency_ms": 0, "source_count": 1}
+{"timestamp": "2025-12-21T20:27:46.400727", "question": "What's going on with Acme Manufacturing in the last 90 days?", "mode_used": "data", "company_id": "ACME-MFG", "latency_ms": 16, "source_count": 4}
+{"timestamp": "2025-12-21T20:27:46.404384", "question": "Which accounts have upcoming renewals in the next 90 days?", "mode_used": "data", "latency_ms": 0, "source_count": 1}
+{"timestamp": "2025-12-21T20:27:46.425478", "question": "Show the open pipeline for Beta Tech Solutions", "mode_used": "data", "company_id": "BETA-TECH", "latency_ms": 21, "source_count": 3}
+{"timestamp": "2025-12-21T20:27:46.435783", "question": "What's going on with Acme Manufacturing?", "mode_used": "data", "company_id": "ACME-MFG", "latency_ms": 7, "source_count": 4}
+{"timestamp": "2025-12-21T20:27:46.461170", "question": "What's going on with Acme Manufacturing?", "mode_used": "data", "company_id": "ACME-MFG", "latency_ms": 13, "source_count": 4}
+{"timestamp": "2025-12-21T20:27:46.467448", "question": "What's going on with NonExistent Corp XYZ?", "mode_used": "data+docs", "latency_ms": 2, "source_count": 2}
+{"timestamp": "2025-12-21T20:27:46.502696", "question": "What's going on with Acme Manufacturing?", "mode_used": "data", "company_id": "ACME-MFG", "latency_ms": 15, "source_count": 4}
+{"timestamp": "2025-12-21T20:27:46.515250", "question": "How do I create an opportunity?", "mode_used": "docs", "latency_ms": 0, "source_count": 1}
+{"timestamp": "2025-12-21T20:27:46.661525", "question": "Which accounts have renewals?", "mode_used": "data", "latency_ms": 3, "source_count": 0}
+{"timestamp": "2025-12-21T20:27:46.667087", "question": "Show me pipeline", "mode_used": "data+docs", "latency_ms": 2, "source_count": 1}
+{"timestamp": "2025-12-21T20:27:46.681968", "question": "What's happening with Acme Manufacturing?", "mode_used": "data", "company_id": "ACME-MFG", "latency_ms": 11, "source_count": 4}
+{"timestamp": "2025-12-21T20:27:46.685968", "question": "How do I create an opportunity?", "mode_used": "docs", "latency_ms": 0, "source_count": 1}

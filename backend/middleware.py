@@ -2,15 +2,17 @@
 # Middleware for Request/Response Processing
 # =============================================================================
 """
-Custom middleware for logging, timing, and request tracking.
+Custom middleware for logging, timing, request tracking, and rate limiting.
 """
 
 import time
 import uuid
 import logging
+from collections import defaultdict
 from typing import Callable
 
-from fastapi import Request, Response
+from fastapi import Request, Response, status
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 # Handle both package and direct imports
@@ -20,6 +22,122 @@ except ImportError:
     from config import get_settings
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Rate Limiting
+# =============================================================================
+
+class RateLimitStore:
+    """Simple in-memory rate limit store."""
+    
+    def __init__(self):
+        self.requests: dict[str, list[float]] = defaultdict(list)
+    
+    def is_rate_limited(self, client_id: str, max_requests: int, window_seconds: int) -> bool:
+        """Check if client has exceeded rate limit."""
+        now = time.time()
+        window_start = now - window_seconds
+        
+        # Clean old requests
+        self.requests[client_id] = [
+            req_time for req_time in self.requests[client_id]
+            if req_time > window_start
+        ]
+        
+        # Check limit
+        if len(self.requests[client_id]) >= max_requests:
+            return True
+        
+        # Record this request
+        self.requests[client_id].append(now)
+        return False
+    
+    def get_remaining(self, client_id: str, max_requests: int, window_seconds: int) -> int:
+        """Get remaining requests for client."""
+        now = time.time()
+        window_start = now - window_seconds
+        
+        recent_requests = len([
+            req_time for req_time in self.requests[client_id]
+            if req_time > window_start
+        ])
+        
+        return max(0, max_requests - recent_requests)
+
+
+# Global rate limit store
+_rate_limit_store = RateLimitStore()
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """
+    Rate limiting middleware.
+    
+    Limits requests per client IP within a time window.
+    Returns 429 Too Many Requests when limit exceeded.
+    """
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        settings = get_settings()
+        
+        # Skip if rate limiting disabled
+        if not settings.rate_limit_enabled:
+            return await call_next(request)
+        
+        # Only rate limit API endpoints
+        if not request.url.path.startswith("/api/"):
+            return await call_next(request)
+        
+        # Skip health check endpoint
+        if request.url.path in ["/api/health", "/api/info"]:
+            return await call_next(request)
+        
+        # Get client identifier (IP address)
+        client_ip = request.client.host if request.client else "unknown"
+        
+        # Check rate limit
+        if _rate_limit_store.is_rate_limited(
+            client_ip,
+            settings.rate_limit_requests,
+            settings.rate_limit_window,
+        ):
+            remaining = 0
+            retry_after = settings.rate_limit_window
+            
+            logger.warning(
+                f"Rate limit exceeded for {client_ip}",
+                extra={"client_ip": client_ip}
+            )
+            
+            return JSONResponse(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                content={
+                    "error": True,
+                    "message": "Rate limit exceeded. Please try again later.",
+                    "retry_after": retry_after,
+                },
+                headers={
+                    "Retry-After": str(retry_after),
+                    "X-RateLimit-Limit": str(settings.rate_limit_requests),
+                    "X-RateLimit-Remaining": str(remaining),
+                    "X-RateLimit-Reset": str(int(time.time()) + retry_after),
+                },
+            )
+        
+        # Process request
+        response = await call_next(request)
+        
+        # Add rate limit headers
+        remaining = _rate_limit_store.get_remaining(
+            client_ip,
+            settings.rate_limit_requests,
+            settings.rate_limit_window,
+        )
+        response.headers["X-RateLimit-Limit"] = str(settings.rate_limit_requests)
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
+        
+        return response
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):

@@ -12,7 +12,7 @@ Usage:
     results = backend.retrieve_candidates("query", company_filter="ACME-MFG")
 """
 
-import json
+import logging
 from pathlib import Path
 from typing import Optional
 import numpy as np
@@ -27,12 +27,15 @@ from sentence_transformers import SentenceTransformer, CrossEncoder
 from rank_bm25 import BM25Okapi
 
 from project1_rag.doc_models import DocumentChunk, ScoredChunk
-from project1_rag.ingest_private_text import (
-    PRIVATE_COLLECTION_NAME,
-    QDRANT_PATH,
-    EMBEDDING_MODEL,
-)
-from project1_rag.retrieval_backend import RERANKER_MODEL
+from project1_rag.config import get_config
+from project1_rag.utils import simple_tokenize
+
+
+# Configure module logger
+logger = logging.getLogger(__name__)
+
+# Export collection name for backward compatibility
+PRIVATE_COLLECTION_NAME = get_config().private_collection_name
 
 
 # =============================================================================
@@ -48,22 +51,25 @@ class PrivateRetrievalBackend:
     
     def __init__(
         self,
-        qdrant_path: Path = QDRANT_PATH,
-        collection_name: str = PRIVATE_COLLECTION_NAME,
-        embedding_model: str = EMBEDDING_MODEL,
-        reranker_model: str = RERANKER_MODEL,
+        qdrant_path: Optional[Path] = None,
+        collection_name: Optional[str] = None,
+        embedding_model: Optional[str] = None,
+        reranker_model: Optional[str] = None,
     ):
         """Initialize the private retrieval backend."""
-        self.qdrant_path = qdrant_path
-        self.collection_name = collection_name
+        config = get_config()
+        
+        self.qdrant_path = qdrant_path or config.qdrant_path
+        self.collection_name = collection_name or config.private_collection_name
         
         # Initialize Qdrant client
         self.qdrant_path.mkdir(parents=True, exist_ok=True)
         self.qdrant = QdrantClient(path=str(self.qdrant_path))
+        logger.info(f"Private retrieval backend initialized at {self.qdrant_path}")
         
         # Lazy load models
-        self._embedding_model_name = embedding_model
-        self._reranker_model_name = reranker_model
+        self._embedding_model_name = embedding_model or config.embedding_model
+        self._reranker_model_name = reranker_model or config.reranker_model
         self._embedding_model: Optional[SentenceTransformer] = None
         self._reranker: Optional[CrossEncoder] = None
         
@@ -79,7 +85,7 @@ class PrivateRetrievalBackend:
     def embedding_model(self) -> SentenceTransformer:
         """Lazy load the embedding model."""
         if self._embedding_model is None:
-            print(f"Loading embedding model: {self._embedding_model_name}")
+            logger.info(f"Loading embedding model: {self._embedding_model_name}")
             self._embedding_model = SentenceTransformer(self._embedding_model_name)
         return self._embedding_model
     
@@ -87,13 +93,13 @@ class PrivateRetrievalBackend:
     def reranker(self) -> CrossEncoder:
         """Lazy load the reranker model."""
         if self._reranker is None:
-            print(f"Loading reranker model: {self._reranker_model_name}")
+            logger.info(f"Loading reranker model: {self._reranker_model_name}")
             self._reranker = CrossEncoder(self._reranker_model_name)
         return self._reranker
     
     def _tokenize(self, text: str) -> list[str]:
         """Simple whitespace tokenizer for BM25."""
-        return text.lower().split()
+        return simple_tokenize(text)
     
     def load_from_qdrant(self) -> None:
         """
@@ -113,7 +119,7 @@ class PrivateRetrievalBackend:
         if num_points == 0:
             raise ValueError(f"Collection '{self.collection_name}' is empty.")
         
-        print(f"Loading {num_points} points from '{self.collection_name}'...")
+        logger.info(f"Loading {num_points} points from '{self.collection_name}'...")
         
         # Scroll through all points
         all_points = []
@@ -158,11 +164,11 @@ class PrivateRetrievalBackend:
         self._chunk_id_to_idx = {c.chunk_id: i for i, c in enumerate(self._chunks)}
         
         # Build global BM25 index
-        print(f"Building BM25 index for {len(self._chunks)} chunks...")
+        logger.info(f"Building BM25 index for {len(self._chunks)} chunks...")
         tokenized = [self._tokenize(c.text) for c in self._chunks]
         self._bm25 = BM25Okapi(tokenized)
         
-        print(f"Loaded {len(self._chunks)} chunks from Qdrant")
+        logger.info(f"Loaded {len(self._chunks)} chunks from Qdrant")
     
     def _get_company_bm25(self, company_id: str) -> tuple[BM25Okapi, list[int]]:
         """

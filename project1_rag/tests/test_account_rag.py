@@ -2,7 +2,7 @@
 Tests for Account-aware RAG (MVP2).
 
 Run with:
-    pytest tests/test_account_rag.py -v
+    pytest project1_rag/tests/test_account_rag.py -v
 
 Some tests require OPENAI_API_KEY to be set; those are skipped if not available.
 """

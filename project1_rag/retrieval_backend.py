@@ -57,34 +57,44 @@ class RetrievalBackend:
     """
     Hybrid retrieval backend combining dense (Qdrant) and sparse (BM25) search
     with cross-encoder reranking.
+    
+    Features:
+    - Dense vector search via Qdrant
+    - Sparse BM25 search
+    - RRF (Reciprocal Rank Fusion) for merging results
+    - Cross-encoder reranking
+    - Embedding caching for repeated queries
     """
     
     def __init__(
         self,
-        qdrant_path: Path = QDRANT_PATH,
-        collection_name: str = COLLECTION_NAME,
-        embedding_model: str = EMBEDDING_MODEL,
-        reranker_model: str = RERANKER_MODEL,
+        qdrant_path: Optional[Path] = None,
+        collection_name: Optional[str] = None,
+        embedding_model: Optional[str] = None,
+        reranker_model: Optional[str] = None,
     ):
         """
         Initialize the retrieval backend.
         
         Args:
-            qdrant_path: Path to store Qdrant data
-            collection_name: Name of the Qdrant collection
-            embedding_model: Sentence transformer model for embeddings
-            reranker_model: Cross-encoder model for reranking
+            qdrant_path: Path to store Qdrant data (default from config)
+            collection_name: Name of the Qdrant collection (default from config)
+            embedding_model: Sentence transformer model for embeddings (default from config)
+            reranker_model: Cross-encoder model for reranking (default from config)
         """
-        self.qdrant_path = qdrant_path
-        self.collection_name = collection_name
+        config = get_config()
+        
+        self.qdrant_path = qdrant_path or config.qdrant_path
+        self.collection_name = collection_name or config.docs_collection_name
         
         # Initialize Qdrant client (local storage)
         self.qdrant_path.mkdir(parents=True, exist_ok=True)
         self.qdrant = QdrantClient(path=str(self.qdrant_path))
+        logger.info(f"Qdrant client initialized at {self.qdrant_path}")
         
         # Lazy load models
-        self._embedding_model_name = embedding_model
-        self._reranker_model_name = reranker_model
+        self._embedding_model_name = embedding_model or config.embedding_model
+        self._reranker_model_name = reranker_model or config.reranker_model
         self._embedding_model: Optional[SentenceTransformer] = None
         self._reranker: Optional[CrossEncoder] = None
         
@@ -97,7 +107,7 @@ class RetrievalBackend:
     def embedding_model(self) -> SentenceTransformer:
         """Lazy load the embedding model."""
         if self._embedding_model is None:
-            print(f"Loading embedding model: {self._embedding_model_name}")
+            logger.info(f"Loading embedding model: {self._embedding_model_name}")
             self._embedding_model = SentenceTransformer(self._embedding_model_name)
         return self._embedding_model
     
@@ -105,13 +115,13 @@ class RetrievalBackend:
     def reranker(self) -> CrossEncoder:
         """Lazy load the reranker model."""
         if self._reranker is None:
-            print(f"Loading reranker model: {self._reranker_model_name}")
+            logger.info(f"Loading reranker model: {self._reranker_model_name}")
             self._reranker = CrossEncoder(self._reranker_model_name)
         return self._reranker
     
     def _tokenize(self, text: str) -> list[str]:
         """Simple whitespace tokenizer for BM25."""
-        return text.lower().split()
+        return simple_tokenize(text)
     
     def build_indexes(self, chunks: list[DocumentChunk]) -> None:
         """
@@ -120,21 +130,23 @@ class RetrievalBackend:
         Args:
             chunks: List of DocumentChunk objects to index
         """
+        config = get_config()
+        
         if not chunks:
             raise ValueError("No chunks provided for indexing")
         
         self._chunks = chunks
         self._chunk_id_to_idx = {c.chunk_id: i for i, c in enumerate(chunks)}
         
-        print(f"Building indexes for {len(chunks)} chunks...")
+        logger.info(f"Building indexes for {len(chunks)} chunks...")
         
         # Build BM25 index
-        print("  Building BM25 index...")
+        logger.info("Building BM25 index...")
         tokenized_corpus = [self._tokenize(c.text) for c in chunks]
         self._bm25 = BM25Okapi(tokenized_corpus)
         
         # Build Qdrant index
-        print("  Building Qdrant dense index...")
+        logger.info("Building Qdrant dense index...")
         
         # Recreate collection
         if self.qdrant.collection_exists(self.collection_name):
@@ -143,7 +155,7 @@ class RetrievalBackend:
         self.qdrant.create_collection(
             collection_name=self.collection_name,
             vectors_config=VectorParams(
-                size=EMBEDDING_DIM,
+                size=config.embedding_dim,
                 distance=Distance.COSINE,
             ),
         )
@@ -161,7 +173,7 @@ class RetrievalBackend:
                 show_progress_bar=False,
             )
             all_embeddings.extend(batch_embeddings)
-            print(f"    Embedded {min(i + batch_size, len(texts))}/{len(texts)} chunks")
+            logger.debug(f"Embedded {min(i + batch_size, len(texts))}/{len(texts)} chunks")
         
         # Upload to Qdrant
         points = [
@@ -184,26 +196,36 @@ class RetrievalBackend:
             points=points,
         )
         
-        print(f"  Indexes built: {len(chunks)} vectors in Qdrant, BM25 ready")
+        logger.info(f"Indexes built: {len(chunks)} vectors in Qdrant, BM25 ready")
     
     def _dense_search(self, query: str, k: int = 20) -> list[tuple[int, float]]:
         """
         Perform dense search using Qdrant.
         
         Returns list of (chunk_index, score) tuples.
+        Uses embedding cache for repeated queries.
         """
-        query_embedding = self.embedding_model.encode(
-            query,
-            normalize_embeddings=True,
-        )
+        # Check cache first
+        cached_embedding = _get_cached_embedding(query)
+        
+        if cached_embedding is not None:
+            query_embedding = cached_embedding
+        else:
+            query_embedding = self.embedding_model.encode(
+                query,
+                normalize_embeddings=True,
+            )
+            # Cache the embedding
+            _cache_embedding(query, query_embedding)
         
         # Use query_points for qdrant-client >= 1.16
         results = self.qdrant.query_points(
             collection_name=self.collection_name,
-            query=query_embedding.tolist(),
+            query=query_embedding.tolist() if isinstance(query_embedding, np.ndarray) else query_embedding,
             limit=k,
         ).points
         
+        logger.debug(f"Dense search returned {len(results)} results")
         return [(hit.id, hit.score) for hit in results]
     
     def _bm25_search(self, query: str, k: int = 20) -> list[tuple[int, float]]:
@@ -355,20 +377,23 @@ class RetrievalBackend:
         
         return results
     
-    def load_and_build(self, chunks_path: Path = OUTPUT_FILE) -> None:
+    def load_and_build(self, chunks_path: Optional[Path] = None) -> None:
         """
         Load chunks from disk and build indexes.
         
         Args:
-            chunks_path: Path to the chunks Parquet file
+            chunks_path: Path to the chunks Parquet file (default from config)
         """
+        config = get_config()
+        chunks_path = chunks_path or config.doc_chunks_path
+        
         if not chunks_path.exists():
             raise FileNotFoundError(
                 f"Chunks file not found: {chunks_path}. "
                 "Run 'python -m project1_rag.ingest_docs' first."
             )
         
-        print(f"Loading chunks from {chunks_path}...")
+        logger.info(f"Loading chunks from {chunks_path}...")
         chunks = load_chunks(chunks_path)
         self.build_indexes(chunks)
     
@@ -394,19 +419,21 @@ def create_backend(rebuild: bool = False) -> RetrievalBackend:
     Returns:
         Initialized RetrievalBackend
     """
+    config = get_config()
     backend = RetrievalBackend()
     
     # Check if collection exists and has vectors
-    if not rebuild and backend.qdrant.collection_exists(COLLECTION_NAME):
-        collection_info = backend.qdrant.get_collection(COLLECTION_NAME)
+    if not rebuild and backend.qdrant.collection_exists(config.docs_collection_name):
+        collection_info = backend.qdrant.get_collection(config.docs_collection_name)
         if collection_info.points_count > 0:
-            print(f"Using existing Qdrant collection with {collection_info.points_count} vectors")
+            logger.info(f"Using existing Qdrant collection with {collection_info.points_count} vectors")
             # Still need to load chunks for BM25
             chunks = load_chunks()
             backend._chunks = chunks
             backend._chunk_id_to_idx = {c.chunk_id: i for i, c in enumerate(chunks)}
             
             # Build BM25 only
+            logger.info("Building BM25 index from existing chunks...")
             tokenized_corpus = [backend._tokenize(c.text) for c in chunks]
             backend._bm25 = BM25Okapi(tokenized_corpus)
             return backend

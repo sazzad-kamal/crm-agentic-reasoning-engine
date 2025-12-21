@@ -15,7 +15,7 @@ Usage:
     print(result["answer"])
 """
 
-import re
+import logging
 import time
 from pathlib import Path
 from typing import Optional
@@ -27,23 +27,15 @@ from project1_rag.doc_models import DocumentChunk, ScoredChunk
 from project1_rag.private_retrieval import (
     PrivateRetrievalBackend,
     create_private_backend,
-    PRIVATE_COLLECTION_NAME,
 )
 from project1_rag.private_text_builder import find_csv_dir
-from shared.llm_client import call_llm, call_llm_with_metrics
+from project1_rag.config import get_config
+from project1_rag.utils import estimate_tokens, preprocess_query, extract_citations
+from shared.llm_client import call_llm_safe, call_llm_with_metrics
 
 
-# =============================================================================
-# Configuration
-# =============================================================================
-
-MAX_CONTEXT_TOKENS = 3500
-MAX_CHUNKS_PER_TYPE = 4
-CHARS_PER_TOKEN = 4
-
-# Cost estimates (GPT-4.1-mini)
-COST_PER_INPUT_TOKEN = 0.40 / 1_000_000
-COST_PER_OUTPUT_TOKEN = 1.60 / 1_000_000
+# Configure module logger
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -136,7 +128,7 @@ def resolve_company_id(
             matches = matches.copy()
             matches["_score"] = matches["name"].str.len()
             matches = matches.sort_values("_score")
-            print(f"Warning: Multiple companies match '{company_name}', using: {matches.iloc[0]['name']}")
+            logger.warning(f"Multiple companies match '{company_name}', using: {matches.iloc[0]['name']}")
         
         row = matches.iloc[0]
         return row["company_id"], row["name"]
@@ -145,50 +137,39 @@ def resolve_company_id(
 
 
 # =============================================================================
-# Query Enhancement (reuse from MVP1)
+# Query Enhancement
 # =============================================================================
 
 def rewrite_query(query: str, company_name: str) -> str:
     """Rewrite query to be more specific."""
-    try:
-        rewritten = call_llm(
-            prompt=f"Question about {company_name}: {query}",
-            system_prompt=QUERY_REWRITE_SYSTEM,
-            max_tokens=150,
-        )
-        return rewritten.strip() or query
-    except Exception as e:
-        print(f"Warning: Query rewrite failed: {e}")
-        return query
+    logger.debug(f"Rewriting query for {company_name}: {query[:50]}...")
+    return call_llm_safe(
+        prompt=f"Question about {company_name}: {query}",
+        system_prompt=QUERY_REWRITE_SYSTEM,
+        max_tokens=150,
+        default=query,
+    )
 
 
 def generate_hyde(query: str, company_name: str) -> str:
     """Generate hypothetical answer for HyDE."""
-    try:
-        hyde = call_llm(
-            prompt=f"Question about {company_name}: {query}",
-            system_prompt=HYDE_SYSTEM,
-            max_tokens=200,
-        )
-        return hyde.strip()
-    except Exception as e:
-        print(f"Warning: HyDE generation failed: {e}")
-        return ""
+    logger.debug(f"Generating HyDE for {company_name}: {query[:50]}...")
+    return call_llm_safe(
+        prompt=f"Question about {company_name}: {query}",
+        system_prompt=HYDE_SYSTEM,
+        max_tokens=200,
+        default="",
+    )
 
 
 # =============================================================================
 # Context Building
 # =============================================================================
 
-def estimate_tokens(text: str) -> int:
-    """Estimate token count."""
-    return len(text) // CHARS_PER_TOKEN
-
-
 def build_private_context(
     chunks: list[ScoredChunk],
     company_id: str,
-    max_tokens: int = MAX_CONTEXT_TOKENS,
+    max_tokens: Optional[int] = None,
 ) -> tuple[str, list[dict]]:
     """
     Build context string from private chunks.
@@ -196,11 +177,15 @@ def build_private_context(
     Returns:
         Tuple of (context_string, sources_list)
     """
+    config = get_config()
+    max_tokens = max_tokens or config.max_context_tokens
+    max_per_type = config.max_chunks_per_type
+    
     # Group by type and apply per-type cap
     by_type = defaultdict(list)
     for sc in chunks:
         t = sc.chunk.metadata.get("type", "unknown")
-        if len(by_type[t]) < MAX_CHUNKS_PER_TYPE:
+        if len(by_type[t]) < max_per_type:
             by_type[t].append(sc)
     
     # Flatten back, maintaining score order

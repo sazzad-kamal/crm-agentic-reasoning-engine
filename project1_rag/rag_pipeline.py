@@ -18,26 +18,24 @@ Usage:
     print(result["answer"])
 """
 
-import re
+import logging
 from typing import Optional
 from collections import defaultdict
 
 from project1_rag.doc_models import DocumentChunk, ScoredChunk
 from project1_rag.retrieval_backend import RetrievalBackend
-from shared.llm_client import call_llm, call_llm_with_metrics
+from project1_rag.config import get_config
+from project1_rag.utils import (
+    estimate_tokens,
+    preprocess_query,
+    tokens_to_chars,
+    extract_citations,
+)
+from shared.llm_client import call_llm_safe, call_llm_with_metrics
 
 
-# =============================================================================
-# Configuration
-# =============================================================================
-
-# Context building
-MAX_CONTEXT_TOKENS = 3000
-MAX_CHUNKS_PER_DOC = 3
-MIN_BM25_SCORE_RATIO = 0.1  # Drop chunks with BM25 < 10% of top score
-
-# Approximate tokens per character
-CHARS_PER_TOKEN = 4
+# Configure module logger
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -76,19 +74,6 @@ Answer (with citations):"""
 # Pipeline Components
 # =============================================================================
 
-def preprocess_query(query: str) -> str:
-    """
-    Light preprocessing of the query.
-    
-    - Strip whitespace
-    - Collapse multiple spaces
-    - Remove excessive punctuation
-    """
-    query = query.strip()
-    query = re.sub(r'\s+', ' ', query)
-    return query
-
-
 def rewrite_query(query: str) -> str:
     """
     Use LLM to rewrite vague queries into clearer ones.
@@ -99,16 +84,16 @@ def rewrite_query(query: str) -> str:
     Returns:
         Rewritten query (or original if rewriting fails)
     """
-    try:
-        rewritten = call_llm(
-            prompt=f"Rewrite this CRM question to be clearer: {query}",
-            system_prompt=QUERY_REWRITE_SYSTEM,
-            max_tokens=150,
-        )
-        return rewritten.strip() or query
-    except Exception as e:
-        print(f"Warning: Query rewrite failed: {e}")
-        return query
+    logger.debug(f"Rewriting query: {query[:50]}...")
+    rewritten = call_llm_safe(
+        prompt=f"Rewrite this CRM question to be clearer: {query}",
+        system_prompt=QUERY_REWRITE_SYSTEM,
+        max_tokens=150,
+        default=query,
+    )
+    if rewritten != query:
+        logger.debug(f"Query rewritten to: {rewritten[:50]}...")
+    return rewritten
 
 
 def generate_hyde_answer(query: str) -> str:
@@ -121,26 +106,21 @@ def generate_hyde_answer(query: str) -> str:
     Returns:
         A hypothetical answer to use for embedding
     """
-    try:
-        hyde = call_llm(
-            prompt=f"Question: {query}",
-            system_prompt=HYDE_SYSTEM,
-            max_tokens=200,
-        )
-        return hyde.strip()
-    except Exception as e:
-        print(f"Warning: HyDE generation failed: {e}")
-        return ""
-
-
-def estimate_tokens(text: str) -> int:
-    """Estimate token count from text length."""
-    return len(text) // CHARS_PER_TOKEN
+    logger.debug(f"Generating HyDE answer for: {query[:50]}...")
+    hyde = call_llm_safe(
+        prompt=f"Question: {query}",
+        system_prompt=HYDE_SYSTEM,
+        max_tokens=200,
+        default="",
+    )
+    if hyde:
+        logger.debug(f"HyDE generated: {hyde[:50]}...")
+    return hyde
 
 
 def apply_lexical_gate(
     scored_chunks: list[ScoredChunk],
-    min_ratio: float = MIN_BM25_SCORE_RATIO,
+    min_ratio: Optional[float] = None,
 ) -> list[ScoredChunk]:
     """
     Filter out chunks with very low BM25 scores (lexical gate).
@@ -152,6 +132,9 @@ def apply_lexical_gate(
     Returns:
         Filtered list of scored chunks
     """
+    config = get_config()
+    min_ratio = min_ratio or config.min_bm25_score_ratio
+    
     if not scored_chunks:
         return []
     
@@ -162,13 +145,15 @@ def apply_lexical_gate(
         return scored_chunks  # Can't filter by BM25
     
     threshold = max_bm25 * min_ratio
+    filtered = [sc for sc in scored_chunks if sc.bm25_score >= threshold]
     
-    return [sc for sc in scored_chunks if sc.bm25_score >= threshold]
+    logger.debug(f"Lexical gate: {len(scored_chunks)} -> {len(filtered)} chunks (threshold={threshold:.3f})")
+    return filtered
 
 
 def apply_per_doc_cap(
     scored_chunks: list[ScoredChunk],
-    max_per_doc: int = MAX_CHUNKS_PER_DOC,
+    max_per_doc: Optional[int] = None,
 ) -> list[ScoredChunk]:
     """
     Limit the number of chunks per document.
@@ -180,6 +165,9 @@ def apply_per_doc_cap(
     Returns:
         Filtered list respecting per-doc cap
     """
+    config = get_config()
+    max_per_doc = max_per_doc or config.max_chunks_per_doc
+    
     doc_counts = defaultdict(int)
     filtered = []
     
@@ -189,12 +177,13 @@ def apply_per_doc_cap(
             filtered.append(sc)
             doc_counts[doc_id] += 1
     
+    logger.debug(f"Per-doc cap: {len(scored_chunks)} -> {len(filtered)} chunks")
     return filtered
 
 
 def build_context(
     chunks: list[DocumentChunk],
-    max_tokens: int = MAX_CONTEXT_TOKENS,
+    max_tokens: Optional[int] = None,
 ) -> str:
     """
     Build a context string from chunks for the LLM prompt.
@@ -206,6 +195,8 @@ def build_context(
     Returns:
         Formatted context string with doc_id labels
     """
+    config = get_config()
+    max_tokens = max_tokens or config.max_context_tokens
     context_parts = []
     total_tokens = 0
     
@@ -223,13 +214,14 @@ def build_context(
             # Try to fit partial text
             remaining_tokens = max_tokens - total_tokens
             if remaining_tokens > 50:
-                truncated = chunk.text[:remaining_tokens * CHARS_PER_TOKEN]
+                truncated = chunk.text[:tokens_to_chars(remaining_tokens)]
                 context_parts.append(f"{header}\n{truncated}...")
             break
         
         context_parts.append(chunk_text)
         total_tokens += chunk_tokens
     
+    logger.debug(f"Built context with {len(context_parts)} chunks, ~{total_tokens} tokens")
     return "\n---\n".join(context_parts)
 
 
@@ -249,13 +241,17 @@ def generate_answer(
     Returns:
         Dict with answer and metadata
     """
+    config = get_config()
     prompt = ANSWER_SYSTEM.format(context=context, question=question)
     
+    logger.info(f"Generating answer for question: {question[:50]}...")
     result = call_llm_with_metrics(
         prompt=prompt,
-        model="gpt-4.1-mini",
-        max_tokens=800,
+        model=config.llm_model,
+        max_tokens=config.answer_max_tokens,
     )
+    
+    logger.info(f"Answer generated in {result['latency_ms']:.0f}ms, {result['total_tokens']} tokens")
     
     return {
         "answer": result["response"],
@@ -263,6 +259,7 @@ def generate_answer(
         "prompt_tokens": result["prompt_tokens"],
         "completion_tokens": result["completion_tokens"],
         "total_tokens": result["total_tokens"],
+        "cached": result.get("cached", False),
     }
 
 
@@ -299,11 +296,15 @@ def answer_question(
         - doc_ids_used: List of unique doc_ids cited
         - metrics: Dict with latency, token counts, etc.
     """
+    config = get_config()
+    
     metrics = {
         "total_latency_ms": 0,
         "total_tokens": 0,
         "llm_calls": 0,
     }
+    
+    logger.info(f"Processing question: {question[:80]}...")
     
     # 1. Preprocess
     question = preprocess_query(question)
@@ -340,6 +341,7 @@ def answer_question(
         use_reranker=True,
     )
     
+    logger.debug(f"Retrieved {len(scored_chunks)} candidates after reranking")
     if verbose:
         print(f"Retrieved {len(scored_chunks)} candidates after reranking")
     
@@ -350,7 +352,7 @@ def answer_question(
         print(f"After lexical gate: {len(gated_chunks)} chunks")
     
     # Apply per-doc cap
-    capped_chunks = apply_per_doc_cap(gated_chunks, max_per_doc=MAX_CHUNKS_PER_DOC)
+    capped_chunks = apply_per_doc_cap(gated_chunks)
     if verbose:
         print(f"After per-doc cap: {len(capped_chunks)} chunks")
     
@@ -363,7 +365,7 @@ def answer_question(
             print(f"  {i+1}. [{chunk.doc_id}] {chunk.text[:50]}...")
     
     # 6. Build context
-    context = build_context(final_chunks, max_tokens=MAX_CONTEXT_TOKENS)
+    context = build_context(final_chunks, max_tokens=config.max_context_tokens)
     
     if verbose:
         print(f"Context size: ~{estimate_tokens(context)} tokens")
@@ -374,12 +376,13 @@ def answer_question(
     metrics["total_latency_ms"] += answer_result["latency_ms"]
     metrics["total_tokens"] += answer_result["total_tokens"]
     
-    # Extract doc_ids from answer (look for [doc_id] citations)
-    citation_pattern = r'\[([a-z_]+)\]'
-    cited_docs = set(re.findall(citation_pattern, answer_result["answer"].lower()))
+    # Extract citations using utility function
+    cited_docs = extract_citations(answer_result["answer"])
     
     # Get all doc_ids from used chunks
     used_doc_ids = list(set(c.doc_id for c in final_chunks))
+    
+    logger.info(f"Question answered: {len(final_chunks)} chunks used, {len(cited_docs)} citations")
     
     return {
         "answer": answer_result["answer"],
@@ -387,7 +390,7 @@ def answer_question(
         "rewritten_question": rewritten_question,
         "hyde_answer": hyde_answer,
         "doc_ids_used": used_doc_ids,
-        "cited_docs": list(cited_docs),
+        "cited_docs": cited_docs,
         "num_chunks_used": len(final_chunks),
         "context_tokens": estimate_tokens(context),
         "metrics": {
@@ -396,6 +399,7 @@ def answer_question(
             "completion_tokens": answer_result["completion_tokens"],
             "total_tokens": answer_result["total_tokens"],
             "llm_calls": metrics["llm_calls"],
+            "cached": answer_result.get("cached", False),
         },
     }
 

@@ -13,30 +13,23 @@ Usage:
 
 import re
 import json
+import logging
 from pathlib import Path
 from typing import Optional
 
 import pandas as pd
 
 from project1_rag.doc_models import DocumentChunk
+from project1_rag.config import get_config
+from project1_rag.utils import estimate_tokens, recursive_split
 
 
-# =============================================================================
-# Configuration
-# =============================================================================
+# Configure module logger
+logger = logging.getLogger(__name__)
 
-DOCS_DIR = Path("data/docs")
+# Output file path (for backwards compatibility import)
 OUTPUT_DIR = Path("data/processed")
 OUTPUT_FILE = OUTPUT_DIR / "doc_chunks.parquet"
-
-# Chunking parameters
-TARGET_CHUNK_SIZE = 500  # tokens (approximate)
-MAX_CHUNK_SIZE = 700
-MIN_CHUNK_SIZE = 100
-CHUNK_OVERLAP = 50  # tokens overlap between chunks
-
-# Approximate tokens per character (for English text)
-CHARS_PER_TOKEN = 4
 
 
 # =============================================================================
@@ -126,66 +119,6 @@ def split_by_headings(content: str) -> list[dict]:
     return sections
 
 
-def estimate_tokens(text: str) -> int:
-    """Estimate token count from text length."""
-    return len(text) // CHARS_PER_TOKEN
-
-
-def recursive_split(text: str, max_size: int, overlap: int) -> list[str]:
-    """
-    Recursively split text into chunks of approximately max_size tokens.
-    
-    Tries to split on:
-    1. Double newlines (paragraphs)
-    2. Single newlines
-    3. Sentences (. ! ?)
-    4. Words (spaces)
-    """
-    estimated_tokens = estimate_tokens(text)
-    
-    if estimated_tokens <= max_size:
-        return [text]
-    
-    # Try splitting by paragraphs first
-    separators = ["\n\n", "\n", ". ", "! ", "? ", " "]
-    
-    for sep in separators:
-        parts = text.split(sep)
-        if len(parts) > 1:
-            chunks = []
-            current_chunk = ""
-            
-            for part in parts:
-                test_chunk = current_chunk + sep + part if current_chunk else part
-                if estimate_tokens(test_chunk) <= max_size:
-                    current_chunk = test_chunk
-                else:
-                    if current_chunk:
-                        chunks.append(current_chunk)
-                    current_chunk = part
-            
-            if current_chunk:
-                chunks.append(current_chunk)
-            
-            if len(chunks) > 1:
-                # Add overlap between chunks
-                result = []
-                for i, chunk in enumerate(chunks):
-                    if i > 0 and overlap > 0:
-                        # Add some content from the end of previous chunk
-                        prev_words = chunks[i-1].split()[-overlap:]
-                        chunk = " ".join(prev_words) + " " + chunk
-                    result.append(chunk.strip())
-                return result
-    
-    # If nothing worked, just split by character count
-    char_limit = max_size * CHARS_PER_TOKEN
-    chunks = []
-    for i in range(0, len(text), char_limit - overlap * CHARS_PER_TOKEN):
-        chunks.append(text[i:i + char_limit])
-    return chunks
-
-
 # =============================================================================
 # Document Processing
 # =============================================================================
@@ -200,6 +133,8 @@ def process_markdown_file(file_path: Path) -> list[DocumentChunk]:
     Returns:
         List of DocumentChunk objects
     """
+    config = get_config()
+    
     content = file_path.read_text(encoding="utf-8")
     doc_id = file_path.stem  # filename without extension
     title = extract_title(content, doc_id)
@@ -215,14 +150,18 @@ def process_markdown_file(file_path: Path) -> list[DocumentChunk]:
         section_path = section["section_path"]
         
         # Check if section needs further splitting
-        if estimate_tokens(section_text) > MAX_CHUNK_SIZE:
-            sub_chunks = recursive_split(section_text, TARGET_CHUNK_SIZE, CHUNK_OVERLAP)
+        if estimate_tokens(section_text) > config.max_chunk_size:
+            sub_chunks = recursive_split(
+                section_text, 
+                max_size=config.target_chunk_size, 
+                overlap=config.chunk_overlap
+            )
         else:
             sub_chunks = [section_text]
         
         for sub_chunk in sub_chunks:
             # Skip very small chunks
-            if estimate_tokens(sub_chunk) < MIN_CHUNK_SIZE // 2:
+            if estimate_tokens(sub_chunk) < config.min_chunk_size // 2:
                 continue
             
             chunk = DocumentChunk(
@@ -244,38 +183,44 @@ def process_markdown_file(file_path: Path) -> list[DocumentChunk]:
     return chunks
 
 
-def ingest_all_docs(docs_dir: Path = DOCS_DIR) -> list[DocumentChunk]:
+def ingest_all_docs(docs_dir: Optional[Path] = None) -> list[DocumentChunk]:
     """
     Ingest all markdown files from the docs directory.
     
     Args:
-        docs_dir: Path to the docs directory
+        docs_dir: Path to the docs directory (default from config)
         
     Returns:
         List of all DocumentChunks
     """
+    config = get_config()
+    docs_dir = docs_dir or config.docs_dir
+    
     all_chunks = []
     md_files = sorted(docs_dir.glob("*.md"))
     
-    print(f"Found {len(md_files)} markdown files in {docs_dir}")
+    logger.info(f"Found {len(md_files)} markdown files in {docs_dir}")
     
     for file_path in md_files:
-        print(f"  Processing: {file_path.name}")
+        logger.debug(f"Processing: {file_path.name}")
         chunks = process_markdown_file(file_path)
         all_chunks.extend(chunks)
-        print(f"    -> {len(chunks)} chunks")
+        logger.debug(f"  -> {len(chunks)} chunks")
     
     return all_chunks
 
 
-def save_chunks(chunks: list[DocumentChunk], output_path: Path = OUTPUT_FILE) -> None:
+def save_chunks(chunks: list[DocumentChunk], output_path: Optional[Path] = None) -> None:
     """
     Save chunks to a Parquet file.
     
     Args:
         chunks: List of DocumentChunk objects
-        output_path: Path to the output Parquet file
+        output_path: Path to the output Parquet file (default from config)
     """
+    config = get_config()
+    output_path = output_path or config.doc_chunks_path
+    
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
     # Convert to DataFrame
@@ -292,19 +237,22 @@ def save_chunks(chunks: list[DocumentChunk], output_path: Path = OUTPUT_FILE) ->
     
     df = pd.DataFrame(records)
     df.to_parquet(output_path, index=False)
-    print(f"Saved {len(chunks)} chunks to {output_path}")
+    logger.info(f"Saved {len(chunks)} chunks to {output_path}")
 
 
-def load_chunks(input_path: Path = OUTPUT_FILE) -> list[DocumentChunk]:
+def load_chunks(input_path: Optional[Path] = None) -> list[DocumentChunk]:
     """
     Load chunks from a Parquet file.
     
     Args:
-        input_path: Path to the Parquet file
+        input_path: Path to the Parquet file (default from config)
         
     Returns:
         List of DocumentChunk objects
     """
+    config = get_config()
+    input_path = input_path or config.doc_chunks_path
+    
     df = pd.read_parquet(input_path)
     
     chunks = []
@@ -318,6 +266,7 @@ def load_chunks(input_path: Path = OUTPUT_FILE) -> list[DocumentChunk]:
         )
         chunks.append(chunk)
     
+    logger.debug(f"Loaded {len(chunks)} chunks from {input_path}")
     return chunks
 
 
@@ -327,9 +276,15 @@ def load_chunks(input_path: Path = OUTPUT_FILE) -> list[DocumentChunk]:
 
 def main():
     """Main entrypoint for document ingestion."""
-    print("=" * 60)
-    print("Acme CRM Docs Ingestion")
-    print("=" * 60)
+    # Configure logging for CLI
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    
+    logger.info("=" * 60)
+    logger.info("Acme CRM Docs Ingestion")
+    logger.info("=" * 60)
     
     # Ingest all docs
     chunks = ingest_all_docs()
@@ -338,16 +293,16 @@ def main():
     total_tokens = sum(c.metadata.get("estimated_tokens", 0) for c in chunks)
     unique_docs = len(set(c.doc_id for c in chunks))
     
-    print()
-    print("Summary:")
-    print(f"  - Loaded {unique_docs} docs")
-    print(f"  - Produced {len(chunks)} chunks")
-    print(f"  - Total estimated tokens: {total_tokens:,}")
-    print(f"  - Avg tokens per chunk: {total_tokens // len(chunks) if chunks else 0}")
+    logger.info("")
+    logger.info("Summary:")
+    logger.info(f"  - Loaded {unique_docs} docs")
+    logger.info(f"  - Produced {len(chunks)} chunks")
+    logger.info(f"  - Total estimated tokens: {total_tokens:,}")
+    logger.info(f"  - Avg tokens per chunk: {total_tokens // len(chunks) if chunks else 0}")
     
     # Save chunks
     save_chunks(chunks)
-    print()
+    logger.info("")
     print(f"Written to {OUTPUT_FILE}")
 
 

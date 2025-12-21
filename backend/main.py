@@ -10,14 +10,34 @@
 #     -d '{"question": "What'\''s going on with Acme Manufacturing in the last 90 days?"}'
 # =============================================================================
 
+import sys
+from pathlib import Path
+
+# Add project root to path for imports
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+# Load .env file from project root
+from dotenv import load_dotenv
+load_dotenv(project_root / ".env")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional, Any
+
+# Import the agent
+from project2_agentic.agent import answer_question
 
 # -----------------------------------------------------------------------------
 # App Setup
 # -----------------------------------------------------------------------------
-app = FastAPI()
+app = FastAPI(
+    title="Acme CRM AI Companion API",
+    description="Talk to your CRM data using natural language",
+    version="2.0.0"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,7 +52,12 @@ app.add_middleware(
 
 
 class ChatRequest(BaseModel):
+    """Incoming chat request - matches frontend contract."""
     question: str
+    mode: Optional[str] = "auto"  # "auto", "docs", "data", "data+docs"
+    session_id: Optional[str] = None
+    user_id: Optional[str] = None
+    company_id: Optional[str] = None
 
 
 class Source(BaseModel):
@@ -41,46 +66,36 @@ class Source(BaseModel):
     label: str
 
 
-class Company(BaseModel):
-    company_id: str
-    name: str
-    plan: str
-    status: str
-    region: str
-    renewal_date: str
-    account_owner: str
-
-
-class Activity(BaseModel):
-    activity_id: str
-    type: str
-    occurred_at: str
-    owner: str
-    subject: str
-
-
-class Opportunity(BaseModel):
-    opportunity_id: str
-    name: str
-    stage: str
-    value: int
-    expected_close_date: str
-    type: str
+class Step(BaseModel):
+    id: str
+    label: str
+    status: str  # "done", "error", "skipped"
 
 
 class RawData(BaseModel):
-    companies: list[Company]
-    activities: list[Activity]
-    opportunities: list[Opportunity]
+    """Raw data payload - flexible to support various data types."""
+    companies: list[dict] = []
+    activities: list[dict] = []
+    opportunities: list[dict] = []
+    history: list[dict] = []
+    renewals: list[dict] = []
+    pipeline_summary: Optional[dict] = None
+    
+    model_config = {"extra": "allow"}  # Allow additional fields
 
 
 class MetaInfo(BaseModel):
+    mode_used: str
     latency_ms: int
+    company_id: Optional[str] = None
+    days: Optional[int] = None
 
 
 class ChatResponse(BaseModel):
+    """Response to frontend - matches the contract."""
     answer: str
     sources: list[Source]
+    steps: list[Step]
     raw_data: RawData
     meta: MetaInfo
 
@@ -92,91 +107,38 @@ class ChatResponse(BaseModel):
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_endpoint(payload: ChatRequest) -> ChatResponse:
-    # For now, ignore payload.question and always return the fixed mock response.
-    return ChatResponse(
-        answer=(
-            "In the last 90 days, Acme Manufacturing has had several touchpoints "
-            "and one active deal in the pipeline. There were 5 logged activities "
-            "(a mix of calls and emails), one opportunity currently in the Proposal "
-            "stage, and a renewal coming up at the end of March. Nothing in the CRM "
-            "suggests major risk, but activity has slowed a bit in the last 30 days, "
-            "so it may be a good time to follow up."
-        ),
-        sources=[
-            Source(type="company", id="ACME-MFG", label="Acme Manufacturing"),
-            Source(
-                type="doc",
-                id="opportunities_pipeline_and_forecasts.md",
-                label="Opportunities, Pipeline, and Forecasts",
-            ),
-            Source(
-                type="doc",
-                id="history_activities_and_calendar.md",
-                label="History, Activities, and Calendar",
-            ),
-        ],
-        raw_data=RawData(
-            companies=[
-                Company(
-                    company_id="ACME-MFG",
-                    name="Acme Manufacturing",
-                    plan="Pro",
-                    status="Active",
-                    region="North America",
-                    renewal_date="2026-03-31",
-                    account_owner="jsmith",
-                )
-            ],
-            activities=[
-                Activity(
-                    activity_id="ACT-001",
-                    type="Call",
-                    occurred_at="2025-10-05T15:30:00Z",
-                    owner="jsmith",
-                    subject="Quarterly check‑in – usage review",
-                ),
-                Activity(
-                    activity_id="ACT-002",
-                    type="Email",
-                    occurred_at="2025-10-20T10:15:00Z",
-                    owner="jsmith",
-                    subject="Shared dashboard best‑practices article",
-                ),
-                Activity(
-                    activity_id="ACT-003",
-                    type="Meeting",
-                    occurred_at="2025-11-02T14:00:00Z",
-                    owner="jsmith",
-                    subject="Renewal prep – discussed contract options",
-                ),
-                Activity(
-                    activity_id="ACT-004",
-                    type="Email",
-                    occurred_at="2025-11-18T09:40:00Z",
-                    owner="jsmith",
-                    subject="Follow‑up on analytics performance questions",
-                ),
-                Activity(
-                    activity_id="ACT-005",
-                    type="Call",
-                    occurred_at="2025-12-01T16:10:00Z",
-                    owner="jsmith",
-                    subject="Check‑in – confirming report usage and next steps",
-                ),
-            ],
-            opportunities=[
-                Opportunity(
-                    opportunity_id="OPP-123",
-                    name="Acme Manufacturing – Pro to Enterprise upgrade",
-                    stage="Proposal",
-                    value=15000,
-                    expected_close_date="2025-12-15",
-                    type="Expansion",
-                )
-            ],
-        ),
-        meta=MetaInfo(latency_ms=820),
+    """
+    Main chat endpoint - answers questions using CRM data and/or docs.
+    
+    The agent will:
+    1. Route the question to determine mode (docs, data, data+docs)
+    2. Fetch relevant CRM data if needed
+    3. Query documentation if needed  
+    4. Generate a grounded answer using LLM
+    """
+    # Call the agent
+    result = answer_question(
+        question=payload.question,
+        mode=payload.mode or "auto",
+        company_id=payload.company_id,
+        session_id=payload.session_id,
+        user_id=payload.user_id,
     )
+    
+    # Build response matching the contract
+    return ChatResponse(
+        answer=result["answer"],
+        sources=[Source(**s) for s in result["sources"]],
+        steps=[Step(**s) for s in result["steps"]],
+        raw_data=RawData(**result["raw_data"]),
+        meta=MetaInfo(**result["meta"]),
+    )
+
+
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "ok", "version": "2.0.0"}
 
 
 # -----------------------------------------------------------------------------
@@ -186,6 +148,9 @@ async def chat_endpoint(payload: ChatRequest) -> ChatResponse:
 
 def test_chat_mock() -> None:
     """Test the /api/chat endpoint with a mock question."""
+    import os
+    os.environ["MOCK_LLM"] = "1"  # Use mock mode for testing
+    
     from fastapi.testclient import TestClient
 
     client = TestClient(app)
@@ -198,9 +163,16 @@ def test_chat_mock() -> None:
 
     data = response.json()
     assert "answer" in data, "Response should contain 'answer'"
-    assert (
-        data["raw_data"]["companies"][0]["company_id"] == "ACME-MFG"
-    ), "First company should be ACME-MFG"
+    assert "sources" in data, "Response should contain 'sources'"
+    assert "steps" in data, "Response should contain 'steps'"
+    assert "raw_data" in data, "Response should contain 'raw_data'"
+    assert "meta" in data, "Response should contain 'meta'"
+    
+    # Check that we got company data
+    if data["raw_data"].get("companies"):
+        assert (
+            data["raw_data"]["companies"][0]["company_id"] == "ACME-MFG"
+        ), "First company should be ACME-MFG"
 
     print("All tests passed!")
 

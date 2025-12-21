@@ -43,16 +43,16 @@ def get_csv_base_path() -> Path:
     2. data/csv/ (fallback)
     3. Raise error if neither exists
     """
-    # Get project root (go up from backend/agent/ to project root)
-    project_root = Path(__file__).parent.parent.parent
+    # Get backend root (go up from backend/agent/ to backend/)
+    backend_root = Path(__file__).parent.parent
     
     # Check preferred path
-    preferred = project_root / "data" / "crm"
+    preferred = backend_root / "data" / "crm"
     if preferred.exists() and preferred.is_dir():
         return preferred
     
     # Check fallback path
-    fallback = project_root / "data" / "csv"
+    fallback = backend_root / "data" / "csv"
     if fallback.exists() and fallback.is_dir():
         return fallback
     

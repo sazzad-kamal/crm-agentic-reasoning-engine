@@ -1,0 +1,254 @@
+[
+  {
+    "question_id": "acct_q1",
+    "company_id": "ACME-MFG",
+    "company_name": "Acme Manufacturing",
+    "question": "Summarize the recent interactions and history with Acme Manufacturing. What calls, emails, or meetings have occurred?",
+    "question_type": "history_summary",
+    "answer": "Recent interactions with Acme Manufacturing include:\n\n- Sent a proposal with pricing and a PDF attachment [history::HIST-ACME-EMAIL1].\n- Shared a usage recap for the last quarter via email [history::HIST-ACME-EMAIL2].\n- Conducted a demo and Q&A session walking through reporting and dashboards [history::HIST-ACME-MEETING1].\n- An internal note indicates activity has slowed down in the last 30 days, highlighting a renewal risk [history::HIST-ACME-NOTE1].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 1,
+      "needs_human_review": 0,
+      "explanation": "The retrieved context contains relevant account information about recent interactions including emails, meetings, and notes. The answer accurately summarizes these interactions without hallucination and directly addresses the question about Acme Manufacturing's recent history."
+    },
+    "privacy_leakage": 0,
+    "leaked_company_ids": [],
+    "num_private_hits": 9,
+    "latency_ms": 10122.398853302002,
+    "total_tokens": 691,
+    "estimated_cost": 0.0004108
+  },
+  {
+    "question_id": "acct_q2",
+    "company_id": "ACME-MFG",
+    "company_name": "Acme Manufacturing",
+    "question": "What are the current opportunities for Acme Manufacturing? What stages are they in and what are the risks or next steps?",
+    "question_type": "opportunity_status",
+    "answer": "Acme Manufacturing currently has two opportunities:\n\n1. Upgrade opportunity:\n   - Stage: Proposal\n   - Value: 15,000 USD\n   - Expected close: 2025-12-15\n   - Risks: Duplicate contacts causing confusion\n   - Next steps: Build a renewal dashboard and set a weekly review cadence\n\n2. Renewal opportunity:\n   - Stage: Qualified\n   - Value: 24,000 USD\n   - Expected close: 2026-03-15\n   - Risks: Inconsistent activity logging across the team\n   - Next steps: Schedule a 30-minute admin setup call\n\nThese details are from the opportunity notes [opp_note::OPP-ACME-UPGRADE] and [opp_note::OPP-ACME-RENEWAL].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 0,
+      "needs_human_review": 1,
+      "explanation": "The context contains relevant opportunity information for Acme Manufacturing, and the answer addresses the question by listing current opportunities, stages, and next steps. However, the answer includes specific risks and exact expected close dates (e.g., 2025-12-15, 2026-03-15) that are not present in the retrieved context, indicating hallucination. Therefore, human review is needed to verify these details."
+    },
+    "privacy_leakage": 0,
+    "leaked_company_ids": [],
+    "num_private_hits": 9,
+    "latency_ms": 5217.6513671875,
+    "total_tokens": 741,
+    "estimated_cost": 0.0004896000000000001
+  },
+  {
+    "question_id": "acct_q3",
+    "company_id": "ACME-MFG",
+    "company_name": "Acme Manufacturing",
+    "question": "What documents or attachments are associated with Acme Manufacturing's opportunities? Summarize what they contain.",
+    "question_type": "attachments",
+    "answer": "The documents associated with Acme Manufacturing's opportunities are:\n\n1. Proposal (PDF) \u2013 Contains renewal terms and a summary of changes since the last contract period [attachment::ATT-0002].\n\n2. Data Import Mapping Sheet \u2013 Includes ROI assumptions and expected time savings based on the current workflow [attachment::ATT-0001].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 0,
+      "groundedness": 0,
+      "needs_human_review": 1,
+      "explanation": "The retrieved context includes relevant information about Acme Manufacturing's opportunities and mentions a proposal PDF and usage summary, which are relevant to documents or attachments. However, the answer lists two specific documents (Proposal PDF and Data Import Mapping Sheet) with attachment IDs, but the Data Import Mapping Sheet is not mentioned in the context, indicating hallucination. Also, the proposal document description in the answer does not match the context details exactly. Therefore, the answer is not fully grounded in the context and does not fully address the question accurately. Human review is needed to verify and correct the answer."
+    },
+    "privacy_leakage": 0,
+    "leaked_company_ids": [],
+    "num_private_hits": 9,
+    "latency_ms": 4493.1793212890625,
+    "total_tokens": 642,
+    "estimated_cost": 0.00033600000000000004
+  },
+  {
+    "question_id": "acct_q4",
+    "company_id": "BETA-TECH",
+    "company_name": "Beta Tech Solutions",
+    "question": "Summarize the recent interactions and history with Beta Tech Solutions. What calls, emails, or meetings have occurred?",
+    "question_type": "history_summary",
+    "answer": "Recent interactions with Beta Tech Solutions include a scoping call discussing rollout requirements and a budget follow-up email requesting confirmation on the budget [history::HIST-BETA-CALL1][history::HIST-BETA-EMAIL1].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 1,
+      "needs_human_review": 0,
+      "explanation": "The context includes relevant interaction history such as a scoping call and a budget follow-up email. The answer accurately summarizes these interactions without adding unverified information."
+    },
+    "privacy_leakage": 0,
+    "leaked_company_ids": [],
+    "num_private_hits": 4,
+    "latency_ms": 4889.848470687866,
+    "total_tokens": 409,
+    "estimated_cost": 0.0002188
+  },
+  {
+    "question_id": "acct_q5",
+    "company_id": "BETA-TECH",
+    "company_name": "Beta Tech Solutions",
+    "question": "What are the current opportunities for Beta Tech Solutions? What stages are they in and what are the risks or next steps?",
+    "question_type": "opportunity_status",
+    "answer": "The current opportunity for Beta Tech Solutions is in the Negotiation stage with a value of 32,000 USD and an expected close date of 2025-12-31. The customer is focusing on segmenting contacts for targeted campaigns. The primary risk is inconsistent activity logging across the team. The recommended next step is to import an updated contact list and resolve duplicates [opp_note::OPP-BETA-NEW].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 0,
+      "needs_human_review": 1,
+      "explanation": "The context contains relevant opportunity information for Beta Tech Solutions, including stage, value, and related documents. The answer addresses the question by describing the opportunity stage, value, risks, and next steps. However, the expected close date in the answer (2025-12-31) is not supported by the context, which only states 'Expected close: 2' without specifying a date. Additionally, details about the customer focusing on segmenting contacts and the risk of inconsistent activity logging are not found in the provided context, indicating hallucination. Therefore, the answer is not fully grounded and should be reviewed by a human."
+    },
+    "privacy_leakage": 0,
+    "leaked_company_ids": [],
+    "num_private_hits": 4,
+    "latency_ms": 3541.0377979278564,
+    "total_tokens": 448,
+    "estimated_cost": 0.00028000000000000003
+  },
+  {
+    "question_id": "acct_q6",
+    "company_id": "BETA-TECH",
+    "company_name": "Beta Tech Solutions",
+    "question": "What documents or attachments are associated with Beta Tech Solutions's opportunities? Summarize what they contain.",
+    "question_type": "attachments",
+    "answer": "The documents associated with Beta Tech Solutions's opportunities include the \"Data Import Mapping Sheet,\" which contains the latest pricing, packaging, and implementation timeline [attachment::ATT-0003].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 1,
+      "needs_human_review": 0,
+      "explanation": "The retrieved context includes relevant information about Beta Tech Solutions's opportunity and an attachment describing the document contents. The answer correctly summarizes the document associated with the opportunity without hallucination and directly addresses the question."
+    },
+    "privacy_leakage": 0,
+    "leaked_company_ids": [],
+    "num_private_hits": 4,
+    "latency_ms": 2742.29097366333,
+    "total_tokens": 396,
+    "estimated_cost": 0.00020160000000000002
+  },
+  {
+    "question_id": "acct_q7",
+    "company_id": "CROWN-FOODS",
+    "company_name": "Crown Foods",
+    "question": "Summarize the recent interactions and history with Crown Foods. What calls, emails, or meetings have occurred?",
+    "question_type": "history_summary",
+    "answer": "Recent interactions with Crown Foods include a call focused on renewal planning where renewal options were reviewed [history::HIST-CROWN-CALL1]. There are no specific emails or meetings detailed in the available data.",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 1,
+      "needs_human_review": 0,
+      "explanation": "The context includes relevant information about recent interactions with Crown Foods, specifically a call about renewal planning and related documents. The answer accurately summarizes these interactions without adding unverified details, making it well-grounded and relevant. No indication that human review is necessary."
+    },
+    "privacy_leakage": 0,
+    "leaked_company_ids": [],
+    "num_private_hits": 4,
+    "latency_ms": 4065.92059135437,
+    "total_tokens": 406,
+    "estimated_cost": 0.00021160000000000005
+  },
+  {
+    "question_id": "acct_q8",
+    "company_id": "CROWN-FOODS",
+    "company_name": "Crown Foods",
+    "question": "What are the current opportunities for Crown Foods? What stages are they in and what are the risks or next steps?",
+    "question_type": "opportunity_status",
+    "answer": "The current opportunity for Crown Foods is focused on renewal, with a proposal stage opportunity valued at 18,000 USD and an expected close date of 2025-12-20. The customer is exploring changes to segment contacts for targeted campaigns. The primary risk is inconsistent activity logging across the team. The recommended next step is to create a saved group for renewals and start outreach [opp_note::OPP-CROWN-RENEW].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 0,
+      "needs_human_review": 1,
+      "explanation": "The context provides relevant information about the current opportunity for Crown Foods, including stage, value, and expected close date. The answer addresses the question by summarizing the opportunity and its stage. However, the details about the customer exploring changes to segment contacts, the risk of inconsistent activity logging, and the recommended next steps are not explicitly supported by the retrieved context, indicating hallucination. Therefore, human review is needed to verify these additional details."
+    },
+    "privacy_leakage": 0,
+    "leaked_company_ids": [],
+    "num_private_hits": 4,
+    "latency_ms": 4500.437021255493,
+    "total_tokens": 454,
+    "estimated_cost": 0.00028720000000000004
+  },
+  {
+    "question_id": "acct_q9",
+    "company_id": "CROWN-FOODS",
+    "company_name": "Crown Foods",
+    "question": "What documents or attachments are associated with Crown Foods's opportunities? Summarize what they contain.",
+    "question_type": "attachments",
+    "answer": "The documents associated with Crown Foods's opportunities are:\n\n1. Renewal Quote \u2013 contains CSV field mapping notes and data hygiene rules for import.\n2. Statement of Work \u2013 includes renewal terms and a summary of changes since the last contract period.\n\nThese attachments relate to the renewal opportunity currently in the proposal stage [opp_note::OPP-CROWN-RENEW], [attachment::ATT-0004], [attachment::ATT-0005].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 1,
+      "needs_human_review": 0,
+      "explanation": "The retrieved context includes relevant information about Crown Foods's opportunity and associated attachments. The answer accurately summarizes the documents and their contents based on the provided context without hallucination. No complex judgment or sensitive interpretation is required, so human review is not necessary."
+    },
+    "privacy_leakage": 0,
+    "leaked_company_ids": [],
+    "num_private_hits": 4,
+    "latency_ms": 3383.701801300049,
+    "total_tokens": 449,
+    "estimated_cost": 0.00028400000000000007
+  },
+  {
+    "question_id": "acct_q10",
+    "company_id": "DELTA-HEALTH",
+    "company_name": "Delta Health Clinics",
+    "question": "Summarize the recent interactions and history with Delta Health Clinics. What calls, emails, or meetings have occurred?",
+    "question_type": "history_summary",
+    "answer": "Recent interactions with Delta Health Clinics include a usage review call focused on clinic usage and pain points [history::HIST-DELTA-CALL1]. There is also an ongoing opportunity at the qualified stage valued at $22,000 with an expected close date of 2025-09-01, involving discussions about streamlining contact management and deduplication, with a recommended next step to schedule a 30-minute admin setup call [opp_note::OPP-DELTA-RENEW]. No specific emails or meetings beyond these are noted in the available data.",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 0,
+      "needs_human_review": 1,
+      "explanation": "The context includes relevant account information such as a usage review call and opportunity details. The answer addresses the question by summarizing recent interactions and history. However, the answer mentions discussions about streamlining contact management and deduplication and a recommended next step to schedule a 30-minute admin setup call, which are not present in the retrieved context, indicating hallucination. Therefore, human review is needed to verify these details."
+    },
+    "privacy_leakage": 0,
+    "leaked_company_ids": [],
+    "num_private_hits": 3,
+    "latency_ms": 4771.764755249023,
+    "total_tokens": 452,
+    "estimated_cost": 0.0003164
+  },
+  {
+    "question_id": "acct_q11",
+    "company_id": "DELTA-HEALTH",
+    "company_name": "Delta Health Clinics",
+    "question": "What are the current opportunities for Delta Health Clinics? What stages are they in and what are the risks or next steps?",
+    "question_type": "opportunity_status",
+    "answer": "The current opportunity for Delta Health Clinics is focused on streamlining contact management and deduplication. It is in the Qualified stage with a value of 22,000 USD and an expected close date of 2025-09-01. The primary risk is inconsistent activity logging across the team. The recommended next step is to schedule a 30-minute admin setup call [opp_note::OPP-DELTA-RENEW].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 0,
+      "needs_human_review": 1,
+      "explanation": "The context provides relevant opportunity information including stage, value, and expected close date. The answer addresses the question by summarizing the opportunity, stage, value, and next steps. However, the expected close date in the answer (2025-09-01) is not explicitly stated in the context, which only shows 'Expected close: 20' (likely incomplete). Also, the mention of 'streamlining contact management and deduplication' and the risk of 'inconsistent activity logging' are not supported by the retrieved context. Therefore, the answer is not fully grounded and should be reviewed by a human."
+    },
+    "privacy_leakage": 0,
+    "leaked_company_ids": [],
+    "num_private_hits": 3,
+    "latency_ms": 4243.942737579346,
+    "total_tokens": 426,
+    "estimated_cost": 0.00027360000000000004
+  },
+  {
+    "question_id": "acct_q12",
+    "company_id": "DELTA-HEALTH",
+    "company_name": "Delta Health Clinics",
+    "question": "What documents or attachments are associated with Delta Health Clinics's opportunities? Summarize what they contain.",
+    "question_type": "attachments",
+    "answer": "The attachment associated with Delta Health Clinics's opportunities is the Security Questionnaire (ATT-0006). It contains the latest pricing, packaging, and implementation timeline details [attachment::ATT-0006].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 1,
+      "needs_human_review": 0,
+      "explanation": "The retrieved context includes relevant information about the opportunity and the attachment. The answer correctly identifies the attachment and summarizes its content based on the context without hallucination. No human review is necessary as the answer is straightforward and well-grounded."
+    },
+    "privacy_leakage": 0,
+    "leaked_company_ids": [],
+    "num_private_hits": 3,
+    "latency_ms": 3090.6808376312256,
+    "total_tokens": 375,
+    "estimated_cost": 0.0001968
+  }
+]

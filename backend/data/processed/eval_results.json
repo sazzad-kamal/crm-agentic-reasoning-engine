@@ -1,0 +1,264 @@
+[
+  {
+    "question_id": "q1",
+    "question": "What is an Opportunity in Acme CRM Suite and what fields does it have?",
+    "target_doc_ids": [
+      "opportunities_pipeline_and_forecasts"
+    ],
+    "retrieved_doc_ids": [
+      "product_acme_crm_overview",
+      "faq_data_import_export",
+      "system_performance_and_limits",
+      "opportunities_pipeline_and_forecasts",
+      "history_activities_and_calendar",
+      "contacts_companies_and_groups"
+    ],
+    "answer": "An Opportunity in Acme CRM Suite represents a potential sale, expansion, or renewal. It typically answers what might be sold, to which company, for how much, and by when. Common fields for an Opportunity include:\n\n- Name (e.g., \u201cAcme \u2013 Annual Subscription Upgrade\u201d)\n- Company\n- Owner\n- Stage\n- Value (amount)\n- Expected Close Date\n- Source (Referral, Inbound, Outbound, etc.)\n\n[opportunities_pipeline_and_forecasts]",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 0,
+      "needs_human_review": 1,
+      "confidence": 0.8,
+      "explanation": "The retrieved context includes a document titled 'opportunities_pipeline_and_forecasts' which is likely relevant to defining an Opportunity and its fields, and the answer addresses the question directly. However, the provided context excerpts do not explicitly define 'Opportunity' or list its fields, so the answer's specific field details cannot be verified from the given context, indicating a lack of grounding. Due to this, human review is recommended to confirm accuracy."
+    },
+    "doc_recall": 1.0,
+    "latency_ms": 8070.694923400879,
+    "total_tokens": 1266
+  },
+  {
+    "question_id": "q2",
+    "question": "How can I see which accounts have upcoming renewals?",
+    "target_doc_ids": [
+      "reports_dashboards_and_analytics",
+      "opportunities_pipeline_and_forecasts"
+    ],
+    "retrieved_doc_ids": [
+      "faq_data_import_export",
+      "product_acme_crm_overview",
+      "system_performance_and_limits",
+      "reports_dashboards_and_analytics"
+    ],
+    "answer": "You can see which accounts have upcoming renewals by using the **Customer Health** dashboard in Acme CRM Suite. This dashboard includes a tile specifically for \"Accounts with upcoming renewals,\" allowing you to filter and review these accounts easily [reports_dashboards_and_analytics].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 1,
+      "needs_human_review": 0,
+      "confidence": 0.95,
+      "explanation": "The retrieved context from 'reports_dashboards_and_analytics' explicitly mentions a 'Customer Health' dashboard that includes 'Accounts with upcoming renewals,' which directly answers the question. The answer correctly references this information and does not include unsupported claims, making it well-grounded and relevant. No sensitive or uncertain information is present, so no human review is needed."
+    },
+    "doc_recall": 0.5,
+    "latency_ms": 4253.439426422119,
+    "total_tokens": 1180
+  },
+  {
+    "question_id": "q3",
+    "question": "What's the difference between History and Activities in Acme CRM?",
+    "target_doc_ids": [
+      "history_activities_and_calendar"
+    ],
+    "retrieved_doc_ids": [
+      "product_acme_crm_overview",
+      "system_performance_and_limits",
+      "history_activities_and_calendar",
+      "reports_dashboards_and_analytics"
+    ],
+    "answer": "In Acme CRM Suite, **History** is a record of what has happened with each company or contact and may appear as a unified History tab or separate Activities and Notes sections depending on configuration. It includes logged calls, meetings, emails (subject and key details), notes, and system events.\n\nAn **Activity** is a specific type of history record that usually includes details such as Type (Call, Meeting, Email, Note), Date/Time, Owner, Subject, optional description, and links to company/contact/opportunity.\n\nIn short, History is the broader collection of past interactions and events, while Activities are individual records within that history representing specific actions or communications that have occurred [history_activities_and_calendar].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 1,
+      "needs_human_review": 0,
+      "confidence": 0.95,
+      "explanation": "The retrieved context from 'history_activities_and_calendar' directly explains the difference between History and Activities in Acme CRM, which the answer accurately summarizes. The answer is well grounded in the provided context and addresses the question clearly without unsupported claims. No sensitive or uncertain information is present, so no human review is needed."
+    },
+    "doc_recall": 1.0,
+    "latency_ms": 4753.384590148926,
+    "total_tokens": 1435
+  },
+  {
+    "question_id": "q4",
+    "question": "How do I create a contact and associate it with a company?",
+    "target_doc_ids": [
+      "contacts_companies_and_groups"
+    ],
+    "retrieved_doc_ids": [
+      "product_acme_crm_overview",
+      "faq_data_import_export",
+      "system_performance_and_limits",
+      "email_marketing_campaigns",
+      "contacts_companies_and_groups"
+    ],
+    "answer": "To create a contact and associate it with a company in Acme CRM Suite, you can import contacts and companies together using a CSV file that includes both contact details and the associated company name. During the import process, map your CSV columns to Acme fields such as Contact Name, Email, and Company Name. This will link the contact to the specified company automatically. You also choose how to handle duplicates (skip, update, or create new) before running the import and reviewing the summary report. For more details, see the import steps in [faq_data_import_export] and [contacts_companies_and_groups].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 1,
+      "needs_human_review": 0,
+      "confidence": 0.95,
+      "explanation": "The retrieved context includes detailed instructions on importing contacts and companies via CSV files, mapping fields including company name to associate contacts with companies, and handling duplicates. The answer directly addresses the question by explaining how to create a contact and associate it with a company using the import process, which is supported by the context. There are no unsupported claims or hallucinations, and the answer is clear and reliable, so no human review is needed."
+    },
+    "doc_recall": 1.0,
+    "latency_ms": 5143.604040145874,
+    "total_tokens": 1273
+  },
+  {
+    "question_id": "q5",
+    "question": "What are Groups and how are they used?",
+    "target_doc_ids": [
+      "contacts_companies_and_groups"
+    ],
+    "retrieved_doc_ids": [
+      "product_acme_crm_overview",
+      "system_performance_and_limits",
+      "email_marketing_campaigns",
+      "history_activities_and_calendar",
+      "reports_dashboards_and_analytics"
+    ],
+    "answer": "I don't see this documented in the provided sources.",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 0,
+      "groundedness": 1,
+      "needs_human_review": 1,
+      "confidence": 0.9,
+      "explanation": "The retrieved context includes references to 'groups' in the email marketing campaigns document, indicating that groups are used for sending email campaigns and filtering contacts. Thus, the context is relevant. However, the answer does not address the question and simply states that the information is not documented. The answer is grounded in the context since it does not make unsupported claims, but it fails to utilize the relevant information present. Because the answer is incomplete and potentially misleading, it requires human review."
+    },
+    "doc_recall": 0.0,
+    "latency_ms": 4001.97434425354,
+    "total_tokens": 1245
+  },
+  {
+    "question_id": "q6",
+    "question": "How do I set up an email marketing campaign?",
+    "target_doc_ids": [
+      "email_marketing_campaigns"
+    ],
+    "retrieved_doc_ids": [
+      "product_acme_crm_overview",
+      "faq_data_import_export",
+      "system_performance_and_limits",
+      "email_marketing_campaigns",
+      "contacts_companies_and_groups",
+      "reports_dashboards_and_analytics"
+    ],
+    "answer": "To set up an email marketing campaign in Acme CRM Suite, follow these general steps:\n\n1. Prepare your contact groups by ensuring your customer and lead data is accurate, using the Companies and Contacts lists as a starting point. You can import contacts from spreadsheets, other CRMs, or signup forms by preparing a CSV file, mapping columns to Acme fields, and handling duplicates appropriately [contacts_companies_and_groups], [product_acme_crm_overview].\n\n2. Create a one-off email campaign or a simple multi-step sequence (e.g., onboarding) targeting your chosen contact groups. Acme CRM Suite supports sending these campaigns to existing customers and warm leads, not for cold outreach [email_marketing_campaigns].\n\n3. Use activity-based filters and groups to segment your audience and avoid sending too many emails, respecting unsubscribes and compliance [email_marketing_campaigns].\n\n4. After sending, track open and click metrics, as well as unsubscribes and bounces, through the Email Performance dashboard to monitor campaign effectiveness [email_marketing_campaigns], [reports_dashboards_and_analytics].\n\n5. Review the contact history to see which campaigns a contact has received and their engagement [email_marketing_campaigns].\n\nThis process leverages Acme CRM Suite\u2019s built-in email marketing features designed for customer communication and onboarding rather than high-volume cold outreach [email_marketing_campaigns], [product_acme_crm_overview].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 1,
+      "needs_human_review": 0,
+      "confidence": 0.95,
+      "explanation": "The retrieved context includes detailed information about Acme CRM Suite's email marketing features, contact import, and campaign tracking, all relevant to setting up an email marketing campaign. The answer directly addresses the question by outlining steps consistent with the context, such as preparing contacts, creating campaigns, segmenting audiences, and tracking metrics. All claims in the answer are supported by the provided documents, and the answer appears reliable without hallucinations or unsupported information."
+    },
+    "doc_recall": 1.0,
+    "latency_ms": 7426.926136016846,
+    "total_tokens": 1517
+  },
+  {
+    "question_id": "q7",
+    "question": "What are the system limits for Acme CRM Suite?",
+    "target_doc_ids": [
+      "system_performance_and_limits"
+    ],
+    "retrieved_doc_ids": [
+      "product_acme_crm_overview",
+      "system_performance_and_limits",
+      "email_marketing_campaigns",
+      "history_activities_and_calendar",
+      "reports_dashboards_and_analytics"
+    ],
+    "answer": "Acme CRM Suite system limits include considerations around attachments and storage:\n\n- Very large files consume more storage and may take longer to upload or download.\n- Large numbers of attachments on a single record can increase load times for that record\u2019s document view.\n- Some deployments enforce maximum file size or total storage quotas.\n\nTo manage these limits in production environments, it is common to store only the most relevant documents in the CRM, archive older or rarely used files externally, and apply sensible file-size limits [system_performance_and_limits].\n\nNo other specific system limits are documented in the provided sources.",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 1,
+      "needs_human_review": 0,
+      "confidence": 0.95,
+      "explanation": "The retrieved context from 'system_performance_and_limits' directly addresses system limits related to attachments and storage, which the answer accurately summarizes. The answer does not introduce unsupported claims and clearly states that no other limits are documented in the provided context. Therefore, it is well-grounded and relevant, and does not require human review."
+    },
+    "doc_recall": 1.0,
+    "latency_ms": 4719.504833221436,
+    "total_tokens": 1286
+  },
+  {
+    "question_id": "q8",
+    "question": "How do I create a custom dashboard?",
+    "target_doc_ids": [
+      "reports_dashboards_and_analytics"
+    ],
+    "retrieved_doc_ids": [
+      "product_acme_crm_overview",
+      "system_performance_and_limits",
+      "email_marketing_campaigns",
+      "history_activities_and_calendar",
+      "contacts_companies_and_groups",
+      "reports_dashboards_and_analytics"
+    ],
+    "answer": "I don't see this documented in the provided sources. The documentation describes the standard pre-built dashboards available but does not explain how to create custom dashboards [reports_dashboards_and_analytics].",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 1,
+      "needs_human_review": 0,
+      "confidence": 0.9,
+      "explanation": "The retrieved context includes information about dashboards and reports but does not provide instructions on creating custom dashboards. The answer correctly states that the documentation only describes pre-built dashboards and does not explain how to create custom ones, directly addressing the question and grounded in the provided context."
+    },
+    "doc_recall": 1.0,
+    "latency_ms": 4008.410692214966,
+    "total_tokens": 1230
+  },
+  {
+    "question_id": "q9",
+    "question": "What pipeline stages are available for opportunities?",
+    "target_doc_ids": [
+      "opportunities_pipeline_and_forecasts"
+    ],
+    "retrieved_doc_ids": [
+      "product_acme_crm_overview",
+      "system_performance_and_limits",
+      "email_marketing_campaigns",
+      "history_activities_and_calendar",
+      "reports_dashboards_and_analytics"
+    ],
+    "answer": "I don't see this documented in the provided sources. The available pipeline stages for opportunities are not specified in the given context. [product_acme_crm_overview], [reports_dashboards_and_analytics]",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 1,
+      "needs_human_review": 0,
+      "confidence": 0.9,
+      "explanation": "The retrieved documents include information about opportunities and sales pipeline in Acme CRM Suite, which is relevant to the question. The answer correctly states that the specific pipeline stages for opportunities are not detailed in the provided context, thus directly addressing the question without hallucination. Since the answer is accurate and grounded in the context, no human review is needed."
+    },
+    "doc_recall": 0.0,
+    "latency_ms": 3993.3109283447266,
+    "total_tokens": 1199
+  },
+  {
+    "question_id": "q10",
+    "question": "How do I import data into Acme CRM?",
+    "target_doc_ids": [
+      "faq_data_import_export"
+    ],
+    "retrieved_doc_ids": [
+      "product_acme_crm_overview",
+      "faq_data_import_export",
+      "system_performance_and_limits",
+      "email_marketing_campaigns",
+      "contacts_companies_and_groups"
+    ],
+    "answer": "To import data into Acme CRM Suite, follow these basic steps:\n\n1. Prepare a CSV file with clear column headers.\n2. Choose the target record type (e.g., Companies, Contacts).\n3. Map your CSV columns to Acme CRM fields such as Company Name, Email, Owner, etc.\n4. Decide how to handle duplicates: skip, update existing records, or create new ones.\n5. Run the import and review the summary report for any errors or skipped rows.\n\nYou can import contacts and companies from spreadsheets, exports from other CRMs, or signup forms depending on your setup. If many rows are skipped, check error messages for missing required fields or invalid formats.\n\nFor more details, see the import sections in both [contacts_companies_and_groups] and [faq_data_import_export].\n\nReferences: [contacts_companies_and_groups], [faq_data_import_export]",
+    "judge_result": {
+      "context_relevance": 1,
+      "answer_relevance": 1,
+      "groundedness": 1,
+      "needs_human_review": 0,
+      "confidence": 0.95,
+      "explanation": "The retrieved context includes detailed instructions on importing data into Acme CRM, specifically from the 'contacts_companies_and_groups' document, which outlines the steps for importing contacts and companies. The answer accurately summarizes these steps and mentions relevant details such as CSV preparation, field mapping, duplicate handling, and reviewing import summaries. It also references the appropriate documents for further information. There are no hallucinations or unsupported claims, and the answer directly addresses the question. Therefore, no human review is necessary."
+    },
+    "doc_recall": 1.0,
+    "latency_ms": 6343.129634857178,
+    "total_tokens": 1347
+  }
+]

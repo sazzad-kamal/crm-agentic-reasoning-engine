@@ -26,11 +26,14 @@ import pandas as pd
 # Configuration
 # =============================================================================
 
-# Possible CSV directories in priority order
+# Get backend root directory
+_BACKEND_ROOT = Path(__file__).parent.parent.parent
+
+# Possible CSV directories in priority order (relative to backend/)
 CSV_DIR_CANDIDATES = [
-    Path("data/crm"),
-    Path("data/csv"),
-    Path("docs/csv"),
+    _BACKEND_ROOT / "data" / "crm",
+    _BACKEND_ROOT / "data" / "csv",
+    _BACKEND_ROOT / "data" / "docs" / "csv",
 ]
 
 # Required files for MVP2

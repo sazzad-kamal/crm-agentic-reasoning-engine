@@ -22,14 +22,14 @@ logger = logging.getLogger(__name__)
 # Path Resolution
 # =============================================================================
 
-def _get_project_root() -> Path:
-    """Get the project root directory (grandparent of backend/rag)."""
-    return Path(__file__).parent.parent.parent
+def _get_backend_root() -> Path:
+    """Get the backend root directory (parent of backend/rag)."""
+    return Path(__file__).parent.parent
 
 
 def _resolve_path(relative_path: str) -> Path:
-    """Resolve a relative path from project root to an absolute path."""
-    return _get_project_root() / relative_path
+    """Resolve a relative path from backend root to an absolute path."""
+    return _get_backend_root() / relative_path
 
 
 class RAGConfig(BaseSettings):

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { ChatMessage } from "../types";
 import { config } from "../config";
 import { LoadingState } from "./LoadingDots";
@@ -13,27 +14,41 @@ interface MessageBlockProps {
 }
 
 /**
- * Renders a single chat message with question and response
+ * Renders a single chat message with question and response.
+ * Memoized to prevent unnecessary re-renders in the message list.
  */
-export function MessageBlock({ message, onFollowUpClick }: MessageBlockProps) {
+export const MessageBlock = memo(function MessageBlock({
+  message,
+  onFollowUpClick,
+}: MessageBlockProps) {
   const { response } = message;
 
   return (
-    <div className="message-block">
+    <article
+      className="message-block"
+      role="listitem"
+      aria-label={`Conversation about: ${message.question.slice(0, 50)}${message.question.length > 50 ? "..." : ""}`}
+    >
       {/* User Question */}
-      <div className="message__label message__label--user">You</div>
-      <div className="message__question">{message.question}</div>
+      <div className="message__label message__label--user" aria-hidden="true">
+        You
+      </div>
+      <div className="message__question" role="heading" aria-level={3}>
+        {message.question}
+      </div>
 
       {/* Assistant Response */}
-      <div className="message__label message__label--assistant">Assistant</div>
+      <div className="message__label message__label--assistant" aria-hidden="true">
+        Assistant
+      </div>
 
       {response ? (
-        <>
+        <div className="message__response">
           {/* Answer Text */}
           <div className="message__answer">{response.answer}</div>
 
           {/* Sources */}
-          {config.features.showSources && response.sources && (
+          {config.features.showSources && response.sources && response.sources.length > 0 && (
             <SourcesRow sources={response.sources} />
           )}
 
@@ -43,7 +58,7 @@ export function MessageBlock({ message, onFollowUpClick }: MessageBlockProps) {
           )}
 
           {/* Steps */}
-          {config.features.showSteps && response.steps && (
+          {config.features.showSteps && response.steps && response.steps.length > 0 && (
             <StepsRow steps={response.steps} />
           )}
 
@@ -55,16 +70,17 @@ export function MessageBlock({ message, onFollowUpClick }: MessageBlockProps) {
           {/* Follow-up Suggestions */}
           {config.features.showFollowUpSuggestions &&
             response.follow_up_suggestions &&
+            response.follow_up_suggestions.length > 0 &&
             onFollowUpClick && (
               <FollowUpSuggestions
                 suggestions={response.follow_up_suggestions}
                 onSuggestionClick={onFollowUpClick}
               />
             )}
-        </>
+        </div>
       ) : (
         <LoadingState />
       )}
-    </div>
+    </article>
   );
-}
+});

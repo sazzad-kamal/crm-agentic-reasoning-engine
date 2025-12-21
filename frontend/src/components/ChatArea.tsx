@@ -17,11 +17,17 @@ export const ChatArea = forwardRef<HTMLDivElement, ChatAreaProps>(
     const isEmpty = messages.length === 0;
 
     return (
-      <div className="chat-area" ref={ref}>
+      <div
+        className="chat-area"
+        ref={ref}
+        role="log"
+        aria-live="polite"
+        aria-label="Chat messages"
+      >
         {isEmpty ? (
           <EmptyState onSuggestionClick={onSuggestionClick} />
         ) : (
-          <div className="message-list">
+          <div className="message-list" role="list">
             {messages.map((msg) => (
               <MessageBlock
                 key={msg.id}
@@ -45,15 +51,22 @@ interface EmptyStateProps {
  */
 function EmptyState({ onSuggestionClick }: EmptyStateProps) {
   return (
-    <div className="empty-state">
-      <div className="empty-state__title">Try asking one of these questions:</div>
-      <div className="empty-state__suggestions">
+    <div className="empty-state" role="region" aria-label="Getting started">
+      <div className="empty-state__title" id="suggestions-label">
+        Try asking one of these questions:
+      </div>
+      <div
+        className="empty-state__suggestions"
+        role="group"
+        aria-labelledby="suggestions-label"
+      >
         {EXAMPLE_PROMPTS.map((prompt, index) => (
           <button
             key={index}
             className="suggestion-btn"
             onClick={() => onSuggestionClick(prompt)}
             type="button"
+            aria-label={`Ask: ${prompt}`}
           >
             {prompt}
           </button>

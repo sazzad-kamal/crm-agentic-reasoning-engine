@@ -1,3 +1,5 @@
+import type { KeyboardEvent } from "react";
+
 interface FollowUpSuggestionsProps {
   suggestions: string[];
   onSuggestionClick: (suggestion: string) => void;
@@ -12,15 +14,30 @@ export function FollowUpSuggestions({
 }: FollowUpSuggestionsProps) {
   if (!suggestions || suggestions.length === 0) return null;
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, suggestion: string) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onSuggestionClick(suggestion);
+    }
+  };
+
   return (
-    <div className="follow-up-container">
-      <span className="follow-up-container__label">💡 Follow-up questions:</span>
+    <div
+      className="follow-up-container"
+      role="group"
+      aria-label="Suggested follow-up questions"
+    >
+      <span className="follow-up-container__label" aria-hidden="true">
+        💡 Follow-up questions:
+      </span>
       {suggestions.map((suggestion, idx) => (
         <button
           key={idx}
           className="follow-up-chip"
           onClick={() => onSuggestionClick(suggestion)}
+          onKeyDown={(e) => handleKeyDown(e, suggestion)}
           type="button"
+          aria-label={`Ask follow-up: ${suggestion}`}
         >
           {suggestion}
         </button>

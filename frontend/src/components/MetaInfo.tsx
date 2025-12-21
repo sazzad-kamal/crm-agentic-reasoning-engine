@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { Meta } from "../types";
 
 interface MetaInfoProps {
@@ -5,12 +6,13 @@ interface MetaInfoProps {
 }
 
 /**
- * Displays response metadata (latency, mode, etc.)
+ * Displays response metadata (latency, mode, etc.).
+ * Memoized for performance.
  */
-export function MetaInfo({ meta }: MetaInfoProps) {
+export const MetaInfo = memo(function MetaInfo({ meta }: MetaInfoProps) {
   const parts: string[] = [];
 
-  if (meta.latency_ms) {
+  if (meta.latency_ms !== undefined) {
     parts.push(`${meta.latency_ms}ms`);
   }
 
@@ -24,5 +26,13 @@ export function MetaInfo({ meta }: MetaInfoProps) {
 
   if (parts.length === 0) return null;
 
-  return <div className="meta-line">{parts.join(" · ")}</div>;
-}
+  return (
+    <div
+      className="meta-line"
+      role="contentinfo"
+      aria-label={`Response metadata: ${parts.join(", ")}`}
+    >
+      {parts.join(" · ")}
+    </div>
+  );
+});

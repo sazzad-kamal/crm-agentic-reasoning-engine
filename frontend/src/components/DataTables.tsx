@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import type { RawData } from "../types";
 
 interface DataTablesProps {
@@ -6,45 +6,82 @@ interface DataTablesProps {
 }
 
 /**
- * Collapsible data tables showing raw CRM data
+ * Collapsible data tables showing raw CRM data.
+ * Memoized for performance with large datasets.
  */
-export function DataTables({ rawData }: DataTablesProps) {
+export const DataTables = memo(function DataTables({ rawData }: DataTablesProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const hasData =
-    (rawData.companies && rawData.companies.length > 0) ||
-    (rawData.activities && rawData.activities.length > 0) ||
-    (rawData.opportunities && rawData.opportunities.length > 0) ||
-    (rawData.history && rawData.history.length > 0) ||
-    (rawData.renewals && rawData.renewals.length > 0);
+  const hasData = useMemo(
+    () =>
+      (rawData.companies && rawData.companies.length > 0) ||
+      (rawData.activities && rawData.activities.length > 0) ||
+      (rawData.opportunities && rawData.opportunities.length > 0) ||
+      (rawData.history && rawData.history.length > 0) ||
+      (rawData.renewals && rawData.renewals.length > 0),
+    [rawData]
+  );
+
+  const toggleExpanded = useCallback(() => {
+    setExpanded((prev) => !prev);
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleExpanded();
+      }
+    },
+    [toggleExpanded]
+  );
 
   if (!hasData) return null;
 
+  const tableCount = [
+    rawData.companies?.length,
+    rawData.activities?.length,
+    rawData.opportunities?.length,
+    rawData.history?.length,
+    rawData.renewals?.length,
+  ].filter(Boolean).length;
+
   return (
-    <div className="data-section">
-      <div
+    <section
+      className="data-section"
+      aria-label="Data used in response"
+    >
+      <button
         className="data-section__header"
-        onClick={() => setExpanded(!expanded)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && setExpanded(!expanded)}
+        onClick={toggleExpanded}
+        onKeyDown={handleKeyDown}
+        type="button"
+        aria-expanded={expanded}
+        aria-controls="data-tables-content"
       >
-        <span>{expanded ? "▼" : "▶"}</span>
-        <span>Data used</span>
-      </div>
+        <span aria-hidden="true">{expanded ? "▼" : "▶"}</span>
+        <span>Data used ({tableCount} table{tableCount !== 1 ? "s" : ""})</span>
+      </button>
 
       {expanded && (
-        <div className="data-section__content">
+        <div
+          id="data-tables-content"
+          className="data-section__content"
+          role="region"
+          aria-label="Data tables"
+        >
           {/* Companies Table */}
           {rawData.companies && rawData.companies.length > 0 && (
-            <>
-              <div className="data-table__title">Companies</div>
-              <table className="data-table">
+            <div role="region" aria-label="Companies data">
+              <h4 className="data-table__title" id="companies-table-label">
+                Companies ({rawData.companies.length})
+              </h4>
+              <table className="data-table" aria-labelledby="companies-table-label">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Plan</th>
-                    <th>Renewal Date</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Plan</th>
+                    <th scope="col">Renewal Date</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -57,20 +94,22 @@ export function DataTables({ rawData }: DataTablesProps) {
                   ))}
                 </tbody>
               </table>
-            </>
+            </div>
           )}
 
           {/* Activities Table */}
           {rawData.activities && rawData.activities.length > 0 && (
-            <>
-              <div className="data-table__title">Activities</div>
-              <table className="data-table">
+            <div role="region" aria-label="Activities data">
+              <h4 className="data-table__title" id="activities-table-label">
+                Activities ({rawData.activities.length})
+              </h4>
+              <table className="data-table" aria-labelledby="activities-table-label">
                 <thead>
                   <tr>
-                    <th>Type</th>
-                    <th>Occurred At</th>
-                    <th>Owner</th>
-                    <th>Summary</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Occurred At</th>
+                    <th scope="col">Owner</th>
+                    <th scope="col">Summary</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -84,20 +123,22 @@ export function DataTables({ rawData }: DataTablesProps) {
                   ))}
                 </tbody>
               </table>
-            </>
+            </div>
           )}
 
           {/* Opportunities Table */}
           {rawData.opportunities && rawData.opportunities.length > 0 && (
-            <>
-              <div className="data-table__title">Opportunities</div>
-              <table className="data-table">
+            <div role="region" aria-label="Opportunities data">
+              <h4 className="data-table__title" id="opportunities-table-label">
+                Opportunities ({rawData.opportunities.length})
+              </h4>
+              <table className="data-table" aria-labelledby="opportunities-table-label">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Stage</th>
-                    <th>Expected Close</th>
-                    <th>Value</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Stage</th>
+                    <th scope="col">Expected Close</th>
+                    <th scope="col">Value</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -111,19 +152,21 @@ export function DataTables({ rawData }: DataTablesProps) {
                   ))}
                 </tbody>
               </table>
-            </>
+            </div>
           )}
 
           {/* History Table */}
           {rawData.history && rawData.history.length > 0 && (
-            <>
-              <div className="data-table__title">History</div>
-              <table className="data-table">
+            <div role="region" aria-label="History data">
+              <h4 className="data-table__title" id="history-table-label">
+                History ({rawData.history.length})
+              </h4>
+              <table className="data-table" aria-labelledby="history-table-label">
                 <thead>
                   <tr>
-                    <th>Event</th>
-                    <th>Occurred At</th>
-                    <th>Description</th>
+                    <th scope="col">Event</th>
+                    <th scope="col">Occurred At</th>
+                    <th scope="col">Description</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -136,19 +179,21 @@ export function DataTables({ rawData }: DataTablesProps) {
                   ))}
                 </tbody>
               </table>
-            </>
+            </div>
           )}
 
           {/* Renewals Table */}
           {rawData.renewals && rawData.renewals.length > 0 && (
-            <>
-              <div className="data-table__title">Upcoming Renewals</div>
-              <table className="data-table">
+            <div role="region" aria-label="Renewals data">
+              <h4 className="data-table__title" id="renewals-table-label">
+                Upcoming Renewals ({rawData.renewals.length})
+              </h4>
+              <table className="data-table" aria-labelledby="renewals-table-label">
                 <thead>
                   <tr>
-                    <th>Company</th>
-                    <th>Plan</th>
-                    <th>Renewal Date</th>
+                    <th scope="col">Company</th>
+                    <th scope="col">Plan</th>
+                    <th scope="col">Renewal Date</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -161,37 +206,43 @@ export function DataTables({ rawData }: DataTablesProps) {
                   ))}
                 </tbody>
               </table>
-            </>
+            </div>
           )}
 
           {/* Pipeline Summary */}
           {rawData.pipeline_summary && (
-            <>
-              <div className="data-table__title">Pipeline Summary</div>
-              <table className="data-table">
+            <div role="region" aria-label="Pipeline summary data">
+              <h4 className="data-table__title" id="pipeline-table-label">
+                Pipeline Summary
+              </h4>
+              <table className="data-table" aria-labelledby="pipeline-table-label">
                 <tbody>
                   <tr>
-                    <td>Total Value</td>
+                    <th scope="row">Total Value</th>
                     <td>{formatCurrency(rawData.pipeline_summary.total_value)}</td>
                   </tr>
                   <tr>
-                    <td>Opportunity Count</td>
+                    <th scope="row">Opportunity Count</th>
                     <td>{rawData.pipeline_summary.count}</td>
                   </tr>
                 </tbody>
               </table>
-            </>
+            </div>
           )}
         </div>
       )}
-    </div>
+    </section>
   );
-}
+});
 
 // Utility functions for formatting
 function formatDate(dateStr: string): string {
   try {
-    return new Date(dateStr).toLocaleDateString();
+    return new Date(dateStr).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   } catch {
     return dateStr;
   }
@@ -199,12 +250,23 @@ function formatDate(dateStr: string): string {
 
 function formatDateTime(dateStr: string): string {
   try {
-    return new Date(dateStr).toLocaleString();
+    return new Date(dateStr).toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   } catch {
     return dateStr;
   }
 }
 
 function formatCurrency(value: number): string {
-  return `$${value.toLocaleString()}`;
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
 }

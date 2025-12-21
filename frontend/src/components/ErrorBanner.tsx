@@ -8,19 +8,13 @@ interface ErrorBannerProps {
  */
 export function ErrorBanner({ message, onDismiss }: ErrorBannerProps) {
   return (
-    <div className="error-banner" role="alert">
-      <span>{message}</span>
+    <div className="error-banner" role="alert" aria-live="assertive">
+      <span className="error-banner__message">{message}</span>
       {onDismiss && (
         <button
+          className="error-banner__dismiss"
           onClick={onDismiss}
-          style={{
-            marginLeft: 12,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "inherit",
-            fontSize: "inherit",
-          }}
+          type="button"
           aria-label="Dismiss error"
         >
           ✕

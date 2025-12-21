@@ -9,3 +9,6 @@ export { MessageBlock } from "./MessageBlock";
 export { ChatArea } from "./ChatArea";
 export { InputBar } from "./InputBar";
 export { ErrorBanner } from "./ErrorBanner";
+export { ErrorBoundary } from "./ErrorBoundary";
+export { SkipLink } from "./SkipLink";
+export { MessageSkeleton, ChatSkeleton } from "./Skeleton";

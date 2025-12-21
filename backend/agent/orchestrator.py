@@ -503,6 +503,152 @@ def _format_docs_section(docs_answer: str) -> str:
 
 
 # =============================================================================
+# Data Gathering Helpers
+# =============================================================================
+
+def _gather_renewals_data(
+    days: int,
+    sources: list[Source],
+    raw_data: dict,
+) -> dict:
+    """
+    Gather renewal data when no specific company is targeted.
+    
+    Args:
+        days: Number of days to look ahead for renewals
+        sources: List to append sources to (modified in place)
+        raw_data: Dict to update with renewal data (modified in place)
+        
+    Returns:
+        The renewals result data dict
+    """
+    logger.debug(f"Fetching renewals for next {days} days")
+    renewals_result = tool_upcoming_renewals(days=days)
+    sources.extend(renewals_result.sources)
+    raw_data["renewals"] = renewals_result.data.get("renewals", [])[:8]
+    return renewals_result.data
+
+
+def _gather_company_data(
+    query: str,
+    days: int,
+    sources: list[Source],
+    raw_data: dict,
+) -> tuple[Optional[dict], Optional[dict], Optional[dict], Optional[dict], Optional[str]]:
+    """
+    Gather all data for a specific company.
+    
+    This function fetches company info, activities, history, and pipeline
+    data in sequence, updating the sources and raw_data as it goes.
+    
+    Args:
+        query: Company ID or name to look up
+        days: Number of days of history to fetch
+        sources: List to append sources to (modified in place)
+        raw_data: Dict to update with company data (modified in place)
+        
+    Returns:
+        Tuple of (company_data, activities_data, history_data, pipeline_data, resolved_company_id)
+    """
+    logger.debug(f"Looking up company: {query}")
+    company_result = tool_company_lookup(query)
+    
+    if not company_result.data.get("found"):
+        # Company not found - return early with partial data
+        return company_result.data, None, None, None, None
+    
+    # Company found - gather all related data
+    company_data = company_result.data
+    sources.extend(company_result.sources)
+    resolved_company_id = company_data["company"]["company_id"]
+    raw_data["companies"] = [company_data["company"]]
+    
+    logger.debug(f"Fetching data for company {resolved_company_id}")
+    
+    # Fetch activities (recent interactions)
+    activities_result = tool_recent_activity(resolved_company_id, days=days)
+    activities_data = activities_result.data
+    sources.extend(activities_result.sources)
+    raw_data["activities"] = activities_data.get("activities", [])[:8]
+    
+    # Fetch history (communications log)
+    history_result = tool_recent_history(resolved_company_id, days=days)
+    history_data = history_result.data
+    sources.extend(history_result.sources)
+    raw_data["history"] = history_data.get("history", [])[:8]
+    
+    # Fetch pipeline (open opportunities)
+    pipeline_result = tool_pipeline(resolved_company_id)
+    pipeline_data = pipeline_result.data
+    sources.extend(pipeline_result.sources)
+    raw_data["opportunities"] = pipeline_data.get("opportunities", [])[:8]
+    raw_data["pipeline_summary"] = pipeline_data.get("summary")
+    
+    logger.info(
+        f"Data fetched: activities={len(activities_data.get('activities', []))}, "
+        f"history={len(history_data.get('history', []))}, "
+        f"opps={len(pipeline_data.get('opportunities', []))}"
+    )
+    
+    return company_data, activities_data, history_data, pipeline_data, resolved_company_id
+
+
+def _generate_answer(
+    question: str,
+    company_data: Optional[dict],
+    activities_data: Optional[dict],
+    history_data: Optional[dict],
+    pipeline_data: Optional[dict],
+    renewals_data: Optional[dict],
+    docs_answer: str,
+) -> tuple[str, int]:
+    """
+    Generate the final answer using the LLM.
+    
+    Handles two cases:
+    1. Company not found - asks for clarification with close matches
+    2. Normal case - synthesizes answer from all gathered data
+    
+    Args:
+        question: Original user question
+        company_data: Company info dict (may indicate not found)
+        activities_data: Recent activities or None
+        history_data: Communication history or None
+        pipeline_data: Open opportunities or None
+        renewals_data: Upcoming renewals or None
+        docs_answer: Documentation RAG answer or empty string
+        
+    Returns:
+        Tuple of (answer_text, llm_latency_ms)
+    """
+    # Case 1: Company was searched but not found
+    if company_data and not company_data.get("found"):
+        matches_text = "\n".join([
+            f"- {m.get('name')} ({m.get('company_id')})"
+            for m in company_data.get("close_matches", [])[:5]
+        ]) or "No similar companies found."
+        
+        prompt = COMPANY_NOT_FOUND_PROMPT.format(
+            question=question,
+            query=company_data.get("query", "unknown"),
+            matches=matches_text,
+        )
+        return _call_llm(prompt, AGENT_SYSTEM_PROMPT)
+    
+    # Case 2: Normal answer generation with available data
+    prompt = DATA_ANSWER_PROMPT.format(
+        question=question,
+        company_section=_format_company_section(company_data),
+        activities_section=_format_activities_section(activities_data),
+        history_section=_format_history_section(history_data),
+        pipeline_section=_format_pipeline_section(pipeline_data),
+        renewals_section=_format_renewals_section(renewals_data),
+        docs_section=_format_docs_section(docs_answer),
+    )
+    return _call_llm(prompt, AGENT_SYSTEM_PROMPT)
+
+
+# =============================================================================
 # Main Agent Function
 # =============================================================================
 

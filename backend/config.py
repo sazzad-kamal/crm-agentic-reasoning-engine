@@ -71,10 +71,11 @@ class Settings(BaseSettings):
         """Get the data directory."""
         return self.project_root / "data"
 
-    class Config:
-        env_prefix = "ACME_"
-        env_file = ".env"
-        extra = "ignore"
+    model_config = {
+        "env_prefix": "ACME_",
+        "env_file": ".env",
+        "extra": "ignore",
+    }
 
 
 @lru_cache()

@@ -51,10 +51,6 @@ class RAGConfig(BaseSettings):
     def doc_chunks_path(self) -> Path:
         return self.processed_dir / "doc_chunks.parquet"
 
-    @property
-    def private_texts_path(self) -> Path:
-        return self.csv_dir / "private_texts.jsonl"
-
 
 _config: RAGConfig | None = None
 

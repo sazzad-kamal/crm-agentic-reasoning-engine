@@ -36,11 +36,6 @@ class RAGConfig(BaseSettings):
     qdrant_path: Path = Field(default_factory=lambda: _backend_root() / "data/qdrant")
     audit_log_path: Path = Field(default_factory=lambda: _backend_root() / "data/logs/audit.jsonl")
 
-    # Feature flags (may want to toggle in prod)
-    enable_query_rewriting: bool = True
-    enable_audit_logging: bool = True
-    enable_embedding_cache: bool = True
-
     model_config = SettingsConfigDict(
         env_prefix="RAG_",
         env_file=".env",

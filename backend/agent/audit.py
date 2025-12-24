@@ -92,9 +92,6 @@ class AgentAuditLogger:
         """
         config = get_config()
         
-        if not config.enable_audit_logging:
-            return
-        
         entry = AgentAuditEntry(
             timestamp=datetime.utcnow().isoformat(),
             question=question[:500],  # Truncate long questions

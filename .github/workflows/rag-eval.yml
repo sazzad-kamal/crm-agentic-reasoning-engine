@@ -175,12 +175,8 @@ jobs:
           config = get_config()
           
           print('Config Validation Results:')
-          print(f'  embedding_model: {config.embedding_model}')
-          print(f'  llm_model: {config.llm_model}')
-          print(f'  target_chunk_size: {config.target_chunk_size}')
-          print(f'  max_context_tokens: {config.max_context_tokens}')
-          print(f'  enable_query_rewriting: {config.enable_query_rewriting}')
-          print(f'  enable_audit_logging: {config.enable_audit_logging}')
+          print(f'  docs_dir: {config.docs_dir}')
+          print(f'  qdrant_path: {config.qdrant_path}')
           print('')
           print('✅ Config validation passed!')
           "

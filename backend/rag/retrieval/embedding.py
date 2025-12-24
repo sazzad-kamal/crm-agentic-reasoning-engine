@@ -8,7 +8,6 @@ import logging
 
 import numpy as np
 
-from backend.rag.config import get_config
 from backend.rag.retrieval.constants import EMBEDDING_CACHE_SIZE
 
 
@@ -25,18 +24,11 @@ _embedding_cache: dict[str, np.ndarray] = {}
 
 def get_cached_embedding(query: str) -> np.ndarray | None:
     """Get cached embedding for a query if it exists."""
-    config = get_config()
-    if not config.enable_embedding_cache:
-        return None
     return _embedding_cache.get(query)
 
 
 def cache_embedding(query: str, embedding: np.ndarray) -> None:
     """Cache an embedding for a query."""
-    config = get_config()
-    if not config.enable_embedding_cache:
-        return
-    
     # Limit cache size
     if len(_embedding_cache) >= EMBEDDING_CACHE_SIZE:
         # Remove oldest entry (simple FIFO)

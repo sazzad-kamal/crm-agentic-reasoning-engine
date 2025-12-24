@@ -80,9 +80,6 @@ def log_audit_entry(entry: AuditEntry) -> None:
     """
     config = get_config()
     
-    if not config.enable_audit_logging:
-        return
-    
     try:
         log_file = config.audit_log_path
         

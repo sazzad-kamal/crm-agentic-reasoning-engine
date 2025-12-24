@@ -868,16 +868,15 @@ def answer_question(
     # -------------------------------------------------------------------------
     # Audit Logging
     # -------------------------------------------------------------------------
-    if config.enable_audit_logging:
-        audit.log_query(
-            question=question,
-            mode_used=mode_used,
-            company_id=resolved_company_id,
-            latency_ms=progress.get_elapsed_ms(),
-            source_count=len(sources),
-            user_id=user_id,
-            session_id=session_id,
-        )
+    audit.log_query(
+        question=question,
+        mode_used=mode_used,
+        company_id=resolved_company_id,
+        latency_ms=progress.get_elapsed_ms(),
+        source_count=len(sources),
+        user_id=user_id,
+        session_id=session_id,
+    )
     
     # -------------------------------------------------------------------------
     # Step 5: Generate follow-up suggestions (if enabled)

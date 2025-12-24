@@ -184,9 +184,9 @@ def answer_question(
         session_id=session_id,
     )
     
-    # Default to config setting for rewrite
+    # Default to True for rewrite
     if use_rewrite is None:
-        use_rewrite = config.enable_query_rewriting
+        use_rewrite = True
     
     metrics = {
         "total_latency_ms": 0,

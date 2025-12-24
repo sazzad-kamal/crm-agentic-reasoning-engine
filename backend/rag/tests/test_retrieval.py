@@ -263,17 +263,6 @@ class TestRetrievalConfig:
         assert DEFAULT_K_DENSE > 0
         assert DEFAULT_K_BM25 > 0
         assert DEFAULT_TOP_N > 0
-    
-    def test_query_rewriting_configurable(self):
-        """Test that query rewriting can be enabled/disabled."""
-        from backend.rag.config import get_config, reset_config
-        
-        reset_config()
-        config = get_config()
-        
-        # Should have the setting
-        assert hasattr(config, 'enable_query_rewriting')
-        assert isinstance(config.enable_query_rewriting, bool)
 
 
 # =============================================================================

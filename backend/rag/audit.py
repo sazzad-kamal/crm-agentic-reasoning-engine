@@ -14,7 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Any
 
-from backend.rag.config import get_config
+from backend.rag.config import AUDIT_LOG_PATH
 
 
 # Configure module logger
@@ -78,17 +78,13 @@ def log_audit_entry(entry: AuditEntry) -> None:
     
     Thread-safe and handles file errors gracefully.
     """
-    config = get_config()
-    
     try:
-        log_file = config.audit_log_path
-        
         # Ensure directory exists
-        log_file.parent.mkdir(parents=True, exist_ok=True)
+        AUDIT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
         
         # Thread-safe file write
         with _audit_lock:
-            with open(log_file, "a", encoding="utf-8") as f:
+            with open(AUDIT_LOG_PATH, "a", encoding="utf-8") as f:
                 f.write(json.dumps(entry.to_dict()) + "\n")
         
         logger.debug(f"Audit logged: query='{entry.query[:30]}...', status={entry.status}")
@@ -114,15 +110,12 @@ def read_audit_log(
     Returns:
         List of audit entries as dictionaries
     """
-    config = get_config()
-    log_file = config.audit_log_path
-    
-    if not log_file.exists():
+    if not AUDIT_LOG_PATH.exists():
         return []
     
     entries = []
     try:
-        with open(log_file, "r", encoding="utf-8") as f:
+        with open(AUDIT_LOG_PATH, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line:

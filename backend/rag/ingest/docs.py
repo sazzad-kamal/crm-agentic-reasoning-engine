@@ -22,7 +22,7 @@ from rich.table import Table
 import pandas as pd
 
 from backend.rag.models import DocumentChunk
-from backend.rag.config import get_config
+from backend.rag.config import DOCS_DIR, DOC_CHUNKS_PATH
 from backend.rag.ingest.constants import (
     MAX_CHUNK_SIZE,
     TARGET_CHUNK_SIZE,
@@ -141,8 +141,6 @@ def process_markdown_file(file_path: Path) -> list[DocumentChunk]:
     Returns:
         List of DocumentChunk objects
     """
-    config = get_config()
-    
     content = file_path.read_text(encoding="utf-8")
     doc_id = file_path.stem  # filename without extension
     title = extract_title(content, doc_id)
@@ -201,8 +199,7 @@ def ingest_all_docs(docs_dir: Path | None = None) -> list[DocumentChunk]:
     Returns:
         List of all DocumentChunks
     """
-    config = get_config()
-    docs_dir = docs_dir or config.docs_dir
+    docs_dir = docs_dir or DOCS_DIR
     
     all_chunks = []
     md_files = sorted(docs_dir.glob("*.md"))
@@ -226,8 +223,7 @@ def save_chunks(chunks: list[DocumentChunk], output_path: Path | None = None) ->
         chunks: List of DocumentChunk objects
         output_path: Path to the output Parquet file (default from config)
     """
-    config = get_config()
-    output_path = output_path or config.doc_chunks_path
+    output_path = output_path or DOC_CHUNKS_PATH
     
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -258,8 +254,7 @@ def load_chunks(input_path: Path | None = None) -> list[DocumentChunk]:
     Returns:
         List of DocumentChunk objects
     """
-    config = get_config()
-    input_path = input_path or config.doc_chunks_path
+    input_path = input_path or DOC_CHUNKS_PATH
     
     df = pd.read_parquet(input_path)
     

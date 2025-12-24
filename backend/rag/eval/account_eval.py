@@ -22,7 +22,7 @@ from rich.table import Table
 import pandas as pd
 from qdrant_client import QdrantClient
 
-from backend.rag.config import get_config, PRIVATE_COLLECTION
+from backend.rag.config import PRIVATE_COLLECTION, QDRANT_PATH
 from backend.rag.ingest.text_builder import find_csv_dir
 from backend.rag.ingest.private_text import ingest_private_texts
 from backend.rag.pipeline.account import answer_account_question, load_companies_df
@@ -121,8 +121,7 @@ def generate_eval_questions(seed: int = RANDOM_SEED) -> list[dict]:
 
 def ensure_private_collection_exists() -> None:
     """Ensure private Qdrant collection exists, create if not."""
-    config = get_config()
-    qdrant = QdrantClient(path=str(config.qdrant_path))
+    qdrant = QdrantClient(path=str(QDRANT_PATH))
     
     if not qdrant.collection_exists(PRIVATE_COLLECTION):
         print(f"Collection '{PRIVATE_COLLECTION}' not found, creating...")

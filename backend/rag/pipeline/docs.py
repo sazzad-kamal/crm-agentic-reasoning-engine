@@ -25,7 +25,6 @@ from typing import Optional, Callable
 
 from backend.rag.models import DocumentChunk, ScoredChunk
 from backend.rag.retrieval.base import RetrievalBackend
-from backend.rag.config import get_config
 from backend.rag.pipeline.constants import LLM_MODEL, ANSWER_MAX_TOKENS, MAX_CONTEXT_TOKENS
 from backend.rag.utils import estimate_tokens, preprocess_query, extract_citations
 from backend.rag.audit import AuditEntry, log_audit_entry
@@ -173,7 +172,6 @@ def answer_question(
         - metrics: Dict with latency, token counts, etc.
         - steps: List of processing steps with timing
     """
-    config = get_config()
     progress = PipelineProgress(callback=progress_callback)
     
     # Initialize audit entry

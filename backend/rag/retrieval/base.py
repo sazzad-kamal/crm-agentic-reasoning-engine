@@ -27,7 +27,7 @@ from sentence_transformers import SentenceTransformer, CrossEncoder
 from rank_bm25 import BM25Okapi
 
 from backend.rag.models import DocumentChunk, ScoredChunk
-from backend.rag.config import get_config, DOCS_COLLECTION
+from backend.rag.config import DOCS_COLLECTION, QDRANT_PATH, DOC_CHUNKS_PATH
 from backend.rag.retrieval.constants import (
     EMBEDDING_MODEL,
     RERANKER_MODEL,
@@ -74,9 +74,7 @@ class RetrievalBackend:
             embedding_model: Sentence transformer model for embeddings (default from config)
             reranker_model: Cross-encoder model for reranking (default from config)
         """
-        config = get_config()
-        
-        self.qdrant_path = qdrant_path or config.qdrant_path
+        self.qdrant_path = qdrant_path or QDRANT_PATH
         self.collection_name = collection_name or DOCS_COLLECTION
         
         # Initialize Qdrant client (local storage)
@@ -122,8 +120,6 @@ class RetrievalBackend:
         Args:
             chunks: List of DocumentChunk objects to index
         """
-        config = get_config()
-        
         if not chunks:
             raise ValueError("No chunks provided for indexing")
         
@@ -390,8 +386,7 @@ class RetrievalBackend:
         """
         from backend.rag.ingest.docs import load_chunks
         
-        config = get_config()
-        chunks_path = chunks_path or config.doc_chunks_path
+        chunks_path = chunks_path or DOC_CHUNKS_PATH
         
         if not chunks_path.exists():
             raise FileNotFoundError(
@@ -427,7 +422,6 @@ def create_backend(rebuild: bool = False) -> RetrievalBackend:
     """
     from backend.rag.ingest.docs import load_chunks
     
-    config = get_config()
     backend = RetrievalBackend()
     
     # Check if collection exists and has vectors

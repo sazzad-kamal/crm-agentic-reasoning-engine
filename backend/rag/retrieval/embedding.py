@@ -48,5 +48,5 @@ def get_cache_stats() -> dict:
     """Get embedding cache statistics."""
     return {
         "size": len(_embedding_cache),
-        "max_size": get_config().embedding_cache_size,
+        "max_size": EMBEDDING_CACHE_SIZE,
     }

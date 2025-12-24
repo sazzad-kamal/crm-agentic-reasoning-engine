@@ -166,17 +166,11 @@ jobs:
       - name: Validate RAG config
         run: |
           python -c "
-          import os
-          os.environ['OPENAI_API_KEY'] = 'test-key-for-validation'
-          
-          from backend.rag.config import get_config, reset_config
-          
-          reset_config()
-          config = get_config()
+          from backend.rag.config import DOCS_DIR, QDRANT_PATH
           
           print('Config Validation Results:')
-          print(f'  docs_dir: {config.docs_dir}')
-          print(f'  qdrant_path: {config.qdrant_path}')
+          print(f'  DOCS_DIR: {DOCS_DIR}')
+          print(f'  QDRANT_PATH: {QDRANT_PATH}')
           print('')
           print('✅ Config validation passed!')
           "

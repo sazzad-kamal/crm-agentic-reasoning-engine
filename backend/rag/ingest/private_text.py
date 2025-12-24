@@ -29,7 +29,7 @@ from sentence_transformers import SentenceTransformer
 
 from backend.rag.ingest.text_builder import find_csv_dir, build_private_texts_jsonl
 from backend.rag.models import DocumentChunk
-from backend.rag.config import get_config, PRIVATE_COLLECTION
+from backend.rag.config import PRIVATE_COLLECTION, QDRANT_PATH
 from backend.rag.ingest.constants import (
     TARGET_CHUNK_SIZE,
     MAX_CHUNK_SIZE,
@@ -47,8 +47,6 @@ logger = logging.getLogger(__name__)
 # Configuration
 # =============================================================================
 
-# Path from config (dynamic for deployment)
-QDRANT_PATH = get_config().qdrant_path
 # Alias for backward compatibility
 PRIVATE_COLLECTION_NAME = PRIVATE_COLLECTION
 

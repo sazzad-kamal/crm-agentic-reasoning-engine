@@ -28,11 +28,6 @@ from backend.rag.retrieval.base import RetrievalBackend
 from backend.rag.pipeline.constants import LLM_MODEL, ANSWER_MAX_TOKENS, MAX_CONTEXT_TOKENS
 from backend.rag.pipeline.utils import estimate_tokens, preprocess_query, extract_citations
 from backend.rag.audit import AuditEntry, log_audit_entry
-from backend.rag.prompts import (
-    DOCS_QUERY_REWRITE_SYSTEM,
-    DOCS_HYDE_SYSTEM,
-    format_docs_answer_prompt,
-)
 from backend.rag.pipeline.base import (
     PipelineProgress,
     apply_lexical_gate,
@@ -43,6 +38,43 @@ from backend.common.llm_client import call_llm_safe, call_llm_with_metrics
 
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Prompts
+# =============================================================================
+
+_QUERY_REWRITE_SYSTEM = """You are a query rewriting assistant for a CRM documentation search system.
+Your job is to take a user's question about Acme CRM Suite and rewrite it to be clearer and more specific.
+Keep the rewritten query in natural language (not keywords).
+If the query is already clear, return it mostly unchanged.
+Only output the rewritten query, nothing else."""
+
+_HYDE_SYSTEM = """You are an expert on Acme CRM Suite documentation.
+Given a question, write a short hypothetical answer (2-3 sentences) as if it came from the documentation.
+This will be used for semantic search, so include relevant terminology and concepts.
+Only output the hypothetical answer, nothing else."""
+
+_ANSWER_SYSTEM = """You are an AI assistant answering questions about Acme CRM Suite.
+
+IMPORTANT RULES:
+1. Use ONLY the provided context to answer. Do not use outside knowledge.
+2. If the answer is not in the context, say "I don't see this documented in the provided sources."
+3. Cite your sources using [doc_id] format, e.g., [opportunities_pipeline_and_forecasts].
+4. Be concise but complete.
+5. If multiple docs cover different aspects, synthesize the information and cite all relevant sources.
+
+Context from Acme CRM Suite documentation:
+{context}
+
+Question: {question}
+
+Answer (with citations):"""
+
+
+def _format_answer_prompt(context: str, question: str) -> str:
+    """Format the documentation answer prompt."""
+    return _ANSWER_SYSTEM.format(context=context, question=question)
 
 
 # =============================================================================
@@ -62,7 +94,7 @@ def rewrite_query(query: str) -> str:
     logger.debug(f"Rewriting query: {query[:50]}...")
     rewritten = call_llm_safe(
         prompt=f"Rewrite this CRM question to be clearer: {query}",
-        system_prompt=DOCS_QUERY_REWRITE_SYSTEM,
+        system_prompt=_QUERY_REWRITE_SYSTEM,
         max_tokens=150,
         default=query,
     )
@@ -84,7 +116,7 @@ def generate_hyde_answer(query: str) -> str:
     logger.debug(f"Generating HyDE answer for: {query[:50]}...")
     hyde = call_llm_safe(
         prompt=f"Question: {query}",
-        system_prompt=DOCS_HYDE_SYSTEM,
+        system_prompt=_HYDE_SYSTEM,
         max_tokens=200,
         default="",
     )
@@ -109,7 +141,7 @@ def generate_answer(
     Returns:
         Dict with answer and metadata
     """
-    prompt = format_docs_answer_prompt(context=context, question=question)
+    prompt = _format_answer_prompt(context=context, question=question)
     
     logger.info(f"Generating answer for question: {question[:50]}...")
     result = call_llm_with_metrics(

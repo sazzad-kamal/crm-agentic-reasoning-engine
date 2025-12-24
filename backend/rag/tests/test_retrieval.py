@@ -300,13 +300,3 @@ class TestAuditLogging:
         assert data["status"] == "success"
         assert data["latency_ms"] == 100
         assert "timestamp" in data
-    
-    def test_audit_stats_empty_log(self):
-        """Test audit stats with no log file."""
-        from backend.rag.audit import get_audit_stats
-        
-        # Should handle missing log file gracefully
-        stats = get_audit_stats()
-        
-        assert "total_queries" in stats
-        assert stats["total_queries"] >= 0

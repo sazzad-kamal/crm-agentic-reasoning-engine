@@ -7,9 +7,6 @@ Usage:
     
     # Interactive mode
     python -m backend.rag.cli chat
-    
-    # Rebuild indexes
-    python -m backend.rag.cli ask "What is an Opportunity?" --rebuild
 """
 
 import typer

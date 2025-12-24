@@ -12,7 +12,7 @@ import logging
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional
 
 
 # Configure module logger
@@ -94,88 +94,3 @@ def log_audit_entry(entry: AuditEntry) -> None:
     except Exception as e:
         # Don't fail the request if audit logging fails
         logger.error(f"Failed to write audit log: {e}")
-
-
-def read_audit_log(
-    limit: int = 100,
-    company_id: Optional[str] = None,
-    since: Optional[datetime] = None,
-) -> list[dict]:
-    """
-    Read entries from the audit log.
-    
-    Args:
-        limit: Maximum number of entries to return
-        company_id: Filter by company_id
-        since: Filter entries after this timestamp
-        
-    Returns:
-        List of audit entries as dictionaries
-    """
-    if not AUDIT_LOG_PATH.exists():
-        return []
-    
-    entries = []
-    try:
-        with open(AUDIT_LOG_PATH, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    entry = json.loads(line)
-                    
-                    # Apply filters
-                    if company_id and entry.get("company_id") != company_id:
-                        continue
-                    if since:
-                        entry_time = datetime.fromisoformat(entry["timestamp"].rstrip("Z"))
-                        if entry_time < since:
-                            continue
-                    
-                    entries.append(entry)
-                except json.JSONDecodeError:
-                    continue
-        
-        # Return most recent entries first
-        return entries[-limit:][::-1]
-        
-    except Exception as e:
-        logger.error(f"Failed to read audit log: {e}")
-        return []
-
-
-def get_audit_stats(company_id: Optional[str] = None) -> dict:
-    """
-    Get aggregate statistics from the audit log.
-    
-    Args:
-        company_id: Filter by company_id (optional)
-        
-    Returns:
-        Dictionary with usage statistics
-    """
-    entries = read_audit_log(limit=10000, company_id=company_id)
-    
-    if not entries:
-        return {
-            "total_queries": 0,
-            "success_rate": 0.0,
-            "avg_latency_ms": 0,
-            "unique_users": 0,
-            "unique_companies": 0,
-        }
-    
-    total = len(entries)
-    successes = sum(1 for e in entries if e.get("status") == "success")
-    latencies = [e.get("latency_ms", 0) for e in entries if e.get("latency_ms")]
-    users = set(e.get("user_id") for e in entries if e.get("user_id"))
-    companies = set(e.get("company_id") for e in entries if e.get("company_id"))
-    
-    return {
-        "total_queries": total,
-        "success_rate": successes / total if total > 0 else 0.0,
-        "avg_latency_ms": sum(latencies) / len(latencies) if latencies else 0,
-        "unique_users": len(users),
-        "unique_companies": len(companies),
-    }

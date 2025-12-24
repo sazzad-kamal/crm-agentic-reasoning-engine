@@ -37,6 +37,7 @@ from backend.rag.ingest.text_builder import find_csv_dir
 from backend.rag.pipeline.constants import MAX_CONTEXT_TOKENS
 from backend.rag.pipeline.utils import estimate_tokens, preprocess_query, extract_citations
 from backend.rag.pipeline.base import build_private_context, build_docs_context
+from backend.rag.audit import AuditEntry, log_audit_entry
 from backend.common.llm_client import call_llm_safe, call_llm_with_metrics
 
 
@@ -352,6 +353,23 @@ def answer_account_question(
         prompt_tokens * COST_PER_INPUT_TOKEN +
         completion_tokens * COST_PER_OUTPUT_TOKEN
     )
+    
+    # ---------------------------------------------------------------------------
+    # 8. Audit logging
+    # ---------------------------------------------------------------------------
+    audit_entry = AuditEntry(
+        query=question,
+        company_id=resolved_id,
+        mode="account",
+    )
+    audit_entry.rewritten_query = rewritten
+    audit_entry.num_chunks_retrieved = len(private_hits) + len(doc_hits)
+    audit_entry.num_chunks_used = len(private_hits) + len(doc_hits)
+    audit_entry.answer_length = len(answer_result["answer"])
+    audit_entry.latency_ms = int(total_time)
+    audit_entry.status = "success"
+    audit_entry.sources = [s["id"] for s in private_sources] + [s["doc_id"] for s in doc_sources]
+    log_audit_entry(audit_entry)
     
     return {
         "answer": answer_result["answer"],

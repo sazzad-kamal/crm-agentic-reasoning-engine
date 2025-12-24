@@ -29,7 +29,15 @@ from sentence_transformers import SentenceTransformer
 
 from backend.rag.ingest.text_builder import find_csv_dir, build_private_texts_jsonl
 from backend.rag.models import DocumentChunk
-from backend.rag.config import get_config
+from backend.rag.config import (
+    get_config,
+    EMBEDDING_MODEL,
+    EMBEDDING_DIM,
+    PRIVATE_COLLECTION,
+    TARGET_CHUNK_SIZE,
+    MAX_CHUNK_SIZE,
+    MIN_CHUNK_SIZE,
+)
 from backend.rag.utils import estimate_tokens, chunk_text
 
 
@@ -38,17 +46,13 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# Configuration (from centralized config)
+# Configuration
 # =============================================================================
 
-# Backward compatibility exports
+# Path from config (dynamic for deployment)
 QDRANT_PATH = get_config().qdrant_path
-PRIVATE_COLLECTION_NAME = get_config().private_collection_name
-EMBEDDING_MODEL = get_config().embedding_model
-EMBEDDING_DIM = get_config().embedding_dim
-TARGET_CHUNK_SIZE = get_config().target_chunk_size
-MAX_CHUNK_SIZE = get_config().max_chunk_size
-MIN_CHUNK_SIZE = get_config().min_chunk_size
+# Alias for backward compatibility
+PRIVATE_COLLECTION_NAME = PRIVATE_COLLECTION
 
 
 # =============================================================================

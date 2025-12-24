@@ -253,16 +253,16 @@ class TestRetrievalConfig:
     """Tests for retrieval configuration."""
     
     def test_config_defaults_valid(self):
-        """Test that default retrieval config is valid."""
-        from backend.rag.config import get_config, reset_config
+        """Test that default retrieval constants are valid."""
+        from backend.rag.config import (
+            DEFAULT_K_DENSE,
+            DEFAULT_K_BM25,
+            DEFAULT_TOP_N,
+        )
         
-        reset_config()  # Ensure fresh config
-        config = get_config()
-        
-        assert config.default_k_dense > 0
-        assert config.default_k_bm25 > 0
-        assert config.default_top_n > 0
-        assert config.rrf_k > 0
+        assert DEFAULT_K_DENSE > 0
+        assert DEFAULT_K_BM25 > 0
+        assert DEFAULT_TOP_N > 0
     
     def test_query_rewriting_configurable(self):
         """Test that query rewriting can be enabled/disabled."""

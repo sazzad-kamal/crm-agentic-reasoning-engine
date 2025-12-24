@@ -22,7 +22,6 @@ CLI:
 import re
 import logging
 import time
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -35,7 +34,7 @@ from backend.rag.models import DocumentChunk, ScoredChunk
 from backend.rag.retrieval.private import PrivateRetrievalBackend, create_private_backend
 from backend.rag.retrieval.base import create_backend as create_docs_backend
 from backend.rag.ingest.text_builder import find_csv_dir
-from backend.rag.config import get_config
+from backend.rag.config import MAX_CONTEXT_TOKENS
 from backend.rag.utils import estimate_tokens, preprocess_query, extract_citations
 from backend.rag.prompts import (
     ACCOUNT_QUERY_REWRITE_SYSTEM,
@@ -72,8 +71,8 @@ def load_companies_df() -> pd.DataFrame:
 
 
 def resolve_company_id(
-    company_id: Optional[str] = None,
-    company_name: Optional[str] = None,
+    company_id: str | None = None,
+    company_name: str | None = None,
 ) -> tuple[str, str]:
     """
     Resolve company_id from either company_id or company_name.
@@ -180,7 +179,7 @@ def generate_answer(question: str, context: str) -> dict:
 # =============================================================================
 
 # Global backend cache
-_private_backend: Optional[PrivateRetrievalBackend] = None
+_private_backend: PrivateRetrievalBackend | None = None
 _docs_backend = None
 
 
@@ -206,10 +205,10 @@ def get_docs_backend():
 
 def answer_account_question(
     question: str,
-    company_id: Optional[str] = None,
-    company_name: Optional[str] = None,
+    company_id: str | None = None,
+    company_name: str | None = None,
     *,
-    config: Optional[dict] = None,
+    config: dict | None = None,
     include_docs: bool = False,
     verbose: bool = False,
 ) -> dict:
@@ -228,7 +227,6 @@ def answer_account_question(
         Dict with answer, sources, raw hits, and metrics
     """
     start_time = time.time()
-    rag_config = get_config()
     config = config or {}
     
     # ---------------------------------------------------------------------------
@@ -290,7 +288,7 @@ def answer_account_question(
     # 5. Build context
     # ---------------------------------------------------------------------------
     private_context, private_sources = build_private_context(
-        private_hits, resolved_id, max_tokens=rag_config.max_context_tokens
+        private_hits, resolved_id, max_tokens=MAX_CONTEXT_TOKENS
     )
     
     doc_context, doc_sources = "", []
@@ -421,7 +419,7 @@ def ask(
 
 @app.command()
 def chat(
-    company: Optional[str] = typer.Option(None, "--company", "-c", help="Default company"),
+    company: str | None = typer.Option(None, "--company", "-c", help="Default company"),
     include_docs: bool = typer.Option(False, "--include-docs", help="Also search product docs"),
 ):
     """Start interactive chat mode."""

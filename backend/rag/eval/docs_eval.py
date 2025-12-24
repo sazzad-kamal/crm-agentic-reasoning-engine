@@ -16,7 +16,6 @@ Usage:
 import json
 import time
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.progress import track
@@ -122,7 +121,7 @@ def evaluate_question(
 
 
 def run_evaluation(
-    questions: Optional[list[dict]] = None,
+    questions: list[dict] | None = None,
     verbose: bool = True,
 ) -> list[EvalResult]:
     """

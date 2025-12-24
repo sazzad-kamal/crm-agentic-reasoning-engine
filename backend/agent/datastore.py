@@ -7,7 +7,6 @@ Uses DuckDB's read_csv_auto() for efficient data access.
 
 import os
 from pathlib import Path
-from typing import Optional
 from datetime import datetime, timedelta
 from difflib import get_close_matches
 import duckdb
@@ -75,7 +74,7 @@ class CRMDataStore:
     for common CRM operations.
     """
     
-    def __init__(self, csv_path: Optional[Path] = None):
+    def __init__(self, csv_path: Path | None = None):
         """
         Initialize the data store.
         
@@ -84,10 +83,10 @@ class CRMDataStore:
                       If not provided, uses auto-detection.
         """
         self._csv_path = csv_path
-        self._conn: Optional[duckdb.DuckDBPyConnection] = None
+        self._conn: duckdb.DuckDBPyConnection | None = None
         self._loaded_tables: set[str] = set()
-        self._company_names_cache: Optional[dict[str, str]] = None  # name -> id
-        self._company_ids_cache: Optional[set[str]] = None
+        self._company_names_cache: dict[str, str] | None = None  # name -> id
+        self._company_ids_cache: set[str] | None = None
     
     @property
     def csv_path(self) -> Path:
@@ -158,7 +157,7 @@ class CRMDataStore:
             # Store lowercase name for matching
             self._company_names_cache[name.lower()] = company_id
     
-    def _safe_parse_date(self, value) -> Optional[datetime]:
+    def _safe_parse_date(self, value) -> datetime | None:
         """Safely parse a date/datetime value."""
         if value is None:
             return None
@@ -181,7 +180,7 @@ class CRMDataStore:
     # Public API
     # =========================================================================
     
-    def resolve_company_id(self, name_or_id: str) -> Optional[str]:
+    def resolve_company_id(self, name_or_id: str) -> str | None:
         """
         Resolve a company name or ID to a company_id.
         
@@ -238,7 +237,7 @@ class CRMDataStore:
         
         return results
     
-    def get_company(self, company_id: str) -> Optional[dict]:
+    def get_company(self, company_id: str) -> dict | None:
         """
         Get company details by ID.
         
@@ -499,7 +498,7 @@ class CRMDataStore:
 # Singleton instance
 # =============================================================================
 
-_datastore: Optional[CRMDataStore] = None
+_datastore: CRMDataStore | None = None
 
 
 def get_datastore() -> CRMDataStore:

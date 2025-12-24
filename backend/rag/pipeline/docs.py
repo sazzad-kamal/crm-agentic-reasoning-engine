@@ -25,7 +25,7 @@ from typing import Optional, Callable
 
 from backend.rag.models import DocumentChunk, ScoredChunk
 from backend.rag.retrieval.base import RetrievalBackend
-from backend.rag.config import get_config
+from backend.rag.config import get_config, LLM_MODEL, ANSWER_MAX_TOKENS, MAX_CONTEXT_TOKENS
 from backend.rag.utils import estimate_tokens, preprocess_query, extract_citations
 from backend.rag.audit import AuditEntry, log_audit_entry
 from backend.rag.prompts import (
@@ -109,14 +109,13 @@ def generate_answer(
     Returns:
         Dict with answer and metadata
     """
-    config = get_config()
     prompt = format_docs_answer_prompt(context=context, question=question)
     
     logger.info(f"Generating answer for question: {question[:50]}...")
     result = call_llm_with_metrics(
         prompt=prompt,
-        model=config.llm_model,
-        max_tokens=config.answer_max_tokens,
+        model=LLM_MODEL,
+        max_tokens=ANSWER_MAX_TOKENS,
     )
     
     logger.info(f"Answer generated in {result['latency_ms']:.0f}ms, {result['total_tokens']} tokens")
@@ -265,7 +264,7 @@ def answer_question(
         
         # Step 6: Build context
         progress.start_step("context", "Building context")
-        context = build_context(final_chunks, max_tokens=config.max_context_tokens)
+        context = build_context(final_chunks, max_tokens=MAX_CONTEXT_TOKENS)
         progress.complete_step("context", "Context prepared")
         
         if verbose:

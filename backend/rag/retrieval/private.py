@@ -14,7 +14,6 @@ Usage:
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from qdrant_client.models import (
@@ -25,7 +24,7 @@ from qdrant_client.models import (
 from rank_bm25 import BM25Okapi
 
 from backend.rag.models import DocumentChunk, ScoredChunk
-from backend.rag.config import get_config
+from backend.rag.config import get_config, PRIVATE_COLLECTION
 from backend.rag.retrieval.base import RetrievalBackend
 
 
@@ -44,16 +43,14 @@ class PrivateRetrievalBackend(RetrievalBackend):
     
     def __init__(
         self,
-        qdrant_path: Optional[Path] = None,
-        collection_name: Optional[str] = None,
-        embedding_model: Optional[str] = None,
-        reranker_model: Optional[str] = None,
+        qdrant_path: Path | None = None,
+        collection_name: str | None = None,
+        embedding_model: str | None = None,
+        reranker_model: str | None = None,
     ):
         """Initialize the private retrieval backend."""
-        config = get_config()
-        
         # Use private collection by default
-        collection_name = collection_name or config.private_collection_name
+        collection_name = collection_name or PRIVATE_COLLECTION
         
         # Initialize base class
         super().__init__(
@@ -64,7 +61,7 @@ class PrivateRetrievalBackend(RetrievalBackend):
         )
         
         # Company-specific BM25 indexes (built on demand)
-        self._company_bm25: dict[str, tuple[Optional[BM25Okapi], list[int]]] = {}
+        self._company_bm25: dict[str, tuple[BM25Okapi | None, list[int]]] = {}
     
     def load_from_qdrant(self) -> None:
         """
@@ -135,7 +132,7 @@ class PrivateRetrievalBackend(RetrievalBackend):
         
         logger.info(f"Loaded {len(self._chunks)} chunks from Qdrant")
     
-    def _get_company_bm25(self, company_id: str) -> tuple[Optional[BM25Okapi], list[int]]:
+    def _get_company_bm25(self, company_id: str) -> tuple[BM25Okapi | None, list[int]]:
         """
         Get or build company-specific BM25 index.
         
@@ -177,8 +174,8 @@ class PrivateRetrievalBackend(RetrievalBackend):
         self,
         query: str,
         k: int = 20,
-        company_filter: Optional[str] = None,
-        qdrant_filter: Optional[object] = None,
+        company_filter: str | None = None,
+        qdrant_filter: object | None = None,
     ) -> list[tuple[int, float]]:
         """
         Perform dense search using Qdrant with optional company filter.
@@ -219,7 +216,7 @@ class PrivateRetrievalBackend(RetrievalBackend):
         self,
         query: str,
         k: int = 20,
-        company_filter: Optional[str] = None,
+        company_filter: str | None = None,
     ) -> list[tuple[int, float]]:
         """
         Perform BM25 search with optional company filter.
@@ -251,7 +248,7 @@ class PrivateRetrievalBackend(RetrievalBackend):
         k_bm25: int = 20,
         top_n: int = 10,
         use_reranker: bool = True,
-        company_filter: Optional[str] = None,
+        company_filter: str | None = None,
     ) -> list[ScoredChunk]:
         """
         Retrieve candidate chunks with optional company filtering.
@@ -347,12 +344,11 @@ def create_private_backend(rebuild: bool = False) -> PrivateRetrievalBackend:
     Returns:
         Initialized PrivateRetrievalBackend
     """
-    config = get_config()
     backend = PrivateRetrievalBackend()
     
-    if not backend.qdrant.collection_exists(config.private_collection_name):
+    if not backend.qdrant.collection_exists(PRIVATE_COLLECTION):
         raise ValueError(
-            f"Private collection '{config.private_collection_name}' not found. "
+            f"Private collection '{PRIVATE_COLLECTION}' not found. "
             "Run 'python -m backend.rag.ingest.private_text' first."
         )
     

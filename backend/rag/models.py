@@ -3,8 +3,6 @@ Document chunk models for the RAG pipeline.
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional
-
 
 class DocumentChunk(BaseModel):
     """
@@ -19,18 +17,9 @@ class DocumentChunk(BaseModel):
     """
     chunk_id: str
     doc_id: str
-    title: Optional[str] = None
+    title: str | None = None
     text: str
     metadata: dict = Field(default_factory=dict)
-    
-    def __hash__(self):
-        return hash(self.chunk_id)
-    
-    def __eq__(self, other):
-        if isinstance(other, DocumentChunk):
-            return self.chunk_id == other.chunk_id
-        return False
-
 
 class ScoredChunk(BaseModel):
     """

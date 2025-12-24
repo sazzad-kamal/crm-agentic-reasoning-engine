@@ -18,7 +18,6 @@ Usage:
 import json
 import random
 from pathlib import Path
-from typing import Optional
 import pandas as pd
 import typer
 from rich.console import Console
@@ -304,12 +303,12 @@ app = typer.Typer(help="Build private_texts.jsonl from CRM CSV files")
 
 @app.command()
 def main(
-    csv_dir: Optional[Path] = typer.Option(
+    csv_dir: Path | None = typer.Option(
         None,
         "--csv-dir", "-c",
         help="Directory containing CSV files (auto-detected if not provided)",
     ),
-    output: Optional[Path] = typer.Option(
+    output: Path | None = typer.Option(
         None,
         "--output", "-o",
         help="Output JSONL file path (defaults to csv_dir/private_texts.jsonl)",

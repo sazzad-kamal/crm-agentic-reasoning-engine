@@ -15,7 +15,6 @@ import re
 import json
 import logging
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -23,7 +22,13 @@ from rich.table import Table
 import pandas as pd
 
 from backend.rag.models import DocumentChunk
-from backend.rag.config import get_config
+from backend.rag.config import (
+    get_config,
+    MAX_CHUNK_SIZE,
+    TARGET_CHUNK_SIZE,
+    CHUNK_OVERLAP,
+    MIN_CHUNK_SIZE,
+)
 from backend.rag.utils import estimate_tokens, recursive_split
 
 
@@ -153,18 +158,18 @@ def process_markdown_file(file_path: Path) -> list[DocumentChunk]:
         section_path = section["section_path"]
         
         # Check if section needs further splitting
-        if estimate_tokens(section_text) > config.max_chunk_size:
+        if estimate_tokens(section_text) > MAX_CHUNK_SIZE:
             sub_chunks = recursive_split(
                 section_text, 
-                max_size=config.target_chunk_size, 
-                overlap=config.chunk_overlap
+                max_size=TARGET_CHUNK_SIZE, 
+                overlap=CHUNK_OVERLAP
             )
         else:
             sub_chunks = [section_text]
         
         for sub_chunk in sub_chunks:
             # Skip very small chunks
-            if estimate_tokens(sub_chunk) < config.min_chunk_size // 2:
+            if estimate_tokens(sub_chunk) < MIN_CHUNK_SIZE // 2:
                 continue
             
             chunk = DocumentChunk(
@@ -186,7 +191,7 @@ def process_markdown_file(file_path: Path) -> list[DocumentChunk]:
     return chunks
 
 
-def ingest_all_docs(docs_dir: Optional[Path] = None) -> list[DocumentChunk]:
+def ingest_all_docs(docs_dir: Path | None = None) -> list[DocumentChunk]:
     """
     Ingest all markdown files from the docs directory.
     
@@ -213,7 +218,7 @@ def ingest_all_docs(docs_dir: Optional[Path] = None) -> list[DocumentChunk]:
     return all_chunks
 
 
-def save_chunks(chunks: list[DocumentChunk], output_path: Optional[Path] = None) -> None:
+def save_chunks(chunks: list[DocumentChunk], output_path: Path | None = None) -> None:
     """
     Save chunks to a Parquet file.
     
@@ -243,7 +248,7 @@ def save_chunks(chunks: list[DocumentChunk], output_path: Optional[Path] = None)
     logger.info(f"Saved {len(chunks)} chunks to {output_path}")
 
 
-def load_chunks(input_path: Optional[Path] = None) -> list[DocumentChunk]:
+def load_chunks(input_path: Path | None = None) -> list[DocumentChunk]:
     """
     Load chunks from a Parquet file.
     

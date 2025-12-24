@@ -14,7 +14,12 @@ from typing import Optional, Callable
 from collections import defaultdict
 
 from backend.rag.models import DocumentChunk, ScoredChunk
-from backend.rag.config import get_config
+from backend.rag.config import (
+    MIN_BM25_SCORE_RATIO,
+    MAX_CHUNKS_PER_DOC,
+    MAX_CHUNKS_PER_TYPE,
+    MAX_CONTEXT_TOKENS,
+)
 from backend.rag.utils import estimate_tokens, tokens_to_chars
 
 
@@ -91,8 +96,7 @@ def apply_lexical_gate(
     Returns:
         Filtered list of scored chunks
     """
-    config = get_config()
-    min_ratio = min_ratio or config.min_bm25_score_ratio
+    min_ratio = min_ratio or MIN_BM25_SCORE_RATIO
     
     if not scored_chunks:
         return []
@@ -124,8 +128,7 @@ def apply_per_doc_cap(
     Returns:
         Filtered list respecting per-doc cap
     """
-    config = get_config()
-    max_per_doc = max_per_doc or config.max_chunks_per_doc
+    max_per_doc = max_per_doc or MAX_CHUNKS_PER_DOC
     
     doc_counts = defaultdict(int)
     filtered = []
@@ -154,8 +157,7 @@ def apply_per_type_cap(
     Returns:
         Filtered list respecting per-type cap
     """
-    config = get_config()
-    max_per_type = max_per_type or config.max_chunks_per_type
+    max_per_type = max_per_type or MAX_CHUNKS_PER_TYPE
     
     # Group by type and apply cap
     by_type = defaultdict(list)
@@ -191,8 +193,7 @@ def build_context(
     Returns:
         Formatted context string with doc_id labels
     """
-    config = get_config()
-    max_tokens = max_tokens or config.max_context_tokens
+    max_tokens = max_tokens or MAX_CONTEXT_TOKENS
     context_parts = []
     total_tokens = 0
     
@@ -237,8 +238,7 @@ def build_private_context(
     Returns:
         Tuple of (context_string, sources_list)
     """
-    config = get_config()
-    max_tokens = max_tokens or config.max_context_tokens
+    max_tokens = max_tokens or MAX_CONTEXT_TOKENS
     
     # Apply per-type cap
     selected = apply_per_type_cap(chunks)

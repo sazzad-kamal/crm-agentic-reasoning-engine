@@ -22,7 +22,7 @@ from rich.table import Table
 import pandas as pd
 from qdrant_client import QdrantClient
 
-from backend.rag.config import get_config
+from backend.rag.config import get_config, PRIVATE_COLLECTION
 from backend.rag.ingest.text_builder import find_csv_dir
 from backend.rag.ingest.private_text import ingest_private_texts
 from backend.rag.pipeline.account import answer_account_question, load_companies_df
@@ -124,13 +124,13 @@ def ensure_private_collection_exists() -> None:
     config = get_config()
     qdrant = QdrantClient(path=str(config.qdrant_path))
     
-    if not qdrant.collection_exists(config.private_collection_name):
-        print(f"Collection '{config.private_collection_name}' not found, creating...")
+    if not qdrant.collection_exists(PRIVATE_COLLECTION):
+        print(f"Collection '{PRIVATE_COLLECTION}' not found, creating...")
         ingest_private_texts(recreate=True)
     else:
-        info = qdrant.get_collection(config.private_collection_name)
+        info = qdrant.get_collection(PRIVATE_COLLECTION)
         if info.points_count == 0:
-            print(f"Collection '{config.private_collection_name}' is empty, rebuilding...")
+            print(f"Collection '{PRIVATE_COLLECTION}' is empty, rebuilding...")
             ingest_private_texts(recreate=True)
         else:
             print(f"Using existing collection with {info.points_count} points")

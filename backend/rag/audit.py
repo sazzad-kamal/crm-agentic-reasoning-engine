@@ -84,7 +84,7 @@ def log_audit_entry(entry: AuditEntry) -> None:
         return
     
     try:
-        log_file = config.audit_log_file
+        log_file = config.audit_log_path
         
         # Ensure directory exists
         log_file.parent.mkdir(parents=True, exist_ok=True)
@@ -118,7 +118,7 @@ def read_audit_log(
         List of audit entries as dictionaries
     """
     config = get_config()
-    log_file = config.audit_log_file
+    log_file = config.audit_log_path
     
     if not log_file.exists():
         return []

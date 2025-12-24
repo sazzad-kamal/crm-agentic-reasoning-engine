@@ -10,9 +10,13 @@ Contains common functions used across multiple modules to avoid duplication:
 
 import re
 import logging
-from typing import Optional
 
-from backend.rag.config import get_config
+from backend.rag.config import (
+    CHARS_PER_TOKEN,
+    TARGET_CHUNK_SIZE,
+    MIN_CHUNK_SIZE,
+    CHUNK_OVERLAP,
+)
 
 
 # Configure module logger
@@ -36,14 +40,12 @@ def estimate_tokens(text: str) -> int:
     Returns:
         Estimated number of tokens
     """
-    config = get_config()
-    return len(text) // config.chars_per_token
+    return len(text) // CHARS_PER_TOKEN
 
 
 def tokens_to_chars(tokens: int) -> int:
     """Convert token count to approximate character count."""
-    config = get_config()
-    return tokens * config.chars_per_token
+    return tokens * CHARS_PER_TOKEN
 
 
 # =============================================================================
@@ -101,8 +103,8 @@ def normalize_text(text: str) -> str:
 
 def recursive_split(
     text: str,
-    max_size: Optional[int] = None,
-    overlap: Optional[int] = None,
+    max_size: int | None = None,
+    overlap: int | None = None,
 ) -> list[str]:
     """
     Recursively split text into chunks of approximately max_size tokens.
@@ -121,9 +123,8 @@ def recursive_split(
     Returns:
         List of text chunks
     """
-    config = get_config()
-    max_size = max_size or config.target_chunk_size
-    overlap = overlap or config.chunk_overlap
+    max_size = max_size or TARGET_CHUNK_SIZE
+    overlap = overlap or CHUNK_OVERLAP
     
     estimated_tokens = estimate_tokens(text)
     
@@ -174,8 +175,8 @@ def recursive_split(
 
 def chunk_text(
     text: str,
-    max_size: Optional[int] = None,
-    min_size: Optional[int] = None,
+    max_size: int | None = None,
+    min_size: int | None = None,
 ) -> list[str]:
     """
     Split text into chunks, optimized for shorter CRM texts.
@@ -191,9 +192,8 @@ def chunk_text(
     Returns:
         List of text chunks
     """
-    config = get_config()
-    max_size = max_size or config.target_chunk_size
-    min_size = min_size or config.min_chunk_size
+    max_size = max_size or TARGET_CHUNK_SIZE
+    min_size = min_size or MIN_CHUNK_SIZE
     
     estimated = estimate_tokens(text)
     

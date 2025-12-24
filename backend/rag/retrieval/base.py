@@ -15,7 +15,6 @@ Usage:
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from qdrant_client import QdrantClient
@@ -28,7 +27,14 @@ from sentence_transformers import SentenceTransformer, CrossEncoder
 from rank_bm25 import BM25Okapi
 
 from backend.rag.models import DocumentChunk, ScoredChunk
-from backend.rag.config import get_config
+from backend.rag.config import (
+    get_config,
+    EMBEDDING_MODEL,
+    RERANKER_MODEL,
+    EMBEDDING_DIM,
+    DOCS_COLLECTION,
+    RRF_K,
+)
 from backend.rag.utils import simple_tokenize
 from backend.rag.retrieval.embedding import get_cached_embedding, cache_embedding
 
@@ -55,10 +61,10 @@ class RetrievalBackend:
     
     def __init__(
         self,
-        qdrant_path: Optional[Path] = None,
-        collection_name: Optional[str] = None,
-        embedding_model: Optional[str] = None,
-        reranker_model: Optional[str] = None,
+        qdrant_path: Path | None = None,
+        collection_name: str | None = None,
+        embedding_model: str | None = None,
+        reranker_model: str | None = None,
     ):
         """
         Initialize the retrieval backend.
@@ -72,7 +78,7 @@ class RetrievalBackend:
         config = get_config()
         
         self.qdrant_path = qdrant_path or config.qdrant_path
-        self.collection_name = collection_name or config.docs_collection_name
+        self.collection_name = collection_name or DOCS_COLLECTION
         
         # Initialize Qdrant client (local storage)
         self.qdrant_path.mkdir(parents=True, exist_ok=True)
@@ -80,13 +86,13 @@ class RetrievalBackend:
         logger.info(f"Qdrant client initialized at {self.qdrant_path}")
         
         # Lazy load models
-        self._embedding_model_name = embedding_model or config.embedding_model
-        self._reranker_model_name = reranker_model or config.reranker_model
-        self._embedding_model: Optional[SentenceTransformer] = None
-        self._reranker: Optional[CrossEncoder] = None
+        self._embedding_model_name = embedding_model or EMBEDDING_MODEL
+        self._reranker_model_name = reranker_model or RERANKER_MODEL
+        self._embedding_model: SentenceTransformer | None = None
+        self._reranker: CrossEncoder | None = None
         
         # BM25 index (in-memory)
-        self._bm25: Optional[BM25Okapi] = None
+        self._bm25: BM25Okapi | None = None
         self._chunks: list[DocumentChunk] = []
         self._chunk_id_to_idx: dict[str, int] = {}
     
@@ -142,7 +148,7 @@ class RetrievalBackend:
         self.qdrant.create_collection(
             collection_name=self.collection_name,
             vectors_config=VectorParams(
-                size=config.embedding_dim,
+                size=EMBEDDING_DIM,
                 distance=Distance.COSINE,
             ),
         )
@@ -189,7 +195,7 @@ class RetrievalBackend:
         self,
         query: str,
         k: int = 20,
-        qdrant_filter: Optional[object] = None,
+        qdrant_filter: object | None = None,
     ) -> list[tuple[int, float]]:
         """
         Perform dense search using Qdrant.
@@ -250,7 +256,6 @@ class RetrievalBackend:
         self,
         dense_results: list[tuple[int, float]],
         bm25_results: list[tuple[int, float]],
-        k: int = 60,
     ) -> list[tuple[int, float]]:
         """
         Merge results using Reciprocal Rank Fusion (RRF).
@@ -258,7 +263,6 @@ class RetrievalBackend:
         Args:
             dense_results: Results from dense search
             bm25_results: Results from BM25 search
-            k: RRF constant (default 60)
             
         Returns:
             Merged list of (chunk_index, rrf_score) tuples
@@ -267,11 +271,11 @@ class RetrievalBackend:
         
         # Add dense scores
         for rank, (idx, _) in enumerate(dense_results):
-            scores[idx] = scores.get(idx, 0) + 1 / (k + rank + 1)
+            scores[idx] = scores.get(idx, 0) + 1 / (RRF_K + rank + 1)
         
         # Add BM25 scores
         for rank, (idx, _) in enumerate(bm25_results):
-            scores[idx] = scores.get(idx, 0) + 1 / (k + rank + 1)
+            scores[idx] = scores.get(idx, 0) + 1 / (RRF_K + rank + 1)
         
         # Sort by RRF score
         merged = sorted(scores.items(), key=lambda x: x[1], reverse=True)
@@ -378,7 +382,7 @@ class RetrievalBackend:
         
         return results
     
-    def load_and_build(self, chunks_path: Optional[Path] = None) -> None:
+    def load_and_build(self, chunks_path: Path | None = None) -> None:
         """
         Load chunks from disk and build indexes.
         
@@ -400,7 +404,7 @@ class RetrievalBackend:
         chunks = load_chunks(chunks_path)
         self.build_indexes(chunks)
     
-    def get_chunk_by_id(self, chunk_id: str) -> Optional[DocumentChunk]:
+    def get_chunk_by_id(self, chunk_id: str) -> DocumentChunk | None:
         """Get a chunk by its ID."""
         idx = self._chunk_id_to_idx.get(chunk_id)
         if idx is not None:
@@ -428,8 +432,8 @@ def create_backend(rebuild: bool = False) -> RetrievalBackend:
     backend = RetrievalBackend()
     
     # Check if collection exists and has vectors
-    if not rebuild and backend.qdrant.collection_exists(config.docs_collection_name):
-        collection_info = backend.qdrant.get_collection(config.docs_collection_name)
+    if not rebuild and backend.qdrant.collection_exists(DOCS_COLLECTION):
+        collection_info = backend.qdrant.get_collection(DOCS_COLLECTION)
         if collection_info.points_count > 0:
             logger.info(f"Using existing Qdrant collection with {collection_info.points_count} vectors")
             # Still need to load chunks for BM25

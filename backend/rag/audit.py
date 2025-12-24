@@ -14,11 +14,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Any
 
-from backend.rag.config import AUDIT_LOG_PATH
-
 
 # Configure module logger
 logger = logging.getLogger(__name__)
+
+# Audit log path
+_BACKEND_ROOT = Path(__file__).parent.parent
+AUDIT_LOG_PATH = _BACKEND_ROOT / "data/logs/audit.jsonl"
 
 # Thread-safe file writing lock
 _audit_lock = threading.Lock()

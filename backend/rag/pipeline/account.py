@@ -13,21 +13,12 @@ Usage:
         company_name="Acme Manufacturing"
     )
     print(result["answer"])
-
-CLI:
-    python -m backend.rag.pipeline.account ask "What's the status?" --company Acme
-    python -m backend.rag.pipeline.account chat --company Acme
 """
 
 import re
 import logging
 import time
 
-import typer
-from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
-from rich.prompt import Prompt
 import pandas as pd
 
 from backend.rag.models import DocumentChunk, ScoredChunk
@@ -389,133 +380,3 @@ def answer_account_question(
             "doc_chunks_used": len(doc_hits),
         },
     }
-
-
-# =============================================================================
-# CLI
-# =============================================================================
-
-app = typer.Typer(help="Account-aware CRM RAG (MVP2)")
-console = Console()
-
-
-def format_result(result: dict) -> None:
-    """Display result using Rich."""
-    console.print(Panel(
-        result["answer"],
-        title=f"[bold]{result['company_name']}[/bold]",
-        border_style="green",
-    ))
-    
-    # Sources table
-    if result["sources"]:
-        table = Table(title="Sources", show_header=True, header_style="bold cyan")
-        table.add_column("Type", style="dim")
-        table.add_column("ID")
-        table.add_column("Score", justify="right")
-        
-        for s in result["sources"][:5]:
-            table.add_row(s.get("type", "private"), s["id"], f"{s.get('score', 0):.2f}")
-        
-        console.print(table)
-    
-    # Metrics
-    meta = result["meta"]
-    console.print(
-        f"\n[dim]Latency: {meta['latency_ms']:.0f}ms | "
-        f"Tokens: {meta['total_tokens']} | "
-        f"Cost: ${meta['estimated_cost']:.4f}[/dim]"
-    )
-
-
-@app.command()
-def ask(
-    question: str = typer.Argument(..., help="Question to ask about the company"),
-    company: str = typer.Option(..., "--company", "-c", help="Company name or ID"),
-    include_docs: bool = typer.Option(False, "--include-docs", help="Also search product docs"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output"),
-):
-    """Ask a single question about a company."""
-    with console.status("[bold green]Searching..."):
-        result = answer_account_question(
-            question,
-            company_name=company,
-            include_docs=include_docs,
-            verbose=verbose,
-        )
-    
-    format_result(result)
-
-
-@app.command()
-def chat(
-    company: str | None = typer.Option(None, "--company", "-c", help="Default company"),
-    include_docs: bool = typer.Option(False, "--include-docs", help="Also search product docs"),
-):
-    """Start interactive chat mode."""
-    # Show available companies
-    df = load_companies_df()
-    
-    table = Table(title="Available Companies", show_header=True)
-    table.add_column("Company", style="cyan")
-    table.add_column("ID", style="dim")
-    
-    for _, row in df.iterrows():
-        table.add_row(row["name"], row["company_id"])
-    
-    console.print(table)
-    console.print(Panel(
-        "Enter questions in format: [bold]@CompanyName[/bold] What is the status?\n"
-        "Type [bold]quit[/bold] to exit.",
-        title="Account RAG Chat",
-        border_style="blue",
-    ))
-    
-    while True:
-        try:
-            user_input = Prompt.ask("\n[bold cyan]You[/bold cyan]")
-        except (EOFError, KeyboardInterrupt):
-            console.print("\n[dim]Goodbye![/dim]")
-            break
-        
-        if not user_input.strip() or user_input.strip().lower() in ("quit", "exit", "q"):
-            console.print("[dim]Goodbye![/dim]")
-            break
-        
-        # Parse @Company prefix
-        current_company = company
-        question = user_input
-        
-        if user_input.startswith("@"):
-            parts = user_input[1:].split(" ", 1)
-            if len(parts) == 2:
-                current_company = parts[0]
-                question = parts[1]
-            else:
-                console.print("[yellow]Format: @CompanyName Your question[/yellow]")
-                continue
-        
-        if not current_company:
-            console.print("[yellow]Please specify a company with @CompanyName[/yellow]")
-            continue
-        
-        try:
-            with console.status("[bold green]Thinking..."):
-                result = answer_account_question(
-                    question,
-                    company_name=current_company,
-                    include_docs=include_docs,
-                    verbose=False,
-                )
-            format_result(result)
-        except Exception as e:
-            console.print(f"[red]Error:[/red] {e}")
-
-
-def main():
-    """Main entrypoint."""
-    app()
-
-
-if __name__ == "__main__":
-    main()

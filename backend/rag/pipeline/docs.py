@@ -325,34 +325,3 @@ def answer_question(
     except Exception as e:
         logger.error(f"Pipeline error: {e}")
         raise
-
-
-# =============================================================================
-# Test
-# =============================================================================
-
-if __name__ == "__main__":
-    from backend.rag.retrieval import create_backend
-    
-    print("Testing RAG Pipeline")
-    print("=" * 60)
-    
-    backend = create_backend()
-    
-    question = "What is an Opportunity in Acme CRM Suite and what fields does it have?"
-    print(f"\nQuestion: {question}")
-    print("-" * 60)
-    
-    result = answer_question(question, backend, verbose=True)
-    
-    print("\n" + "=" * 60)
-    print("ANSWER:")
-    print(result["answer"])
-    print("\n" + "-" * 60)
-    print(f"Doc IDs used: {result['doc_ids_used']}")
-    print(f"Cited docs: {result['cited_docs']}")
-    print(f"Chunks used: {result['num_chunks_used']}")
-    print(f"\nPipeline Steps:")
-    for step in result['steps']:
-        print(f"  [{step['status']}] {step['label']} ({step['elapsed_ms']:.0f}ms)")
-    print(f"\nMetrics: {result['metrics']}")

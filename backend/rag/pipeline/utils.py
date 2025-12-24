@@ -4,12 +4,11 @@ Pipeline utilities for RAG answer generation.
 
 import re
 
+from backend.rag.ingest.chunking import estimate_tokens
 from backend.rag.ingest.constants import CHARS_PER_TOKEN
 
-
-def estimate_tokens(text: str) -> int:
-    """Estimate token count from text length."""
-    return len(text) // CHARS_PER_TOKEN
+# Re-export for backward compatibility
+__all__ = ["estimate_tokens", "tokens_to_chars", "preprocess_query", "extract_citations"]
 
 
 def tokens_to_chars(tokens: int) -> int:

@@ -15,4 +15,4 @@ export { MessageSkeleton, ChatSkeleton } from "./Skeleton";
 export { Avatar } from "./Avatar";
 export { CopyButton } from "./CopyButton";
 export { MarkdownText } from "./MarkdownText";
-export { DataExplorer } from "./DataExplorer";
+export { DataExplorer, DataTable, NestedData } from "./dataExplorer";

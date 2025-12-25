@@ -12,27 +12,10 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 
-# Set mock mode before imports
+# Set mock mode before imports (also set in conftest.py)
 os.environ["MOCK_LLM"] = "1"
 
-from fastapi.testclient import TestClient
-from backend.main import app
-
-
-# =============================================================================
-# Fixtures
-# =============================================================================
-
-@pytest.fixture
-def client():
-    """Create a test client for the FastAPI app."""
-    return TestClient(app)
-
-
-@pytest.fixture
-def mock_llm_response():
-    """Create a mock LLM response."""
-    return "Based on the CRM data, Acme Manufacturing is an active Enterprise customer with recent engagement."
+# client and mock_llm_response fixtures are provided by conftest.py
 
 
 # =============================================================================

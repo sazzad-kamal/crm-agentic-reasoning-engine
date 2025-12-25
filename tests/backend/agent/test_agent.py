@@ -8,7 +8,7 @@ Run with: MOCK_LLM=1 pytest backend/agent/tests/test_agent.py -v
 import os
 import pytest
 
-# Set mock mode before imports
+# Set mock mode before imports (also set in conftest.py)
 os.environ["MOCK_LLM"] = "1"
 
 from backend.agent.datastore import CRMDataStore, get_csv_base_path
@@ -22,15 +22,7 @@ from backend.agent.tools import (
 from backend.agent.router import route_question
 from backend.agent.orchestrator import answer_question
 
-
-# =============================================================================
-# Fixtures
-# =============================================================================
-
-@pytest.fixture
-def datastore():
-    """Create a fresh datastore instance."""
-    return CRMDataStore()
+# datastore fixture is provided by conftest.py
 
 
 # =============================================================================

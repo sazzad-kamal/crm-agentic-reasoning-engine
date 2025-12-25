@@ -19,13 +19,11 @@ import re
 import logging
 import time
 
-import pandas as pd
 
-from backend.rag.models import DocumentChunk, ScoredChunk
 from backend.rag.retrieval.private import PrivateRetrievalBackend, create_private_backend
 from backend.rag.retrieval.base import create_backend as create_docs_backend
 from backend.rag.pipeline.constants import MAX_CONTEXT_TOKENS
-from backend.rag.pipeline.utils import estimate_tokens, preprocess_query, extract_citations
+from backend.rag.pipeline.utils import estimate_tokens
 from backend.common.context_builder import build_private_context, build_docs_context
 from backend.common.prompts import (
     QUERY_REWRITE_SYSTEM,
@@ -51,8 +49,6 @@ COST_PER_OUTPUT_TOKEN = 1.60 / 1_000_000
 # =============================================================================
 # Company Resolution
 # =============================================================================
-
-# load_companies_df imported from backend.rag.pipeline.company
 
 
 def resolve_company_id(

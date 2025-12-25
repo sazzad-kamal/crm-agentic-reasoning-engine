@@ -28,7 +28,7 @@ export function FollowUpSuggestions({
       aria-label="Suggested follow-up questions"
     >
       <span className="follow-up-container__label" aria-hidden="true">
-        💡 Follow-up questions:
+        Ask:
       </span>
       {suggestions.map((suggestion, idx) => (
         <button

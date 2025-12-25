@@ -51,6 +51,7 @@ export default defineConfig({
       timeout: 120000,
       env: {
         MOCK_LLM: '1',
+        ACME_RATE_LIMIT_ENABLED: 'false',
       },
     },
   ],

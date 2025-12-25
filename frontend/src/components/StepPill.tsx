@@ -21,21 +21,26 @@ const STATUS_LABELS: Record<Step["status"], string> = {
 
 interface StepPillProps {
   step: Step;
+  index?: number;  // For staggered animation
 }
 
 /**
  * Displays a single step as a styled pill with status indicator.
  * Memoized for performance in step lists.
  */
-export const StepPill = memo(function StepPill({ step }: StepPillProps) {
+export const StepPill = memo(function StepPill({ step, index = 0 }: StepPillProps) {
   const icon = STATUS_ICONS[step.status] || "○";
   const statusLabel = STATUS_LABELS[step.status] || step.status;
+  
+  // Stagger animation delay based on index
+  const animationDelay = `${index * 100}ms`;
 
   return (
     <span
       className={`chip step-pill step-pill--${step.status}`}
       role="listitem"
       aria-label={`${step.label}: ${statusLabel}`}
+      style={{ animationDelay }}
     >
       <span aria-hidden="true">{icon}</span> {step.label}
     </span>
@@ -64,8 +69,8 @@ export const StepsRow = memo(function StepsRow({ steps }: StepsRowProps) {
       <span className="steps-row__label" aria-hidden="true">
         Steps:
       </span>
-      {steps.map((step) => (
-        <StepPill key={step.id} step={step} />
+      {steps.map((step, index) => (
+        <StepPill key={step.id} step={step} index={index} />
       ))}
     </div>
   );

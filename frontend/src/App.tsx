@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useChat } from "./hooks/useChat";
+import { useChatStream } from "./hooks/useChatStream";
 import {
   ChatArea,
   InputBar,
@@ -9,6 +10,9 @@ import {
   DataExplorer,
 } from "./components";
 import "./styles/index.css";
+
+// Feature flag for streaming - can be disabled if issues occur
+const USE_STREAMING = true;
 
 /**
  * Acme CRM AI Companion - Main Application
@@ -37,7 +41,15 @@ export default function App() {
     []
   );
 
-  const { messages, isLoading, error, sendMessage, clearError } = useChat(chatOptions);
+  // Use streaming or regular chat hook based on feature flag
+  const streamingChat = useChatStream(chatOptions);
+  const regularChat = useChat(chatOptions);
+  
+  // Select which hook to use
+  const chat = USE_STREAMING ? streamingChat : regularChat;
+  const { messages, isLoading, error, sendMessage, clearError } = chat;
+  const currentStatus = USE_STREAMING && 'currentStatus' in chat ? chat.currentStatus : null;
+  const isStreaming = USE_STREAMING && 'isStreaming' in chat ? chat.isStreaming : false;
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -144,6 +156,7 @@ export default function App() {
             messages={messages}
             onSuggestionClick={handleSuggestionClick}
             onFollowUpClick={handleFollowUpClick}
+            streamingStatus={isStreaming ? currentStatus : null}
           />
 
           {/* Error Banner */}

@@ -1,5 +1,6 @@
-import { memo } from "react";
+import { memo, useState, useCallback, useMemo } from "react";
 import type { Source } from "../types";
+import { createActivationHandler } from "../utils/keyboard";
 
 /** Icons for different source types */
 const SOURCE_ICONS: Record<Source["type"], string> = {
@@ -50,24 +51,50 @@ interface SourcesRowProps {
 }
 
 /**
- * Displays a row of source chips.
+ * Displays a collapsible row of source chips.
+ * Collapsed by default, click to expand.
  * Memoized to prevent re-renders when sources haven't changed.
  */
 export const SourcesRow = memo(function SourcesRow({ sources }: SourcesRowProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  const toggleExpanded = useCallback(() => {
+    setExpanded((prev) => !prev);
+  }, []);
+
+  const handleKeyDown = useMemo(
+    () => createActivationHandler(toggleExpanded),
+    [toggleExpanded]
+  );
+
   if (!sources || sources.length === 0) return null;
 
   return (
-    <div
-      className="flex-row sources-row"
-      role="list"
-      aria-label={`${sources.length} source${sources.length !== 1 ? "s" : ""} referenced`}
-    >
-      <span className="sources-row__label" aria-hidden="true">
-        Sources:
-      </span>
-      {sources.map((source) => (
-        <SourceChip key={source.id} source={source} />
-      ))}
-    </div>
+    <section className="sources-section" aria-label="Sources referenced">
+      <button
+        className="sources-section__header"
+        onClick={toggleExpanded}
+        onKeyDown={handleKeyDown}
+        type="button"
+        aria-expanded={expanded}
+        aria-controls="sources-content"
+      >
+        <span aria-hidden="true">{expanded ? "▼" : "▶"}</span>
+        <span>Sources ({sources.length})</span>
+      </button>
+
+      {expanded && (
+        <div
+          id="sources-content"
+          className="sources-section__content"
+          role="list"
+          aria-label={`${sources.length} source${sources.length !== 1 ? "s" : ""} referenced`}
+        >
+          {sources.map((source) => (
+            <SourceChip key={source.id} source={source} />
+          ))}
+        </div>
+      )}
+    </section>
   );
 });

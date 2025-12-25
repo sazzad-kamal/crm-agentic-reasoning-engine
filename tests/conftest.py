@@ -19,6 +19,8 @@ from fastapi.testclient import TestClient
 # Set mock mode by default for all tests
 os.environ.setdefault("MOCK_LLM", "1")
 os.environ.setdefault("OPENAI_API_KEY", "test-key-for-testing")
+# Disable rate limiting for tests
+os.environ["ACME_RATE_LIMIT_ENABLED"] = "false"
 
 
 # =============================================================================
@@ -38,6 +40,10 @@ def client():
             response = client.get("/api/health")
             assert response.status_code == 200
     """
+    # Clear settings cache to ensure rate limit disabled setting is used
+    from backend.config import get_settings
+    get_settings.cache_clear()
+    
     from backend.main import app
     return TestClient(app)
 

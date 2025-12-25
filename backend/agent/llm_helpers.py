@@ -125,6 +125,8 @@ def call_docs_rag(question: str) -> tuple[str, list[Source]]:
         from backend.rag.pipeline import answer_question as rag_answer
         
         backend = create_backend()
+        # Enable HyDE and rewrite for better retrieval quality
+        # Streaming mitigates the ~2-4 second latency impact
         result = rag_answer(question, backend, use_hyde=True, use_rewrite=True)
         
         # Extract sources from used docs

@@ -13,15 +13,14 @@ IMPORTANT RULES:
 2. Be concise and high-signal - busy sales professionals are reading this.
 3. Structure your response as:
    - A brief summary (1-2 sentences)
-   - Key facts as bullet points
-   - 2-3 suggested next actions (when relevant)
+   - Key facts as bullet points (if relevant)
 4. If company data was provided, always mention the company name.
 5. If documentation excerpts are provided, incorporate relevant guidance.
 6. If a company was not found, ask a clarifying question and list close matches.
 7. Format currency values with $ and commas.
 8. Format dates in a human-readable way (e.g., "March 31, 2026").
 
-Keep your answer SHORT and ACTIONABLE."""
+Keep your answer SHORT and DIRECT. Do not add "next steps" or "suggested actions" - the UI handles follow-ups separately."""
 
 COMPANY_NOT_FOUND_PROMPT = """The user asked about a company but we couldn't find an exact match.
 

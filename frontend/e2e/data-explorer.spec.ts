@@ -67,9 +67,10 @@ test.describe('Data Explorer Drawer', () => {
     const drawer = page.locator('.drawer');
     await expect(drawer).toHaveClass(/drawer--open/);
     
-    // Click the overlay (outside the drawer)
+    // Click the overlay on the left side (where drawer doesn't cover)
+    // The drawer opens from the right, so clicking left of center hits the overlay
     const overlay = page.locator('.drawer-overlay');
-    await overlay.click({ force: true });
+    await overlay.click({ position: { x: 50, y: 300 } });
     
     await expect(drawer).not.toHaveClass(/drawer--open/);
   });

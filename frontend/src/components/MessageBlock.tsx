@@ -3,8 +3,6 @@ import type { ChatMessage } from "../types";
 import { config } from "../config";
 import { LoadingState } from "./LoadingDots";
 import { SourcesRow } from "./SourceChip";
-import { StepsRow } from "./StepPill";
-import { MetaInfo } from "./MetaInfo";
 import { DataTables } from "./DataTables";
 import { FollowUpSuggestions } from "./FollowUpSuggestions";
 import { Avatar } from "./Avatar";
@@ -61,27 +59,14 @@ export const MessageBlock = memo(function MessageBlock({
                 <CopyButton text={response.answer} className="message__copy" />
               </div>
 
-              {/* Sources */}
-              {config.features.showSources && response.sources && response.sources.length > 0 && (
-                <SourcesRow sources={response.sources} />
+              {/* Latency indicator */}
+              {response.meta?.latency_ms && (
+                <div className="message__time">
+                  {(response.meta.latency_ms / 1000).toFixed(1)}s
+                </div>
               )}
 
-              {/* Meta Info */}
-              {config.features.showLatency && response.meta && (
-                <MetaInfo meta={response.meta} />
-              )}
-
-              {/* Steps */}
-              {config.features.showSteps && response.steps && response.steps.length > 0 && (
-                <StepsRow steps={response.steps} />
-              )}
-
-              {/* Data Tables */}
-              {config.features.showDataTables && response.raw_data && (
-                <DataTables rawData={response.raw_data} />
-              )}
-
-              {/* Follow-up Suggestions */}
+              {/* Follow-up Suggestions - right after answer for easy action */}
               {config.features.showFollowUpSuggestions &&
                 response.follow_up_suggestions &&
                 response.follow_up_suggestions.length > 0 &&
@@ -91,6 +76,16 @@ export const MessageBlock = memo(function MessageBlock({
                     onSuggestionClick={onFollowUpClick}
                   />
                 )}
+
+              {/* Sources (collapsed) */}
+              {config.features.showSources && response.sources && response.sources.length > 0 && (
+                <SourcesRow sources={response.sources} />
+              )}
+
+              {/* Data Tables (collapsed) */}
+              {config.features.showDataTables && response.raw_data && (
+                <DataTables rawData={response.raw_data} />
+              )}
             </div>
           ) : (
             <LoadingState text="Assistant is thinking..." />

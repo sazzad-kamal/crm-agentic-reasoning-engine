@@ -7,13 +7,14 @@ interface ChatAreaProps {
   messages: ChatMessage[];
   onSuggestionClick: (prompt: string) => void;
   onFollowUpClick: (question: string) => void;
+  streamingStatus?: string | null;
 }
 
 /**
  * Main chat area showing messages or empty state
  */
 export const ChatArea = forwardRef<HTMLDivElement, ChatAreaProps>(
-  function ChatArea({ messages, onSuggestionClick, onFollowUpClick }, ref) {
+  function ChatArea({ messages, onSuggestionClick, onFollowUpClick, streamingStatus }, ref) {
     const isEmpty = messages.length === 0;
 
     return (
@@ -35,6 +36,13 @@ export const ChatArea = forwardRef<HTMLDivElement, ChatAreaProps>(
                 onFollowUpClick={onFollowUpClick}
               />
             ))}
+            {/* Streaming status indicator */}
+            {streamingStatus && (
+              <div className="streaming-status" role="status" aria-live="polite">
+                <span className="streaming-status__dot" />
+                <span className="streaming-status__text">{streamingStatus}</span>
+              </div>
+            )}
           </div>
         )}
       </div>

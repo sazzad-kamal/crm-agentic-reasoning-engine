@@ -128,19 +128,18 @@ describe("MessageBlock", () => {
     expect(screen.getByRole("status", { name: /loading/i })).toBeInTheDocument();
   });
 
-  it("renders sources when present", () => {
+  it("renders sources when present (collapsed by default)", () => {
     render(<MessageBlock message={mockMessage} />);
-    expect(screen.getByText("Acme Corp")).toBeInTheDocument();
+    // Sources are collapsed by default - should show header with count
+    expect(screen.getByText(/Sources \(/)).toBeInTheDocument();
   });
 
-  it("renders steps when present", () => {
+  it("renders latency time indicator when present", () => {
     render(<MessageBlock message={mockMessage} />);
-    expect(screen.getByText(/Query/)).toBeInTheDocument();
-  });
-
-  it("renders meta info when present", () => {
-    render(<MessageBlock message={mockMessage} />);
-    expect(screen.getByText(/150ms/)).toBeInTheDocument();
+    // Latency is displayed as "X.Xs" format (150ms = 0.1s)
+    const timeElement = document.querySelector(".message__time");
+    expect(timeElement).toBeInTheDocument();
+    expect(timeElement?.textContent).toMatch(/0\.1\s*s/);
   });
 
   it("calls onFollowUpClick when follow-up clicked", () => {

@@ -309,7 +309,10 @@ class TestQuestionGeneration:
         
         questions = generate_eval_questions()
         
-        expected = NUM_COMPANIES * NUM_QUESTIONS_PER_COMPANY
+        # Base questions + edge case questions (3 companies × 3 edge case templates)
+        NUM_EDGE_CASE_COMPANIES = 3
+        NUM_EDGE_CASE_TEMPLATES = 3
+        expected = (NUM_COMPANIES * NUM_QUESTIONS_PER_COMPANY) + (NUM_EDGE_CASE_COMPANIES * NUM_EDGE_CASE_TEMPLATES)
         assert len(questions) == expected
     
     def test_questions_have_required_fields(self):
@@ -369,12 +372,22 @@ class TestIntegration:
             if "already accessed by another instance" in str(e):
                 pytest.skip("Qdrant storage locked by another process")
             raise
+        except Exception as e:
+            # Catch any other Qdrant-related errors
+            if "Qdrant" in str(type(e).__name__) or "portalocker" in str(e).lower():
+                pytest.skip(f"Qdrant unavailable: {e}")
+            raise
         
         # Run a real question
-        result = answer_account_question(
-            question="What is the status?",
-            company_id=companies[0],
-        )
+        try:
+            result = answer_account_question(
+                question="What is the status?",
+                company_id=companies[0],
+            )
+        except RuntimeError as e:
+            if "already accessed by another instance" in str(e):
+                pytest.skip("Qdrant storage locked by another process")
+            raise
         
         # Verify result structure
         assert "answer" in result

@@ -99,15 +99,17 @@ describe("SourcesRow", () => {
     { type: "doc", id: "2", label: "Doc B" },
   ];
 
-  it("renders all sources", () => {
+  it("renders collapsed by default with source count", () => {
     render(<SourcesRow sources={sources} />);
-    expect(screen.getByText("Company A")).toBeInTheDocument();
-    expect(screen.getByText("Doc B")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sources/i })).toBeInTheDocument();
+    expect(screen.getByText(/Sources \(2\)/)).toBeInTheDocument();
   });
 
-  it("renders sources label", () => {
+  it("expands to show sources when clicked", () => {
     render(<SourcesRow sources={sources} />);
-    expect(screen.getByText("Sources:")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button"));
+    expect(screen.getByText("Company A")).toBeInTheDocument();
+    expect(screen.getByText("Doc B")).toBeInTheDocument();
   });
 });
 
@@ -151,6 +153,11 @@ describe("FollowUpSuggestions", () => {
     render(<FollowUpSuggestions suggestions={suggestions} onSuggestionClick={() => {}} />);
     expect(screen.getByText("Question 1?")).toBeInTheDocument();
     expect(screen.getByText("Question 2?")).toBeInTheDocument();
+  });
+
+  it("renders Ask label", () => {
+    render(<FollowUpSuggestions suggestions={suggestions} onSuggestionClick={() => {}} />);
+    expect(screen.getByText("Ask:")).toBeInTheDocument();
   });
 
   it("calls onSuggestionClick when clicked", () => {

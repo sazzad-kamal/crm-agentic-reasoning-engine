@@ -467,13 +467,6 @@ class RetrievalBackend:
         # Sort by point ID to maintain original order
         chunks_by_id = {c.chunk_id: c for c in chunks}
         return list(chunks_by_id.values())
-    
-    def get_chunk_by_id(self, chunk_id: str) -> DocumentChunk | None:
-        """Get a chunk by its ID."""
-        idx = self._chunk_id_to_idx.get(chunk_id)
-        if idx is not None:
-            return self._chunks[idx]
-        return None
 
 
 # =============================================================================

@@ -4,8 +4,6 @@ Constants for the pipeline module.
 
 # LLM Configuration
 LLM_MODEL = "gpt-4.1-mini"
-LLM_TEMPERATURE = 0.0
-LLM_MAX_TOKENS = 1024
 ANSWER_MAX_TOKENS = 800
 
 # Context Building

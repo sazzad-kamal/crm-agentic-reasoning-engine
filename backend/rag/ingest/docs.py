@@ -35,7 +35,6 @@ logger = logging.getLogger(__name__)
 
 # Output file path (for backwards compatibility import)
 OUTPUT_DIR = Path("data/processed")
-OUTPUT_FILE = OUTPUT_DIR / "doc_chunks.parquet"
 
 
 # =============================================================================

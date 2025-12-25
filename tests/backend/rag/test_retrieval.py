@@ -248,18 +248,3 @@ class TestRetrievalEdgeCases:
 # =============================================================================
 # Test: Config Integration
 # =============================================================================
-
-class TestRetrievalConfig:
-    """Tests for retrieval configuration."""
-    
-    def test_config_defaults_valid(self):
-        """Test that default retrieval constants are valid."""
-        from backend.rag.retrieval.constants import (
-            DEFAULT_K_DENSE,
-            DEFAULT_K_BM25,
-            DEFAULT_TOP_N,
-        )
-        
-        assert DEFAULT_K_DENSE > 0
-        assert DEFAULT_K_BM25 > 0
-        assert DEFAULT_TOP_N > 0

@@ -172,12 +172,3 @@ def get_audit_logger() -> AgentAuditLogger:
     if _logger_instance is None:
         _logger_instance = AgentAuditLogger()
     return _logger_instance
-
-
-def log_agent_query(
-    question: str,
-    mode_used: str,
-    **kwargs
-) -> None:
-    """Convenience function to log a query."""
-    get_audit_logger().log_query(question=question, mode_used=mode_used, **kwargs)

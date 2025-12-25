@@ -14,7 +14,7 @@ import logging
 import re
 from typing import Optional, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from tenacity import (
     retry, 
     stop_after_attempt, 

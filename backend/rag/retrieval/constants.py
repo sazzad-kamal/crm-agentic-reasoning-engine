@@ -19,7 +19,4 @@ DOCS_COLLECTION = "acme_crm_docs"
 PRIVATE_COLLECTION = "acme_crm_private"
 
 # Retrieval Defaults
-DEFAULT_K_DENSE = 20
-DEFAULT_K_BM25 = 20
-DEFAULT_TOP_N = 10
 RRF_K = 60

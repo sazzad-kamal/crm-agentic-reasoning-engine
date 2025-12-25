@@ -8,7 +8,7 @@ Run with:
 import os
 import pytest
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 os.environ["MOCK_LLM"] = "1"
 

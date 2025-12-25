@@ -23,9 +23,8 @@ from backend.agent.config import (
     reset_config, 
     is_mock_mode,
 )
-from backend.agent.schemas import RouterResult
 from backend.agent.audit import AgentAuditLogger, AgentAuditEntry
-from backend.agent.orchestrator import AgentProgress, StepStatus
+from backend.agent.orchestrator import AgentProgress
 
 
 # =============================================================================
@@ -237,13 +236,6 @@ class TestAgentProgress:
         
         assert elapsed >= 50
         assert elapsed < 1000  # Shouldn't take a second
-    
-    def test_step_status_enum(self):
-        """Test StepStatus enum values."""
-        assert StepStatus.DONE.value == "done"
-        assert StepStatus.ERROR.value == "error"
-        assert StepStatus.SKIPPED.value == "skipped"
-        assert StepStatus.PENDING.value == "pending"
 
 
 # =============================================================================

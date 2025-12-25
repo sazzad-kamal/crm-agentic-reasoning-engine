@@ -17,7 +17,6 @@ os.environ["MOCK_LLM"] = "1"
 
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.agent.schemas import ChatRequest, ChatResponse
 
 
 # =============================================================================

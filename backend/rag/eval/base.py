@@ -7,15 +7,11 @@ Provides:
 - Shared metrics computation
 """
 
-from typing import Callable, TypeVar
+from typing import Callable
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich.progress import track
 
-
-# Type variable for result types
-T = TypeVar("T")
 
 # Shared console instance
 console = Console()
@@ -62,60 +58,9 @@ def print_issues_panel(title: str, issues: list[str]) -> None:
         ))
 
 
-def run_with_progress(
-    items: list,
-    evaluate_fn: Callable,
-    description: str = "Evaluating...",
-) -> list:
-    """
-    Run evaluation function on items with progress bar.
-    
-    Args:
-        items: Items to evaluate
-        evaluate_fn: Function to call for each item
-        description: Progress bar description
-        
-    Returns:
-        List of results
-    """
-    results = []
-    for item in track(items, description=description):
-        result = evaluate_fn(item)
-        results.append(result)
-    return results
-
-
-def compute_aggregate_metrics(results: list, metrics: dict[str, Callable]) -> dict:
-    """
-    Compute aggregate metrics from results.
-    
-    Args:
-        results: List of result objects
-        metrics: Dict mapping metric name to extraction function
-        
-    Returns:
-        Dict of computed averages
-    """
-    n = len(results)
-    if n == 0:
-        return {}
-    
-    return {
-        name: sum(fn(r) for r in results) / n
-        for name, fn in metrics.items()
-    }
-
-
 def format_check_mark(value: bool) -> str:
     """Format boolean as colored check/cross mark."""
     return "[green]✓[/green]" if value else "[red]✗[/red]"
-
-
-def format_percentage(value: float, threshold: float = 0.0) -> str:
-    """Format percentage with color based on threshold."""
-    if value > threshold:
-        return f"[red]{value:.1%}[/red]"
-    return f"[green]{value:.1%}[/green]"
 
 
 def add_separator_row(table: Table) -> None:

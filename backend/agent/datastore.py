@@ -29,7 +29,6 @@ CSV_TABLES = {
     "opportunity_descriptions": "opportunity_descriptions.csv",
 }
 
-OPTIONAL_TABLES = {"groups", "group_members", "attachments", "opportunity_descriptions"}
 REQUIRED_TABLES = {"companies", "contacts", "activities", "history", "opportunities"}
 
 
@@ -167,20 +166,6 @@ class CRMDataStore:
         self._company_names_cache = {name.lower(): cid for cid, name in result}
         self._company_ids_cache = {cid for cid, _ in result}
     
-    def _safe_parse_date(self, value) -> datetime | None:
-        """Safely parse a date/datetime value."""
-        if value is None:
-            return None
-        if isinstance(value, datetime):
-            return value
-        try:
-            # Try ISO format first
-            if "T" in str(value):
-                return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-            return datetime.fromisoformat(str(value))
-        except (ValueError, TypeError):
-            return None
-    
     def _get_date_cutoff(self, days: int) -> str:
         """Get ISO date string for N days ago."""
         cutoff = datetime.now() - timedelta(days=days)
@@ -258,11 +243,6 @@ class CRMDataStore:
             "SELECT * FROM companies WHERE company_id = ?",
             [company_id]
         )
-    
-    def get_all_companies(self) -> list[dict]:
-        """Get all companies."""
-        self._ensure_table("companies")
-        return self._fetch_all_dicts("SELECT * FROM companies")
     
     def get_recent_activities(
         self,
@@ -459,15 +439,6 @@ class CRMDataStore:
             f"SELECT * FROM contacts WHERE company_id = ? LIMIT {limit}",
             [company_id]
         )
-    
-    def execute_query(self, query: str, params: list = None) -> list[dict]:
-        """
-        Execute a raw SQL query (for advanced use cases).
-        
-        Returns list of dicts.
-        """
-        self._ensure_core_tables()
-        return self._fetch_all_dicts(query, params)
 
 
 # =============================================================================

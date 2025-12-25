@@ -18,7 +18,6 @@ Enhanced features:
 import logging
 import time
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Optional
 
 from tenacity import (
@@ -52,15 +51,6 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # Progress Tracking
 # =============================================================================
-
-class StepStatus(str, Enum):
-    """Status values for processing steps."""
-    PENDING = "pending"
-    IN_PROGRESS = "in-progress"
-    DONE = "done"
-    SKIPPED = "skipped"
-    ERROR = "error"
-
 
 @dataclass
 class AgentProgress:

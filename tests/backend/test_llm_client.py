@@ -7,8 +7,7 @@ Run with:
 
 import os
 import pytest
-from unittest.mock import patch, MagicMock, PropertyMock
-import hashlib
+from unittest.mock import patch, MagicMock
 
 # Mock OpenAI before importing the module
 os.environ["OPENAI_API_KEY"] = "test-key-for-testing"
@@ -20,12 +19,9 @@ os.environ["OPENAI_API_KEY"] = "test-key-for-testing"
 
 from backend.common.llm_client import (
     _cache_key,
-    _get_cached_response,
-    _cache_response,
     clear_llm_cache,
     call_llm,
     call_llm_with_metrics,
-    _LLM_CACHE_ENABLED,
 )
 
 

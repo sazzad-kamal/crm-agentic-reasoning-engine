@@ -256,10 +256,6 @@ class PrivateRetrievalBackend(RetrievalBackend):
             company_filter=company_filter,
         )
     
-    def get_chunks_for_company(self, company_id: str) -> list[DocumentChunk]:
-        """Get all chunks for a specific company."""
-        return [c for c in self._chunks if c.metadata.get("company_id") == company_id]
-    
     def get_all_companies(self) -> list[str]:
         """Get list of all company_ids in the index."""
         companies = set()

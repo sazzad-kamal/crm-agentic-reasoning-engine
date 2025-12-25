@@ -75,20 +75,6 @@ class NotFoundError(APIError):
         )
 
 
-class ServiceUnavailableError(APIError):
-    """External service unavailable."""
-
-    def __init__(self, service: str, message: Optional[str] = None):
-        msg = f"{service} is currently unavailable"
-        if message:
-            msg += f": {message}"
-        super().__init__(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            message=msg,
-            code="SERVICE_UNAVAILABLE",
-        )
-
-
 class RateLimitError(APIError):
     """Rate limit exceeded."""
 

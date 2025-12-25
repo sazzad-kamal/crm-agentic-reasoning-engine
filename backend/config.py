@@ -82,9 +82,3 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()
-
-
-# Convenience function
-def is_debug() -> bool:
-    """Check if debug mode is enabled."""
-    return get_settings().debug

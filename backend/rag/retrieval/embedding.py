@@ -36,17 +36,3 @@ def cache_embedding(query: str, embedding: np.ndarray) -> None:
         del _embedding_cache[oldest_key]
     
     _embedding_cache[query] = embedding
-
-
-def clear_embedding_cache() -> None:
-    """Clear the embedding cache."""
-    _embedding_cache.clear()
-    logger.info("Embedding cache cleared")
-
-
-def get_cache_stats() -> dict:
-    """Get embedding cache statistics."""
-    return {
-        "size": len(_embedding_cache),
-        "max_size": EMBEDDING_CACHE_SIZE,
-    }

@@ -11,7 +11,7 @@ import pytest
 # Set mock mode before imports
 os.environ["MOCK_LLM"] = "1"
 
-from backend.agent.datastore import CRMDataStore, get_datastore, get_csv_base_path
+from backend.agent.datastore import CRMDataStore, get_csv_base_path
 from backend.agent.tools import (
     tool_company_lookup,
     tool_recent_activity,

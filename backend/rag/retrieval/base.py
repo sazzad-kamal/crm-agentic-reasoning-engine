@@ -26,7 +26,7 @@ from qdrant_client.models import (
 from sentence_transformers import SentenceTransformer
 from rank_bm25 import BM25Okapi
 
-from backend.rag.models import DocumentChunk, ScoredChunk
+from backend.common.models import DocumentChunk, ScoredChunk
 from backend.rag.retrieval.constants import (
     EMBEDDING_MODEL,
     RERANKER_MODEL,

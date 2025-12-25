@@ -19,7 +19,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from backend.rag.models import DocumentChunk
+from backend.common.models import DocumentChunk
 from backend.rag.ingest.constants import (
     MAX_CHUNK_SIZE,
     TARGET_CHUNK_SIZE,

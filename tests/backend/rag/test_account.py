@@ -112,7 +112,7 @@ class TestPrivateRetrievalFilter:
     @pytest.fixture
     def mock_backend(self):
         """Create a mock private retrieval backend."""
-        from backend.rag.models import DocumentChunk, ScoredChunk
+        from backend.common.models import DocumentChunk, ScoredChunk
         
         # Create mock chunks for multiple companies
         chunks = [
@@ -147,7 +147,7 @@ class TestPrivateRetrievalFilter:
     
     def test_filter_returns_only_target_company(self, mock_backend):
         """Test that company filter only returns chunks from target company."""
-        from backend.rag.models import ScoredChunk
+        from backend.common.models import ScoredChunk
         
         backend, chunks = mock_backend
         

@@ -22,9 +22,9 @@ Usage:
 import logging
 from typing import Optional, Callable
 
-from backend.rag.models import DocumentChunk, ScoredChunk
+from backend.common.models import DocumentChunk
 from backend.rag.retrieval.base import RetrievalBackend
-from backend.rag.pipeline.constants import LLM_MODEL, ANSWER_MODEL, ANSWER_MAX_TOKENS, MAX_CONTEXT_TOKENS
+from backend.rag.pipeline.constants import ANSWER_MODEL, ANSWER_MAX_TOKENS, MAX_CONTEXT_TOKENS
 from backend.rag.pipeline.utils import estimate_tokens, preprocess_query, extract_citations
 from backend.rag.pipeline.base import PipelineProgress
 from backend.rag.pipeline.gating import apply_lexical_gate, apply_per_doc_cap

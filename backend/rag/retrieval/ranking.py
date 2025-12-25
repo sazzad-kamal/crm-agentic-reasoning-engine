@@ -10,7 +10,7 @@ import logging
 
 from sentence_transformers import CrossEncoder
 
-from backend.rag.models import DocumentChunk
+from backend.common.models import DocumentChunk
 from backend.rag.retrieval.constants import RRF_K, RERANKER_MODEL
 
 

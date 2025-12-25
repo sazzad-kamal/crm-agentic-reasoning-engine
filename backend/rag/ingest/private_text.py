@@ -13,12 +13,11 @@ import json
 import logging
 import math
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import typer
 from rich.console import Console
 from rich.table import Table
-from rich.progress import track
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     VectorParams,
@@ -28,11 +27,9 @@ from qdrant_client.models import (
 from sentence_transformers import SentenceTransformer
 
 from backend.rag.ingest.text_builder import find_csv_dir, build_private_texts_jsonl
-from backend.rag.models import DocumentChunk
+from backend.common.models import DocumentChunk
 from backend.rag.retrieval.constants import PRIVATE_COLLECTION, QDRANT_PATH
 from backend.rag.ingest.constants import (
-    TARGET_CHUNK_SIZE,
-    MAX_CHUNK_SIZE,
     MIN_CHUNK_SIZE,
 )
 from backend.rag.retrieval.constants import EMBEDDING_MODEL, EMBEDDING_DIM

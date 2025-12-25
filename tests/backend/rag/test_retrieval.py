@@ -13,7 +13,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from backend.rag.models import DocumentChunk, ScoredChunk
+from backend.common.models import DocumentChunk, ScoredChunk
 
 
 # =============================================================================

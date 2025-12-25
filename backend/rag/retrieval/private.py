@@ -23,8 +23,8 @@ from qdrant_client.models import (
 )
 from rank_bm25 import BM25Okapi
 
-from backend.rag.models import DocumentChunk, ScoredChunk
-from backend.rag.retrieval.constants import RRF_K, PRIVATE_COLLECTION
+from backend.common.models import DocumentChunk, ScoredChunk
+from backend.rag.retrieval.constants import PRIVATE_COLLECTION
 from backend.rag.retrieval.base import RetrievalBackend
 
 

@@ -25,6 +25,10 @@ openai>=1.0.0
 sentence-transformers>=2.2.0
 tenacity>=8.2.0
 
+# Agent Framework
+langgraph>=0.2.0
+langchain-core>=0.3.0
+
 # Vector Store & Retrieval
 qdrant-client>=1.7.0
 rank-bm25>=0.2.2

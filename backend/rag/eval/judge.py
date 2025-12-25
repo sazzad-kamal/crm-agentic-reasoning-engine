@@ -112,10 +112,11 @@ def _call_judge_llm(
         JudgeResult with scores and explanation
     """
     try:
+        # Use reasoning model for more accurate evaluation judgments
         response = call_llm(
             prompt=prompt,
             system_prompt=system_prompt,
-            model="gpt-4.1-mini",
+            model="o4-mini",  # Reasoning model for better judgment accuracy
             max_tokens=max_tokens,
         )
         

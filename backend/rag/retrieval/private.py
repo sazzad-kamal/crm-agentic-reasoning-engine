@@ -196,12 +196,12 @@ class PrivateRetrievalBackend(RetrievalBackend):
         if company_filter:
             # For filtered queries, we need to map via payload
             query_embedding = self.embedding_model.encode(query, normalize_embeddings=True)
-            qdrant_results = self.qdrant.search(
+            qdrant_results = self.qdrant.query_points(
                 collection_name=self.collection_name,
-                query_vector=query_embedding.tolist(),
+                query=query_embedding.tolist(),
                 query_filter=qdrant_filter,
                 limit=k,
-            )
+            ).points
             output = []
             for hit in qdrant_results:
                 chunk_id = hit.payload.get("chunk_id")

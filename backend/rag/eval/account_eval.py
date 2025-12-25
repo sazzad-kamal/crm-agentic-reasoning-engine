@@ -16,6 +16,12 @@ import random
 from pathlib import Path
 from typing import Optional
 
+from dotenv import load_dotenv
+
+# Load .env from project root
+_project_root = Path(__file__).parent.parent.parent.parent
+load_dotenv(_project_root / ".env")
+
 import typer
 from rich.progress import track
 from rich.table import Table
@@ -123,16 +129,23 @@ def ensure_private_collection_exists() -> None:
     """Ensure private Qdrant collection exists, create if not."""
     qdrant = QdrantClient(path=str(QDRANT_PATH))
     
-    if not qdrant.collection_exists(PRIVATE_COLLECTION):
-        print(f"Collection '{PRIVATE_COLLECTION}' not found, creating...")
-        ingest_private_texts(recreate=True)
-    else:
-        info = qdrant.get_collection(PRIVATE_COLLECTION)
-        if info.points_count == 0:
-            print(f"Collection '{PRIVATE_COLLECTION}' is empty, rebuilding...")
+    try:
+        if not qdrant.collection_exists(PRIVATE_COLLECTION):
+            print(f"Collection '{PRIVATE_COLLECTION}' not found, creating...")
+            qdrant.close()  # Close before calling ingest which opens its own client
             ingest_private_texts(recreate=True)
         else:
-            print(f"Using existing collection with {info.points_count} points")
+            info = qdrant.get_collection(PRIVATE_COLLECTION)
+            if info.points_count == 0:
+                print(f"Collection '{PRIVATE_COLLECTION}' is empty, rebuilding...")
+                qdrant.close()  # Close before calling ingest which opens its own client
+                ingest_private_texts(recreate=True)
+            else:
+                print(f"Using existing collection with {info.points_count} points")
+                qdrant.close()
+    except Exception:
+        qdrant.close()
+        raise
 
 
 def evaluate_question(

@@ -86,12 +86,13 @@ def judge_e2e_response(
         response = call_llm(
             prompt,
             system_prompt=E2E_JUDGE_SYSTEM,
+            model="o4-mini",  # Use reasoning model for evaluation
             temperature=0.0,
             max_tokens=200,
         )
         
-        # Parse JSON from response
-        text = response.get("content", "{}")
+        # Parse JSON from response (call_llm returns a string)
+        text = response
         # Handle markdown code blocks
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0]

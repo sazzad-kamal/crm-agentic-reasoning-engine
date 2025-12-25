@@ -130,7 +130,7 @@ def _call_openai(
 def call_llm(
     prompt: str,
     system_prompt: Optional[str] = None,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-5-nano",
     temperature: float = 0.0,
     max_tokens: int = 1024,
     use_cache: bool = True,
@@ -143,7 +143,7 @@ def call_llm(
     Args:
         prompt: The user message / prompt
         system_prompt: Optional system message to set context
-        model: The model to use (default: gpt-4.1-mini)
+        model: The model to use (default: gpt-5-nano)
         temperature: Sampling temperature (default: 0.0 for deterministic)
         max_tokens: Maximum tokens in response
         use_cache: Whether to use response caching (default: True)
@@ -197,7 +197,7 @@ def call_llm(
 def call_llm_with_metrics(
     prompt: str,
     system_prompt: Optional[str] = None,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-5-nano",
     temperature: float = 0.0,
     max_tokens: int = 1024,
 ) -> dict:
@@ -274,7 +274,7 @@ def call_llm_with_metrics(
 def call_llm_safe(
     prompt: str,
     system_prompt: Optional[str] = None,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-5-nano",
     temperature: float = 0.0,
     max_tokens: int = 1024,
     default: str = "",

@@ -24,7 +24,6 @@ import pandas as pd
 from backend.rag.models import DocumentChunk, ScoredChunk
 from backend.rag.retrieval.private import PrivateRetrievalBackend, create_private_backend
 from backend.rag.retrieval.base import create_backend as create_docs_backend
-from backend.rag.ingest.text_builder import find_csv_dir
 from backend.rag.pipeline.constants import MAX_CONTEXT_TOKENS
 from backend.rag.pipeline.utils import estimate_tokens, preprocess_query, extract_citations
 from backend.rag.pipeline.base import build_private_context, build_docs_context
@@ -33,6 +32,7 @@ from backend.rag.pipeline.prompts import (
     HYDE_SYSTEM,
     format_account_answer_prompt,
 )
+from backend.rag.pipeline.company import load_companies_df
 from backend.common.llm_client import call_llm_safe, call_llm_with_metrics
 
 
@@ -52,13 +52,7 @@ COST_PER_OUTPUT_TOKEN = 1.60 / 1_000_000
 # Company Resolution
 # =============================================================================
 
-def load_companies_df() -> pd.DataFrame:
-    """Load companies.csv."""
-    csv_dir = find_csv_dir()
-    companies_path = csv_dir / "companies.csv"
-    if not companies_path.exists():
-        raise FileNotFoundError(f"companies.csv not found in {csv_dir}")
-    return pd.read_csv(companies_path)
+# load_companies_df imported from backend.rag.pipeline.company
 
 
 def resolve_company_id(

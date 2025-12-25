@@ -1,52 +1,310 @@
 [
   {
-    "id": "q1",
+    "id": "doc_q1",
     "question": "What is an Opportunity in Acme CRM Suite and what fields does it have?",
-    "target_doc_ids": ["opportunities_pipeline_and_forecasts"]
+    "target_doc_ids": ["opportunities_pipeline_and_forecasts"],
+    "category": "single_doc",
+    "difficulty": "easy"
   },
   {
-    "id": "q2",
+    "id": "doc_q2",
     "question": "How can I see which accounts have upcoming renewals?",
-    "target_doc_ids": ["reports_dashboards_and_analytics", "opportunities_pipeline_and_forecasts"]
+    "target_doc_ids": ["reports_dashboards_and_analytics", "opportunities_pipeline_and_forecasts"],
+    "category": "multi_doc",
+    "difficulty": "medium"
   },
   {
-    "id": "q3",
+    "id": "doc_q3",
     "question": "What's the difference between History and Activities in Acme CRM?",
-    "target_doc_ids": ["history_activities_and_calendar"]
+    "target_doc_ids": ["history_activities_and_calendar"],
+    "category": "single_doc",
+    "difficulty": "easy"
   },
   {
-    "id": "q4",
+    "id": "doc_q4",
     "question": "How do I create a contact and associate it with a company?",
-    "target_doc_ids": ["contacts_companies_and_groups"]
+    "target_doc_ids": ["contacts_companies_and_groups"],
+    "category": "single_doc",
+    "difficulty": "easy"
   },
   {
-    "id": "q5",
+    "id": "doc_q5",
     "question": "What are Groups and how are they used?",
-    "target_doc_ids": ["contacts_companies_and_groups"]
+    "target_doc_ids": ["contacts_companies_and_groups"],
+    "category": "single_doc",
+    "difficulty": "easy"
   },
   {
-    "id": "q6",
+    "id": "doc_q6",
     "question": "How do I set up an email marketing campaign?",
-    "target_doc_ids": ["email_marketing_campaigns"]
+    "target_doc_ids": ["email_marketing_campaigns"],
+    "category": "single_doc",
+    "difficulty": "easy"
   },
   {
-    "id": "q7",
+    "id": "doc_q7",
     "question": "What are the system limits for Acme CRM Suite?",
-    "target_doc_ids": ["system_performance_and_limits"]
+    "target_doc_ids": ["system_performance_and_limits"],
+    "category": "single_doc",
+    "difficulty": "easy"
   },
   {
-    "id": "q8",
+    "id": "doc_q8",
     "question": "How do I create a custom dashboard?",
-    "target_doc_ids": ["reports_dashboards_and_analytics"]
+    "target_doc_ids": ["reports_dashboards_and_analytics"],
+    "category": "single_doc",
+    "difficulty": "easy"
   },
   {
-    "id": "q9",
+    "id": "doc_q9",
     "question": "What pipeline stages are available for opportunities?",
-    "target_doc_ids": ["opportunities_pipeline_and_forecasts"]
+    "target_doc_ids": ["opportunities_pipeline_and_forecasts"],
+    "category": "single_doc",
+    "difficulty": "easy"
   },
   {
-    "id": "q10",
+    "id": "doc_q10",
     "question": "How do I import data into Acme CRM?",
-    "target_doc_ids": ["faq_data_import_export"]
+    "target_doc_ids": ["faq_data_import_export"],
+    "category": "single_doc",
+    "difficulty": "easy"
+  },
+  {
+    "id": "doc_q11",
+    "question": "What is Acme CRM Suite and who is it designed for?",
+    "target_doc_ids": ["product_acme_crm_overview"],
+    "category": "single_doc",
+    "difficulty": "easy"
+  },
+  {
+    "id": "doc_q12",
+    "question": "How do Companies, Contacts, and Opportunities relate to each other?",
+    "target_doc_ids": ["product_acme_crm_overview", "contacts_companies_and_groups", "opportunities_pipeline_and_forecasts"],
+    "category": "multi_doc",
+    "difficulty": "hard"
+  },
+  {
+    "id": "doc_q13",
+    "question": "What contact roles are available and what do they mean?",
+    "target_doc_ids": ["contacts_companies_and_groups"],
+    "category": "single_doc",
+    "difficulty": "medium"
+  },
+  {
+    "id": "doc_q14",
+    "question": "How do I track a sales deal from lead to close?",
+    "target_doc_ids": ["opportunities_pipeline_and_forecasts", "history_activities_and_calendar"],
+    "category": "multi_doc",
+    "difficulty": "hard"
+  },
+  {
+    "id": "doc_q15",
+    "question": "What are the different company statuses and what do they mean?",
+    "target_doc_ids": ["contacts_companies_and_groups"],
+    "category": "single_doc",
+    "difficulty": "easy"
+  },
+  {
+    "id": "doc_q16",
+    "question": "How can I export my CRM data?",
+    "target_doc_ids": ["faq_data_import_export"],
+    "category": "single_doc",
+    "difficulty": "easy"
+  },
+  {
+    "id": "doc_q17",
+    "question": "What types of reports can I generate in Acme CRM?",
+    "target_doc_ids": ["reports_dashboards_and_analytics"],
+    "category": "single_doc",
+    "difficulty": "medium"
+  },
+  {
+    "id": "doc_q18",
+    "question": "How do I schedule a follow-up task for a contact?",
+    "target_doc_ids": ["history_activities_and_calendar"],
+    "category": "single_doc",
+    "difficulty": "easy"
+  },
+  {
+    "id": "doc_q19",
+    "question": "What email templates are available for campaigns?",
+    "target_doc_ids": ["email_marketing_campaigns"],
+    "category": "single_doc",
+    "difficulty": "medium"
+  },
+  {
+    "id": "doc_q20",
+    "question": "How do I measure forecast accuracy in Acme CRM?",
+    "target_doc_ids": ["opportunities_pipeline_and_forecasts", "reports_dashboards_and_analytics"],
+    "category": "multi_doc",
+    "difficulty": "hard"
+  },
+  {
+    "id": "doc_q21",
+    "question": "What are the best practices for managing a sales pipeline?",
+    "target_doc_ids": ["opportunities_pipeline_and_forecasts"],
+    "category": "single_doc",
+    "difficulty": "medium"
+  },
+  {
+    "id": "doc_q22",
+    "question": "How do I set up automated email sequences?",
+    "target_doc_ids": ["email_marketing_campaigns"],
+    "category": "single_doc",
+    "difficulty": "medium"
+  },
+  {
+    "id": "doc_q23",
+    "question": "What integrations does Acme CRM support?",
+    "target_doc_ids": ["product_acme_crm_overview", "faq_data_import_export"],
+    "category": "multi_doc",
+    "difficulty": "medium"
+  },
+  {
+    "id": "doc_q24",
+    "question": "How do I track email open rates and click-through rates?",
+    "target_doc_ids": ["email_marketing_campaigns", "reports_dashboards_and_analytics"],
+    "category": "multi_doc",
+    "difficulty": "medium"
+  },
+  {
+    "id": "doc_q25",
+    "question": "What happens when a company churns? How do I mark them as former?",
+    "target_doc_ids": ["contacts_companies_and_groups"],
+    "category": "single_doc",
+    "difficulty": "medium"
+  },
+  {
+    "id": "doc_q26",
+    "question": "How do I manage calendar events and sync with external calendars?",
+    "target_doc_ids": ["history_activities_and_calendar"],
+    "category": "single_doc",
+    "difficulty": "medium"
+  },
+  {
+    "id": "doc_q27",
+    "question": "What performance optimization tips are there for large datasets?",
+    "target_doc_ids": ["system_performance_and_limits"],
+    "category": "single_doc",
+    "difficulty": "medium"
+  },
+  {
+    "id": "doc_q28",
+    "question": "How do I use the API to bulk update records?",
+    "target_doc_ids": ["faq_data_import_export", "system_performance_and_limits"],
+    "category": "multi_doc",
+    "difficulty": "hard"
+  },
+  {
+    "id": "neg_q1",
+    "question": "Does Acme CRM support inventory management?",
+    "target_doc_ids": [],
+    "category": "negative",
+    "difficulty": "hard",
+    "expected_behavior": "Should acknowledge this feature is not documented or not available"
+  },
+  {
+    "id": "neg_q2",
+    "question": "How do I integrate Acme CRM with SAP ERP?",
+    "target_doc_ids": [],
+    "category": "negative",
+    "difficulty": "hard",
+    "expected_behavior": "Should acknowledge no specific SAP integration is documented"
+  },
+  {
+    "id": "neg_q3",
+    "question": "What is the refund policy for Acme CRM subscriptions?",
+    "target_doc_ids": [],
+    "category": "negative",
+    "difficulty": "hard",
+    "expected_behavior": "Should acknowledge billing/refund policies are not in the documentation"
+  },
+  {
+    "id": "neg_q4",
+    "question": "Does Acme CRM support multi-currency transactions?",
+    "target_doc_ids": [],
+    "category": "negative",
+    "difficulty": "hard",
+    "expected_behavior": "Should acknowledge currency features are not documented"
+  },
+  {
+    "id": "ambig_q1",
+    "question": "How do I delete stuff?",
+    "target_doc_ids": ["contacts_companies_and_groups", "faq_data_import_export"],
+    "category": "ambiguous",
+    "difficulty": "medium",
+    "expected_behavior": "Should clarify what the user wants to delete or provide general guidance"
+  },
+  {
+    "id": "ambig_q2",
+    "question": "What are the limits?",
+    "target_doc_ids": ["system_performance_and_limits"],
+    "category": "ambiguous",
+    "difficulty": "easy",
+    "expected_behavior": "Should ask for clarification or list various system limits"
+  },
+  {
+    "id": "ambig_q3",
+    "question": "How do I fix my pipeline?",
+    "target_doc_ids": ["opportunities_pipeline_and_forecasts"],
+    "category": "ambiguous",
+    "difficulty": "medium",
+    "expected_behavior": "Should ask for more context about what issue they're experiencing"
+  },
+  {
+    "id": "complex_q1",
+    "question": "I need to set up a complete sales workflow: create companies, add contacts with roles, track opportunities through stages, log activities, and report on the pipeline. Walk me through this end-to-end.",
+    "target_doc_ids": ["contacts_companies_and_groups", "opportunities_pipeline_and_forecasts", "history_activities_and_calendar", "reports_dashboards_and_analytics"],
+    "category": "complex",
+    "difficulty": "hard"
+  },
+  {
+    "id": "complex_q2",
+    "question": "How do I identify at-risk renewals and set up proactive outreach campaigns to those accounts?",
+    "target_doc_ids": ["opportunities_pipeline_and_forecasts", "reports_dashboards_and_analytics", "email_marketing_campaigns"],
+    "category": "complex",
+    "difficulty": "hard"
+  },
+  {
+    "id": "complex_q3",
+    "question": "What's the complete process for onboarding a new sales rep: getting them access, training them on the pipeline stages, and setting up their first dashboard?",
+    "target_doc_ids": ["product_acme_crm_overview", "opportunities_pipeline_and_forecasts", "reports_dashboards_and_analytics"],
+    "category": "complex",
+    "difficulty": "hard"
+  },
+  {
+    "id": "edge_q1",
+    "question": "Can a contact belong to multiple companies?",
+    "target_doc_ids": ["contacts_companies_and_groups"],
+    "category": "edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "edge_q2",
+    "question": "What happens to opportunities when a contact is deleted?",
+    "target_doc_ids": ["contacts_companies_and_groups", "opportunities_pipeline_and_forecasts"],
+    "category": "edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "edge_q3",
+    "question": "How do I handle duplicate companies in the system?",
+    "target_doc_ids": ["contacts_companies_and_groups", "faq_data_import_export"],
+    "category": "edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "edge_q4",
+    "question": "What happens if I exceed the API rate limits?",
+    "target_doc_ids": ["system_performance_and_limits"],
+    "category": "edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "edge_q5",
+    "question": "Can I reopen a closed-lost opportunity?",
+    "target_doc_ids": ["opportunities_pipeline_and_forecasts"],
+    "category": "edge_case",
+    "difficulty": "medium"
   }
 ]

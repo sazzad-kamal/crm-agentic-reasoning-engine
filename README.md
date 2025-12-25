@@ -16,15 +16,24 @@ An AI-powered CRM companion application with RAG (Retrieval-Augmented Generation
 ```
 acme-crm-ai-companion/
 ├── backend/                  # FastAPI backend
+│   ├── api/                 # API route handlers
+│   │   ├── chat.py          # Chat endpoint
+│   │   ├── health.py        # Health & info endpoints
+│   │   └── data.py          # Data explorer endpoints
 │   ├── agent/               # Agent orchestration & tools
 │   │   ├── orchestrator.py  # Main agent pipeline
 │   │   ├── llm_router.py    # LLM-based query routing
 │   │   ├── datastore.py     # DuckDB CRM data store
 │   │   ├── tools.py         # Tool functions
-│   │   └── schemas.py       # Pydantic models
+│   │   ├── schemas.py       # Pydantic models
+│   │   ├── prompts.py       # System prompts
+│   │   ├── formatters.py    # Response formatting
+│   │   ├── llm_helpers.py   # LLM utility functions
+│   │   └── progress.py      # Progress tracking
 │   ├── rag/                 # RAG retrieval system
-│   │   ├── retrieval.py     # Hybrid search backend
-│   │   ├── pipeline.py      # RAG pipeline
+│   │   ├── retrieval/       # Hybrid search modules
+│   │   ├── pipeline/        # RAG pipeline components
+│   │   ├── ingest/          # Data ingestion
 │   │   └── models.py        # Document models
 │   ├── common/              # Shared utilities
 │   │   └── llm_client.py    # OpenAI client wrapper
@@ -32,8 +41,8 @@ acme-crm-ai-companion/
 │   │   ├── csv/             # CRM CSV data
 │   │   └── docs/            # Product documentation
 │   ├── main.py              # FastAPI app entry
-│   ├── routes.py            # API endpoints
 │   ├── middleware.py        # Request/response middleware
+│   ├── exceptions.py        # Custom exceptions
 │   └── config.py            # Configuration
 ├── frontend/                 # React + TypeScript frontend
 │   ├── src/
@@ -42,9 +51,9 @@ acme-crm-ai-companion/
 │   │   ├── styles/          # CSS styles
 │   │   └── types/           # TypeScript types
 │   └── package.json
-├── tests/                    # E2E and integration tests
+├── tests/                    # Test suites
+│   ├── backend/             # Backend unit tests
 │   └── e2e/                 # End-to-end tests
-├── .github/workflows/        # CI/CD pipelines
 ├── requirements.txt          # Python dependencies
 └── pyproject.toml           # Python project config
 ```

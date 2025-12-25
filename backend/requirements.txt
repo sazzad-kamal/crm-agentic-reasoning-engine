@@ -5,6 +5,7 @@
 # Web Framework
 fastapi>=0.109.0
 uvicorn[standard]>=0.27.0
+starlette>=0.35.0
 
 # HTTP Client
 httpx>=0.26.0
@@ -13,11 +14,20 @@ httpx>=0.26.0
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
 
-# Database (for CRM data)
+# Database & Data Processing
 duckdb>=0.9.0
+pandas>=2.0.0
+pyarrow>=14.0.0
+numpy>=1.24.0
 
-# OpenAI (for LLM)
+# LLM & Embeddings
 openai>=1.0.0
+sentence-transformers>=2.2.0
+tenacity>=8.2.0
+
+# Vector Store & Retrieval
+qdrant-client>=1.7.0
+rank-bm25>=0.2.2
 
 # Environment Variables
 python-dotenv>=1.0.0
@@ -25,3 +35,4 @@ python-dotenv>=1.0.0
 # CLI & Output
 typer>=0.9.0
 rich>=13.0.0
+tqdm>=4.65.0

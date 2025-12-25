@@ -12,7 +12,6 @@ Usage:
 """
 
 import json
-import random
 from pathlib import Path
 from typing import Optional
 
@@ -34,6 +33,7 @@ from backend.rag.ingest.private_text import ingest_private_texts
 from backend.rag.pipeline.account import answer_account_question, load_companies_df
 from backend.rag.eval.models import AccountEvalResult
 from backend.rag.eval.judge import judge_account_response, check_privacy_leakage
+from backend.rag.eval.questions import generate_eval_questions, NUM_COMPANIES, NUM_QUESTIONS_PER_COMPANY, RANDOM_SEED
 from backend.rag.eval.base import (
     console,
     create_summary_table,
@@ -49,76 +49,6 @@ from backend.rag.eval.base import (
 # =============================================================================
 
 OUTPUT_PATH = Path("data/processed/eval_account_results.json")
-NUM_QUESTIONS_PER_COMPANY = 3
-NUM_COMPANIES = 4
-RANDOM_SEED = 42
-
-
-# =============================================================================
-# Question Generation
-# =============================================================================
-
-def generate_eval_questions(seed: int = RANDOM_SEED) -> list[dict]:
-    """
-    Generate evaluation questions from actual CSV data.
-    
-    Returns list of dicts with:
-        - id: question ID
-        - company_id: target company
-        - company_name: company name
-        - question: the question text
-        - question_type: category of question
-    """
-    random.seed(seed)
-    
-    # Load companies
-    df = load_companies_df()
-    
-    # Filter to active companies with data
-    active = df[df["status"].isin(["Active", "Trial"])]
-    
-    # Select companies (deterministic)
-    selected = active.head(NUM_COMPANIES)
-    
-    questions = []
-    q_id = 1
-    
-    # Question templates
-    templates = [
-        {
-            "type": "history_summary",
-            "template": "Summarize the recent interactions and history with {company_name}. What calls, emails, or meetings have occurred?",
-        },
-        {
-            "type": "opportunity_status",
-            "template": "What are the current opportunities for {company_name}? What stages are they in and what are the risks or next steps?",
-        },
-        {
-            "type": "attachments",
-            "template": "What documents or attachments are associated with {company_name}'s opportunities? Summarize what they contain.",
-        },
-    ]
-    
-    for _, company in selected.iterrows():
-        company_id = company["company_id"]
-        company_name = company["name"]
-        
-        for tmpl in templates[:NUM_QUESTIONS_PER_COMPANY]:
-            question = tmpl["template"].format(
-                company_name=company_name,
-                company_id=company_id,
-            )
-            
-            questions.append({
-                "id": f"acct_q{q_id}",
-                "company_id": company_id,
-                "company_name": company_name,
-                "question": question,
-                "question_type": tmpl["type"],
-            })
-            q_id += 1
-    
-    return questions
 
 
 # =============================================================================

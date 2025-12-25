@@ -23,7 +23,7 @@ from qdrant_client.models import (
     Distance,
     PointStruct,
 )
-from sentence_transformers import SentenceTransformer, CrossEncoder
+from sentence_transformers import SentenceTransformer
 from rank_bm25 import BM25Okapi
 
 from backend.rag.models import DocumentChunk, ScoredChunk
@@ -31,11 +31,11 @@ from backend.rag.retrieval.constants import (
     EMBEDDING_MODEL,
     RERANKER_MODEL,
     EMBEDDING_DIM,
-    RRF_K,
     DOCS_COLLECTION,
     QDRANT_PATH,
 )
 from backend.rag.retrieval.embedding import get_cached_embedding, cache_embedding
+from backend.rag.retrieval.ranking import RankingMixin
 
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 # Retrieval Backend Class
 # =============================================================================
 
-class RetrievalBackend:
+class RetrievalBackend(RankingMixin):
     """
     Hybrid retrieval backend combining dense (Qdrant) and sparse (BM25) search
     with cross-encoder reranking.
@@ -53,8 +53,8 @@ class RetrievalBackend:
     Features:
     - Dense vector search via Qdrant
     - Sparse BM25 search
-    - RRF (Reciprocal Rank Fusion) for merging results
-    - Cross-encoder reranking
+    - RRF (Reciprocal Rank Fusion) for merging results (via RankingMixin)
+    - Cross-encoder reranking (via RankingMixin)
     - Embedding caching for repeated queries
     """
     
@@ -86,7 +86,7 @@ class RetrievalBackend:
         self._embedding_model_name = embedding_model or EMBEDDING_MODEL
         self._reranker_model_name = reranker_model or RERANKER_MODEL
         self._embedding_model: SentenceTransformer | None = None
-        self._reranker: CrossEncoder | None = None
+        self._reranker = None  # Managed by RankingMixin
         
         # BM25 index (in-memory)
         self._bm25: BM25Okapi | None = None
@@ -100,14 +100,6 @@ class RetrievalBackend:
             logger.info(f"Loading embedding model: {self._embedding_model_name}")
             self._embedding_model = SentenceTransformer(self._embedding_model_name)
         return self._embedding_model
-    
-    @property
-    def reranker(self) -> CrossEncoder:
-        """Lazy load the reranker model."""
-        if self._reranker is None:
-            logger.info(f"Loading reranker model: {self._reranker_model_name}")
-            self._reranker = CrossEncoder(self._reranker_model_name)
-        return self._reranker
     
     def _tokenize(self, text: str) -> list[str]:
         """Simple whitespace tokenizer for BM25."""
@@ -249,62 +241,6 @@ class RetrievalBackend:
         
         return [(int(idx), float(scores[idx])) for idx in top_indices if scores[idx] > 0]
     
-    def _rrf_merge(
-        self,
-        dense_results: list[tuple[int, float]],
-        bm25_results: list[tuple[int, float]],
-    ) -> list[tuple[int, float]]:
-        """
-        Merge results using Reciprocal Rank Fusion (RRF).
-        
-        Args:
-            dense_results: Results from dense search
-            bm25_results: Results from BM25 search
-            
-        Returns:
-            Merged list of (chunk_index, rrf_score) tuples
-        """
-        scores = {}
-        
-        # Add dense scores
-        for rank, (idx, _) in enumerate(dense_results):
-            scores[idx] = scores.get(idx, 0) + 1 / (RRF_K + rank + 1)
-        
-        # Add BM25 scores
-        for rank, (idx, _) in enumerate(bm25_results):
-            scores[idx] = scores.get(idx, 0) + 1 / (RRF_K + rank + 1)
-        
-        # Sort by RRF score
-        merged = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-        
-        return merged
-    
-    def _rerank(
-        self,
-        query: str,
-        candidates: list[DocumentChunk],
-        top_n: int = 10,
-    ) -> list[tuple[DocumentChunk, float]]:
-        """
-        Rerank candidates using cross-encoder.
-        
-        Returns list of (chunk, rerank_score) tuples.
-        """
-        if not candidates:
-            return []
-        
-        # Create query-document pairs
-        pairs = [(query, c.text) for c in candidates]
-        
-        # Score with cross-encoder
-        scores = self.reranker.predict(pairs)
-        
-        # Sort by score
-        scored = list(zip(candidates, scores))
-        scored.sort(key=lambda x: x[1], reverse=True)
-        
-        return scored[:top_n]
-    
     def retrieve_candidates(
         self,
         query: str,
@@ -365,8 +301,8 @@ class RetrievalBackend:
         dense_scores = dict(dense_results)
         bm25_scores = dict(bm25_results)
         
-        # Merge with RRF
-        merged = self._rrf_merge(dense_results, bm25_results)
+        # Merge with RRF (uses RankingMixin)
+        merged = self.rrf_merge(dense_results, bm25_results)
         
         # Get candidate chunks
         candidates = []
@@ -376,9 +312,9 @@ class RetrievalBackend:
             candidates.append(chunk)
             rrf_scores[chunk.chunk_id] = rrf_score
         
-        # Rerank if enabled
+        # Rerank if enabled (uses RankingMixin)
         if use_reranker and candidates:
-            reranked = self._rerank(query, candidates, top_n=top_n)
+            reranked = self.rerank(query, candidates, top_n=top_n)
             
             results = []
             for chunk, rerank_score in reranked:

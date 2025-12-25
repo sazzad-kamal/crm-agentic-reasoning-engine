@@ -28,45 +28,15 @@ from backend.rag.ingest.text_builder import find_csv_dir
 from backend.rag.pipeline.constants import MAX_CONTEXT_TOKENS
 from backend.rag.pipeline.utils import estimate_tokens, preprocess_query, extract_citations
 from backend.rag.pipeline.base import build_private_context, build_docs_context
+from backend.rag.pipeline.prompts import (
+    QUERY_REWRITE_SYSTEM,
+    HYDE_SYSTEM,
+    format_account_answer_prompt,
+)
 from backend.common.llm_client import call_llm_safe, call_llm_with_metrics
 
 
 logger = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Prompts
-# =============================================================================
-
-_QUERY_REWRITE_SYSTEM = """You are a query rewriting assistant for a CRM system.
-Rewrite the user's question to be clearer and more specific for searching CRM records.
-Keep it in natural language.
-Only output the rewritten query, nothing else."""
-
-_HYDE_SYSTEM = """You are a CRM assistant. Given a question about a customer account,
-write a short hypothetical answer (2-3 sentences) as if from CRM records.
-Include relevant terms like history, notes, opportunities, activities.
-Only output the hypothetical answer."""
-
-_ANSWER_SYSTEM = """You are an AI assistant answering questions about a specific customer account in a CRM system.
-
-IMPORTANT RULES:
-1. Use ONLY the provided context to answer. Do not use outside knowledge.
-2. If the answer is not in the context, say "I don't see this in the available account data."
-3. Cite your sources using [source_id] format, e.g., [history::HIST-ACME-CALL1] or [opp_note::OPP-ACME-UPGRADE].
-4. Be concise but complete.
-5. Focus on the specific account mentioned.
-
-{context}
-
-Question: {question}
-
-Answer (with citations):"""
-
-
-def _format_answer_prompt(context: str, question: str) -> str:
-    """Format the account answer prompt."""
-    return _ANSWER_SYSTEM.format(context=context, question=question)
 
 
 # =============================================================================
@@ -155,7 +125,7 @@ def rewrite_query(query: str, company_name: str) -> str:
     logger.debug(f"Rewriting query for {company_name}: {query[:50]}...")
     return call_llm_safe(
         prompt=f"Question about {company_name}: {query}",
-        system_prompt=_QUERY_REWRITE_SYSTEM,
+        system_prompt=QUERY_REWRITE_SYSTEM,
         max_tokens=150,
         default=query,
     )
@@ -166,7 +136,7 @@ def generate_hyde(query: str, company_name: str) -> str:
     logger.debug(f"Generating HyDE for {company_name}: {query[:50]}...")
     return call_llm_safe(
         prompt=f"Question about {company_name}: {query}",
-        system_prompt=_HYDE_SYSTEM,
+        system_prompt=HYDE_SYSTEM,
         max_tokens=200,
         default="",
     )
@@ -178,7 +148,7 @@ def generate_hyde(query: str, company_name: str) -> str:
 
 def generate_answer(question: str, context: str) -> dict:
     """Generate answer using LLM."""
-    prompt = _format_answer_prompt(context=context, question=question)
+    prompt = format_account_answer_prompt(context=context, question=question)
     
     result = call_llm_with_metrics(
         prompt=prompt,

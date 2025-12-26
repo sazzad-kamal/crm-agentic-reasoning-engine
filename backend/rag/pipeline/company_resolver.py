@@ -17,28 +17,15 @@ from difflib import get_close_matches
 
 import pandas as pd
 
+from backend.rag.ingest.csv_utils import find_csv_dir
+
 
 logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# CSV Path Resolution
+# Company Data Loading
 # =============================================================================
-
-def _find_csv_dir() -> Optional[Path]:
-    """Find the CSV data directory."""
-    # Check from backend/common/
-    candidates = [
-        Path(__file__).parent.parent / "data" / "csv",
-        Path(__file__).parent.parent / "data" / "crm",
-        Path.cwd() / "backend" / "data" / "csv",
-        Path.cwd() / "backend" / "data" / "crm",
-    ]
-    for p in candidates:
-        if p.exists() and (p / "companies.csv").exists():
-            return p
-    return None
-
 
 @lru_cache(maxsize=1)
 def _load_companies_df() -> pd.DataFrame:
@@ -51,10 +38,7 @@ def _load_companies_df() -> pd.DataFrame:
     Raises:
         FileNotFoundError: If companies.csv cannot be found
     """
-    csv_dir = _find_csv_dir()
-    if csv_dir is None:
-        raise FileNotFoundError("Could not find CSV directory with companies.csv")
-    
+    csv_dir = find_csv_dir()
     companies_path = csv_dir / "companies.csv"
     return pd.read_csv(companies_path)
 

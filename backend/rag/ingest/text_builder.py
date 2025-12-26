@@ -24,61 +24,14 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
+from backend.rag.ingest.csv_utils import find_csv_dir
+
 
 # =============================================================================
 # Configuration
 # =============================================================================
 
 console = Console()
-
-# Get backend root directory
-_BACKEND_ROOT = Path(__file__).parent.parent.parent
-
-# Possible CSV directories in priority order (relative to backend/)
-CSV_DIR_CANDIDATES = [
-    _BACKEND_ROOT / "data" / "crm",
-    _BACKEND_ROOT / "data" / "csv",
-    _BACKEND_ROOT / "data" / "docs" / "csv",
-]
-
-# Required files for MVP2
-REQUIRED_FILES = [
-    "companies.csv",
-    "history.csv",
-]
-
-
-# =============================================================================
-# Directory Locator
-# =============================================================================
-
-def find_csv_dir() -> Path:
-    """
-    Find the CSV data directory.
-    
-    Checks directories in priority order:
-    1. data/crm
-    2. data/csv
-    3. docs/csv
-    
-    Returns:
-        Path to the first existing directory
-        
-    Raises:
-        FileNotFoundError: If no valid directory found
-    """
-    for candidate in CSV_DIR_CANDIDATES:
-        if candidate.exists() and candidate.is_dir():
-            # Check if required files exist
-            has_required = all((candidate / f).exists() for f in REQUIRED_FILES)
-            if has_required:
-                return candidate
-    
-    raise FileNotFoundError(
-        f"Could not find CSV data directory. "
-        f"Please place your CSV files in one of: {[str(p) for p in CSV_DIR_CANDIDATES]}\n"
-        f"Required files: {REQUIRED_FILES}"
-    )
 
 
 # =============================================================================

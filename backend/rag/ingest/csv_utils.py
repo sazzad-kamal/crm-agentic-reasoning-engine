@@ -3,6 +3,8 @@ CSV utility functions for data ingestion.
 
 This module provides utilities for locating and validating
 CSV data directories used by the RAG ingestion pipeline.
+
+This is the single source of truth for CSV directory location.
 """
 
 import logging
@@ -11,41 +13,50 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+# Get backend root directory
+_BACKEND_ROOT = Path(__file__).parent.parent.parent
+
 # Candidate paths for CSV directory (in order of preference)
+# The actual data lives at backend/data/csv
 CSV_DIR_CANDIDATES = [
-    Path(__file__).parent.parent / "data" / "csv",
-    Path(__file__).parent.parent.parent / "data" / "csv",
-    Path.cwd() / "backend" / "data" / "csv",
-    Path.cwd() / "data" / "csv",
+    _BACKEND_ROOT / "data" / "csv",      # Primary: backend/data/csv
+    _BACKEND_ROOT / "data" / "crm",      # Alternative naming
+    Path.cwd() / "backend" / "data" / "csv",  # From project root
 ]
 
-# Required files for private text building
+# Required files - minimal set needed for ingestion
 REQUIRED_CSV_FILES = [
-    "history.csv",
-    "opportunities.csv",
-    "attachments.csv",
     "companies.csv",
-    "contacts.csv",
+    "history.csv",
 ]
 
 
-def find_csv_dir() -> Optional[Path]:
+def find_csv_dir() -> Path:
     """
-    Find the CSV data directory by checking candidate paths.
+    Find the CSV data directory.
+    
+    Checks directories in priority order and validates that
+    required files exist.
     
     Returns:
-        Path to the CSV directory, or None if not found
+        Path to the CSV directory
+        
+    Raises:
+        FileNotFoundError: If no valid directory found
     """
     for candidate in CSV_DIR_CANDIDATES:
         if candidate.exists() and candidate.is_dir():
-            # Check if at least one CSV file exists
-            csv_files = list(candidate.glob("*.csv"))
-            if csv_files:
+            # Check if required files exist
+            has_required = all((candidate / f).exists() for f in REQUIRED_CSV_FILES)
+            if has_required:
                 logger.debug(f"Found CSV directory: {candidate}")
                 return candidate
     
-    logger.warning("Could not find CSV data directory")
-    return None
+    raise FileNotFoundError(
+        f"Could not find CSV data directory with required files.\n"
+        f"Checked: {[str(p) for p in CSV_DIR_CANDIDATES]}\n"
+        f"Required files: {REQUIRED_CSV_FILES}"
+    )
 
 
 def validate_csv_dir(csv_dir: Path) -> tuple[bool, list[str]]:
@@ -76,8 +87,9 @@ def get_csv_path(filename: str) -> Optional[Path]:
     Returns:
         Full path to the file, or None if not found
     """
-    csv_dir = find_csv_dir()
-    if csv_dir is None:
+    try:
+        csv_dir = find_csv_dir()
+    except FileNotFoundError:
         return None
     
     file_path = csv_dir / filename
@@ -98,9 +110,12 @@ def list_csv_files(csv_dir: Optional[Path] = None) -> list[str]:
         List of CSV filenames
     """
     if csv_dir is None:
-        csv_dir = find_csv_dir()
+        try:
+            csv_dir = find_csv_dir()
+        except FileNotFoundError:
+            return []
     
-    if csv_dir is None or not csv_dir.exists():
+    if not csv_dir.exists():
         return []
     
     return [f.name for f in csv_dir.glob("*.csv")]

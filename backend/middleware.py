@@ -9,7 +9,7 @@ import time
 import uuid
 import logging
 from collections import defaultdict
-from typing import Callable
+from typing import Callable, override
 
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
@@ -78,6 +78,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     Returns 429 Too Many Requests when limit exceeded.
     """
 
+    @override
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         settings = get_settings()
         
@@ -150,6 +151,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     - Structured logging
     """
 
+    @override
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         settings = get_settings()
         
@@ -218,6 +220,7 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
     API responses should not be cached by default.
     """
 
+    @override
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         response = await call_next(request)
         

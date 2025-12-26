@@ -14,6 +14,7 @@ Usage:
 """
 
 import logging
+from itertools import batched
 from pathlib import Path
 
 import numpy as np
@@ -145,15 +146,16 @@ class RetrievalBackend(RankingMixin):
         texts = [c.text for c in chunks]
         
         all_embeddings = []
-        for i in range(0, len(texts), batch_size):
-            batch_texts = texts[i:i + batch_size]
+        processed = 0
+        for batch_texts in batched(texts, batch_size):
             batch_embeddings = self.embedding_model.encode(
                 batch_texts,
                 normalize_embeddings=True,
                 show_progress_bar=False,
             )
             all_embeddings.extend(batch_embeddings)
-            logger.debug(f"Embedded {min(i + batch_size, len(texts))}/{len(texts)} chunks")
+            processed += len(batch_texts)
+            logger.debug(f"Embedded {processed}/{len(texts)} chunks")
         
         # Upload to Qdrant
         points = [

@@ -5,7 +5,7 @@
 Standardized error responses for the API.
 """
 
-from typing import Any, Optional
+from typing import Any, Optional, override
 from fastapi import HTTPException, status
 from pydantic import BaseModel
 
@@ -53,6 +53,7 @@ class APIError(HTTPException):
 class ValidationError(APIError):
     """Request validation error."""
 
+    @override
     def __init__(self, message: str, field: Optional[str] = None):
         details = [ErrorDetail(code="VALIDATION_ERROR", message=message, field=field)]
         super().__init__(
@@ -66,6 +67,7 @@ class ValidationError(APIError):
 class NotFoundError(APIError):
     """Resource not found error."""
 
+    @override
     def __init__(self, resource: str, identifier: str):
         message = f"{resource} not found: {identifier}"
         super().__init__(
@@ -78,6 +80,7 @@ class NotFoundError(APIError):
 class RateLimitError(APIError):
     """Rate limit exceeded."""
 
+    @override
     def __init__(self, retry_after: int = 60):
         super().__init__(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -89,6 +92,7 @@ class RateLimitError(APIError):
 class AgentError(APIError):
     """Error from the agent pipeline."""
 
+    @override
     def __init__(self, message: str, details: Optional[dict] = None):
         error_details = [ErrorDetail(code="AGENT_ERROR", message=message, details=details)] if details else None
         super().__init__(

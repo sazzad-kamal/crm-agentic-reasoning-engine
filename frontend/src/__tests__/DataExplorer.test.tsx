@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { DataExplorer } from "../components/DataExplorer";
+import { DataExplorer } from "../components/dataExplorer";
 
 // Mock fetch
 const mockFetch = vi.fn();

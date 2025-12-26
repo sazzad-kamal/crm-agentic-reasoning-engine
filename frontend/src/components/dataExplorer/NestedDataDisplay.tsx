@@ -1,7 +1,6 @@
 /**
  * Components for displaying nested/expanded data in DataExplorer tables.
  */
-import React from "react";
 import type { NestedFieldConfig } from "./types";
 
 // =============================================================================
@@ -75,12 +74,12 @@ function PrivateTextItem({ item }: { item: Record<string, unknown> }) {
       </div>
       <div className="nested-item__content">{String(item.text || "")}</div>
       <div className="nested-item__meta">
-        {item.metadata_file_name && (
+        {item.metadata_file_name ? (
           <span>📎 {String(item.metadata_file_name)}</span>
-        )}
-        {item.metadata_created_at && (
+        ) : null}
+        {item.metadata_created_at ? (
           <span>🕐 {String(item.metadata_created_at)}</span>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -94,7 +93,7 @@ function DescriptionItem({ item }: { item: Record<string, unknown> }) {
       </div>
       <div className="nested-item__content">{String(item.text || "")}</div>
       <div className="nested-item__meta">
-        {item.created_at && <span>Created: {String(item.created_at)}</span>}
+        {item.created_at ? <span>Created: {String(item.created_at)}</span> : null}
       </div>
     </div>
   );
@@ -119,11 +118,11 @@ function MemberItem({ item }: { item: Record<string, unknown> }) {
       <span className="nested-item__id">
         Company: {String(item.company_id || "")}
       </span>
-      {item.contact_id && (
+      {item.contact_id ? (
         <span className="nested-item__contact">
           Contact: {String(item.contact_id)}
         </span>
-      )}
+      ) : null}
       <span className="nested-item__date">
         Added: {String(item.added_at || "")}
       </span>

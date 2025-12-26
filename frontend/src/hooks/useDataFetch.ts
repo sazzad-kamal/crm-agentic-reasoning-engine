@@ -11,6 +11,13 @@ interface UseDataFetchReturn {
   error: string | null;
 }
 
+interface FetchState {
+  data: DataResponse | null;
+  loading: boolean;
+  error: string | null;
+  endpoint: string;  // Track endpoint to detect changes
+}
+
 /**
  * Fetch data from an API endpoint with automatic loading and error handling.
  * 
@@ -18,37 +25,41 @@ interface UseDataFetchReturn {
  * @returns Object with data, loading state, and error
  */
 export function useDataFetch(endpoint: string): UseDataFetchReturn {
-  const [data, setData] = useState<DataResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<FetchState>({
+    data: null,
+    loading: true,
+    error: null,
+    endpoint,
+  });
+
+  // Derive loading state: true if endpoint changed or still fetching
+  const isLoading = state.loading || state.endpoint !== endpoint;
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    const controller = new AbortController();
 
-    fetch(`${config.apiUrl}${endpoint}`)
+    fetch(`${config.apiUrl}${endpoint}`, { signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
       .then((result) => {
         if (!cancelled) {
-          setData(result);
-          setLoading(false);
+          setState({ data: result, loading: false, error: null, endpoint });
         }
       })
       .catch((err) => {
-        if (!cancelled) {
-          setError(err.message);
-          setLoading(false);
+        if (!cancelled && err.name !== "AbortError") {
+          setState({ data: null, loading: false, error: err.message, endpoint });
         }
       });
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [endpoint]);
 
-  return { data, loading, error };
+  return { data: state.data, loading: isLoading, error: state.error };
 }

@@ -48,8 +48,8 @@ export default function App() {
   // Select which hook to use
   const chat = USE_STREAMING ? streamingChat : regularChat;
   const { messages, isLoading, error, sendMessage, clearError } = chat;
-  const currentStatus = USE_STREAMING && 'currentStatus' in chat ? chat.currentStatus : null;
-  const isStreaming = USE_STREAMING && 'isStreaming' in chat ? chat.isStreaming : false;
+  const currentStatus = USE_STREAMING && 'currentStatus' in chat ? (chat.currentStatus as string | null) : null;
+  const isStreaming = USE_STREAMING && 'isStreaming' in chat ? (chat.isStreaming as boolean) : false;
 
   // Scroll to bottom when messages change
   useEffect(() => {

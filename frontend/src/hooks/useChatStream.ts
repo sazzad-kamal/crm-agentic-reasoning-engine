@@ -125,7 +125,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
       // Build up the response as events arrive
       let accumulatedAnswer = "";
       let accumulatedSources: Source[] = [];
-      let accumulatedSteps: Step[] = [];
+      const accumulatedSteps: Step[] = [];
       let finalResponse: ChatResponse | null = null;
 
       try {
@@ -203,10 +203,11 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
                 );
                 break;
                 
-              case "sources":
+              case "sources": {
                 const newSources = (event.data.sources as Source[]) || [];
                 accumulatedSources = [...accumulatedSources, ...newSources];
                 break;
+              }
                 
               case "answer_start":
                 setCurrentStatus("Generating answer...");

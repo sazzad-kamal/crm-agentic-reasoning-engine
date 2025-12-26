@@ -50,19 +50,22 @@ export function DataExplorer({ onAskAbout }: DataExplorerProps) {
   const currentTab = TABS.find((t) => t.id === activeTab)!;
   const { data, loading, error } = useDataFetch(currentTab.endpoint);
 
+  // Extract data array for cleaner memoization
+  const dataArray = data?.data;
+
   // Filter data based on search
   const filteredData = useMemo(() => {
-    if (!data?.data || !searchTerm.trim()) return data?.data || [];
+    if (!dataArray || !searchTerm.trim()) return dataArray || [];
 
     const term = searchTerm.toLowerCase();
-    return data.data.filter((row) =>
+    return dataArray.filter((row) =>
       Object.entries(row).some(([key, val]) => {
         // Don't search nested objects
         if (key.startsWith("_")) return false;
         return String(val).toLowerCase().includes(term);
       })
     );
-  }, [data?.data, searchTerm]);
+  }, [dataArray, searchTerm]);
 
   const handleTabChange = useCallback((tabId: DataTab) => {
     setActiveTab(tabId);

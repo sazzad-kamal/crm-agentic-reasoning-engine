@@ -69,7 +69,10 @@ describe("useDataFetch", () => {
       renderHook(() => useDataFetch("/api/data/contacts"));
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith("http://localhost:8000/api/data/contacts");
+        expect(mockFetch).toHaveBeenCalledWith(
+          "http://localhost:8000/api/data/contacts",
+          expect.objectContaining({ signal: expect.any(AbortSignal) })
+        );
       });
     });
   });
@@ -170,7 +173,11 @@ describe("useDataFetch", () => {
 
       rerender({ endpoint: "/api/data/contacts" });
 
-      expect(result.current.loading).toBe(true);
+      // With batched state updates, loading is set to true on initial render
+      // After rerender with new endpoint, the effect triggers and loading becomes true
+      await waitFor(() => {
+        expect(result.current.loading).toBe(true);
+      });
     });
   });
 

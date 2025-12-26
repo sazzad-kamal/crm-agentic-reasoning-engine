@@ -2,27 +2,12 @@
 Text chunking utilities for document ingestion.
 """
 
+from backend.rag.utils import CHARS_PER_TOKEN, estimate_tokens, tokens_to_chars
 from backend.rag.ingest.constants import (
-    CHARS_PER_TOKEN,
     TARGET_CHUNK_SIZE,
     MIN_CHUNK_SIZE,
     CHUNK_OVERLAP,
 )
-
-
-def estimate_tokens(text: str) -> int:
-    """
-    Estimate token count from text length.
-    
-    Uses a simple character-based heuristic.
-    
-    Args:
-        text: The text to estimate tokens for
-        
-    Returns:
-        Estimated number of tokens
-    """
-    return len(text) // CHARS_PER_TOKEN
 
 
 def _tokens_to_chars(tokens: int) -> int:

@@ -10,6 +10,38 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# =============================================================================
+# Token Estimation
+# =============================================================================
+
+# Average characters per token (heuristic)
+CHARS_PER_TOKEN = 4
+
+
+def estimate_tokens(text: str) -> int:
+    """
+    Estimate token count from text length.
+    
+    Uses a simple character-based heuristic.
+    
+    Args:
+        text: The text to estimate tokens for
+        
+    Returns:
+        Estimated number of tokens
+    """
+    return len(text) // CHARS_PER_TOKEN
+
+
+def tokens_to_chars(tokens: int) -> int:
+    """Convert token count to approximate character count."""
+    return tokens * CHARS_PER_TOKEN
+
+
+# =============================================================================
+# CSV Directory Location
+# =============================================================================
+
 # Get backend root directory
 _BACKEND_ROOT = Path(__file__).parent.parent
 

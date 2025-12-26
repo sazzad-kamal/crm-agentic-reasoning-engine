@@ -3,16 +3,12 @@ Text chunking utilities for document ingestion.
 """
 
 from backend.rag.utils import CHARS_PER_TOKEN, estimate_tokens, tokens_to_chars
-from backend.rag.ingest.constants import (
-    TARGET_CHUNK_SIZE,
-    MIN_CHUNK_SIZE,
-    CHUNK_OVERLAP,
-)
 
-
-def _tokens_to_chars(tokens: int) -> int:
-    """Convert token count to approximate character count."""
-    return tokens * CHARS_PER_TOKEN
+# Chunking Parameters
+TARGET_CHUNK_SIZE = 500  # tokens
+MAX_CHUNK_SIZE = 700     # tokens
+MIN_CHUNK_SIZE = 100     # tokens
+CHUNK_OVERLAP = 50       # tokens
 
 
 def recursive_split(
@@ -78,8 +74,8 @@ def recursive_split(
                 return result
     
     # If nothing worked, just split by character count
-    char_limit = _tokens_to_chars(max_size)
-    overlap_chars = _tokens_to_chars(overlap)
+    char_limit = tokens_to_chars(max_size)
+    overlap_chars = tokens_to_chars(overlap)
     chunks = []
     for i in range(0, len(text), char_limit - overlap_chars):
         chunks.append(text[i:i + char_limit])

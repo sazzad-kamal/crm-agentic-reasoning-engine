@@ -4,10 +4,8 @@ Ingestion functions for RAG documents.
 
 Modules:
 - docs: Markdown document ingestion
-- private_text: Private CRM text ingestion  
-- text_builder: Private text JSONL builder
-- chunking: Text chunking utilities
-- constants: Chunking parameters
+- private_text: Private CRM text ingestion (includes JSONL builder)
+- chunking: Text chunking utilities and constants
 
 Ingestion runs automatically at API startup if collections are missing.
 """

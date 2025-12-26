@@ -13,13 +13,14 @@ import logging
 from pathlib import Path
 
 from backend.rag.models import DocumentChunk
-from backend.rag.ingest.constants import (
+from backend.rag.ingest.chunking import (
+    estimate_tokens,
+    recursive_split,
     MAX_CHUNK_SIZE,
     TARGET_CHUNK_SIZE,
     CHUNK_OVERLAP,
     MIN_CHUNK_SIZE,
 )
-from backend.rag.ingest.chunking import estimate_tokens, recursive_split
 
 
 # Configure module logger
@@ -28,9 +29,6 @@ logger = logging.getLogger(__name__)
 # Paths
 _BACKEND_ROOT = Path(__file__).parent.parent.parent
 DOCS_DIR = _BACKEND_ROOT / "data/docs"
-
-# Output file path (for backwards compatibility import)
-OUTPUT_DIR = Path("data/processed")
 
 
 # =============================================================================

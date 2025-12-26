@@ -94,12 +94,13 @@ def split_by_headings(content: str) -> list[dict]:
         
         # Update section path based on level
         # Level 2 (##) resets path, level 3 (###) appends, etc.
-        if level == 2:
-            current_path = [heading_text]
-        elif level == 3:
-            current_path = current_path[:1] + [heading_text]
-        elif level == 4:
-            current_path = current_path[:2] + [heading_text]
+        match level:
+            case 2:
+                current_path = [heading_text]
+            case 3:
+                current_path = current_path[:1] + [heading_text]
+            case 4:
+                current_path = current_path[:2] + [heading_text]
         
         # Get content until next heading or end
         start = match.end()
@@ -144,15 +145,12 @@ def process_markdown_file(file_path: Path) -> list[DocumentChunk]:
         section_text = section["text"]
         section_path = section["section_path"]
         
-        # Check if section needs further splitting
-        if estimate_tokens(section_text) > MAX_CHUNK_SIZE:
-            sub_chunks = recursive_split(
-                section_text, 
-                max_size=TARGET_CHUNK_SIZE, 
-                overlap=CHUNK_OVERLAP
-            )
-        else:
-            sub_chunks = [section_text]
+        # Split large sections, keep small ones as-is
+        sub_chunks = (
+            recursive_split(section_text, max_size=TARGET_CHUNK_SIZE, overlap=CHUNK_OVERLAP)
+            if estimate_tokens(section_text) > MAX_CHUNK_SIZE
+            else [section_text]
+        )
         
         for sub_chunk in sub_chunks:
             # Skip very small chunks

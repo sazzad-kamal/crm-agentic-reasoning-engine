@@ -1,4 +1,5 @@
-import { forwardRef } from "react";
+import type { Ref } from "react";
+import { useId } from "react";
 import type { ChatMessage } from "../types";
 import { MessageBlock } from "./MessageBlock";
 import { EXAMPLE_PROMPTS } from "../config";
@@ -8,56 +9,66 @@ interface ChatAreaProps {
   onSuggestionClick: (prompt: string) => void;
   onFollowUpClick: (question: string) => void;
   streamingStatus?: string | null;
+  /** Ref for scroll management (React 19 - ref as prop) */
+  ref?: Ref<HTMLDivElement>;
 }
 
 /**
- * Main chat area showing messages or empty state
+ * Main chat area showing messages or empty state.
+ * React 19: Uses ref as a regular prop instead of forwardRef.
  */
-export const ChatArea = forwardRef<HTMLDivElement, ChatAreaProps>(
-  function ChatArea({ messages, onSuggestionClick, onFollowUpClick, streamingStatus }, ref) {
-    const isEmpty = messages.length === 0;
+export function ChatArea({
+  messages,
+  onSuggestionClick,
+  onFollowUpClick,
+  streamingStatus,
+  ref,
+}: ChatAreaProps) {
+  const isEmpty = messages.length === 0;
 
-    return (
-      <div
-        className="chat-area"
-        ref={ref}
-        role="log"
-        aria-live="polite"
-        aria-label="Chat messages"
-      >
-        {isEmpty ? (
-          <EmptyState onSuggestionClick={onSuggestionClick} />
-        ) : (
-          <div className="message-list" role="list">
-            {messages.map((msg) => (
-              <MessageBlock
-                key={msg.id}
-                message={msg}
-                onFollowUpClick={onFollowUpClick}
-              />
-            ))}
-            {/* Streaming status indicator */}
-            {streamingStatus && (
-              <div className="streaming-status" role="status" aria-live="polite">
-                <span className="streaming-status__dot" />
-                <span className="streaming-status__text">{streamingStatus}</span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
-);
+  return (
+    <div
+      className="chat-area"
+      ref={ref}
+      role="log"
+      aria-live="polite"
+      aria-label="Chat messages"
+    >
+      {isEmpty ? (
+        <EmptyState onSuggestionClick={onSuggestionClick} />
+      ) : (
+        <div className="message-list" role="list">
+          {messages.map((msg) => (
+            <MessageBlock
+              key={msg.id}
+              message={msg}
+              onFollowUpClick={onFollowUpClick}
+            />
+          ))}
+          {/* Streaming status indicator */}
+          {streamingStatus && (
+            <div className="streaming-status" role="status" aria-live="polite">
+              <span className="streaming-status__dot" />
+              <span className="streaming-status__text">{streamingStatus}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface EmptyStateProps {
   onSuggestionClick: (prompt: string) => void;
 }
 
 /**
- * Empty state with illustration and example prompts
+ * Empty state with illustration and example prompts.
+ * Uses useId for unique, accessible label IDs.
  */
 function EmptyState({ onSuggestionClick }: EmptyStateProps) {
+  const suggestionsLabelId = useId();
+
   return (
     <div className="empty-state" role="region" aria-label="Getting started">
       {/* Illustration */}
@@ -90,14 +101,14 @@ function EmptyState({ onSuggestionClick }: EmptyStateProps) {
         Ask me anything in natural language!
       </p>
 
-      <div className="empty-state__title" id="suggestions-label">
+      <div className="empty-state__title" id={suggestionsLabelId}>
         Try one of these to get started:
       </div>
       
       <div
         className="empty-state__suggestions"
         role="group"
-        aria-labelledby="suggestions-label"
+        aria-labelledby={suggestionsLabelId}
       >
         {EXAMPLE_PROMPTS.map((prompt, index) => (
           <button

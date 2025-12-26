@@ -8,6 +8,12 @@ so they live in backend.common to avoid circular dependencies.
 from pydantic import BaseModel, Field
 
 
+__all__ = [
+    "DocumentChunk",
+    "ScoredChunk",
+]
+
+
 class DocumentChunk(BaseModel):
     """
     Represents a single chunk of a document for retrieval.

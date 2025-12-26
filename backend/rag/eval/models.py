@@ -4,8 +4,24 @@ Evaluation data models.
 Defines the result structures for RAG evaluation.
 """
 
-from typing import Optional
 from pydantic import BaseModel
+
+
+__all__ = [
+    "JudgeResult",
+    "EvalResult",
+    "AccountEvalResult",
+    "DocsEvalSummary",
+    "AccountEvalSummary",
+    "RAGEvalSummary",
+    "SLO_CONTEXT_RELEVANCE",
+    "SLO_ANSWER_RELEVANCE",
+    "SLO_GROUNDEDNESS",
+    "SLO_RAG_TRIAD",
+    "SLO_DOC_RECALL",
+    "SLO_PRIVACY_LEAKAGE",
+    "SLO_LATENCY_P95_MS",
+]
 
 
 # =============================================================================

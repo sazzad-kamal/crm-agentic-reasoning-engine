@@ -7,11 +7,20 @@ various criteria like lexical scores, per-document caps, and per-type caps.
 
 import logging
 from collections import defaultdict
+from collections.abc import Callable
 
 from ..models import ScoredChunk
 from .constants import MIN_BM25_SCORE_RATIO, MAX_CHUNKS_PER_DOC, MAX_CHUNKS_PER_TYPE
 
 logger = logging.getLogger(__name__)
+
+
+__all__ = [
+    "apply_lexical_gate",
+    "apply_per_doc_cap",
+    "apply_per_type_cap",
+    "apply_all_gates",
+]
 
 
 def apply_lexical_gate(
@@ -61,9 +70,9 @@ def apply_per_doc_cap(
         Filtered list respecting per-doc cap
     """
     max_per_doc = max_per_doc or MAX_CHUNKS_PER_DOC
-    
-    doc_counts: dict[str, int] = defaultdict(int)
-    filtered = []
+
+    doc_counts: defaultdict[str, int] = defaultdict(int)
+    filtered: list[ScoredChunk] = []
     
     for sc in scored_chunks:
         doc_id = sc.chunk.doc_id
@@ -90,16 +99,16 @@ def apply_per_type_cap(
         Filtered list respecting per-type cap
     """
     max_per_type = max_per_type or MAX_CHUNKS_PER_TYPE
-    
+
     # Group by type and apply cap
-    by_type: dict[str, list[ScoredChunk]] = defaultdict(list)
+    by_type: defaultdict[str, list[ScoredChunk]] = defaultdict(list)
     for sc in scored_chunks:
         t = sc.chunk.metadata.get("type", "unknown")
         if len(by_type[t]) < max_per_type:
             by_type[t].append(sc)
     
     # Flatten back, maintaining original order by type priority
-    result = []
+    result: list[ScoredChunk] = []
     for t in ["history", "opportunity_note", "attachment", "unknown"]:
         result.extend(by_type.get(t, []))
     

@@ -26,6 +26,14 @@ from backend.rag.ingest.chunking import (
 # Configure module logger
 logger = logging.getLogger(__name__)
 
+
+__all__ = [
+    "extract_title",
+    "split_by_headings",
+    "process_markdown_file",
+    "ingest_all_docs",
+]
+
 # Paths
 _BACKEND_ROOT = Path(__file__).parent.parent.parent
 DOCS_DIR = _BACKEND_ROOT / "data/docs"

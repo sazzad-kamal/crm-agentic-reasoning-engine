@@ -31,6 +31,7 @@ langgraph>=0.2.0
 # Vector Store & Retrieval
 qdrant-client>=1.7.0
 rank-bm25>=0.2.2
+cachetools>=5.3.0
 
 # Environment Variables
 python-dotenv>=1.0.0

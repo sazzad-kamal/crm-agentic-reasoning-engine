@@ -32,6 +32,12 @@ from backend.rag.retrieval.base import RetrievalBackend
 logger = logging.getLogger(__name__)
 
 
+__all__ = [
+    "PrivateRetrievalBackend",
+    "create_private_backend",
+]
+
+
 class PrivateRetrievalBackend(RetrievalBackend):
     """
     Hybrid retrieval backend for private CRM texts with metadata filtering.

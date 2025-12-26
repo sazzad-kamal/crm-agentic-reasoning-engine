@@ -23,6 +23,7 @@ from qdrant_client.models import (
     VectorParams,
     Distance,
     PointStruct,
+    Record,
 )
 from sentence_transformers import SentenceTransformer
 from rank_bm25 import BM25Okapi
@@ -40,6 +41,12 @@ from backend.rag.retrieval.ranking import RankingMixin
 
 
 logger = logging.getLogger(__name__)
+
+
+__all__ = [
+    "RetrievalBackend",
+    "create_backend",
+]
 
 
 # =============================================================================
@@ -345,15 +352,15 @@ class RetrievalBackend(RankingMixin):
         
         return results
     
-    def _scroll_all_points(self, batch_size: int = 100) -> list:
+    def _scroll_all_points(self, batch_size: int = 100) -> list[Record]:
         """
         Scroll through all points in Qdrant collection.
-        
+
         Args:
             batch_size: Number of points per scroll request
-            
+
         Returns:
-            List of Qdrant point objects with payloads
+            List of Qdrant Record objects with payloads
         """
         if not self.qdrant.collection_exists(self.collection_name):
             return []

@@ -17,6 +17,11 @@ from backend.rag.retrieval.constants import RRF_K, RERANKER_MODEL
 logger = logging.getLogger(__name__)
 
 
+__all__ = [
+    "RankingMixin",
+]
+
+
 class RankingMixin:
     """
     Mixin class providing ranking functionality for retrieval backends.

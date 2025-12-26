@@ -22,6 +22,17 @@ from backend.rag.utils import find_csv_dir
 logger = logging.getLogger(__name__)
 
 
+__all__ = [
+    "CompanyResolver",
+    "get_resolver",
+    "resolve_company_id",
+    "get_company_name",
+    "get_company_matches",
+    "load_companies_df",
+    "clear_cache",
+]
+
+
 # =============================================================================
 # Company Data Loading
 # =============================================================================

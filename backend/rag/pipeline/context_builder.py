@@ -19,6 +19,15 @@ from backend.rag.models import DocumentChunk, ScoredChunk
 logger = logging.getLogger(__name__)
 
 
+__all__ = [
+    "ContextBuilder",
+    "build_context",
+    "build_context_with_sources",
+    "build_private_context",
+    "build_docs_context",
+]
+
+
 # Default token estimation (4 chars per token approximation)
 CHARS_PER_TOKEN = 4
 

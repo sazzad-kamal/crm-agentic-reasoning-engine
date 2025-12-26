@@ -6,18 +6,11 @@ Responsibilities:
 - Use heading-aware chunking (split by ## / ### then recursive character split)
 - Target chunk size: 400-700 tokens with small overlap
 - Upload chunks to Qdrant vector database
-
-Usage:
-    python -m backend.rag.ingest.docs
 """
 
 import re
 import logging
 from pathlib import Path
-
-import typer
-from rich.console import Console
-from rich.table import Table
 
 from backend.rag.models import DocumentChunk
 from backend.rag.ingest.constants import (
@@ -210,61 +203,3 @@ def ingest_all_docs(docs_dir: Path | None = None) -> list[DocumentChunk]:
         logger.debug(f"  -> {len(chunks)} chunks")
     
     return all_chunks
-
-
-# =============================================================================
-# CLI Entrypoint
-# =============================================================================
-
-app = typer.Typer(help="Document ingestion for Acme CRM docs")
-console = Console()
-
-
-@app.command()
-def ingest():
-    """Ingest all markdown documents and create chunks."""
-    # Configure logging for CLI
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    
-    console.print("[bold blue]Acme CRM Docs Ingestion[/bold blue]\n")
-    
-    # Ingest all docs
-    with console.status("[bold green]Processing documents..."):
-        chunks = ingest_all_docs()
-    
-    # Calculate stats
-    total_tokens = sum(c.metadata.get("estimated_tokens", 0) for c in chunks)
-    unique_docs = len(set(c.doc_id for c in chunks))
-    avg_tokens = total_tokens // len(chunks) if chunks else 0
-    
-    # Summary table
-    table = Table(title="Ingestion Summary", show_header=True, header_style="bold cyan")
-    table.add_column("Metric", style="dim")
-    table.add_column("Value", justify="right")
-    
-    table.add_row("Documents", str(unique_docs))
-    table.add_row("Chunks", str(len(chunks)))
-    table.add_row("Total tokens", f"{total_tokens:,}")
-    table.add_row("Avg tokens/chunk", str(avg_tokens))
-    
-    console.print(table)
-    
-    # Build indexes (uploads to Qdrant + builds BM25)
-    with console.status("[bold green]Building indexes..."):
-        from backend.rag.retrieval.base import RetrievalBackend
-        backend = RetrievalBackend()
-        backend.build_indexes(chunks)
-    
-    console.print(f"\n[green]✓[/green] Indexed {len(chunks)} chunks in Qdrant")
-
-
-def main():
-    """Main entrypoint for document ingestion."""
-    app()
-
-
-if __name__ == "__main__":
-    main()

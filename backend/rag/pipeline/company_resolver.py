@@ -17,7 +17,7 @@ from difflib import get_close_matches
 
 import pandas as pd
 
-from backend.rag.ingest.csv_utils import find_csv_dir
+from backend.rag.utils import find_csv_dir
 
 
 logger = logging.getLogger(__name__)

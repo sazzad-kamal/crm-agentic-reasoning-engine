@@ -24,7 +24,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
-from backend.rag.ingest.csv_utils import find_csv_dir
+from backend.rag.utils import find_csv_dir
 
 
 # =============================================================================

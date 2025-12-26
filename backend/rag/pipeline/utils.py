@@ -4,8 +4,23 @@ Pipeline utilities for RAG answer generation.
 
 import re
 
-from backend.rag.ingest.chunking import estimate_tokens
-from backend.rag.ingest.constants import CHARS_PER_TOKEN
+# Token estimation constant - average characters per token
+CHARS_PER_TOKEN = 4
+
+
+def estimate_tokens(text: str) -> int:
+    """
+    Estimate token count from text length.
+    
+    Uses a simple character-based heuristic.
+    
+    Args:
+        text: The text to estimate tokens for
+        
+    Returns:
+        Estimated number of tokens
+    """
+    return len(text) // CHARS_PER_TOKEN
 
 
 def tokens_to_chars(tokens: int) -> int:

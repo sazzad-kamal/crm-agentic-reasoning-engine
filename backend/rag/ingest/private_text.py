@@ -3,10 +3,6 @@ Private text ingestion into Qdrant (MVP2).
 
 Ingests private CRM text (history, opportunity notes, attachments) into a
 separate Qdrant collection for account-scoped RAG.
-
-Usage:
-    python -m backend.rag.ingest.private_text
-    python -m backend.rag.ingest.private_text --recreate
 """
 
 import json
@@ -14,8 +10,8 @@ import logging
 import math
 from pathlib import Path
 from typing import Any
+from collections import Counter
 
-import typer
 from rich.console import Console
 from rich.table import Table
 from qdrant_client import QdrantClient
@@ -26,7 +22,7 @@ from qdrant_client.models import (
 )
 from sentence_transformers import SentenceTransformer
 
-from backend.rag.ingest.csv_utils import find_csv_dir
+from backend.rag.utils import find_csv_dir
 from backend.rag.ingest.text_builder import build_private_texts_jsonl
 from backend.rag.models import DocumentChunk
 from backend.rag.retrieval.constants import PRIVATE_COLLECTION, QDRANT_PATH
@@ -304,31 +300,3 @@ def ingest_private_texts(
         company_table.add_row(company, str(companies[company]))
     
     console.print(company_table)
-
-
-# =============================================================================
-# CLI Entrypoint
-# =============================================================================
-
-app = typer.Typer(help="Private text ingestion into Qdrant")
-
-
-@app.command()
-def ingest(
-    recreate: bool = typer.Option(False, "--recreate", help="Recreate collection even if it exists"),
-    collection: str = typer.Option(PRIVATE_COLLECTION_NAME, "--collection", help="Collection name"),
-):
-    """Ingest private CRM texts into Qdrant."""
-    ingest_private_texts(
-        collection_name=collection,
-        recreate=recreate,
-    )
-
-
-def main():
-    """Main entrypoint."""
-    app()
-
-
-if __name__ == "__main__":
-    main()

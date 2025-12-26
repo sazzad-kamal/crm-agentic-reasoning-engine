@@ -86,6 +86,62 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
+# RAG Collection Setup
+# =============================================================================
+
+def ensure_rag_collections_exist() -> None:
+    """
+    Ensure RAG Qdrant collections exist, create if missing.
+    
+    This runs at startup to auto-ingest data if collections don't exist.
+    """
+    from qdrant_client import QdrantClient
+    from backend.rag.retrieval.constants import QDRANT_PATH, DOCS_COLLECTION, PRIVATE_COLLECTION
+    from backend.rag.ingest import ingest_all_docs, ingest_private_texts
+    
+    qdrant = QdrantClient(path=str(QDRANT_PATH))
+    
+    try:
+        # Check docs collection
+        if not qdrant.collection_exists(DOCS_COLLECTION):
+            logger.info(f"Collection '{DOCS_COLLECTION}' not found, ingesting docs...")
+            qdrant.close()
+            ingest_all_docs()
+            qdrant = QdrantClient(path=str(QDRANT_PATH))
+        else:
+            info = qdrant.get_collection(DOCS_COLLECTION)
+            if info.points_count == 0:
+                logger.info(f"Collection '{DOCS_COLLECTION}' is empty, ingesting docs...")
+                qdrant.close()
+                ingest_all_docs()
+                qdrant = QdrantClient(path=str(QDRANT_PATH))
+            else:
+                logger.info(f"Docs collection ready with {info.points_count} points")
+        
+        # Check private collection
+        if not qdrant.collection_exists(PRIVATE_COLLECTION):
+            logger.info(f"Collection '{PRIVATE_COLLECTION}' not found, ingesting private texts...")
+            qdrant.close()
+            ingest_private_texts()
+            qdrant = QdrantClient(path=str(QDRANT_PATH))
+        else:
+            info = qdrant.get_collection(PRIVATE_COLLECTION)
+            if info.points_count == 0:
+                logger.info(f"Collection '{PRIVATE_COLLECTION}' is empty, ingesting private texts...")
+                qdrant.close()
+                ingest_private_texts()
+                qdrant = QdrantClient(path=str(QDRANT_PATH))
+            else:
+                logger.info(f"Private collection ready with {info.points_count} points")
+        
+        qdrant.close()
+    except Exception as e:
+        qdrant.close()
+        logger.error(f"Failed to ensure RAG collections: {e}")
+        raise
+
+
+# =============================================================================
 # Application Lifespan
 # =============================================================================
 
@@ -102,6 +158,9 @@ async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"Debug mode: {settings.debug}")
     logger.info(f"CORS origins: {settings.cors_origins_list}")
+    
+    # Ensure RAG collections exist
+    ensure_rag_collections_exist()
     
     yield
     

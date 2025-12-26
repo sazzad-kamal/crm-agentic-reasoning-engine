@@ -28,7 +28,7 @@ import pandas as pd
 from qdrant_client import QdrantClient
 
 from backend.rag.retrieval.constants import PRIVATE_COLLECTION, QDRANT_PATH
-from backend.rag.ingest.text_builder import find_csv_dir
+from backend.rag.utils import find_csv_dir
 from backend.rag.ingest.private_text import ingest_private_texts
 from backend.rag.pipeline.account import answer_account_question, load_companies_df
 from backend.rag.eval.models import (

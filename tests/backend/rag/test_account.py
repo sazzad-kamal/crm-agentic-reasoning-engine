@@ -23,7 +23,7 @@ OPENAI_AVAILABLE = os.environ.get("OPENAI_API_KEY") is not None
 @pytest.fixture
 def csv_dir():
     """Get the CSV directory."""
-    from backend.rag.ingest.csv_utils import find_csv_dir
+    from backend.rag.utils import find_csv_dir
     return find_csv_dir()
 
 
@@ -270,7 +270,7 @@ class TestCsvDirLocator:
     
     def test_find_csv_dir_returns_path(self):
         """Test that find_csv_dir returns a valid path."""
-        from backend.rag.ingest.csv_utils import find_csv_dir
+        from backend.rag.utils import find_csv_dir
         
         csv_dir = find_csv_dir()
         
@@ -281,10 +281,10 @@ class TestCsvDirLocator:
     
     def test_find_csv_dir_error_message_clear(self, tmp_path):
         """Test that error message is clear when no dir found."""
-        from backend.rag.ingest.csv_utils import find_csv_dir, CSV_DIR_CANDIDATES
+        from backend.rag.utils import find_csv_dir, CSV_DIR_CANDIDATES
         
         # Temporarily patch the candidates to empty dirs
-        with patch('backend.rag.ingest.csv_utils.CSV_DIR_CANDIDATES', 
+        with patch('backend.rag.utils.CSV_DIR_CANDIDATES', 
                    [tmp_path / "nonexistent1", tmp_path / "nonexistent2"]):
             with pytest.raises(FileNotFoundError, match="Could not find CSV data directory"):
                 find_csv_dir()

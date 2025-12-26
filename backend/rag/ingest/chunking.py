@@ -4,6 +4,15 @@ Text chunking utilities for document ingestion.
 
 from backend.rag.utils import CHARS_PER_TOKEN, estimate_tokens, tokens_to_chars
 
+__all__ = [
+    "recursive_split",
+    "chunk_text",
+    "TARGET_CHUNK_SIZE",
+    "MAX_CHUNK_SIZE",
+    "MIN_CHUNK_SIZE",
+    "CHUNK_OVERLAP",
+]
+
 # Chunking Parameters
 TARGET_CHUNK_SIZE = 500  # tokens
 MAX_CHUNK_SIZE = 700     # tokens

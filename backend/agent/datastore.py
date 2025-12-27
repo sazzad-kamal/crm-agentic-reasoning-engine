@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from datetime import datetime, timedelta
 from difflib import get_close_matches
+from typing import Any
 import duckdb
 
 
@@ -132,14 +133,14 @@ class CRMDataStore:
             print(f"Warning: Failed to load {table_name}: {e}")
             return False
     
-    def _fetch_one_dict(self, query: str, params: list = None) -> dict | None:
+    def _fetch_one_dict(self, query: str, params: list[Any] | None = None) -> dict[str, Any] | None:
         """Execute query and return first row as dict, or None."""
         result = self.conn.execute(query, params or []).fetchone()
         if not result:
             return None
         return dict(zip([d[0] for d in self.conn.description], result))
-    
-    def _fetch_all_dicts(self, query: str, params: list = None) -> list[dict]:
+
+    def _fetch_all_dicts(self, query: str, params: list[Any] | None = None) -> list[dict[str, Any]]:
         """Execute query and return all rows as list of dicts."""
         result = self.conn.execute(query, params or []).fetchall()
         if not result:
@@ -725,6 +726,9 @@ def get_datastore() -> CRMDataStore:
     if _datastore is None:
         _datastore = CRMDataStore()
     return _datastore
+
+
+__all__ = ["CRMDataStore", "get_datastore", "get_csv_base_path"]
 
 
 # =============================================================================

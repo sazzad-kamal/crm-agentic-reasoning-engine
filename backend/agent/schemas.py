@@ -36,12 +36,12 @@ class Step(BaseModel):
 
 class RawData(BaseModel):
     """Raw data payload for UI display."""
-    companies: list[dict] = Field(default_factory=list)
-    activities: list[dict] = Field(default_factory=list)
-    opportunities: list[dict] = Field(default_factory=list)
-    history: list[dict] = Field(default_factory=list)
-    renewals: list[dict] = Field(default_factory=list)
-    pipeline_summary: dict | None = None
+    companies: list[dict[str, Any]] = Field(default_factory=list)
+    activities: list[dict[str, Any]] = Field(default_factory=list)
+    opportunities: list[dict[str, Any]] = Field(default_factory=list)
+    history: list[dict[str, Any]] = Field(default_factory=list)
+    renewals: list[dict[str, Any]] = Field(default_factory=list)
+    pipeline_summary: dict[str, Any] | None = None
 
 
 # =============================================================================
@@ -103,6 +103,6 @@ class RouterResult(BaseModel):
 
 class ToolResult(BaseModel):
     """Result from a tool function."""
-    data: Any
+    data: dict[str, Any]
     sources: list[Source]
     error: str | None = None

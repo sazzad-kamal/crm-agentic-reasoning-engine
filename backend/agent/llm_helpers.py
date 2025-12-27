@@ -211,3 +211,10 @@ def generate_follow_up_suggestions(
     except Exception as e:
         logger.warning(f"Follow-up generation failed: {e}")
         return []
+
+
+__all__ = [
+    "call_llm",
+    "call_docs_rag",
+    "generate_follow_up_suggestions",
+]

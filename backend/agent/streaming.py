@@ -62,7 +62,7 @@ class StreamEvent:
     ERROR = "error"            # Error occurred
 
 
-def format_sse(event: str, data: dict) -> str:
+def format_sse(event: str, data: dict[str, Any]) -> str:
     """Format data as Server-Sent Event."""
     # Serialize all data to ensure JSON compatibility
     serialized_data = serialize_for_json(data)

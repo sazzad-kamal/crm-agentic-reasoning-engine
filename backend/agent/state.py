@@ -1,0 +1,64 @@
+"""
+Agent state definition for LangGraph workflow.
+
+This module defines the central state structure that flows through the graph.
+"""
+
+from typing import Any, TypedDict, Annotated
+from operator import add
+
+from backend.agent.schemas import Source, RouterResult
+
+
+class AgentState(TypedDict, total=False):
+    """
+    State that flows through the LangGraph workflow.
+
+    This is the central data structure that each node can read/write.
+    """
+    # Input
+    question: str
+    mode: str  # "auto", "docs", "data", "data+docs"
+    company_id: str | None
+    session_id: str | None
+    user_id: str | None
+
+    # Router output
+    router_result: RouterResult | None
+    mode_used: str
+    resolved_company_id: str | None
+    days: int
+    intent: str
+
+    # Data outputs
+    company_data: dict[str, Any] | None
+    activities_data: dict[str, Any] | None
+    history_data: dict[str, Any] | None
+    pipeline_data: dict[str, Any] | None
+    renewals_data: dict[str, Any] | None
+    contacts_data: dict[str, Any] | None
+    groups_data: dict[str, Any] | None
+    attachments_data: dict[str, Any] | None
+
+    # Docs output
+    docs_answer: str
+    docs_sources: list[Source]
+
+    # Sources accumulated from all steps (using reducer to append)
+    sources: Annotated[list[Source], add]
+
+    # Steps accumulated from all nodes (using reducer to append)
+    steps: Annotated[list[dict[str, Any]], add]
+
+    # Final outputs
+    answer: str
+    follow_up_suggestions: list[str]
+
+    # Raw data for UI
+    raw_data: dict[str, Any]
+
+    # Error handling
+    error: str | None
+
+
+__all__ = ["AgentState"]

@@ -9,7 +9,7 @@ This package provides the FastAPI backend for the CRM AI Companion.
 Modules:
     - main: Application entry point and factory
     - config: Configuration management
-    - routes: API route definitions
+    - api: Modular API route definitions
     - middleware: Request/response middleware
     - exceptions: Custom exceptions and error handling
 

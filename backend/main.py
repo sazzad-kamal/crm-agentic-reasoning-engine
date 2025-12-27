@@ -5,9 +5,9 @@
 FastAPI backend for the CRM AI Companion.
 
 Run the app:
-    python -m backend.main
-    # or
     uvicorn backend.main:app --reload
+    # or
+    python -m backend.main
 
 API Documentation:
     http://localhost:8000/docs (Swagger UI)
@@ -19,47 +19,32 @@ Example curl:
         -d '{"question": "What is going on with Acme Manufacturing?"}'
 """
 
-import sys
 import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 
 # =============================================================================
-# Path Setup
+# Environment Setup
 # =============================================================================
 
-# Add project root AND backend to path for flexible imports
+# Load environment variables from project root
 project_root = Path(__file__).parent.parent
-backend_dir = Path(__file__).parent
-
-for path in [str(project_root), str(backend_dir)]:
-    if path not in sys.path:
-        sys.path.insert(0, path)
-
-# Load environment variables
-from dotenv import load_dotenv
 load_dotenv(project_root / ".env")
 
 # =============================================================================
-# Local Imports (after path setup)
+# Local Imports
 # =============================================================================
 
-# Try absolute imports first, fall back to relative for direct execution
-try:
-    from backend.config import get_settings
-    from backend.api import router
-    from backend.middleware import RequestLoggingMiddleware, CacheControlMiddleware, RateLimitMiddleware
-    from backend.exceptions import APIError, ErrorResponse
-except ImportError:
-    from config import get_settings
-    from api import router
-    from middleware import RequestLoggingMiddleware, CacheControlMiddleware, RateLimitMiddleware
-    from exceptions import APIError, ErrorResponse
+from backend.config import get_settings
+from backend.api import router
+from backend.middleware import RequestLoggingMiddleware, CacheControlMiddleware, RateLimitMiddleware
+from backend.exceptions import APIError, ErrorResponse
 
 # =============================================================================
 # Logging Setup

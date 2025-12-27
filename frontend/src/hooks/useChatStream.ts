@@ -183,7 +183,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
                 break;
                 
               case "step":
-                accumulatedSteps.push(event.data as unknown as Step);
+                accumulatedSteps.push(event.data as Step);
                 // Update message with current steps
                 setMessages((prev) =>
                   prev.map((msg) =>
@@ -239,7 +239,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
                 break;
                 
               case "done":
-                finalResponse = event.data as unknown as ChatResponse;
+                finalResponse = event.data as ChatResponse;
                 setCurrentStatus(null);
                 break;
                 

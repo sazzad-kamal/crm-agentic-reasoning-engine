@@ -1,18 +1,13 @@
 """Tests for API routes."""
 
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from backend.routes import (
-    router,
-    HealthResponse,
-    SystemInfo,
-    DataResponse,
-    load_csv_data,
-    load_jsonl_data,
-)
+from backend.api import router
+from backend.api.health import HealthResponse, SystemInfo
+from backend.api.data import DataResponse, load_csv_data, load_jsonl_data
 
 
 # =============================================================================
@@ -110,9 +105,9 @@ class TestLoadCsvData:
         """Test loading a valid CSV file."""
         csv_path = tmp_path / "test.csv"
         csv_path.write_text("id,name\n1,Alice\n2,Bob\n")
-        
+
         data, columns = load_csv_data(csv_path)
-        
+
         assert len(data) == 2
         assert columns == ["id", "name"]
         assert data[0]["name"] == "Alice"
@@ -132,9 +127,9 @@ class TestLoadJsonlData:
         """Test loading a valid JSONL file."""
         jsonl_path = tmp_path / "test.jsonl"
         jsonl_path.write_text('{"id": 1, "name": "Alice"}\n{"id": 2, "name": "Bob"}\n')
-        
+
         data, columns = load_jsonl_data(jsonl_path)
-        
+
         assert len(data) == 2
         assert "id" in columns
         assert "name" in columns
@@ -231,7 +226,7 @@ class TestChatEndpoint:
         response = client.post("/api/chat", json={"question": long_question})
         assert response.status_code in [400, 422]
 
-    @patch("backend.routes.answer_question")
+    @patch("backend.api.chat.answer_question")
     def test_chat_calls_answer_question(self, mock_answer, client):
         """Test chat calls answer_question with params."""
         mock_answer.return_value = {
@@ -252,16 +247,16 @@ class TestChatEndpoint:
             },
             "follow_up_suggestions": [],
         }
-        
+
         response = client.post(
             "/api/chat",
             json={"question": "What is Acme?", "mode": "auto"},
         )
-        
+
         assert response.status_code == 200
         mock_answer.assert_called_once()
 
-    @patch("backend.routes.answer_question")
+    @patch("backend.api.chat.answer_question")
     def test_chat_response_structure(self, mock_answer, client):
         """Test chat response has expected structure."""
         mock_answer.return_value = {
@@ -283,10 +278,10 @@ class TestChatEndpoint:
             },
             "follow_up_suggestions": ["Tell me more"],
         }
-        
+
         response = client.post("/api/chat", json={"question": "What is Acme?"})
         data = response.json()
-        
+
         assert "answer" in data
         assert "sources" in data
         assert "steps" in data
@@ -312,19 +307,19 @@ class TestChatStreamEndpoint:
         response = client.post("/api/chat/stream", json={"question": long_question})
         assert response.status_code in [400, 422]
 
-    @patch("backend.routes.stream_agent")
+    @patch("backend.api.chat.stream_agent")
     def test_stream_returns_streaming_response(self, mock_stream, client):
         """Test stream returns SSE response."""
         async def mock_generator():
             yield "data: {}\n\n"
-        
+
         mock_stream.return_value = mock_generator()
-        
+
         response = client.post(
             "/api/chat/stream",
             json={"question": "Test question"},
         )
-        
+
         # Should return event-stream content type
         assert response.status_code == 200
         assert "text/event-stream" in response.headers.get("content-type", "")

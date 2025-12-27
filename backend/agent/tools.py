@@ -639,6 +639,23 @@ def tool_search_activities(
     )
 
 
+__all__ = [
+    "tool_company_lookup",
+    "tool_recent_activity",
+    "tool_recent_history",
+    "tool_pipeline",
+    "tool_upcoming_renewals",
+    "tool_contact_lookup",
+    "tool_search_contacts",
+    "tool_search_companies",
+    "tool_group_members",
+    "tool_list_groups",
+    "tool_search_attachments",
+    "tool_pipeline_summary",
+    "tool_search_activities",
+]
+
+
 # =============================================================================
 # Test
 # =============================================================================

@@ -5,6 +5,7 @@ These models are foundational and used by both backend.rag and backend.common,
 so they live in backend.common to avoid circular dependencies.
 """
 
+from typing import Any
 from pydantic import BaseModel, Field
 
 
@@ -29,7 +30,7 @@ class DocumentChunk(BaseModel):
     doc_id: str
     title: str | None = None
     text: str
-    metadata: dict = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ScoredChunk(BaseModel):

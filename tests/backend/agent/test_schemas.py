@@ -238,16 +238,16 @@ class TestToolResult:
         assert result.error == "Company not found"
         assert result.data["found"] is False
 
-    def test_tool_result_data_any_type(self):
-        """Test ToolResult data can be any type."""
-        # dict
+    def test_tool_result_data_dict_type(self):
+        """Test ToolResult data must be a dict."""
+        # Valid dict
         r1 = ToolResult(data={"key": "value"}, sources=[])
         assert r1.data["key"] == "value"
         
-        # list
-        r2 = ToolResult(data=[1, 2, 3], sources=[])
-        assert len(r2.data) == 3
+        # Dict with nested data
+        r2 = ToolResult(data={"items": [1, 2, 3], "count": 3}, sources=[])
+        assert len(r2.data["items"]) == 3
         
-        # string
-        r3 = ToolResult(data="text result", sources=[])
-        assert r3.data == "text result"
+        # Empty dict
+        r3 = ToolResult(data={}, sources=[])
+        assert r3.data == {}

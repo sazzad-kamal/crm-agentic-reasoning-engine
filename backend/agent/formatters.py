@@ -20,7 +20,7 @@ class SectionFormatter:
         self,
         header: str,
         empty_message: str,
-        item_formatter: Callable[[dict], str],
+        item_formatter: Callable[[dict[str, Any]], str],
         max_items: int = 10,
         count_key: str = "count",
         items_key: str = "items",
@@ -46,13 +46,13 @@ class SectionFormatter:
         self.items_key = items_key
         self.days_key = days_key
     
-    def format(self, data: dict | None) -> str:
+    def format(self, data: dict[str, Any] | None) -> str:
         """
         Format the data section.
-        
+
         Args:
             data: Dict containing items and optional metadata
-            
+
         Returns:
             Formatted section string
         """
@@ -257,3 +257,14 @@ def format_docs_section(docs_answer: str) -> str:
     if not docs_answer:
         return ""
     return f"=== DOCUMENTATION GUIDANCE ===\n{docs_answer}"
+
+
+__all__ = [
+    "SectionFormatter",
+    "format_company_section",
+    "format_activities_section",
+    "format_history_section",
+    "format_pipeline_section",
+    "format_renewals_section",
+    "format_docs_section",
+]

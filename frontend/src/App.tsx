@@ -9,10 +9,8 @@ import {
   SkipLink,
   DataExplorer,
 } from "./components";
+import { config } from "./config";
 import "./styles/index.css";
-
-// Feature flag for streaming - can be disabled if issues occur
-const USE_STREAMING = true;
 
 /**
  * Acme CRM AI Companion - Main Application
@@ -45,11 +43,12 @@ export default function App() {
   const streamingChat = useChatStream(chatOptions);
   const regularChat = useChat(chatOptions);
   
-  // Select which hook to use
-  const chat = USE_STREAMING ? streamingChat : regularChat;
+  // Select which hook to use based on config
+  const useStreaming = config.features.useStreaming;
+  const chat = useStreaming ? streamingChat : regularChat;
   const { messages, isLoading, error, sendMessage, clearError } = chat;
-  const currentStatus = USE_STREAMING && 'currentStatus' in chat ? (chat.currentStatus as string | null) : null;
-  const isStreaming = USE_STREAMING && 'isStreaming' in chat ? (chat.isStreaming as boolean) : false;
+  const currentStatus = useStreaming && 'currentStatus' in chat ? (chat.currentStatus as string | null) : null;
+  const isStreaming = useStreaming && 'isStreaming' in chat ? (chat.isStreaming as boolean) : false;
 
   // Scroll to bottom when messages change
   useEffect(() => {

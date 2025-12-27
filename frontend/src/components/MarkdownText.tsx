@@ -43,11 +43,11 @@ function parseMarkdown(text: string): string {
   html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
   html = html.replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '<em>$1</em>');
 
+  // Code blocks (```code```) - MUST be before inline code
+  html = html.replace(/```([\s\S]*?)```/g, '<pre class="md-pre"><code>$1</code></pre>');
+
   // Inline code (`code`)
   html = html.replace(/`([^`]+)`/g, '<code class="md-code">$1</code>');
-
-  // Code blocks (```code```)
-  html = html.replace(/```([\s\S]*?)```/g, '<pre class="md-pre"><code>$1</code></pre>');
 
   // Unordered lists
   html = html.replace(/^- (.+)$/gm, '<li class="md-li">$1</li>');

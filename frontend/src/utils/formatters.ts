@@ -4,7 +4,11 @@
 
 export function formatDate(dateStr: string): string {
   try {
-    return new Date(dateStr).toLocaleDateString(undefined, {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) {
+      return dateStr;
+    }
+    return date.toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -16,7 +20,11 @@ export function formatDate(dateStr: string): string {
 
 export function formatDateTime(dateStr: string): string {
   try {
-    return new Date(dateStr).toLocaleString(undefined, {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) {
+      return dateStr;
+    }
+    return date.toLocaleString(undefined, {
       year: "numeric",
       month: "short",
       day: "numeric",

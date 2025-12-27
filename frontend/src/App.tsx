@@ -112,19 +112,19 @@ export default function App() {
     setTimeout(() => inputRef.current?.focus(), 100);
   }, []);
 
-  // Dynamic page title based on state (React 19 feature)
-  const pageTitle = isLoading 
-    ? "Thinking... | Acme CRM AI"
-    : messages.length > 0 
-      ? `${messages.length} messages | Acme CRM AI`
-      : "Acme CRM AI Companion";
+  // Update document title based on state
+  useEffect(() => {
+    const pageTitle = isLoading
+      ? "Thinking... | Acme CRM AI"
+      : messages.length > 0
+        ? `${messages.length} messages | Acme CRM AI`
+        : "Acme CRM AI Companion";
+
+    document.title = pageTitle;
+  }, [isLoading, messages.length]);
 
   return (
     <ErrorBoundary>
-      {/* React 19: Document metadata rendered in components */}
-      <title>{pageTitle}</title>
-      <meta name="description" content="AI-powered assistant for querying your CRM data" />
-      
       <SkipLink targetId="main-content" />
       <div className="page">
         <div className="container" role="main" id="main-content" tabIndex={-1}>

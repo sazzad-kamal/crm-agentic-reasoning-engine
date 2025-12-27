@@ -132,7 +132,7 @@ class ContextBuilder:
         format_fn: Callable[[DocumentChunk, float | None], str] | None = None,
     ) -> bool:
         """Add a scored chunk to the context."""
-        return self.add_chunk(scored_chunk.chunk, scored_chunk.score, format_fn)
+        return self.add_chunk(scored_chunk.chunk, scored_chunk.rerank_score, format_fn)
     
     def add_chunks(
         self,

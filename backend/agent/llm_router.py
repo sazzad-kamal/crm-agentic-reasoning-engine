@@ -75,9 +75,9 @@ Your job is to analyze user questions and provide a complete understanding:
 
    DOCUMENTATION INTENT:
    - "general": How-to questions, feature explanations, help documentation
-     * "How do I create a contact?" → general (NOT contact_search!)
-     * "What are pipeline stages?" → general
-     * "How does email marketing work?" → general
+     * Pattern: "How do I...", "What is...", "Can you explain...", "How can I..."
+     * These ask about HOW TO USE features, not to RETRIEVE data
+     * NEVER confuse with data intents (e.g., "How do I add a contact?" is general, NOT contact_search)
 
 3. **company_name**: If a specific company/account is mentioned, extract it (null if none)
    - IMPORTANT: If the user uses pronouns like "their", "them", "they", "that company", or "it",
@@ -114,20 +114,22 @@ ROUTER_EXAMPLES = """
 ## Example questions and responses:
 
 ### DOCUMENTATION QUESTIONS (mode=docs, intent=general)
-Q: "How do I create a new contact?"
-{"mode": "docs", "intent": "general", "company_name": null, "days": 30,
- "query_expansion": "Explain how to create a new contact in Acme CRM",
- "key_entities": ["contact"], "action_type": "retrieve", "confidence": 0.95}
+# Pattern: "How do I...", "What is...", "Can you explain...", "How can I..."
 
-Q: "What are the pipeline stages?"
+Q: "How do I set up email notifications?"
 {"mode": "docs", "intent": "general", "company_name": null, "days": 30,
- "query_expansion": "Explain the different pipeline stages in Acme CRM",
- "key_entities": ["pipeline stages"], "action_type": "retrieve", "confidence": 0.95}
+ "query_expansion": "Explain how to configure email notifications in Acme CRM",
+ "key_entities": ["email notifications"], "action_type": "retrieve", "confidence": 0.95}
 
-Q: "How does email marketing work?"
+Q: "What is the difference between leads and opportunities?"
 {"mode": "docs", "intent": "general", "company_name": null, "days": 30,
- "query_expansion": "Explain the email marketing campaign feature in Acme CRM",
- "key_entities": ["email marketing"], "action_type": "retrieve", "confidence": 0.95}
+ "query_expansion": "Explain the distinction between leads and opportunities in the CRM",
+ "key_entities": ["leads", "opportunities"], "action_type": "retrieve", "confidence": 0.95}
+
+Q: "Can you explain how tags work?"
+{"mode": "docs", "intent": "general", "company_name": null, "days": 30,
+ "query_expansion": "Explain the tagging system and how to use tags in Acme CRM",
+ "key_entities": ["tags"], "action_type": "retrieve", "confidence": 0.95}
 
 ### COMPANY-SPECIFIC DATA QUERIES
 Q: "What's the pipeline for Acme Corp?"

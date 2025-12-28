@@ -107,7 +107,8 @@ class TestRunAgent:
         """Test that run_agent handles exceptions gracefully."""
         mock_graph.invoke.side_effect = Exception("Graph error")
 
-        result = run_agent("Test question")
+        # use_cache=False to avoid hitting cached results from previous tests
+        result = run_agent("Test question for error handling", use_cache=False)
 
         assert "error" in result["answer"].lower() or "sorry" in result["answer"].lower()
         assert result["meta"]["mode_used"] == "error"
@@ -196,9 +197,9 @@ class TestGraphIntegration:
     """Integration tests for the graph with mocked LLM."""
 
     @pytest.mark.integration
-    @patch("backend.agent.llm_helpers.call_llm")
+    @patch("backend.agent.llm_helpers.call_answer_chain")
     @patch("backend.agent.llm_router.route_question")
-    def test_graph_execution_docs_mode(self, mock_route, mock_llm):
+    def test_graph_execution_docs_mode(self, mock_route, mock_answer_chain):
         """Test graph execution in docs mode."""
         from backend.agent.schemas import RouterResult
 
@@ -208,7 +209,8 @@ class TestGraphIntegration:
             intent="docs",
             days=90,
         )
-        mock_llm.return_value = "This is a test answer about documentation."
+        # call_answer_chain returns (answer, latency_ms)
+        mock_answer_chain.return_value = ("This is a test answer about documentation.", 100)
 
         result = run_agent("How do I create a contact?", mode="docs")
 
@@ -216,10 +218,10 @@ class TestGraphIntegration:
         assert isinstance(result["answer"], str)
 
     @pytest.mark.integration
-    @patch("backend.agent.llm_helpers.call_llm")
+    @patch("backend.agent.llm_helpers.call_answer_chain")
     @patch("backend.agent.llm_router.route_question")
     @patch("backend.agent.tools.tool_company_lookup")
-    def test_graph_execution_data_mode(self, mock_company, mock_route, mock_llm):
+    def test_graph_execution_data_mode(self, mock_company, mock_route, mock_answer_chain):
         """Test graph execution in data mode."""
         from backend.agent.schemas import RouterResult, ToolResult, Source
 
@@ -233,7 +235,8 @@ class TestGraphIntegration:
             data={"company_id": "ACME-MFG", "name": "Acme Manufacturing"},
             sources=[Source(type="company", id="ACME-MFG", label="Acme Manufacturing")],
         )
-        mock_llm.return_value = "Acme Manufacturing is doing well."
+        # call_answer_chain returns (answer, latency_ms)
+        mock_answer_chain.return_value = ("Acme Manufacturing is doing well.", 100)
 
         result = run_agent("What's the status of Acme?", mode="data")
 

@@ -356,23 +356,41 @@ class TestMockLlmResponse:
         assert "account" in result.lower() or "summary" in result.lower()
 
 
-class TestCallLlmMockMode:
-    """Tests for call_llm in mock mode."""
-    
+class TestCallAnswerChainMockMode:
+    """Tests for call_answer_chain in mock mode."""
+
     def test_returns_tuple(self):
         """Returns tuple of (response, latency)."""
-        from backend.agent.llm_helpers import call_llm
-        
-        result = call_llm("Test prompt", "System prompt")
-        
+        from backend.agent.llm_helpers import call_answer_chain
+
+        result = call_answer_chain(
+            question="Test prompt",
+            conversation_history_section="",
+            company_section="Test company",
+            activities_section="No activities",
+            history_section="No history",
+            pipeline_section="No pipeline",
+            renewals_section="No renewals",
+            docs_section="No docs",
+        )
+
         assert isinstance(result, tuple)
         assert len(result) == 2
         assert isinstance(result[0], str)
         assert isinstance(result[1], int)
-    
+
     def test_returns_mock_latency(self):
-        """Returns mock latency of 100ms."""
-        from backend.agent.llm_helpers import call_llm
-        
-        _, latency = call_llm("Test", "System")
+        """Returns mock latency of 100ms in mock mode."""
+        from backend.agent.llm_helpers import call_answer_chain
+
+        _, latency = call_answer_chain(
+            question="Test",
+            conversation_history_section="",
+            company_section="Company",
+            activities_section="Activities",
+            history_section="History",
+            pipeline_section="Pipeline",
+            renewals_section="Renewals",
+            docs_section="Docs",
+        )
         assert latency == 100

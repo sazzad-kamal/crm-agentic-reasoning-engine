@@ -15,9 +15,7 @@ Usage:
 import json
 import threading
 import asyncio
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -44,12 +42,13 @@ print(f"Models loaded in {_preload_result['total_ms']}ms")
 print()
 
 import typer
-from rich.progress import track, Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
+from rich.progress import track
 from rich.table import Table
 import pandas as pd
 from qdrant_client import QdrantClient
 
 from backend.rag.retrieval.constants import PRIVATE_COLLECTION, QDRANT_PATH
+from backend.rag.eval.parallel_runner import run_parallel_evaluation
 from backend.rag.utils import find_csv_dir
 from backend.rag.ingest.private_text import ingest_private_texts
 from backend.rag.pipeline.account import answer_account_question, load_companies_df
@@ -101,7 +100,8 @@ def get_ragas_faithfulness():
     try:
         # Pre-instantiated metric is ready to use
         return faithfulness_metric
-    except Exception:
+    except (ValueError, RuntimeError, AttributeError):
+        # RAGAS metrics may fail to initialize due to missing config
         return None
 
 
@@ -122,7 +122,8 @@ async def evaluate_faithfulness_async(
             retrieved_contexts=contexts,
         )
         return await metric.single_turn_ascore(sample)
-    except Exception:
+    except (ValueError, RuntimeError, TimeoutError, OSError):
+        # RAGAS API calls can fail due to network/config issues
         return None
 
 
@@ -139,7 +140,8 @@ def evaluate_faithfulness_sync(
         return loop.run_until_complete(
             evaluate_faithfulness_async(question, answer, contexts)
         )
-    except Exception:
+    except (ValueError, RuntimeError, TimeoutError, OSError):
+        # Async evaluation can fail due to event loop or network issues
         return None
 
 
@@ -172,9 +174,10 @@ def ensure_private_collection_exists() -> None:
             else:
                 print(f"Using existing collection with {info.points_count} points")
                 qdrant.close()
-    except Exception:
+    except (RuntimeError, OSError, ValueError) as e:
+        # Qdrant connection or collection errors
         qdrant.close()
-        raise
+        raise RuntimeError(f"Failed to ensure private collection: {e}") from e
 
 
 def evaluate_question(
@@ -345,62 +348,23 @@ def _run_parallel(
     max_workers: int,
     verbose: bool,
 ) -> list[AccountEvalResult]:
-    """Run evaluation in parallel using ThreadPoolExecutor.
+    """Run evaluation in parallel using shared parallel runner.
 
     Note: The embedding model isn't fully thread-safe, so we use a lock
     around the RAG pipeline call. The LLM judge calls still run in parallel.
     """
-    total = len(questions)
+    def evaluate_fn(q: dict, lock: threading.Lock | None) -> AccountEvalResult:
+        """Wrapper that passes lock to evaluate_question."""
+        return evaluate_question(q, False, lock)
 
-    # Create a dict to preserve order
-    results_by_id: dict[str, AccountEvalResult] = {}
-
-    # Lock for thread-safe access to the embedding model
-    rag_lock = threading.Lock()
-
-    def evaluate_with_lock(q: dict) -> AccountEvalResult:
-        """Wrapper that uses lock for RAG access."""
-        return evaluate_question(q, False, rag_lock)
-
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[cyan]{task.description}[/cyan]"),
-        BarColumn(),
-        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-        TimeElapsedColumn(),
-        console=console,
-        refresh_per_second=2,
-    ) as progress:
-        task = progress.add_task(
-            f"Evaluating {total} accounts (max {max_workers} workers)",
-            total=total,
-        )
-
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all tasks
-            future_to_question = {
-                executor.submit(evaluate_with_lock, q): q
-                for q in questions
-            }
-
-            # Process as they complete
-            for future in as_completed(future_to_question):
-                question = future_to_question[future]
-                try:
-                    result = future.result()
-                    results_by_id[question["id"]] = result
-                    progress.advance(task)
-                except Exception as e:
-                    progress.console.print(f"  [red]✗ {question['id']}: {e}[/red]")
-                    progress.advance(task)
-
-    # Return in original order
-    results = []
-    for q in questions:
-        if q["id"] in results_by_id:
-            results.append(results_by_id[q["id"]])
-
-    return results
+    return run_parallel_evaluation(
+        items=questions,
+        evaluate_fn=evaluate_fn,
+        max_workers=max_workers,
+        description="Evaluating accounts",
+        id_field="id",
+        use_lock=True,
+    )
 
 
 def compute_account_summary(results: list[AccountEvalResult]) -> AccountEvalSummary:

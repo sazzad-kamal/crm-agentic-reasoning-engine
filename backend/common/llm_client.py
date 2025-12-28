@@ -196,6 +196,112 @@ def get_rate_limiter() -> RateLimiter:
     return _rate_limiter
 
 
+# =============================================================================
+# Circuit Breaker
+# =============================================================================
+
+@dataclass
+class CircuitBreaker:
+    """
+    Circuit breaker for external service calls.
+
+    Prevents cascading failures by failing fast when a service is down.
+    States: CLOSED (normal) -> OPEN (failing fast) -> HALF_OPEN (testing)
+
+    Usage:
+        breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=30)
+        if breaker.allow_request():
+            try:
+                result = call_external_service()
+                breaker.record_success()
+            except Exception:
+                breaker.record_failure()
+                raise
+    """
+    failure_threshold: int = 5  # Failures before opening circuit
+    recovery_timeout: float = 30.0  # Seconds before trying again
+    _failure_count: int = field(default=0, init=False)
+    _last_failure_time: float = field(default=0.0, init=False)
+    _state: str = field(default="CLOSED", init=False)
+    _lock: threading.Lock = field(default_factory=threading.Lock, init=False)
+
+    def allow_request(self) -> bool:
+        """Check if a request should be allowed."""
+        with self._lock:
+            if self._state == "CLOSED":
+                return True
+
+            if self._state == "OPEN":
+                # Check if recovery timeout has passed
+                if time.time() - self._last_failure_time >= self.recovery_timeout:
+                    self._state = "HALF_OPEN"
+                    logger.info("Circuit breaker: entering HALF_OPEN state")
+                    return True
+                return False
+
+            # HALF_OPEN: allow one request to test
+            return True
+
+    def record_success(self) -> None:
+        """Record a successful call."""
+        with self._lock:
+            if self._state == "HALF_OPEN":
+                logger.info("Circuit breaker: service recovered, closing circuit")
+            self._failure_count = 0
+            self._state = "CLOSED"
+
+    def record_failure(self) -> None:
+        """Record a failed call."""
+        with self._lock:
+            self._failure_count += 1
+            self._last_failure_time = time.time()
+
+            if self._state == "HALF_OPEN":
+                self._state = "OPEN"
+                logger.warning("Circuit breaker: test failed, reopening circuit")
+            elif self._failure_count >= self.failure_threshold:
+                self._state = "OPEN"
+                logger.warning(
+                    f"Circuit breaker: {self._failure_count} failures, opening circuit"
+                )
+
+    @property
+    def state(self) -> str:
+        """Get current circuit state."""
+        return self._state
+
+    @property
+    def is_open(self) -> bool:
+        """Check if circuit is open (rejecting requests)."""
+        return self._state == "OPEN"
+
+    def reset(self) -> None:
+        """Reset the circuit breaker to closed state."""
+        with self._lock:
+            self._failure_count = 0
+            self._state = "CLOSED"
+            self._last_failure_time = 0.0
+
+
+class CircuitOpenError(Exception):
+    """Raised when circuit breaker is open and rejecting requests."""
+    pass
+
+
+# Global circuit breaker for LLM calls
+_CIRCUIT_FAILURE_THRESHOLD = int(os.environ.get("LLM_CIRCUIT_FAILURE_THRESHOLD", "5"))
+_CIRCUIT_RECOVERY_TIMEOUT = float(os.environ.get("LLM_CIRCUIT_RECOVERY_TIMEOUT", "30"))
+_circuit_breaker = CircuitBreaker(
+    failure_threshold=_CIRCUIT_FAILURE_THRESHOLD,
+    recovery_timeout=_CIRCUIT_RECOVERY_TIMEOUT,
+)
+
+
+def get_circuit_breaker() -> CircuitBreaker:
+    """Get the global circuit breaker."""
+    return _circuit_breaker
+
+
 class CostTrackingCallback(BaseCallbackHandler):
     """Callback handler to track costs of LLM calls."""
 
@@ -329,6 +435,7 @@ def call_llm(
     max_tokens: int = 1024,
     use_cache: bool = True,
     use_rate_limit: bool = True,
+    use_circuit_breaker: bool = True,
 ) -> str:
     """
     Call an OpenAI chat model and return the assistant's response.
@@ -343,10 +450,18 @@ def call_llm(
         max_tokens: Maximum tokens in response
         use_cache: Whether to use response caching (default: True)
         use_rate_limit: Whether to apply rate limiting (default: True)
+        use_circuit_breaker: Whether to use circuit breaker (default: True)
 
     Returns:
         The assistant's message content as a string
+
+    Raises:
+        CircuitOpenError: If circuit breaker is open
     """
+    # Check circuit breaker
+    if use_circuit_breaker and not _circuit_breaker.allow_request():
+        raise CircuitOpenError("LLM service circuit is open - too many recent failures")
+
     # Apply rate limiting
     if use_rate_limit:
         estimated_tokens = len(prompt) // 4 + max_tokens  # Rough estimate
@@ -361,11 +476,17 @@ def call_llm(
 
     logger.debug(f"Calling LLM model={model}, prompt_len={len(prompt)}")
 
-    response = chat.invoke(messages)
-    result = response.content or ""
-
-    logger.debug(f"LLM response received, len={len(result)}")
-    return result
+    try:
+        response = chat.invoke(messages)
+        result = response.content or ""
+        if use_circuit_breaker:
+            _circuit_breaker.record_success()
+        logger.debug(f"LLM response received, len={len(result)}")
+        return result
+    except Exception as e:
+        if use_circuit_breaker:
+            _circuit_breaker.record_failure()
+        raise
 
 
 def call_llm_with_metrics(
@@ -544,4 +665,8 @@ __all__ = [
     # Rate limiting
     "RateLimiter",
     "get_rate_limiter",
+    # Circuit breaker
+    "CircuitBreaker",
+    "CircuitOpenError",
+    "get_circuit_breaker",
 ]

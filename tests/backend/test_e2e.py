@@ -190,7 +190,8 @@ class TestE2EAgentPipeline:
 
         mock_graph.invoke.side_effect = Exception("Test error")
 
-        result = run_agent("Test question")
+        # use_cache=False to avoid hitting cached results from previous tests
+        result = run_agent("Test question for e2e error handling", use_cache=False)
 
         # Should still return a valid response structure
         assert "answer" in result

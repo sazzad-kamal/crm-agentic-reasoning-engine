@@ -256,7 +256,8 @@ def print_trend_report(num_runs: int | None = None) -> None:
         try:
             dt = datetime.fromisoformat(entry["timestamp"])
             date_str = dt.strftime("%Y-%m-%d %H:%M")
-        except Exception:
+        except (ValueError, TypeError):
+            # Invalid timestamp format - use raw string truncated
             date_str = entry["timestamp"][:16]
 
         triad = entry["metrics"].get("rag_triad", 0)

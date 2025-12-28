@@ -18,7 +18,6 @@ import json
 import threading
 import time
 import asyncio
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -47,10 +46,11 @@ print(f"Models loaded in {_preload_result['total_ms']}ms")
 print()
 
 import typer
-from rich.progress import track, Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
+from rich.progress import track
 
 from backend.rag.retrieval.base import create_backend
 from backend.rag.pipeline.docs import answer_question
+from backend.rag.eval.parallel_runner import run_parallel_evaluation
 from backend.rag.eval.models import (
     EvalResult,
     DocsEvalSummary,
@@ -93,7 +93,8 @@ def get_ragas_metrics() -> tuple | None:
     try:
         # Pre-instantiated metrics are ready to use
         return faithfulness, answer_correctness
-    except Exception:
+    except (ValueError, RuntimeError, AttributeError):
+        # RAGAS metrics may fail to initialize due to missing config
         return None
 
 
@@ -129,7 +130,8 @@ async def evaluate_ragas_async(
                 reference=reference,
             )
             corr_score = await corr_metric.single_turn_ascore(sample_with_ref)
-    except Exception:
+    except (ValueError, RuntimeError, TimeoutError, OSError):
+        # RAGAS API calls can fail due to network/config issues
         pass
 
     return faith_score, corr_score
@@ -149,7 +151,8 @@ def evaluate_ragas_sync(
         return loop.run_until_complete(
             evaluate_ragas_async(question, answer, contexts, reference)
         )
-    except Exception:
+    except (ValueError, RuntimeError, TimeoutError, OSError):
+        # Async evaluation can fail due to event loop or network issues
         return None, None
 
 
@@ -338,62 +341,23 @@ def _run_parallel(
     max_workers: int,
     verbose: bool,
 ) -> list[EvalResult]:
-    """Run evaluation in parallel using ThreadPoolExecutor.
+    """Run evaluation in parallel using shared parallel runner.
 
     Note: The embedding model isn't fully thread-safe, so we use a lock
     around the RAG pipeline call. The LLM judge calls still run in parallel.
     """
-    total = len(questions)
+    def evaluate_fn(q: dict, lock: threading.Lock | None) -> EvalResult:
+        """Wrapper that passes backend and lock to evaluate_question."""
+        return evaluate_question(q, backend, False, lock)
 
-    # Create a dict to preserve order
-    results_by_id: dict[str, EvalResult] = {}
-
-    # Lock for thread-safe access to the embedding model
-    backend_lock = threading.Lock()
-
-    def evaluate_with_lock(q: dict) -> EvalResult:
-        """Wrapper that uses lock for backend access."""
-        return evaluate_question(q, backend, False, backend_lock)
-
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[cyan]{task.description}[/cyan]"),
-        BarColumn(),
-        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-        TimeElapsedColumn(),
-        console=console,
-        refresh_per_second=2,
-    ) as progress:
-        task = progress.add_task(
-            f"Evaluating {total} questions (max {max_workers} workers)",
-            total=total,
-        )
-
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all tasks
-            future_to_question = {
-                executor.submit(evaluate_with_lock, q): q
-                for q in questions
-            }
-
-            # Process as they complete
-            for future in as_completed(future_to_question):
-                question = future_to_question[future]
-                try:
-                    result = future.result()
-                    results_by_id[question["id"]] = result
-                    progress.advance(task)
-                except Exception as e:
-                    progress.console.print(f"  [red]✗ {question['id']}: {e}[/red]")
-                    progress.advance(task)
-
-    # Return in original order
-    results = []
-    for q in questions:
-        if q["id"] in results_by_id:
-            results.append(results_by_id[q["id"]])
-
-    return results
+    return run_parallel_evaluation(
+        items=questions,
+        evaluate_fn=evaluate_fn,
+        max_workers=max_workers,
+        description="Evaluating questions",
+        id_field="id",
+        use_lock=True,
+    )
 
 
 def compute_summary(results: list[EvalResult]) -> DocsEvalSummary:

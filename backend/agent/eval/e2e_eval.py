@@ -15,7 +15,6 @@ Usage:
 import json
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Optional
 
@@ -34,9 +33,10 @@ print()
 
 import typer
 from rich.table import Table
-from rich.progress import track, Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
+from rich.progress import track
 
 from backend.agent.orchestrator import answer_question
+from backend.rag.eval.parallel_runner import run_parallel_evaluation
 from backend.agent.eval.models import E2EEvalResult, E2EEvalSummary
 from backend.agent.eval.tracking import print_e2e_tracking_report
 from backend.agent.memory import clear_session
@@ -1331,37 +1331,20 @@ def run_e2e_eval(
         clear_session(sid)
 
     if parallel and regular_tests:
-        # Run regular tests in parallel using ThreadPoolExecutor
-        # Use a lock to serialize Qdrant/RAG access (LLM judge calls still run in parallel)
-        agent_lock = threading.Lock()
-
-        def run_with_lock(test_case: dict) -> E2EEvalResult:
+        # Run regular tests in parallel using shared parallel runner
+        # Uses a lock to serialize Qdrant/RAG access (LLM judge calls still run in parallel)
+        def evaluate_fn(test_case: dict, lock: threading.Lock | None) -> E2EEvalResult:
             """Wrapper that passes the agent lock for thread-safe RAG access."""
-            return run_e2e_test(test_case, verbose, agent_lock)
+            return run_e2e_test(test_case, verbose, lock)
 
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[cyan]{task.description}[/cyan]"),
-            BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TimeElapsedColumn(),
-            console=console,
-            refresh_per_second=2,
-        ) as progress:
-            task = progress.add_task(
-                f"Running {len(regular_tests)} tests (max {max_workers} workers)",
-                total=len(regular_tests),
-            )
-
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = {
-                    executor.submit(run_with_lock, test_case): test_case
-                    for test_case in regular_tests
-                }
-                for future in as_completed(futures):
-                    result = future.result()
-                    results.append(result)
-                    progress.advance(task)
+        results = run_parallel_evaluation(
+            items=regular_tests,
+            evaluate_fn=evaluate_fn,
+            max_workers=max_workers,
+            description="Running E2E tests",
+            id_field="id",
+            use_lock=True,
+        )
     elif regular_tests:
         # Run regular tests sequentially with progress bar
         for test_case in track(regular_tests, description="Running regular tests..."):

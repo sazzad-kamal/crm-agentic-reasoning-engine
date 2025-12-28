@@ -53,18 +53,31 @@ Your job is to analyze user questions and provide a complete understanding:
    When unsure, default to "data" for account/company questions, "docs" for how-to questions.
 
 2. **intent**: The primary purpose of the question (separate from mode!)
-   - "company_status": General status/summary of a company/account
-   - "renewals": Questions about contract renewals, expirations
-   - "pipeline": Sales pipeline, opportunities, deals
-   - "activities": Calls, emails, meetings, tasks
-   - "history": Past interactions, what happened previously
-   - "account_context": Questions needing deep account context from unstructured text - use this for:
+
+   COMPANY-SPECIFIC INTENTS (require a company name):
+   - "company_status": General status/summary of a specific company/account
+   - "pipeline": Opportunities/deals for a SPECIFIC company
+   - "history": Past interactions for a SPECIFIC company
+   - "contact_lookup": Get contacts for a SPECIFIC company (e.g., "show me Acme's contacts")
+   - "account_context": Deep context from notes/attachments for a company - use this for:
      * "Why is the deal stalled?" (needs notes about blockers)
      * "What concerns have they raised?" (needs meeting notes)
-     * "What did we discuss last time?" (needs conversation history)
      * "Summarize our relationship" (needs comprehensive context)
-     * "What's in their contract?" (needs attachment content)
-   - "general": General questions or unclear intent (NOTE: this is for intent only, NOT mode)
+
+   AGGREGATE/GLOBAL INTENTS (no specific company):
+   - "renewals": Contract renewals across ALL accounts
+   - "pipeline_summary": Total pipeline value, deal counts across ALL accounts
+   - "activities": Global activity search (recent calls, emails, meetings)
+   - "contact_search": Search contacts by name or role (e.g., "Who is Maria Silva?", "Find decision makers")
+   - "company_search": Search companies by segment/industry (e.g., "Show enterprise accounts")
+   - "groups": Account group queries (e.g., "Who is in the at-risk group?")
+   - "attachments": Document/file searches (e.g., "Find all proposals")
+
+   DOCUMENTATION INTENT:
+   - "general": How-to questions, feature explanations, help documentation
+     * "How do I create a contact?" → general (NOT contact_search!)
+     * "What are pipeline stages?" → general
+     * "How does email marketing work?" → general
 
 3. **company_name**: If a specific company/account is mentioned, extract it (null if none)
    - IMPORTANT: If the user uses pronouns like "their", "them", "they", "that company", or "it",
@@ -96,127 +109,94 @@ ROUTER_EXAMPLES = """
 - "docs" = ONLY need help documentation (how-to, features, best practices)
 - "data+docs" = Need BOTH data AND guidance on what it means or what to do
 
+## CRITICAL: "How do I..." questions are ALWAYS docs + general intent!
+
 ## Example questions and responses:
 
-Q: "Show me recent activities for Beta Tech Solutions"
-{
-    "mode": "data",
-    "intent": "activities",
-    "company_name": "Beta Tech Solutions",
-    "days": 30,
-    "query_expansion": "List recent activities (calls, emails, meetings) for Beta Tech Solutions",
-    "key_entities": ["Beta Tech Solutions"],
-    "action_type": "retrieve",
-    "confidence": 0.95
-}
-
-Q: "What's the pipeline for Acme Corp?"
-{
-    "mode": "data",
-    "intent": "pipeline",
-    "company_name": "Acme Corp",
-    "days": 30,
-    "query_expansion": "Show open opportunities and pipeline status for Acme Corp",
-    "key_entities": ["Acme Corp", "pipeline"],
-    "action_type": "retrieve",
-    "confidence": 0.95
-}
-
-Q: "Which accounts have upcoming renewals?"
-{
-    "mode": "data",
-    "intent": "renewals",
-    "company_name": null,
-    "days": 90,
-    "query_expansion": "List all accounts with contract renewals due within the next 90 days",
-    "key_entities": ["renewals", "accounts"],
-    "action_type": "retrieve",
-    "confidence": 0.95
-}
-
-Q: "How do I create a new opportunity?"
-{
-    "mode": "docs",
-    "intent": "general",
-    "company_name": null,
-    "days": 30,
-    "query_expansion": "Explain how to create a new sales opportunity in Acme CRM",
-    "key_entities": ["opportunity"],
-    "action_type": "retrieve",
-    "confidence": 0.95
-}
+### DOCUMENTATION QUESTIONS (mode=docs, intent=general)
+Q: "How do I create a new contact?"
+{"mode": "docs", "intent": "general", "company_name": null, "days": 30,
+ "query_expansion": "Explain how to create a new contact in Acme CRM",
+ "key_entities": ["contact"], "action_type": "retrieve", "confidence": 0.95}
 
 Q: "What are the pipeline stages?"
-{
-    "mode": "docs",
-    "intent": "general",
-    "company_name": null,
-    "days": 30,
-    "query_expansion": "Explain the different pipeline stages in Acme CRM",
-    "key_entities": ["pipeline stages"],
-    "action_type": "retrieve",
-    "confidence": 0.95
-}
+{"mode": "docs", "intent": "general", "company_name": null, "days": 30,
+ "query_expansion": "Explain the different pipeline stages in Acme CRM",
+ "key_entities": ["pipeline stages"], "action_type": "retrieve", "confidence": 0.95}
 
-Q: "Which accounts are at risk of churning and what should I do?"
-{
-    "mode": "data+docs",
-    "intent": "renewals",
-    "company_name": null,
-    "days": 90,
-    "query_expansion": "Identify at-risk accounts and provide guidance on churn prevention strategies",
-    "key_entities": ["churn", "at-risk", "accounts"],
-    "action_type": "analyze",
-    "confidence": 0.9
-}
+Q: "How does email marketing work?"
+{"mode": "docs", "intent": "general", "company_name": null, "days": 30,
+ "query_expansion": "Explain the email marketing campaign feature in Acme CRM",
+ "key_entities": ["email marketing"], "action_type": "retrieve", "confidence": 0.95}
 
-Q: "How is GlobalTech doing and what's the best next step?"
-{
-    "mode": "data+docs",
-    "intent": "company_status",
-    "company_name": "GlobalTech",
-    "days": 90,
-    "query_expansion": "Summarize GlobalTech account status and recommend next actions based on best practices",
-    "key_entities": ["GlobalTech"],
-    "action_type": "summarize",
-    "confidence": 0.9
-}
+### COMPANY-SPECIFIC DATA QUERIES
+Q: "What's the pipeline for Acme Corp?"
+{"mode": "data", "intent": "pipeline", "company_name": "Acme Corp", "days": 30,
+ "query_expansion": "Show open opportunities for Acme Corp",
+ "key_entities": ["Acme Corp"], "action_type": "retrieve", "confidence": 0.95}
 
+Q: "Show me Acme's contacts"
+{"mode": "data", "intent": "contact_lookup", "company_name": "Acme", "days": 30,
+ "query_expansion": "List contacts associated with Acme",
+ "key_entities": ["Acme", "contacts"], "action_type": "retrieve", "confidence": 0.95}
+
+Q: "What's the status of Beta Tech?"
+{"mode": "data", "intent": "company_status", "company_name": "Beta Tech", "days": 90,
+ "query_expansion": "Provide status summary for Beta Tech",
+ "key_entities": ["Beta Tech"], "action_type": "summarize", "confidence": 0.95}
+
+### GLOBAL/AGGREGATE DATA QUERIES (no specific company)
+Q: "Who is Maria Silva?"
+{"mode": "data", "intent": "contact_search", "company_name": null, "days": 30,
+ "query_expansion": "Find contact named Maria Silva",
+ "key_entities": ["Maria Silva"], "action_type": "retrieve", "confidence": 0.95}
+
+Q: "Find all decision makers"
+{"mode": "data", "intent": "contact_search", "company_name": null, "days": 30,
+ "query_expansion": "List contacts with Decision Maker role",
+ "key_entities": ["decision makers"], "action_type": "retrieve", "confidence": 0.95}
+
+Q: "Show me all enterprise accounts"
+{"mode": "data", "intent": "company_search", "company_name": null, "days": 30,
+ "query_expansion": "List companies in Enterprise segment",
+ "key_entities": ["enterprise", "accounts"], "action_type": "retrieve", "confidence": 0.95}
+
+Q: "What's the total pipeline value?"
+{"mode": "data", "intent": "pipeline_summary", "company_name": null, "days": 30,
+ "query_expansion": "Show aggregate pipeline value across all accounts",
+ "key_entities": ["pipeline", "total"], "action_type": "summarize", "confidence": 0.95}
+
+Q: "Which accounts have upcoming renewals?"
+{"mode": "data", "intent": "renewals", "company_name": null, "days": 90,
+ "query_expansion": "List accounts with renewals in the next 90 days",
+ "key_entities": ["renewals"], "action_type": "retrieve", "confidence": 0.95}
+
+Q: "Who is in the at-risk accounts group?"
+{"mode": "data", "intent": "groups", "company_name": null, "days": 30,
+ "query_expansion": "List members of the at-risk accounts group",
+ "key_entities": ["at-risk", "group"], "action_type": "retrieve", "confidence": 0.95}
+
+Q: "Find all proposals"
+{"mode": "data", "intent": "attachments", "company_name": null, "days": 30,
+ "query_expansion": "Search for proposal documents",
+ "key_entities": ["proposals"], "action_type": "retrieve", "confidence": 0.95}
+
+Q: "Show recent activities"
+{"mode": "data", "intent": "activities", "company_name": null, "days": 30,
+ "query_expansion": "List recent calls, emails, and meetings",
+ "key_entities": ["activities"], "action_type": "retrieve", "confidence": 0.95}
+
+### ACCOUNT CONTEXT (deep unstructured search)
 Q: "Why is the Acme deal stalled?"
-{
-    "mode": "data",
-    "intent": "account_context",
-    "company_name": "Acme",
-    "days": 90,
-    "query_expansion": "Search account notes and history to understand why the Acme deal is not progressing",
-    "key_entities": ["Acme", "deal", "stalled"],
-    "action_type": "analyze",
-    "confidence": 0.95
-}
+{"mode": "data", "intent": "account_context", "company_name": "Acme", "days": 90,
+ "query_expansion": "Search notes for blockers on Acme deal",
+ "key_entities": ["Acme", "stalled"], "action_type": "analyze", "confidence": 0.95}
 
-Q: "What concerns has Beta Tech raised about our product?"
-{
-    "mode": "data",
-    "intent": "account_context",
-    "company_name": "Beta Tech",
-    "days": 180,
-    "query_expansion": "Search meeting notes and history for concerns or objections Beta Tech has mentioned",
-    "key_entities": ["Beta Tech", "concerns", "objections"],
-    "action_type": "retrieve",
-    "confidence": 0.95
-}
-
-Q: "Summarize our relationship with TechCorp"
-{
-    "mode": "data",
-    "intent": "account_context",
-    "company_name": "TechCorp",
-    "days": 365,
-    "query_expansion": "Provide comprehensive summary of the relationship history with TechCorp including key events and discussions",
-    "key_entities": ["TechCorp", "relationship"],
-    "action_type": "summarize",
-    "confidence": 0.95
-}
+### COMBINED DATA + DOCS
+Q: "Which accounts are at risk and what should I do?"
+{"mode": "data+docs", "intent": "renewals", "company_name": null, "days": 90,
+ "query_expansion": "Identify at-risk accounts and provide churn prevention guidance",
+ "key_entities": ["at-risk"], "action_type": "analyze", "confidence": 0.9}
 """
 
 # =============================================================================
@@ -251,7 +231,21 @@ class LLMRouterResponse(BaseModel):
         default="data+docs",
         description="The data source mode: 'docs' for documentation, 'data' for CRM data, 'data+docs' for both"
     )
-    intent: Literal["company_status", "renewals", "pipeline", "activities", "history", "account_context", "general"] = Field(
+    intent: Literal[
+        "company_status",  # General status/summary of a specific company
+        "renewals",        # Contract renewals, expirations
+        "pipeline",        # Company-specific opportunities/deals
+        "pipeline_summary", # Aggregate pipeline across all accounts
+        "activities",      # Global activity search (calls, emails, meetings)
+        "history",         # Past interactions for a company
+        "account_context", # Deep context from notes/attachments
+        "contact_lookup",  # Contacts for a specific company
+        "contact_search",  # Global contact search by name/role
+        "company_search",  # Search companies by criteria (segment, industry)
+        "groups",          # Account groups queries
+        "attachments",     # Document/file searches
+        "general",         # Documentation/help questions
+    ] = Field(
         default="general",
         description="The primary intent of the question"
     )

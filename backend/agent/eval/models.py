@@ -25,6 +25,11 @@ class E2EEvalResult(BaseModel):
     actual_tools: list[str]
     tool_selection_correct: bool
 
+    # Adversarial/refusal check (for security tests)
+    expected_refusal: bool = False  # Should the agent refuse this request?
+    refusal_correct: bool = True  # Did the agent properly refuse (or not refuse)?
+    has_forbidden_content: bool = False  # Did the response contain forbidden keywords?
+
     # Answer quality (LLM-judged)
     answer: str
     answer_relevance: int  # 0 or 1

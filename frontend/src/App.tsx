@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useChat } from "./hooks/useChat";
 import { useChatStream } from "./hooks/useChatStream";
+import { useFocusTrap } from "./hooks/useFocusTrap";
 import {
   ChatArea,
   InputBar,
@@ -30,6 +31,8 @@ export default function App() {
   const [currentQuestion, setCurrentQuestion] = useState("");
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
+  const drawerCloseRef = useRef<HTMLButtonElement>(null);
 
   // Memoized error handler to prevent hook re-initialization
   const chatOptions = useMemo(
@@ -64,16 +67,18 @@ export default function App() {
     }
   }, [isLoading]);
 
-  // Close drawer on Escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isDrawerOpen) {
-        setIsDrawerOpen(false);
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isDrawerOpen]);
+  // Close drawer handler (stable reference for focus trap)
+  const closeDrawer = useCallback(() => {
+    setIsDrawerOpen(false);
+  }, []);
+
+  // Focus trap for drawer accessibility (handles Escape and Tab cycling)
+  useFocusTrap(drawerRef, {
+    isActive: isDrawerOpen,
+    onEscape: closeDrawer,
+    restoreFocus: true,
+    initialFocusRef: drawerCloseRef,
+  });
 
   // Handle submitting a question
   const handleSubmit = useCallback(() => {
@@ -184,25 +189,28 @@ export default function App() {
 
         {/* Data Drawer Overlay */}
         {isDrawerOpen && (
-          <div 
-            className="drawer-overlay" 
-            onClick={() => setIsDrawerOpen(false)}
+          <div
+            className="drawer-overlay"
+            onClick={closeDrawer}
             aria-hidden="true"
           />
         )}
 
         {/* Data Drawer */}
         <aside
+          ref={drawerRef}
           className={`drawer ${isDrawerOpen ? "drawer--open" : ""}`}
           role="dialog"
           aria-modal="true"
           aria-label="CRM Data Browser"
+          tabIndex={-1}
         >
           <div className="drawer__header">
             <h2 className="drawer__title">CRM Data</h2>
             <button
+              ref={drawerCloseRef}
               className="drawer__close"
-              onClick={() => setIsDrawerOpen(false)}
+              onClick={closeDrawer}
               aria-label="Close data browser"
             >
               ✕

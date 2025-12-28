@@ -1,36 +1,43 @@
 import { Component, ReactNode } from "react";
+import { logErrorBoundary } from "../utils/errorLogger";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
+  /** Optional name for this boundary for better error tracking */
+  name?: string;
 }
 
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  errorId: string | null;
 }
 
 /**
  * Error Boundary component to catch and handle React rendering errors.
  * Prevents the entire app from crashing when a component fails.
+ * Integrates with centralized error logging for consistent tracking.
  */
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorId: null };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+    // Generate a unique error ID for tracking
+    const errorId = `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return { hasError: true, error, errorId };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    // Log error to console in development
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    // Use centralized error logging
+    logErrorBoundary(error, errorInfo, this.props.name);
   }
 
   handleRetry = (): void => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, errorId: null });
   };
 
   render(): ReactNode {

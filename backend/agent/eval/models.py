@@ -84,18 +84,15 @@ class E2EEvalResult(BaseModel):
     question: str
     category: str
 
-    # Routing evaluation
-    expected_mode: str
-    actual_mode: str
-    mode_correct: bool = False
+    # Company extraction (routing)
     expected_company_id: str | None = None
     actual_company_id: str | None = None
     company_correct: bool = True  # True if no expected company or if matched
 
-    # Tool selection
-    expected_tools: list[str]
-    actual_tools: list[str]
-    tool_selection_correct: bool
+    # Intent classification (routing)
+    expected_intent: str | None = None
+    actual_intent: str | None = None
+    intent_correct: bool = True  # True if no expected intent or if matched
 
     # Adversarial/refusal check (for security tests)
     expected_refusal: bool = False  # Should the agent refuse this request?
@@ -107,7 +104,6 @@ class E2EEvalResult(BaseModel):
     answer_relevance: int  # 0 or 1
     answer_grounded: int  # 0 or 1
     judge_explanation: str = ""
-    ragas_faithfulness: float | None = None  # RAGAS faithfulness score (0-1)
 
     # Metadata
     has_sources: bool
@@ -123,13 +119,12 @@ class E2EEvalSummary(BaseModel):
     total_tests: int
 
     # Routing metrics
-    mode_accuracy: float = 0.0
     company_extraction_accuracy: float = 0.0
+    intent_accuracy: float = 0.0
 
     # Answer quality
     answer_relevance_rate: float
     groundedness_rate: float
-    tool_selection_accuracy: float
 
     # Latency
     avg_latency_ms: float
@@ -138,7 +133,6 @@ class E2EEvalSummary(BaseModel):
 
     # Breakdown by category
     by_category: dict[str, dict]
-    by_mode: dict[str, dict] = {}  # mode -> {expected, correct, accuracy}
 
 
 # =============================================================================
@@ -154,9 +148,7 @@ SLO_EVAL_LATENCY_P95_MS = 10000  # 10s P95 for eval (includes ~500ms judge call)
 SLO_EVAL_LATENCY_AVG_MS = 6000   # 6s average for eval
 
 # Quality SLOs
-SLO_TOOL_ACCURACY = 0.90        # 90% tool accuracy
-SLO_ROUTER_ACCURACY = 0.90      # 90% router accuracy
-SLO_MODE_ACCURACY = 0.90        # 90% routing accuracy
+SLO_ROUTER_ACCURACY = 0.90      # 90% router accuracy (company extraction)
 SLO_ANSWER_RELEVANCE = 0.80     # 80% answer relevance
 SLO_GROUNDEDNESS = 0.80         # 80% groundedness
 SLO_OVERALL = 0.80              # 80% overall

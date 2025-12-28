@@ -10,8 +10,8 @@ Modules:
 - langchain_retriever: LangChain-compatible BaseRetriever wrapper
 """
 
-from backend.rag.retrieval.base import RetrievalBackend, create_backend
-from backend.rag.retrieval.private import PrivateRetrievalBackend, create_private_backend
+from backend.rag.retrieval.base import RetrievalBackend, create_backend, clear_backend_cache
+from backend.rag.retrieval.private import PrivateRetrievalBackend, create_private_backend, clear_private_backend_cache
 from backend.rag.retrieval.ranking import RankingMixin
 from backend.rag.retrieval.langchain_retriever import (
     AcmeCRMRetriever,
@@ -22,8 +22,10 @@ from backend.rag.retrieval.preload import preload_models, is_preloaded
 __all__ = [
     "RetrievalBackend",
     "create_backend",
+    "clear_backend_cache",
     "PrivateRetrievalBackend",
     "create_private_backend",
+    "clear_private_backend_cache",
     "RankingMixin",
     # LangChain integration
     "AcmeCRMRetriever",

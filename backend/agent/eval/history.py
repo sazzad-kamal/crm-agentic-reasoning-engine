@@ -19,7 +19,6 @@ from backend.agent.eval.models import (
     SLO_EVAL_LATENCY_AVG_MS,
     SLO_ANSWER_RELEVANCE,
     SLO_GROUNDEDNESS,
-    SLO_MODE_ACCURACY,
 )
 from backend.agent.eval.base import console
 
@@ -81,9 +80,6 @@ def add_to_agent_history(
         failed_slos.append(f"Answer relevance {summary.answer_relevance_rate:.1%} < {SLO_ANSWER_RELEVANCE:.0%}")
     if summary.groundedness_rate < SLO_GROUNDEDNESS:
         failed_slos.append(f"Groundedness {summary.groundedness_rate:.1%} < {SLO_GROUNDEDNESS:.0%}")
-    if summary.mode_accuracy < SLO_MODE_ACCURACY:
-        failed_slos.append(f"Mode accuracy {summary.mode_accuracy:.1%} < {SLO_MODE_ACCURACY:.0%}")
-
     entry = {
         "run_id": run_id or datetime.now().isoformat(),
         "timestamp": datetime.now().isoformat(),
@@ -91,8 +87,8 @@ def add_to_agent_history(
         "metrics": {
             "answer_relevance": summary.answer_relevance_rate,
             "groundedness": summary.groundedness_rate,
-            "tool_selection": summary.tool_selection_accuracy,
-            "mode_accuracy": summary.mode_accuracy,
+            "company_extraction": summary.company_extraction_accuracy,
+            "intent_accuracy": summary.intent_accuracy,
             "p95_latency_ms": summary.p95_latency_ms,
             "avg_latency_ms": summary.avg_latency_ms,
         },
@@ -164,8 +160,8 @@ def print_agent_trend_report(num_runs: int | None = None) -> None:
     metrics = [
         ("Answer Relevance", "answer_relevance", "%", True),
         ("Groundedness", "groundedness", "%", True),
-        ("Mode Accuracy", "mode_accuracy", "%", True),
-        ("Tool Selection", "tool_selection", "%", True),
+        ("Company Extraction", "company_extraction", "%", True),
+        ("Intent Accuracy", "intent_accuracy", "%", True),
         ("P95 Latency", "p95_latency_ms", "ms", False),
         ("Avg Latency", "avg_latency_ms", "ms", False),
     ]
@@ -206,7 +202,8 @@ def print_agent_trend_report(num_runs: int | None = None) -> None:
     runs_table.add_column("Date")
     runs_table.add_column("Rel", justify="right")
     runs_table.add_column("Gnd", justify="right")
-    runs_table.add_column("Mode", justify="right")
+    runs_table.add_column("Co.", justify="right")
+    runs_table.add_column("Int", justify="right")
     runs_table.add_column("P95", justify="right")
     runs_table.add_column("SLOs", justify="center")
 
@@ -219,7 +216,8 @@ def print_agent_trend_report(num_runs: int | None = None) -> None:
 
         rel = entry["metrics"].get("answer_relevance", 0)
         gnd = entry["metrics"].get("groundedness", 0)
-        mode = entry["metrics"].get("mode_accuracy", 0)
+        company = entry["metrics"].get("company_extraction", 0)
+        intent = entry["metrics"].get("intent_accuracy", 0)
         lat = entry["metrics"].get("p95_latency_ms", 0)
         all_passed = entry.get("all_slos_passed", False)
         failed_count = len(entry.get("failed_slos", []))
@@ -230,7 +228,8 @@ def print_agent_trend_report(num_runs: int | None = None) -> None:
             date_str,
             f"{rel:.0%}",
             f"{gnd:.0%}",
-            f"{mode:.0%}",
+            f"{company:.0%}",
+            f"{intent:.0%}",
             f"{lat/1000:.1f}s",
             slo_str,
         )

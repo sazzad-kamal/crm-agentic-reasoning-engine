@@ -14,6 +14,7 @@ Usage:
 """
 
 import logging
+import threading
 from itertools import batched
 from pathlib import Path
 
@@ -35,6 +36,7 @@ from backend.rag.retrieval.constants import (
     EMBEDDING_DIM,
     DOCS_COLLECTION,
     QDRANT_PATH,
+    get_shared_qdrant_client,
 )
 from backend.rag.retrieval.embedding import get_cached_embedding, cache_embedding
 from backend.rag.retrieval.ranking import RankingMixin
@@ -47,6 +49,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "RetrievalBackend",
     "create_backend",
+    "clear_backend_cache",
 ]
 
 
@@ -85,11 +88,10 @@ class RetrievalBackend(RankingMixin):
         """
         self.qdrant_path = qdrant_path or QDRANT_PATH
         self.collection_name = collection_name or DOCS_COLLECTION
-        
-        # Initialize Qdrant client (local storage)
-        self.qdrant_path.mkdir(parents=True, exist_ok=True)
-        self.qdrant = QdrantClient(path=str(self.qdrant_path))
-        logger.info(f"Qdrant client initialized at {self.qdrant_path}")
+
+        # Use shared Qdrant client (singleton) to prevent concurrent access errors
+        self.qdrant = get_shared_qdrant_client()
+        logger.info(f"Using shared Qdrant client")
         
         # Lazy load models
         self._embedding_model_name = embedding_model or EMBEDDING_MODEL
@@ -428,38 +430,74 @@ class RetrievalBackend(RankingMixin):
 # Convenience Functions
 # =============================================================================
 
-def create_backend() -> RetrievalBackend:
+# Module-level singleton cache for thread-safe backend access
+_backend_cache: RetrievalBackend | None = None
+_backend_lock = threading.Lock()
+
+
+def create_backend(use_cache: bool = True) -> RetrievalBackend:
     """
     Create and initialize a retrieval backend.
-    
+
+    Uses a singleton pattern with thread-safe initialization.
+    The shared QdrantClient (from constants.py) prevents concurrent access errors.
+
+    Args:
+        use_cache: If True (default), return cached singleton instance.
+                   If False, create a new instance (use for testing).
+
     Returns:
         Initialized RetrievalBackend
-        
+
     Raises:
         ValueError: If no Qdrant collection exists
     """
-    backend = RetrievalBackend()
-    
-    # Check if collection exists and has vectors
-    if backend.qdrant.collection_exists(DOCS_COLLECTION):
-        collection_info = backend.qdrant.get_collection(DOCS_COLLECTION)
-        if collection_info.points_count > 0:
-            logger.info(f"Using existing Qdrant collection with {collection_info.points_count} vectors")
-            
-            # Load chunks from Qdrant payloads
-            chunks = backend.load_chunks_from_qdrant()
-            backend._chunks = chunks
-            backend._chunk_id_to_idx = {c.chunk_id: i for i, c in enumerate(chunks)}
-            
-            # Build BM25 only
-            logger.info("Building BM25 index from existing chunks...")
-            tokenized_corpus = [backend._tokenize(c.text) for c in chunks]
-            backend._bm25 = BM25Okapi(tokenized_corpus)
-            return backend
-    
-    raise ValueError(
-        "No Qdrant collection found. Run 'python -m backend.rag.ingest.docs' first."
-    )
+    global _backend_cache
+
+    # Return cached instance if available and caching enabled
+    if use_cache and _backend_cache is not None:
+        return _backend_cache
+
+    with _backend_lock:
+        # Double-check pattern: re-check after acquiring lock
+        if use_cache and _backend_cache is not None:
+            return _backend_cache
+
+        backend = RetrievalBackend()
+
+        # Check if collection exists and has vectors
+        if backend.qdrant.collection_exists(DOCS_COLLECTION):
+            collection_info = backend.qdrant.get_collection(DOCS_COLLECTION)
+            if collection_info.points_count > 0:
+                logger.info(f"Using existing Qdrant collection with {collection_info.points_count} vectors")
+
+                # Load chunks from Qdrant payloads
+                chunks = backend.load_chunks_from_qdrant()
+                backend._chunks = chunks
+                backend._chunk_id_to_idx = {c.chunk_id: i for i, c in enumerate(chunks)}
+
+                # Build BM25 only
+                logger.info("Building BM25 index from existing chunks...")
+                tokenized_corpus = [backend._tokenize(c.text) for c in chunks]
+                backend._bm25 = BM25Okapi(tokenized_corpus)
+
+                # Cache the singleton if caching enabled
+                if use_cache:
+                    _backend_cache = backend
+
+                return backend
+
+        raise ValueError(
+            "No Qdrant collection found. Run 'python -m backend.rag.ingest.docs' first."
+        )
+
+
+def clear_backend_cache() -> None:
+    """Clear the cached backend singleton (useful for testing)."""
+    global _backend_cache
+    with _backend_lock:
+        _backend_cache = None
+        logger.debug("Backend cache cleared")
 
 
 # =============================================================================

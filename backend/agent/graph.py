@@ -322,6 +322,7 @@ def run_agent(
             "mode_used": final_state.get("mode_used", "unknown"),
             "latency_ms": latency_ms,
             "company_id": final_state.get("resolved_company_id"),
+            "intent": final_state.get("intent", "general"),
             "days": final_state.get("days", 90),
             # Per-node latency breakdown
             "router_latency_ms": final_state.get("router_latency_ms"),

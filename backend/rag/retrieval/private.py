@@ -13,6 +13,7 @@ Usage:
 """
 
 import logging
+import threading
 from pathlib import Path
 from typing import override
 
@@ -35,6 +36,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "PrivateRetrievalBackend",
     "create_private_backend",
+    "clear_private_backend_cache",
 ]
 
 
@@ -281,26 +283,63 @@ class PrivateRetrievalBackend(RetrievalBackend):
 # Factory Function
 # =============================================================================
 
-def create_private_backend(rebuild: bool = False) -> PrivateRetrievalBackend:
+# Module-level singleton cache for thread-safe backend access
+_private_backend_cache: PrivateRetrievalBackend | None = None
+_private_backend_lock = threading.Lock()
+
+
+def create_private_backend(
+    rebuild: bool = False,
+    use_cache: bool = True,
+) -> PrivateRetrievalBackend:
     """
     Create and initialize a private retrieval backend.
-    
+
+    Uses a singleton pattern with thread-safe initialization to prevent
+    Qdrant concurrent access errors when running in parallel (e.g., evals).
+
     Args:
         rebuild: If True, force rebuild from CSV (not implemented, use ingest script)
-        
+        use_cache: If True (default), return cached singleton instance.
+                   If False, create a new instance (use for testing).
+
     Returns:
         Initialized PrivateRetrievalBackend
     """
-    backend = PrivateRetrievalBackend()
-    
-    if not backend.qdrant.collection_exists(PRIVATE_COLLECTION):
-        raise ValueError(
-            f"Private collection '{PRIVATE_COLLECTION}' not found. "
-            "Run 'python -m backend.rag.ingest.private_text' first."
-        )
-    
-    backend.load_from_qdrant()
-    return backend
+    global _private_backend_cache
+
+    # Return cached instance if available and caching enabled
+    if use_cache and _private_backend_cache is not None:
+        return _private_backend_cache
+
+    with _private_backend_lock:
+        # Double-check pattern: re-check after acquiring lock
+        if use_cache and _private_backend_cache is not None:
+            return _private_backend_cache
+
+        backend = PrivateRetrievalBackend()
+
+        if not backend.qdrant.collection_exists(PRIVATE_COLLECTION):
+            raise ValueError(
+                f"Private collection '{PRIVATE_COLLECTION}' not found. "
+                "Run 'python -m backend.rag.ingest.private_text' first."
+            )
+
+        backend.load_from_qdrant()
+
+        # Cache the singleton if caching enabled
+        if use_cache:
+            _private_backend_cache = backend
+
+        return backend
+
+
+def clear_private_backend_cache() -> None:
+    """Clear the cached private backend singleton (useful for testing)."""
+    global _private_backend_cache
+    with _private_backend_lock:
+        _private_backend_cache = None
+        logger.debug("Private backend cache cleared")
 
 
 # =============================================================================

@@ -380,17 +380,15 @@ def _get_chat_model(
     if not api_key:
         raise ValueError("OPENAI_API_KEY environment variable not set")
 
-    # Build model kwargs based on model type
-    model_kwargs = {}
+    # Build ChatOpenAI based on model type
     if _requires_max_completion_tokens(model):
-        model_kwargs["max_completion_tokens"] = max_tokens
-        # Reasoning models don't support custom temperature
+        # Reasoning models use max_completion_tokens and don't support custom temperature
         primary = ChatOpenAI(
             model=model,
             api_key=api_key,
             max_retries=3,
             request_timeout=60,
-            model_kwargs=model_kwargs,
+            max_completion_tokens=max_tokens,
             callbacks=[CostTrackingCallback()],
         )
     else:

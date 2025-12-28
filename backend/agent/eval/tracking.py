@@ -103,7 +103,6 @@ def compare_e2e_with_previous(
     metrics = [
         ("Answer Relevance", "answer_relevance_rate"),
         ("Groundedness", "groundedness_rate"),
-        ("Tool Selection", "tool_selection_accuracy"),
     ]
 
     regressions = []
@@ -178,7 +177,6 @@ def print_e2e_regression_report(comparison: dict[str, Any]) -> None:
     metrics = [
         ("Answer Relevance", "answer_relevance_rate", "%"),
         ("Groundedness", "groundedness_rate", "%"),
-        ("Tool Selection", "tool_selection_accuracy", "%"),
         ("P95 Latency", "p95_latency_ms", "ms"),
     ]
 

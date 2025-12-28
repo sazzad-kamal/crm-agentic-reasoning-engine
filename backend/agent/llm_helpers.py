@@ -11,13 +11,6 @@ import logging
 import os
 
 from pydantic import BaseModel, Field
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type,
-    before_sleep_log,
-)
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
@@ -433,7 +426,6 @@ def generate_follow_up_suggestions(
 
 
 __all__ = [
-    "call_llm",
     "call_docs_rag",
     "call_account_rag",
     "generate_follow_up_suggestions",

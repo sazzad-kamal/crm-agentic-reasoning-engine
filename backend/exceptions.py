@@ -5,7 +5,19 @@
 Standardized error responses for the API.
 """
 
-from typing import Any, Optional, override
+import sys
+from typing import Any, Optional
+
+# Python 3.12+ has override in typing, earlier versions need typing_extensions
+if sys.version_info >= (3, 12):
+    from typing import override
+else:
+    try:
+        from typing_extensions import override
+    except ImportError:
+        # Fallback: no-op decorator if typing_extensions not available
+        def override(func):
+            return func
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel

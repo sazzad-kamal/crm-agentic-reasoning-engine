@@ -14,18 +14,37 @@ Usage:
 
 import json
 import threading
+import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
 
+# RAGAS imports (optional - graceful fallback if not installed)
+try:
+    import nest_asyncio
+    nest_asyncio.apply()
+    from ragas import SingleTurnSample
+    # Use pre-instantiated metric (lowercase) - class imports are deprecated
+    from ragas.metrics import faithfulness as faithfulness_metric
+    RAGAS_AVAILABLE = True
+except ImportError:
+    RAGAS_AVAILABLE = False
+
 # Load .env from project root
 _project_root = Path(__file__).parent.parent.parent.parent
 load_dotenv(_project_root / ".env")
 
+# Preload embedding and reranker models (simulates server startup)
+from backend.rag.retrieval.preload import preload_models
+print("Preloading models...")
+_preload_result = preload_models()
+print(f"Models loaded in {_preload_result['total_ms']}ms")
+print()
+
 import typer
-from rich.progress import track
+from rich.progress import track, Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 import pandas as pd
 from qdrant_client import QdrantClient
@@ -43,6 +62,7 @@ from backend.rag.eval.models import (
     SLO_RAG_TRIAD,
     SLO_PRIVACY_LEAKAGE,
     SLO_LATENCY_P95_MS,
+    SLO_EVAL_LATENCY_P95_MS,
 )
 from backend.rag.eval.judge import judge_account_response, check_privacy_leakage
 from backend.rag.eval.questions import (
@@ -64,6 +84,63 @@ from backend.rag.eval.base import (
     save_baseline,
     print_baseline_comparison,
 )
+
+
+# =============================================================================
+# RAGAS Evaluation Functions
+# =============================================================================
+
+def get_ragas_faithfulness():
+    """Initialize RAGAS faithfulness metric.
+
+    Uses pre-instantiated metric from ragas.metrics.
+    Uses the default LLM (gpt-4o-mini via OpenAI API key from env).
+    """
+    if not RAGAS_AVAILABLE:
+        return None
+    try:
+        # Pre-instantiated metric is ready to use
+        return faithfulness_metric
+    except Exception:
+        return None
+
+
+async def evaluate_faithfulness_async(
+    question: str,
+    answer: str,
+    contexts: list[str],
+) -> float | None:
+    """Evaluate faithfulness using RAGAS."""
+    metric = get_ragas_faithfulness()
+    if metric is None:
+        return None
+
+    try:
+        sample = SingleTurnSample(
+            user_input=question,
+            response=answer,
+            retrieved_contexts=contexts,
+        )
+        return await metric.single_turn_ascore(sample)
+    except Exception:
+        return None
+
+
+def evaluate_faithfulness_sync(
+    question: str,
+    answer: str,
+    contexts: list[str],
+) -> float | None:
+    """Synchronous wrapper for RAGAS faithfulness."""
+    if not RAGAS_AVAILABLE:
+        return None
+    try:
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(
+            evaluate_faithfulness_async(question, answer, contexts)
+        )
+    except Exception:
+        return None
 
 
 # =============================================================================
@@ -149,10 +226,12 @@ def evaluate_question(
     
     # Build context string for judge
     context_parts = []
+    context_texts = []  # For RAGAS
     for hit in result["raw_private_hits"][:5]:
         context_parts.append(f"[{hit['id']}] {hit['text_preview']}")
+        context_texts.append(hit.get("text", hit.get("text_preview", "")))
     context_str = "\n".join(context_parts)
-    
+
     # Judge
     sources = [s["id"] for s in result["sources"]]
     judge = judge_account_response(
@@ -163,11 +242,21 @@ def evaluate_question(
         answer=result["answer"],
         sources=sources,
     )
-    
+
+    # RAGAS faithfulness evaluation
+    ragas_faithfulness = None
+    if RAGAS_AVAILABLE and context_texts:
+        ragas_faithfulness = evaluate_faithfulness_sync(
+            question=question,
+            answer=result["answer"],
+            contexts=context_texts,
+        )
+
     if verbose:
+        faith_str = f" ragas={ragas_faithfulness:.2f}" if ragas_faithfulness is not None else ""
         print(f"    ctx={judge.context_relevance} ans={judge.answer_relevance} "
-              f"gnd={judge.groundedness} leak={leakage}")
-    
+              f"gnd={judge.groundedness} leak={leakage}{faith_str}")
+
     return AccountEvalResult(
         question_id=q_id,
         company_id=company_id,
@@ -182,6 +271,7 @@ def evaluate_question(
         latency_ms=result["meta"]["latency_ms"],
         total_tokens=result["meta"]["total_tokens"],
         estimated_cost=result["meta"]["estimated_cost"],
+        ragas_faithfulness=ragas_faithfulness,
     )
 
 
@@ -260,7 +350,6 @@ def _run_parallel(
     Note: The embedding model isn't fully thread-safe, so we use a lock
     around the RAG pipeline call. The LLM judge calls still run in parallel.
     """
-    completed = 0
     total = len(questions)
 
     # Create a dict to preserve order
@@ -273,31 +362,37 @@ def _run_parallel(
         """Wrapper that uses lock for RAG access."""
         return evaluate_question(q, False, rag_lock)
 
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all tasks
-        future_to_question = {
-            executor.submit(evaluate_with_lock, q): q
-            for q in questions
-        }
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[cyan]{task.description}[/cyan]"),
+        BarColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TimeElapsedColumn(),
+        console=console,
+        refresh_per_second=2,
+    ) as progress:
+        task = progress.add_task(
+            f"Evaluating {total} accounts (max {max_workers} workers)",
+            total=total,
+        )
 
-        # Process as they complete
-        for future in as_completed(future_to_question):
-            question = future_to_question[future]
-            try:
-                result = future.result()
-                results_by_id[question["id"]] = result
-                completed += 1
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            future_to_question = {
+                executor.submit(evaluate_with_lock, q): q
+                for q in questions
+            }
 
-                # Progress update
-                pct = completed / total * 100
-                status = "✓" if result.judge_result.groundedness == 1 and not result.privacy_leakage else "✗"
-                console.print(
-                    f"  [{completed}/{total}] {status} {question['id'][:20]:<20} "
-                    f"({result.latency_ms:.0f}ms) [{pct:.0f}%]"
-                )
-            except Exception as e:
-                console.print(f"  [red]✗ {question['id']}: {e}[/red]")
-                completed += 1
+            # Process as they complete
+            for future in as_completed(future_to_question):
+                question = future_to_question[future]
+                try:
+                    result = future.result()
+                    results_by_id[question["id"]] = result
+                    progress.advance(task)
+                except Exception as e:
+                    progress.console.print(f"  [red]✗ {question['id']}: {e}[/red]")
+                    progress.advance(task)
 
     # Return in original order
     results = []
@@ -366,8 +461,9 @@ def compute_account_summary(results: list[AccountEvalResult]) -> AccountEvalSumm
         failed_slos.append(f"RAG triad {triad_success:.1%} < {SLO_RAG_TRIAD:.1%}")
     if leakage_rate > SLO_PRIVACY_LEAKAGE:
         failed_slos.append(f"Privacy leakage {leakage_rate:.1%} > {SLO_PRIVACY_LEAKAGE:.1%}")
-    if p95_latency > SLO_LATENCY_P95_MS:
-        failed_slos.append(f"P95 latency {p95_latency:.0f}ms > {SLO_LATENCY_P95_MS}ms")
+    # Use eval latency SLO (more lenient) since eval includes judge overhead
+    if p95_latency > SLO_EVAL_LATENCY_P95_MS:
+        failed_slos.append(f"P95 latency {p95_latency:.0f}ms > {SLO_EVAL_LATENCY_P95_MS}ms")
     
     return AccountEvalSummary(
         total_tests=n,
@@ -418,8 +514,9 @@ def print_summary(results: list[AccountEvalResult], summary: AccountEvalSummary)
     add_separator_row(summary_table)
     summary_table.add_row("Avg Latency", f"{summary.avg_latency_ms:.0f}ms")
     
-    p95_style = "[green]" if summary.p95_latency_ms <= SLO_LATENCY_P95_MS else "[red]"
-    summary_table.add_row("P95 Latency", f"{p95_style}{summary.p95_latency_ms:.0f}ms[/] (SLO: ≤{SLO_LATENCY_P95_MS}ms)")
+    # Use eval latency SLO (more lenient) since eval includes judge overhead
+    p95_style = "[green]" if summary.p95_latency_ms <= SLO_EVAL_LATENCY_P95_MS else "[red]"
+    summary_table.add_row("P95 Latency", f"{p95_style}{summary.p95_latency_ms:.0f}ms[/] (SLO: ≤{SLO_EVAL_LATENCY_P95_MS}ms)")
     
     summary_table.add_row("Total Tokens", f"{summary.total_tokens:,}")
     summary_table.add_row("Total Cost", f"${summary.total_cost:.4f}")

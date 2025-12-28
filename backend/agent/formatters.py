@@ -259,6 +259,13 @@ def format_docs_section(docs_answer: str) -> str:
     return f"=== DOCUMENTATION GUIDANCE ===\n{docs_answer}"
 
 
+def format_account_context_section(account_context: str) -> str:
+    """Format account RAG context (notes, attachments) for the prompt."""
+    if not account_context:
+        return ""
+    return f"=== ACCOUNT CONTEXT (Notes & Attachments) ===\n{account_context}"
+
+
 def format_conversation_history_section(messages: list[dict] | None, max_messages: int = 4) -> str:
     """
     Format conversation history for the prompt.
@@ -297,5 +304,6 @@ __all__ = [
     "format_pipeline_section",
     "format_renewals_section",
     "format_docs_section",
+    "format_account_context_section",
     "format_conversation_history_section",
 ]

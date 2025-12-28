@@ -59,6 +59,70 @@ QUESTION_TEMPLATES = [
     },
 ]
 
+# Account Context question templates - require unstructured text search (notes, attachments)
+ACCOUNT_CONTEXT_TEMPLATES = [
+    {
+        "type": "deal_blockers",
+        "template": "Why is the {company_name} deal stalled? What blockers or concerns have been raised?",
+        "intent": "account_context",
+        "note": "Requires notes search for blockers/objections",
+    },
+    {
+        "type": "customer_concerns",
+        "template": "What concerns has {company_name} raised about our product or service?",
+        "intent": "account_context",
+        "note": "Semantic search on meeting notes for concerns/objections",
+    },
+    {
+        "type": "last_discussion",
+        "template": "What did we discuss in our last meeting with {company_name}?",
+        "intent": "account_context",
+        "note": "Requires meeting notes retrieval",
+    },
+    {
+        "type": "relationship_summary",
+        "template": "Summarize our relationship with {company_name}. What's the story so far?",
+        "intent": "account_context",
+        "note": "Comprehensive account context from all sources",
+    },
+    {
+        "type": "integration_requirements",
+        "template": "What integration or technical requirements has {company_name} mentioned?",
+        "intent": "account_context",
+        "note": "Technical discussions in notes/emails",
+    },
+    {
+        "type": "decision_timeline",
+        "template": "What timeline has {company_name} given for their decision? Any deadlines mentioned?",
+        "intent": "account_context",
+        "note": "Deadline mentions in notes",
+    },
+    {
+        "type": "competitor_mentions",
+        "template": "Has {company_name} mentioned any competitors they're evaluating?",
+        "intent": "account_context",
+        "note": "Competitor intelligence from notes",
+    },
+    {
+        "type": "key_conversations",
+        "template": "What are the key conversations we've had with {company_name} executives?",
+        "intent": "account_context",
+        "note": "Important conversations from history",
+    },
+    {
+        "type": "contract_details",
+        "template": "What's in {company_name}'s contract or SOW? What terms did we agree on?",
+        "intent": "account_context",
+        "note": "Requires attachment content search",
+    },
+    {
+        "type": "pricing_discussions",
+        "template": "What pricing discussions have we had with {company_name}? Any discount requests?",
+        "intent": "account_context",
+        "note": "Price negotiations in notes",
+    },
+]
+
 # Additional edge case templates for specific scenarios
 EDGE_CASE_TEMPLATES = [
     {
@@ -193,6 +257,7 @@ def generate_eval_questions(
     include_edge_cases: bool = True,
     include_natural_language: bool = True,
     include_ground_truth: bool = True,
+    include_account_context: bool = True,
 ) -> list[dict]:
     """
     Generate evaluation questions from actual CSV data.
@@ -204,6 +269,7 @@ def generate_eval_questions(
         include_edge_cases: Whether to include edge case questions
         include_natural_language: Whether to include natural language variations
         include_ground_truth: Whether to include ground truth questions
+        include_account_context: Whether to include account context questions (notes, attachments)
 
     Returns:
         List of dicts with:
@@ -259,6 +325,33 @@ def generate_eval_questions(
                 "category": "standard",
             })
             q_id += 1
+
+    # Add account context questions (notes/attachments search)
+    if include_account_context:
+        ac_companies = selected.head(5)  # First 5 companies get account context questions
+
+        for _, company in ac_companies.iterrows():
+            company_id = company["company_id"]
+            company_name = company["name"]
+
+            for tmpl in ACCOUNT_CONTEXT_TEMPLATES:
+                question = tmpl["template"].format(
+                    company_name=company_name,
+                    company_id=company_id,
+                )
+
+                questions.append({
+                    "id": f"acct_ctx_q{q_id}",
+                    "company_id": company_id,
+                    "company_name": company_name,
+                    "question": question,
+                    "question_type": tmpl["type"],
+                    "difficulty": "medium",  # Account context queries are medium difficulty
+                    "category": "account_context",
+                    "intent": tmpl.get("intent", "account_context"),
+                    "note": tmpl.get("note", ""),
+                })
+                q_id += 1
 
     # Add edge case questions for subset of companies
     if include_edge_cases:

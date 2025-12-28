@@ -1,32 +1,130 @@
 """
-Prompt templates for the agent LLM calls.
+Prompt templates for the agent LLM calls using LangChain.
 
-This module contains all system prompts and prompt templates
-used by the agent orchestrator.
+This module contains all ChatPromptTemplates used by the agent orchestrator.
+Using LangChain templates provides:
+- Automatic validation of input variables
+- Better LangSmith tracing
+- Consistent formatting
 """
+
+from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+
+
+# =============================================================================
+# System Prompts
+# =============================================================================
 
 AGENT_SYSTEM_PROMPT = """You are a helpful CRM assistant for Acme CRM Suite.
 Your job is to answer questions about company accounts, activities, pipeline, and renewals using ONLY the provided CRM data.
 
-IMPORTANT RULES:
-1. Use ONLY the provided data to answer. Do not make up information.
-2. Be concise and high-signal - busy sales professionals are reading this.
-3. Structure your response as:
-   - A brief summary (1-2 sentences)
-   - Key facts as bullet points (if relevant)
-4. ALWAYS cite specific data from the context: company names, dates, dollar amounts, counts.
-   - Good: "Acme Corp has 3 open opportunities worth $450,000"
-   - Bad: "They have several opportunities"
-   - Good: "Last activity was a call on December 15, 2024"
-   - Bad: "There was recent activity"
-5. If company data was provided, always mention the company name.
-6. If documentation excerpts are provided, incorporate relevant guidance.
-7. If a company was not found, ask a clarifying question and list close matches.
-8. Format currency values with $ and commas.
-9. Format dates in a human-readable way (e.g., "March 31, 2026").
-10. If conversation history is provided, use it to understand context and resolve references.
+CRITICAL - GROUNDED ANSWERS:
+Every fact you state MUST be directly quoted or derived from the provided context.
+- NEVER say "several", "some", "multiple", "recent" - always use EXACT numbers and dates
+- NEVER paraphrase when you can quote specific values
+- If data is not in the context, say "I don't have that information" - do NOT guess
 
-Keep your answer SHORT and DIRECT. Do not add "next steps" or "suggested actions" - the UI handles follow-ups separately."""
+CITATION EXAMPLES:
+✓ "Beta Tech has 3 open opportunities totaling $245,000"
+✗ "They have several opportunities in the pipeline"
+
+✓ "Last activity: call on December 15, 2024 with John Smith"
+✗ "There was a recent call with them"
+
+✓ "Renewal date: March 31, 2026 (contract value: $120,000)"
+✗ "Their renewal is coming up soon"
+
+✓ "No activities found in the last 90 days"
+✗ "Activity has been quiet recently"
+
+RESPONSE FORMAT:
+1. Lead with the key answer (1 sentence with specific data)
+2. Support with bullet points containing exact figures
+3. If company data was provided, always name the company
+
+ADDITIONAL RULES:
+- Format currency with $ and commas (e.g., $1,250,000)
+- Format dates readably (e.g., "March 31, 2026")
+- If company not found, list close matches
+- Use conversation history to resolve "they/them/their" references
+
+Keep answers SHORT and DIRECT. No "next steps" - the UI handles follow-ups."""
+
+
+# =============================================================================
+# Agent Prompt Templates
+# =============================================================================
+
+COMPANY_NOT_FOUND_TEMPLATE = ChatPromptTemplate.from_messages([
+    SystemMessagePromptTemplate.from_template(AGENT_SYSTEM_PROMPT),
+    HumanMessagePromptTemplate.from_template("""The user asked about a company but we couldn't find an exact match.
+
+User's question: {question}
+Search query: {query}
+
+Close matches found:
+{matches}
+
+Please respond with:
+1. Acknowledge we couldn't find an exact match
+2. Ask a clarifying question
+3. List the close matches so they can clarify"""),
+])
+
+DATA_ANSWER_TEMPLATE = ChatPromptTemplate.from_messages([
+    SystemMessagePromptTemplate.from_template(AGENT_SYSTEM_PROMPT),
+    HumanMessagePromptTemplate.from_template("""Based on the following CRM data, answer the user's question.
+
+User's question: {question}
+
+{conversation_history_section}
+
+{company_section}
+
+{activities_section}
+
+{history_section}
+
+{pipeline_section}
+
+{renewals_section}
+
+{account_context_section}
+
+{docs_section}
+
+Please provide a helpful, grounded response following the rules in your system prompt."""),
+])
+
+FOLLOW_UP_TEMPLATE = ChatPromptTemplate.from_messages([
+    SystemMessagePromptTemplate.from_template(
+        "You are a helpful CRM assistant. Generate follow-up question suggestions."
+    ),
+    HumanMessagePromptTemplate.from_template("""Based on the user's question and conversation context, suggest 3 natural follow-up questions they might want to ask next.
+
+User's current question: {question}
+Mode used: {mode}
+Company context: {company}
+
+{conversation_history_section}
+
+Generate 3 SHORT, SPECIFIC follow-up questions that would be valuable. Focus on:
+- Drilling deeper into the data shown
+- Related information they might need
+- Actionable next steps
+- Questions that build on the conversation context
+
+IMPORTANT: If there's conversation history, suggest follow-ups that continue that flow naturally.
+
+Respond with ONLY a JSON array of 3 strings, nothing else:
+["Question 1?", "Question 2?", "Question 3?"]"""),
+])
+
+
+# =============================================================================
+# Backwards Compatibility - String Templates
+# =============================================================================
+# These are kept for any code still using string formatting directly
 
 COMPANY_NOT_FOUND_PROMPT = """The user asked about a company but we couldn't find an exact match.
 
@@ -56,6 +154,8 @@ User's question: {question}
 {pipeline_section}
 
 {renewals_section}
+
+{account_context_section}
 
 {docs_section}
 

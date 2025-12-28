@@ -208,9 +208,12 @@ class TestRerank:
 class TestLazyLoading:
     """Tests for lazy loading of models."""
 
-    @patch('backend.rag.retrieval.ranking.CrossEncoder')
-    def test_reranker_lazy_loaded(self, mock_cross_encoder):
-        """Test that reranker is lazy loaded."""
+    @patch('backend.rag.retrieval.preload._reranker_model', None)
+    @patch('backend.rag.retrieval.preload.get_reranker_model')
+    def test_reranker_lazy_loaded(self, mock_get_reranker):
+        """Test that reranker is lazy loaded via preload module."""
+        mock_model = MagicMock()
+        mock_get_reranker.return_value = mock_model
         mixin = RankingMixin()
 
         # Should not be loaded initially
@@ -219,12 +222,15 @@ class TestLazyLoading:
         # Access property to trigger loading
         _ = mixin.reranker
 
-        # Should be loaded now
-        mock_cross_encoder.assert_called_once()
+        # Should be loaded now via get_reranker_model
+        mock_get_reranker.assert_called_once()
 
-    @patch('backend.rag.retrieval.ranking.CrossEncoder')
-    def test_reranker_loaded_once(self, mock_cross_encoder):
+    @patch('backend.rag.retrieval.preload._reranker_model', None)
+    @patch('backend.rag.retrieval.preload.get_reranker_model')
+    def test_reranker_loaded_once(self, mock_get_reranker):
         """Test that reranker is only loaded once."""
+        mock_model = MagicMock()
+        mock_get_reranker.return_value = mock_model
         mixin = RankingMixin()
 
         # Access multiple times
@@ -233,7 +239,7 @@ class TestLazyLoading:
         _ = mixin.reranker
 
         # Should only be loaded once
-        assert mock_cross_encoder.call_count == 1
+        assert mock_get_reranker.call_count == 1
 
 
 # =============================================================================

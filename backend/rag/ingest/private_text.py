@@ -9,9 +9,21 @@ import json
 import logging
 import math
 import random
+import sys
 from collections import Counter
-from itertools import batched
 from pathlib import Path
+
+# Python 3.12+ has itertools.batched, add polyfill for 3.11
+if sys.version_info >= (3, 12):
+    from itertools import batched
+else:
+    from itertools import islice
+
+    def batched(iterable, n):
+        """Batch data into lists of length n. The last batch may be shorter."""
+        it = iter(iterable)
+        while batch := list(islice(it, n)):
+            yield batch
 from typing import Any
 
 import pandas as pd

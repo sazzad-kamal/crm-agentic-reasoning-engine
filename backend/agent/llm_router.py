@@ -8,25 +8,27 @@ Uses an LLM to:
 4. Expand/rewrite queries for better understanding
 
 Falls back to heuristic router on LLM failures.
+
+Uses LangChain's .with_structured_output() for reliable Pydantic parsing.
 """
 
 import logging
-import re
 from typing import Literal
 
 from pydantic import BaseModel, Field
 from tenacity import (
-    retry, 
-    stop_after_attempt, 
+    retry,
+    stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
 )
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
 
 from backend.agent.config import get_config, is_mock_mode
 from backend.agent.schemas import RouterResult
 from backend.agent.datastore import get_datastore, CRMDataStore
 from backend.agent import router as heuristic_router  # Fallback
-from backend.common.llm_client import call_llm
 
 
 # Configure module logger
@@ -34,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# LLM Router Prompts
+# LLM Router Prompt Template (LangChain)
 # =============================================================================
 
 ROUTER_SYSTEM_PROMPT = """You are a routing assistant for Acme CRM, a customer relationship management system.
@@ -56,6 +58,12 @@ Your job is to analyze user questions and provide a complete understanding:
    - "pipeline": Sales pipeline, opportunities, deals
    - "activities": Calls, emails, meetings, tasks
    - "history": Past interactions, what happened previously
+   - "account_context": Questions needing deep account context from unstructured text - use this for:
+     * "Why is the deal stalled?" (needs notes about blockers)
+     * "What concerns have they raised?" (needs meeting notes)
+     * "What did we discuss last time?" (needs conversation history)
+     * "Summarize our relationship" (needs comprehensive context)
+     * "What's in their contract?" (needs attachment content)
    - "general": General questions or unclear intent (NOTE: this is for intent only, NOT mode)
 
 3. **company_name**: If a specific company/account is mentioned, extract it (null if none)
@@ -79,31 +87,50 @@ Your job is to analyze user questions and provide a complete understanding:
 
 8. **confidence**: How confident you are in this analysis (0.0 to 1.0)
 
-Respond ONLY with valid JSON in this exact format:
-{
-    "mode": "docs" | "data" | "data+docs",
-    "intent": "company_status" | "renewals" | "pipeline" | "activities" | "history" | "general",
-    "company_name": "Company Name" | null,
-    "days": 30,
-    "query_expansion": "Expanded query text",
-    "key_entities": ["entity1", "entity2"],
-    "action_type": "retrieve" | "summarize" | "compare" | "analyze",
-    "confidence": 0.0 to 1.0
-}"""
+Analyze the question and provide your structured response."""
 
 
 ROUTER_EXAMPLES = """
-Example questions and responses:
+## MODE DECISION GUIDE:
+- "data" = ONLY need CRM database (activities, pipeline, renewals, contacts, companies)
+- "docs" = ONLY need help documentation (how-to, features, best practices)
+- "data+docs" = Need BOTH data AND guidance on what it means or what to do
 
-Q: "What's going on with Acme Manufacturing in the last 90 days?"
+## Example questions and responses:
+
+Q: "Show me recent activities for Beta Tech Solutions"
 {
-    "mode": "data+docs",
-    "intent": "company_status",
-    "company_name": "Acme Manufacturing",
+    "mode": "data",
+    "intent": "activities",
+    "company_name": "Beta Tech Solutions",
+    "days": 30,
+    "query_expansion": "List recent activities (calls, emails, meetings) for Beta Tech Solutions",
+    "key_entities": ["Beta Tech Solutions"],
+    "action_type": "retrieve",
+    "confidence": 0.95
+}
+
+Q: "What's the pipeline for Acme Corp?"
+{
+    "mode": "data",
+    "intent": "pipeline",
+    "company_name": "Acme Corp",
+    "days": 30,
+    "query_expansion": "Show open opportunities and pipeline status for Acme Corp",
+    "key_entities": ["Acme Corp", "pipeline"],
+    "action_type": "retrieve",
+    "confidence": 0.95
+}
+
+Q: "Which accounts have upcoming renewals?"
+{
+    "mode": "data",
+    "intent": "renewals",
+    "company_name": null,
     "days": 90,
-    "query_expansion": "Provide a comprehensive status summary for Acme Manufacturing including recent activities, open opportunities, any upcoming renewals, and key updates from the last 90 days",
-    "key_entities": ["Acme Manufacturing"],
-    "action_type": "summarize",
+    "query_expansion": "List all accounts with contract renewals due within the next 90 days",
+    "key_entities": ["renewals", "accounts"],
+    "action_type": "retrieve",
     "confidence": 0.95
 }
 
@@ -113,40 +140,101 @@ Q: "How do I create a new opportunity?"
     "intent": "general",
     "company_name": null,
     "days": 30,
-    "query_expansion": "Explain the steps and process for creating a new sales opportunity in Acme CRM, including any required fields and best practices",
+    "query_expansion": "Explain how to create a new sales opportunity in Acme CRM",
     "key_entities": ["opportunity"],
-    "action_type": "retrieve",
-    "confidence": 0.9
-}
-
-Q: "Which accounts have upcoming renewals in the next 90 days?"
-{
-    "mode": "data",
-    "intent": "renewals",
-    "company_name": null,
-    "days": 90,
-    "query_expansion": "List all accounts with contract renewals due within the next 90 days, including renewal dates and contract values",
-    "key_entities": ["renewals", "accounts"],
     "action_type": "retrieve",
     "confidence": 0.95
 }
 
-Q: "Compare pipeline values between Q3 and Q4"
+Q: "What are the pipeline stages?"
+{
+    "mode": "docs",
+    "intent": "general",
+    "company_name": null,
+    "days": 30,
+    "query_expansion": "Explain the different pipeline stages in Acme CRM",
+    "key_entities": ["pipeline stages"],
+    "action_type": "retrieve",
+    "confidence": 0.95
+}
+
+Q: "Which accounts are at risk of churning and what should I do?"
+{
+    "mode": "data+docs",
+    "intent": "renewals",
+    "company_name": null,
+    "days": 90,
+    "query_expansion": "Identify at-risk accounts and provide guidance on churn prevention strategies",
+    "key_entities": ["churn", "at-risk", "accounts"],
+    "action_type": "analyze",
+    "confidence": 0.9
+}
+
+Q: "How is GlobalTech doing and what's the best next step?"
+{
+    "mode": "data+docs",
+    "intent": "company_status",
+    "company_name": "GlobalTech",
+    "days": 90,
+    "query_expansion": "Summarize GlobalTech account status and recommend next actions based on best practices",
+    "key_entities": ["GlobalTech"],
+    "action_type": "summarize",
+    "confidence": 0.9
+}
+
+Q: "Why is the Acme deal stalled?"
 {
     "mode": "data",
-    "intent": "pipeline",
-    "company_name": null,
+    "intent": "account_context",
+    "company_name": "Acme",
+    "days": 90,
+    "query_expansion": "Search account notes and history to understand why the Acme deal is not progressing",
+    "key_entities": ["Acme", "deal", "stalled"],
+    "action_type": "analyze",
+    "confidence": 0.95
+}
+
+Q: "What concerns has Beta Tech raised about our product?"
+{
+    "mode": "data",
+    "intent": "account_context",
+    "company_name": "Beta Tech",
     "days": 180,
-    "query_expansion": "Compare the total pipeline value, deal count, and stage distribution between Q3 and Q4 quarters",
-    "key_entities": ["pipeline", "Q3", "Q4"],
-    "action_type": "compare",
-    "confidence": 0.85
+    "query_expansion": "Search meeting notes and history for concerns or objections Beta Tech has mentioned",
+    "key_entities": ["Beta Tech", "concerns", "objections"],
+    "action_type": "retrieve",
+    "confidence": 0.95
+}
+
+Q: "Summarize our relationship with TechCorp"
+{
+    "mode": "data",
+    "intent": "account_context",
+    "company_name": "TechCorp",
+    "days": 365,
+    "query_expansion": "Provide comprehensive summary of the relationship history with TechCorp including key events and discussions",
+    "key_entities": ["TechCorp", "relationship"],
+    "action_type": "summarize",
+    "confidence": 0.95
 }
 """
 
+# =============================================================================
+# LangChain Prompt Template
+# =============================================================================
+
+ROUTER_PROMPT_TEMPLATE = ChatPromptTemplate.from_messages([
+    ("system", ROUTER_SYSTEM_PROMPT),
+    ("human", """{examples}
+
+{conversation_context}Now analyze this question:
+Q: "{question}"
+"""),
+])
+
 
 # =============================================================================
-# LLM Router Implementation  
+# LLM Router Implementation
 # =============================================================================
 
 class LLMRouterError(Exception):
@@ -155,53 +243,72 @@ class LLMRouterError(Exception):
 
 
 class LLMRouterResponse(BaseModel):
-    """Pydantic model for parsing LLM router JSON responses."""
-    mode: Literal["docs", "data", "data+docs"] = "data+docs"
-    intent: Literal["company_status", "renewals", "pipeline", "activities", "history", "general"] = "general"
-    company_name: str | None = None
-    days: int = Field(default=30, ge=1, le=365)
-    query_expansion: str | None = None
-    key_entities: list[str] = Field(default_factory=list)
-    action_type: Literal["retrieve", "summarize", "compare", "analyze"] = "retrieve"
-    confidence: float = Field(default=0.5, ge=0.0, le=1.0)
-    
-    @classmethod
-    def from_llm_text(cls, text: str) -> "LLMRouterResponse":
-        """Parse LLM response text, extracting JSON from markdown if needed."""
-        import json as json_module
+    """Pydantic model for structured LLM router output.
 
-        text = text.strip()
-        # Extract JSON from markdown code blocks
-        if "```json" in text:
-            text = text.split("```json")[1].split("```")[0].strip()
-        elif "```" in text:
-            text = text.split("```")[1].split("```")[0].strip()
-
-        # Pre-process to fix common LLM errors before strict validation
-        try:
-            data = json_module.loads(text)
-            # Fix invalid mode values - LLM sometimes confuses mode with intent
-            if data.get("mode") not in ("docs", "data", "data+docs"):
-                invalid_mode = data.get("mode", "")
-                # Default based on intent or question pattern
-                if invalid_mode in ("general", "unknown", ""):
-                    data["mode"] = "data"  # Safe default for CRM queries
-                else:
-                    data["mode"] = "data"
-            text = json_module.dumps(data)
-        except json_module.JSONDecodeError:
-            pass  # Let Pydantic handle the error
-
-        return cls.model_validate_json(text)
+    Used with .with_structured_output() for reliable parsing.
+    """
+    mode: Literal["docs", "data", "data+docs"] = Field(
+        default="data+docs",
+        description="The data source mode: 'docs' for documentation, 'data' for CRM data, 'data+docs' for both"
+    )
+    intent: Literal["company_status", "renewals", "pipeline", "activities", "history", "account_context", "general"] = Field(
+        default="general",
+        description="The primary intent of the question"
+    )
+    company_name: str | None = Field(
+        default=None,
+        description="The company/account name mentioned in the question, if any"
+    )
+    days: int = Field(
+        default=30, ge=1, le=365,
+        description="Time period in days (e.g., 'last 90 days' -> 90)"
+    )
+    query_expansion: str | None = Field(
+        default=None,
+        description="A clearer, expanded version of the query"
+    )
+    key_entities: list[str] = Field(
+        default_factory=list,
+        description="Important entities mentioned (companies, contacts, products)"
+    )
+    action_type: Literal["retrieve", "summarize", "compare", "analyze"] = Field(
+        default="retrieve",
+        description="What the user wants to do with the information"
+    )
+    confidence: float = Field(
+        default=0.5, ge=0.0, le=1.0,
+        description="Confidence in this analysis (0.0 to 1.0)"
+    )
 
 
-def _parse_router_response(response_text: str) -> dict:
-    """Parse and validate LLM router response using Pydantic."""
-    try:
-        parsed = LLMRouterResponse.from_llm_text(response_text)
-        return parsed.model_dump()
-    except Exception as e:
-        raise LLMRouterError(f"Failed to parse router response: {e}")
+# Cached structured LLM chain
+_router_chain = None
+
+
+def _get_router_chain():
+    """Get or create the cached router chain with structured output."""
+    global _router_chain
+    if _router_chain is not None:
+        return _router_chain
+
+    import os
+    config = get_config()
+
+    llm = ChatOpenAI(
+        model=config.router_model,
+        temperature=config.router_temperature,
+        api_key=os.environ.get("OPENAI_API_KEY"),
+        max_retries=3,
+    )
+
+    # Use structured output for reliable Pydantic parsing
+    structured_llm = llm.with_structured_output(LLMRouterResponse)
+
+    # Create LCEL chain: prompt | structured_llm
+    _router_chain = ROUTER_PROMPT_TEMPLATE | structured_llm
+
+    logger.debug(f"Created router chain with model={config.router_model}")
+    return _router_chain
 
 
 @retry(
@@ -211,30 +318,27 @@ def _parse_router_response(response_text: str) -> dict:
     reraise=True,
 )
 def _call_llm_router(question: str, conversation_history: str = "") -> dict:
-    """Call LLM for routing with retry logic."""
-    config = get_config()
-
-    # Build prompt with optional conversation history
-    if conversation_history:
-        prompt = (
-            f"{ROUTER_EXAMPLES}\n\n"
-            f"CONVERSATION HISTORY:\n{conversation_history}\n\n"
-            f"Now analyze this question:\nQ: \"{question}\""
-        )
-    else:
-        prompt = f"{ROUTER_EXAMPLES}\n\nNow analyze this question:\nQ: \"{question}\""
-
+    """Call LLM for routing using LCEL chain with structured output."""
     logger.debug(f"LLM Router: Analyzing question: {question[:50]}...")
 
-    response = call_llm(
-        prompt=prompt,
-        system_prompt=ROUTER_SYSTEM_PROMPT,
-        model=config.router_model,
-        temperature=config.router_temperature,
-        max_tokens=256,
-    )
+    # Build conversation context section
+    conversation_context = ""
+    if conversation_history:
+        conversation_context = f"CONVERSATION HISTORY:\n{conversation_history}\n\n"
 
-    return _parse_router_response(response)
+    # Get the cached chain
+    chain = _get_router_chain()
+
+    # Invoke the chain with structured output
+    result: LLMRouterResponse = chain.invoke({
+        "examples": ROUTER_EXAMPLES,
+        "conversation_context": conversation_context,
+        "question": question,
+    })
+
+    logger.debug(f"LLM Router: Structured output received: mode={result.mode}, intent={result.intent}")
+
+    return result.model_dump()
 
 
 def llm_route_question(

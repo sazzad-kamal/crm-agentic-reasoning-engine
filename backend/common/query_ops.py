@@ -1,11 +1,13 @@
 """
-Shared query operations for RAG pipelines.
+Shared query operations for RAG pipelines using LangChain.
 
 Consolidates query rewriting and HyDE generation used by both
 account and docs pipelines.
 """
 
 import logging
+
+from langchain_core.prompts import ChatPromptTemplate
 
 from backend.common.llm_client import call_llm_safe
 
@@ -14,7 +16,29 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# System Prompts
+# LangChain Prompt Templates
+# =============================================================================
+
+QUERY_REWRITE_TEMPLATE = ChatPromptTemplate.from_messages([
+    ("system", """You are a query rewriting assistant for a CRM documentation search system.
+Your job is to take a user's question about Acme CRM Suite and rewrite it to be clearer and more specific.
+Keep the rewritten query in natural language (not keywords).
+If the query is already clear, return it mostly unchanged.
+Only output the rewritten query, nothing else."""),
+    ("human", "{prompt}"),
+])
+
+HYDE_TEMPLATE = ChatPromptTemplate.from_messages([
+    ("system", """You are an expert on Acme CRM Suite documentation.
+Given a question, write a short hypothetical answer (2-3 sentences) as if it came from the documentation.
+This will be used for semantic search, so include relevant terminology and concepts.
+Only output the hypothetical answer, nothing else."""),
+    ("human", "{prompt}"),
+])
+
+
+# =============================================================================
+# Legacy System Prompts (backwards compatibility)
 # =============================================================================
 
 QUERY_REWRITE_SYSTEM = """You are a query rewriting assistant for a CRM documentation search system.
@@ -98,8 +122,13 @@ def generate_hyde(query: str, company_name: str | None = None) -> str:
 
 
 __all__ = [
+    # LangChain templates
+    "QUERY_REWRITE_TEMPLATE",
+    "HYDE_TEMPLATE",
+    # Legacy prompts
     "QUERY_REWRITE_SYSTEM",
     "HYDE_SYSTEM",
+    # Functions
     "rewrite_query",
     "generate_hyde",
 ]

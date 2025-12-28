@@ -191,11 +191,11 @@ def print_agent_trend_report(num_runs: int | None = None) -> None:
 
         direction = trend["trend_direction"]
         if direction == "up":
-            trend_str = "[green]↑[/green]" if higher_is_better else "[red]↑[/red]"
+            trend_str = "[green]+[/green]" if higher_is_better else "[red]+[/red]"
         elif direction == "down":
-            trend_str = "[red]↓[/red]" if higher_is_better else "[green]↓[/green]"
+            trend_str = "[red]-[/red]" if higher_is_better else "[green]-[/green]"
         else:
-            trend_str = "[dim]→[/dim]"
+            trend_str = "[dim]=[/dim]"
 
         trend_table.add_row(label, curr_str, avg_str, trend_str)
 
@@ -224,7 +224,7 @@ def print_agent_trend_report(num_runs: int | None = None) -> None:
         all_passed = entry.get("all_slos_passed", False)
         failed_count = len(entry.get("failed_slos", []))
 
-        slo_str = "[green]✓[/green]" if all_passed else f"[red]✗{failed_count}[/red]"
+        slo_str = "[green]OK[/green]" if all_passed else f"[red]X{failed_count}[/red]"
 
         runs_table.add_row(
             date_str,

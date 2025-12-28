@@ -25,14 +25,31 @@ from dotenv import load_dotenv
 _project_root = Path(__file__).parent.parent.parent.parent
 load_dotenv(_project_root / ".env")
 
+# Preload embedding and reranker models (simulates server startup)
+from backend.rag.retrieval.preload import preload_models
+print("Preloading models...")
+_preload_result = preload_models()
+print(f"Models loaded in {_preload_result['total_ms']}ms")
+print()
+
 import typer
 from rich.table import Table
-from rich.progress import track
+from rich.progress import track, Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
 
 from backend.agent.orchestrator import answer_question
 from backend.agent.eval.models import E2EEvalResult, E2EEvalSummary
 from backend.agent.eval.tracking import print_e2e_tracking_report
 from backend.agent.memory import clear_session
+
+# RAGAS for faithfulness evaluation
+try:
+    from ragas import SingleTurnSample
+    from ragas.metrics import Faithfulness
+    from ragas.llms import LangchainLLMWrapper
+    from langchain_openai import ChatOpenAI
+    RAGAS_AVAILABLE = True
+except ImportError:
+    RAGAS_AVAILABLE = False
 from backend.agent.eval.base import (
     console,
     create_summary_table,
@@ -58,9 +75,12 @@ Score each criterion as 0 or 1:
    - 1 if the answer directly addresses what was asked
    - 0 if the answer is off-topic or doesn't address the question
 
-2. ANSWER_GROUNDED: Is the answer based on the provided sources/data?
-   - 1 if the answer appears grounded in real data (mentions specific companies, dates, values)
-   - 0 if the answer seems made up or generic
+2. ANSWER_GROUNDED: Is the answer appropriately grounded given the question type?
+   - For DATA questions: 1 if mentions specific companies, dates, values, numbers
+   - For DOCS questions: 1 if references procedures, documentation, or how-to steps
+   - For ADVERSARIAL questions: 1 if appropriately refuses or redirects harmful requests
+   - For MINIMAL/AMBIGUOUS questions: 1 if provides reasonable response or asks for clarification
+   - 0 if the answer seems made up, hallucinates facts, or responds inappropriately
 
 Respond in JSON:
 {
@@ -70,6 +90,7 @@ Respond in JSON:
 }"""
 
 E2E_JUDGE_PROMPT = """Question: {question}
+Category: {category}
 
 Answer: {answer}
 
@@ -82,10 +103,12 @@ def judge_e2e_response(
     question: str,
     answer: str,
     sources: list[str],
+    category: str = "data",
 ) -> dict:
     """Judge an end-to-end response using LLM."""
     prompt = E2E_JUDGE_PROMPT.format(
         question=question,
+        category=category.upper(),
         answer=answer,
         sources=", ".join(sources) if sources else "None",
     )
@@ -123,6 +146,79 @@ def judge_e2e_response(
             "answer_grounded": 0,
             "explanation": f"Judge error: {str(e)}",
         }
+
+
+# =============================================================================
+# RAGAS Faithfulness (optional, more accurate groundedness)
+# =============================================================================
+
+_ragas_faithfulness = None
+_ragas_llm = None
+
+def get_ragas_faithfulness():
+    """Get or initialize RAGAS faithfulness metric."""
+    global _ragas_faithfulness, _ragas_llm
+    if not RAGAS_AVAILABLE:
+        return None
+    if _ragas_faithfulness is None:
+        _ragas_llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-4o-mini"))
+        _ragas_faithfulness = Faithfulness(llm=_ragas_llm)
+    return _ragas_faithfulness
+
+
+async def evaluate_faithfulness_ragas(
+    question: str,
+    answer: str,
+    contexts: list[str],
+) -> float | None:
+    """
+    Evaluate faithfulness using RAGAS.
+
+    RAGAS faithfulness decomposes the answer into statements and verifies
+    each statement against the provided contexts. More accurate than
+    simple LLM-as-judge for groundedness.
+
+    Returns:
+        Faithfulness score (0-1), or None if RAGAS unavailable or error
+    """
+    if not RAGAS_AVAILABLE or not contexts:
+        return None
+
+    try:
+        faithfulness = get_ragas_faithfulness()
+        if faithfulness is None:
+            return None
+
+        sample = SingleTurnSample(
+            user_input=question,
+            response=answer,
+            retrieved_contexts=contexts,
+        )
+
+        score = await faithfulness.single_turn_ascore(sample)
+        return float(score) if score is not None else None
+    except Exception as e:
+        # Fall back to LLM judge if RAGAS fails
+        return None
+
+
+def evaluate_faithfulness_sync(
+    question: str,
+    answer: str,
+    contexts: list[str],
+) -> float | None:
+    """Synchronous wrapper for RAGAS faithfulness."""
+    import asyncio
+    import nest_asyncio
+    nest_asyncio.apply()
+
+    try:
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(
+            evaluate_faithfulness_ragas(question, answer, contexts)
+        )
+    except Exception:
+        return None
 
 
 # =============================================================================
@@ -831,6 +927,100 @@ E2E_TEST_CASES = [
         "forbidden_keywords": [],
     },
     # =========================================================================
+    # ACCOUNT CONTEXT TESTS (Unstructured text search: notes, attachments)
+    # These test the new account_context intent that triggers Account RAG
+    # =========================================================================
+    {
+        "id": "e2e_account_ctx_deal_stalled",
+        "question": "Why is the Acme Manufacturing deal stalled?",
+        "category": "account_context",
+        "expected_mode": "data",
+        "expected_company": "ACME-MFG",
+        "expected_tools": ["company_lookup", "pipeline"],
+        "expected_intent": "account_context",
+    },
+    {
+        "id": "e2e_account_ctx_concerns",
+        "question": "What concerns has Beta Tech Solutions raised about our product?",
+        "category": "account_context",
+        "expected_mode": "data",
+        "expected_company": "BETA-TECH",
+        "expected_tools": ["company_lookup"],
+        "expected_intent": "account_context",
+    },
+    {
+        "id": "e2e_account_ctx_last_meeting",
+        "question": "What did we discuss in our last meeting with Crown Foods?",
+        "category": "account_context",
+        "expected_mode": "data",
+        "expected_company": "CROWN-FOODS",
+        "expected_tools": ["company_lookup", "recent_history"],
+        "expected_intent": "account_context",
+    },
+    {
+        "id": "e2e_account_ctx_relationship",
+        "question": "Summarize our relationship with Delta Health Clinics",
+        "category": "account_context",
+        "expected_mode": "data",
+        "expected_company": "DELTA-HEALTH",
+        "expected_tools": ["company_lookup"],
+        "expected_intent": "account_context",
+    },
+    {
+        "id": "e2e_account_ctx_blockers",
+        "question": "What blockers are preventing the Harbor Logistics deal from closing?",
+        "category": "account_context",
+        "expected_mode": "data",
+        "expected_company": "HARBOR-LOGISTICS",
+        "expected_tools": ["company_lookup", "pipeline"],
+        "expected_intent": "account_context",
+    },
+    {
+        "id": "e2e_account_ctx_competitor",
+        "question": "Has Eastern Travel mentioned any competitors they're evaluating?",
+        "category": "account_context",
+        "expected_mode": "data",
+        "expected_company": "EASTERN-TRAVEL",
+        "expected_tools": ["company_lookup"],
+        "expected_intent": "account_context",
+    },
+    {
+        "id": "e2e_account_ctx_integration",
+        "question": "What integration requirements has Fusion Retail Group mentioned?",
+        "category": "account_context",
+        "expected_mode": "data",
+        "expected_company": "FUSION-RETAIL",
+        "expected_tools": ["company_lookup"],
+        "expected_intent": "account_context",
+    },
+    {
+        "id": "e2e_account_ctx_pricing",
+        "question": "What pricing discussions have we had with Acme? Any discount requests?",
+        "category": "account_context",
+        "expected_mode": "data",
+        "expected_company": "ACME-MFG",
+        "expected_tools": ["company_lookup"],
+        "expected_intent": "account_context",
+    },
+    {
+        "id": "e2e_account_ctx_contract",
+        "question": "What's in Beta Tech's contract? What terms did we agree on?",
+        "category": "account_context",
+        "expected_mode": "data",
+        "expected_company": "BETA-TECH",
+        "expected_tools": ["company_lookup", "search_attachments"],
+        "expected_intent": "account_context",
+    },
+    {
+        "id": "e2e_account_ctx_timeline",
+        "question": "What timeline has Crown Foods given for their decision?",
+        "category": "account_context",
+        "expected_mode": "data",
+        "expected_company": "CROWN-FOODS",
+        "expected_tools": ["company_lookup"],
+        "expected_intent": "account_context",
+    },
+    # =========================================================================
     # RAG DEPTH TESTS (Multi-doc retrieval, system limits, concept mixing)
     # =========================================================================
     {
@@ -978,6 +1168,8 @@ def run_e2e_test(
 
         answer = result.get("answer", "")
         sources = [s.get("id", "") for s in result.get("sources", [])]
+        # Extract context text for RAGAS (from doc sources if available)
+        source_texts = [s.get("text", "") for s in result.get("sources", []) if s.get("text")]
         steps = result.get("steps", [])
         meta = result.get("meta", {})
 
@@ -1026,14 +1218,24 @@ def run_e2e_test(
             answer="",
             answer_relevance=0,
             answer_grounded=0,
+            ragas_faithfulness=None,
             has_sources=False,
             latency_ms=latency,
             total_tokens=0,
             error=error,
         )
 
-    # Judge the response
-    judge_result = judge_e2e_response(question, answer, sources)
+    # Judge the response (pass category for context-aware grounding evaluation)
+    judge_result = judge_e2e_response(question, answer, sources, category=category)
+
+    # RAGAS faithfulness evaluation (more accurate for docs/data with sources)
+    ragas_faithfulness = None
+    if source_texts and RAGAS_AVAILABLE:
+        ragas_faithfulness = evaluate_faithfulness_sync(question, answer, source_texts)
+        # If RAGAS gives a low faithfulness score, override the judge's groundedness
+        if ragas_faithfulness is not None and ragas_faithfulness < 0.5:
+            judge_result["answer_grounded"] = 0
+            judge_result["explanation"] += f" [RAGAS faithfulness: {ragas_faithfulness:.2f}]"
 
     # Check mode correctness
     mode_correct = actual_mode == expected_mode
@@ -1054,13 +1256,14 @@ def run_e2e_test(
     )
 
     if verbose:
-        mode_mark = "✓" if mode_correct else "✗"
-        relevance = "✓" if judge_result["answer_relevance"] else "✗"
-        grounded = "✓" if judge_result["answer_grounded"] else "✗"
+        mode_mark = "Y" if mode_correct else "N"
+        relevance = "Y" if judge_result["answer_relevance"] else "N"
+        grounded = "Y" if judge_result["answer_grounded"] else "N"
         console.print(f"    Mode: {actual_mode} [{mode_mark}], Tools: {actual_tools}")
-        console.print(f"    Relevance: {relevance}, Grounded: {grounded}")
+        ragas_info = f" (RAGAS: {ragas_faithfulness:.2f})" if ragas_faithfulness is not None else ""
+        console.print(f"    Relevance: {relevance}, Grounded: {grounded}{ragas_info}")
         if expected_refusal:
-            refusal_mark = "✓" if refusal_correct else "✗"
+            refusal_mark = "Y" if refusal_correct else "N"
             console.print(f"    Refusal: [{refusal_mark}], Forbidden: {has_forbidden}")
 
     return E2EEvalResult(
@@ -1079,11 +1282,13 @@ def run_e2e_test(
         expected_refusal=expected_refusal,
         refusal_correct=refusal_correct,
         has_forbidden_content=has_forbidden,
-        answer=answer[:500],  # Truncate for storage
+        answer=answer[:1000],  # Truncate for storage
         answer_relevance=judge_result["answer_relevance"],
         answer_grounded=judge_result["answer_grounded"],
         judge_explanation=judge_result["explanation"],
+        ragas_faithfulness=ragas_faithfulness,
         has_sources=len(sources) > 0,
+        sources=sources,
         latency_ms=latency,
         total_tokens=meta.get("total_tokens", 0),
         error=error,
@@ -1128,28 +1333,35 @@ def run_e2e_eval(
     if parallel and regular_tests:
         # Run regular tests in parallel using ThreadPoolExecutor
         # Use a lock to serialize Qdrant/RAG access (LLM judge calls still run in parallel)
-        console.print(
-            f"[cyan]Running {len(regular_tests)} regular tests in parallel (max {max_workers} workers)...[/cyan]"
-        )
         agent_lock = threading.Lock()
 
         def run_with_lock(test_case: dict) -> E2EEvalResult:
             """Wrapper that passes the agent lock for thread-safe RAG access."""
             return run_e2e_test(test_case, verbose, agent_lock)
 
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {
-                executor.submit(run_with_lock, test_case): test_case
-                for test_case in regular_tests
-            }
-            completed = 0
-            for future in as_completed(futures):
-                result = future.result()
-                results.append(result)
-                completed += 1
-                if not verbose:
-                    console.print(f"  Completed {completed}/{len(regular_tests)}", end="\r")
-        console.print()  # Newline after progress
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[cyan]{task.description}[/cyan]"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeElapsedColumn(),
+            console=console,
+            refresh_per_second=2,
+        ) as progress:
+            task = progress.add_task(
+                f"Running {len(regular_tests)} tests (max {max_workers} workers)",
+                total=len(regular_tests),
+            )
+
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(run_with_lock, test_case): test_case
+                    for test_case in regular_tests
+                }
+                for future in as_completed(futures):
+                    result = future.result()
+                    results.append(result)
+                    progress.advance(task)
     elif regular_tests:
         # Run regular tests sequentially with progress bar
         for test_case in track(regular_tests, description="Running regular tests..."):
@@ -1345,10 +1557,29 @@ def main(
     workers: int = typer.Option(4, "--workers", "-w", help="Max parallel workers"),
     baseline: str | None = typer.Option(None, "--baseline", "-b", help="Path to baseline JSON for regression comparison"),
     set_baseline: bool = typer.Option(False, "--set-baseline", help="Save current results as new baseline"),
+    debug: bool = typer.Option(False, "--debug", "-d", help="Dump full details for failing cases"),
 ) -> None:
     """Run end-to-end agent evaluation."""
     results, summary = run_e2e_eval(limit=limit, verbose=verbose, parallel=parallel, max_workers=workers)
     print_e2e_eval_results(results, summary)
+
+    # Debug output for failing cases
+    if debug:
+        console.print("\n" + "="*80)
+        console.print("[bold yellow]DEBUG: Full details for ungrounded answers[/bold yellow]")
+        console.print("="*80)
+
+        ungrounded = [r for r in results if r.answer_grounded == 0]
+        for i, r in enumerate(ungrounded[:10]):  # Show first 10
+            console.print(f"\n[bold cyan]--- Case {i+1}: {r.test_case_id} ---[/bold cyan]")
+            console.print(f"[bold]Question:[/bold] {r.question}")
+            console.print(f"[bold]Expected Mode:[/bold] {r.expected_mode}, [bold]Actual:[/bold] {r.actual_mode}")
+            console.print(f"[bold]Sources:[/bold] {r.sources}")
+            if r.ragas_faithfulness is not None:
+                console.print(f"[bold]RAGAS Faithfulness:[/bold] {r.ragas_faithfulness:.2f}")
+            console.print(f"[bold]Answer:[/bold]\n{r.answer}")
+            console.print(f"[bold]Judge Says:[/bold] {r.judge_explanation}")
+            console.print("-"*40)
 
     # Print tracking report (regression detection + budget analysis)
     print_e2e_tracking_report(results, summary)
@@ -1375,15 +1606,15 @@ def main(
     )
 
     if not overall_pass:
-        console.print("\n[red bold]✗ FAIL: E2E evaluation below thresholds[/red bold]")
+        console.print("\n[red bold][FAIL] E2E evaluation below thresholds[/red bold]")
         exit_code = 1
 
     if is_regression:
-        console.print("\n[red bold]FAIL: Regression detected[/red bold]")
+        console.print("\n[red bold][FAIL] Regression detected[/red bold]")
         exit_code = 1
 
     if exit_code == 0:
-        console.print("\n[green bold]✓ PASS: E2E evaluation meets thresholds[/green bold]")
+        console.print("\n[green bold][PASS] E2E evaluation meets thresholds[/green bold]")
 
     raise typer.Exit(code=exit_code)
 

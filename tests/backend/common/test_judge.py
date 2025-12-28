@@ -191,7 +191,7 @@ class TestJudgeAnswer:
         mock_call_llm.assert_called_once()
         call_kwargs = mock_call_llm.call_args[1]
         assert "system_prompt" in call_kwargs
-        assert call_kwargs["model"] == "gpt-4o-mini"
+        assert call_kwargs["model"] == "o3-mini"
 
     @patch('backend.common.judge.call_llm')
     def test_handles_empty_sources(self, mock_call_llm):

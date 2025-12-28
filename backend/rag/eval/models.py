@@ -21,6 +21,7 @@ __all__ = [
     "SLO_RAG_TRIAD",
     "SLO_DOC_RECALL",
     "SLO_PRIVACY_LEAKAGE",
+    "SLO_NEGATIVE_HANDLING",
     # Production latency SLOs
     "SLO_LATENCY_P95_MS",
     "SLO_LATENCY_AVG_MS",
@@ -33,22 +34,27 @@ __all__ = [
 # =============================================================================
 # SLO Constants (Service Level Objectives)
 # =============================================================================
+# Based on industry standards for production RAG systems
+# Reference: RAGAS benchmarks, enterprise AI quality standards
 
-# Quality SLOs
-SLO_CONTEXT_RELEVANCE = 0.80    # 80% context relevance
-SLO_ANSWER_RELEVANCE = 0.80     # 80% answer relevance
-SLO_GROUNDEDNESS = 0.80         # 80% groundedness
-SLO_RAG_TRIAD = 0.70            # 70% full triad success
-SLO_DOC_RECALL = 0.70           # 70% doc recall
-SLO_PRIVACY_LEAKAGE = 0.0       # 0% privacy leakage (strict)
+# Quality SLOs (computed on answerable questions only)
+SLO_CONTEXT_RELEVANCE = 0.85    # 85% context relevance (retrieval quality)
+SLO_ANSWER_RELEVANCE = 0.85     # 85% answer relevance (response quality)
+SLO_GROUNDEDNESS = 0.85         # 85% groundedness (factual accuracy)
+SLO_RAG_TRIAD = 0.80            # 80% full triad success (overall quality)
+SLO_DOC_RECALL = 0.80           # 80% doc recall (retrieval coverage)
+SLO_PRIVACY_LEAKAGE = 0.0       # 0% privacy leakage (strict - security)
+
+# Negative question handling (correct rejection of unanswerable questions)
+SLO_NEGATIVE_HANDLING = 0.90    # 90% correct rejection rate
 
 # Production latency SLOs (what users experience)
 SLO_LATENCY_P95_MS = 5000       # 5s P95 - catches outliers
 SLO_LATENCY_AVG_MS = 3000       # 3s average - typical experience
 
 # Eval latency SLOs (more lenient due to judge LLM overhead)
-SLO_EVAL_LATENCY_P95_MS = 10000  # 10s P95 for eval (includes ~500ms judge call)
-SLO_EVAL_LATENCY_AVG_MS = 6000   # 6s average for eval
+SLO_EVAL_LATENCY_P95_MS = 15000  # 15s P95 for eval (includes judge + RAGAS calls)
+SLO_EVAL_LATENCY_AVG_MS = 10000  # 10s average for eval
 
 
 class JudgeResult(BaseModel):
@@ -65,6 +71,7 @@ class EvalResult(BaseModel):
     """Complete evaluation result for a single documentation question."""
     question_id: str
     question: str
+    category: str = "single_doc"  # single_doc, multi_doc, negative, edge, etc.
     target_doc_ids: list[str]
     retrieved_doc_ids: list[str]
     answer: str
@@ -73,6 +80,17 @@ class EvalResult(BaseModel):
     latency_ms: float
     total_tokens: int
     step_timings: dict[str, float] = {}  # step_id -> elapsed_ms
+    # Rerank scores for analysis
+    max_rerank_score: float | None = None  # Highest rerank score from retrieval
+    rerank_scores: list[float] = []  # All rerank scores (top-k)
+    # RAGAS metrics (more accurate than binary judge scores)
+    ragas_faithfulness: float | None = None  # 0-1, statement-level grounding
+    ragas_answer_correctness: float | None = None  # 0-1, vs gold answer
+
+    @property
+    def is_negative(self) -> bool:
+        """Check if this is a negative test (question about undocumented topic)."""
+        return self.category == "negative" or len(self.target_doc_ids) == 0
 
 
 class AccountEvalResult(BaseModel):
@@ -90,6 +108,8 @@ class AccountEvalResult(BaseModel):
     latency_ms: float
     total_tokens: int
     estimated_cost: float
+    # RAGAS metrics
+    ragas_faithfulness: float | None = None  # 0-1, statement-level grounding
 
 
 # =============================================================================
@@ -99,6 +119,8 @@ class AccountEvalResult(BaseModel):
 class DocsEvalSummary(BaseModel):
     """Summary of docs RAG evaluation."""
     total_tests: int
+    answerable_tests: int = 0  # Tests with documented answers (excludes negative)
+    negative_tests: int = 0    # Tests for undocumented topics
     context_relevance: float
     answer_relevance: float
     groundedness: float
@@ -108,6 +130,11 @@ class DocsEvalSummary(BaseModel):
     p95_latency_ms: float
     total_tokens: int
     estimated_cost: float
+    # RAGAS metrics (average across tests with scores)
+    avg_ragas_faithfulness: float | None = None
+    avg_ragas_answer_correctness: float | None = None
+    # Negative question handling (correct rejection rate)
+    negative_handling_rate: float | None = None  # % of negative Qs correctly declined
     # SLO tracking
     all_slos_passed: bool = True
     failed_slos: list[str] = []

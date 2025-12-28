@@ -248,23 +248,23 @@ class TestSLOConstants:
 
     def test_slo_context_relevance(self):
         """Test SLO context relevance threshold."""
-        assert SLO_CONTEXT_RELEVANCE == 0.80
+        assert SLO_CONTEXT_RELEVANCE == 0.85
 
     def test_slo_answer_relevance(self):
         """Test SLO answer relevance threshold."""
-        assert SLO_ANSWER_RELEVANCE == 0.80
+        assert SLO_ANSWER_RELEVANCE == 0.85
 
     def test_slo_groundedness(self):
         """Test SLO groundedness threshold."""
-        assert SLO_GROUNDEDNESS == 0.80
+        assert SLO_GROUNDEDNESS == 0.85
 
     def test_slo_rag_triad(self):
         """Test SLO RAG triad threshold."""
-        assert SLO_RAG_TRIAD == 0.70
+        assert SLO_RAG_TRIAD == 0.80
 
     def test_slo_doc_recall(self):
         """Test SLO doc recall threshold."""
-        assert SLO_DOC_RECALL == 0.70
+        assert SLO_DOC_RECALL == 0.80
 
     def test_slo_latency(self):
         """Test SLO latency threshold."""

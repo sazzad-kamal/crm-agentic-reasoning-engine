@@ -4,7 +4,8 @@ Constants for the pipeline module.
 
 # LLM Configuration
 LLM_MODEL = "gpt-4o-mini"  # Fast model for HyDE, query rewrite
-ANSWER_MODEL = "gpt-4o"  # Best model for final answers
+ANSWER_MODEL = "gpt-5.2"  # Best model for final answers (upgraded from gpt-4o)
+JUDGE_MODEL = "o3-mini"  # Reasoning model for better judge evaluation
 ANSWER_MAX_TOKENS = 800
 
 # Context Building

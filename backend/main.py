@@ -139,15 +139,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Handles startup and shutdown events.
     """
     settings = get_settings()
-    
+
     # Startup
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"Debug mode: {settings.debug}")
     logger.info(f"CORS origins: {settings.cors_origins_list}")
-    
+
     # Ensure RAG collections exist
     ensure_rag_collections_exist()
-    
+
+    # Preload embedding and reranker models to eliminate cold start latency
+    from backend.rag.retrieval.preload import preload_models
+    preload_models()
+
     yield
     
     # Shutdown

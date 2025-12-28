@@ -23,6 +23,13 @@ from dotenv import load_dotenv
 _project_root = Path(__file__).parent.parent.parent.parent
 load_dotenv(_project_root / ".env")
 
+# Preload embedding and reranker models (simulates server startup)
+from backend.rag.retrieval.preload import preload_models
+print("Preloading models...")
+_preload_result = preload_models()
+print(f"Models loaded in {_preload_result['total_ms']}ms")
+print()
+
 import typer
 from rich.table import Table
 from rich.progress import track

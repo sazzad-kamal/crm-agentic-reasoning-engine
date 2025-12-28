@@ -35,8 +35,8 @@ class AgentConfig(BaseSettings):
     # LLM Configuration
     # -------------------------------------------------------------------------
     llm_model: str = Field(
-        default="gpt-4o",
-        description="LLM model for agent responses"
+        default="gpt-5.2",
+        description="LLM model for agent orchestration and synthesis (upgraded from gpt-4o)"
     )
     router_model: str = Field(
         default="gpt-4o-mini",
@@ -81,6 +81,22 @@ class AgentConfig(BaseSettings):
     enable_audit_logging: bool = Field(
         default=True,
         description="Enable audit logging for agent queries"
+    )
+
+    # -------------------------------------------------------------------------
+    # RAG Pipeline Configuration
+    # -------------------------------------------------------------------------
+    rag_use_hyde: bool = Field(
+        default=False,
+        description="Use HyDE (Hypothetical Document Embeddings) for retrieval - adds ~2-3s latency"
+    )
+    rag_use_rewrite: bool = Field(
+        default=False,
+        description="Use query rewriting for better retrieval - adds ~1-2s latency"
+    )
+    rag_use_reranker: bool = Field(
+        default=True,
+        description="Use reranker for better result ordering"
     )
     
     # -------------------------------------------------------------------------

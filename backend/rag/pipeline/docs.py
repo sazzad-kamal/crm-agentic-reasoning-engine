@@ -22,6 +22,7 @@ Usage:
 import logging
 from collections.abc import Callable
 
+from backend.agent.config import get_config
 from backend.rag.models import DocumentChunk
 from backend.rag.retrieval.base import RetrievalBackend
 from backend.rag.pipeline.constants import ANSWER_MODEL, ANSWER_MAX_TOKENS, MAX_CONTEXT_TOKENS
@@ -87,23 +88,23 @@ def answer_question(
     backend: RetrievalBackend,
     *,
     k: int = 8,
-    use_hyde: bool = True,
-    use_rewrite: bool = None,  # None = use config
+    use_hyde: bool | None = None,  # None = use config
+    use_rewrite: bool | None = None,  # None = use config
     verbose: bool = False,
     progress_callback: Callable[[str, str, float], None] | None = None,
 ) -> dict:
     """
     Full RAG pipeline to answer a question.
-    
+
     Args:
         question: User's question
         backend: Initialized RetrievalBackend
         k: Number of chunks to retrieve
-        use_hyde: Whether to use HyDE for retrieval
+        use_hyde: Whether to use HyDE for retrieval (None = use config)
         use_rewrite: Whether to rewrite the query (None = use config)
         verbose: Print debug information
         progress_callback: Optional callback for step progress (step_id, label, elapsed_ms)
-        
+
     Returns:
         Dict containing:
         - answer: The generated answer
@@ -115,10 +116,13 @@ def answer_question(
         - steps: List of processing steps with timing
     """
     progress = PipelineProgress(callback=progress_callback)
-    
-    # Default to True for rewrite
+
+    # Use centralized config for defaults
+    config = get_config()
+    if use_hyde is None:
+        use_hyde = config.rag_use_hyde
     if use_rewrite is None:
-        use_rewrite = True
+        use_rewrite = config.rag_use_rewrite
     
     metrics = {
         "total_latency_ms": 0,
@@ -180,11 +184,15 @@ def answer_question(
         gated_chunks = apply_lexical_gate(scored_chunks)
         if verbose:
             print(f"After lexical gate: {len(gated_chunks)} chunks")
-        
+
         capped_chunks = apply_per_doc_cap(gated_chunks)
         if verbose:
             print(f"After per-doc cap: {len(capped_chunks)} chunks")
-        
+
+        # Capture rerank scores before extracting chunks
+        rerank_scores = [sc.rerank_score for sc in capped_chunks[:k]]
+        max_rerank_score = max(rerank_scores) if rerank_scores else 0.0
+
         final_chunks = [sc.chunk for sc in capped_chunks[:k]]
         progress.complete_step("filter", f"Selected {len(final_chunks)} best matches")
         
@@ -227,6 +235,8 @@ def answer_question(
             "num_chunks_used": len(final_chunks),
             "context_tokens": estimate_tokens(context),
             "steps": progress.get_steps(),
+            "rerank_scores": rerank_scores,
+            "max_rerank_score": max_rerank_score,
             "metrics": {
                 "answer_latency_ms": answer_result["latency_ms"],
                 "total_latency_ms": int(progress.total_elapsed_ms()),

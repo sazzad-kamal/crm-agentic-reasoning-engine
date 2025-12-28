@@ -2,10 +2,12 @@
 LangGraph node functions for agent workflow.
 
 Each function represents a node in the graph that processes state.
+Includes RunnableParallel for concurrent data+docs fetching.
 """
 
 import logging
 from typing import Literal
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from backend.agent.state import AgentState
 from backend.agent.config import get_config
@@ -23,12 +25,16 @@ from backend.agent.formatters import (
     format_pipeline_section,
     format_renewals_section,
     format_docs_section,
+    format_account_context_section,
     format_conversation_history_section,
 )
 from backend.agent.llm_helpers import (
     call_llm,
     call_docs_rag,
+    call_account_rag,
     generate_follow_up_suggestions,
+    call_answer_chain,
+    call_not_found_chain,
 )
 from backend.agent.intent_handlers import IntentContext, dispatch_intent
 
@@ -208,14 +214,178 @@ def skip_docs_node(state: AgentState) -> AgentState:
 
 
 # =============================================================================
+# Parallel Data + Docs Node (RunnableParallel Pattern)
+# =============================================================================
+
+def data_and_docs_parallel_node(state: AgentState) -> AgentState:
+    """
+    Parallel node: Fetch CRM data, docs, and account context concurrently.
+
+    This implements the RunnableParallel pattern for LangGraph,
+    fetching all data sources simultaneously to reduce latency.
+    Now includes Account RAG for unstructured text search (notes, attachments).
+    """
+    logger.info("[DataDocs] Fetching data, docs, and account context in parallel...")
+
+    # Prepare results containers
+    data_result = {}
+    docs_result = {}
+    account_result = {}
+    errors = []
+
+    # Check if we should fetch account context
+    intent = state.get("intent", "general")
+    company_id = state.get("resolved_company_id")
+    should_fetch_account_context = (
+        company_id and
+        intent in ("account_context", "company_status", "history")
+    )
+
+    def fetch_data():
+        """Fetch CRM data (runs in thread)."""
+        try:
+            ctx = IntentContext(
+                question=state.get("question", "").lower(),
+                resolved_company_id=state.get("resolved_company_id"),
+                days=state.get("days", 90),
+                router_result=state.get("router_result"),
+            )
+            result = dispatch_intent(intent, ctx)
+            return {
+                "company_data": result.company_data,
+                "activities_data": result.activities_data,
+                "history_data": result.history_data,
+                "pipeline_data": result.pipeline_data,
+                "renewals_data": result.renewals_data,
+                "contacts_data": result.contacts_data,
+                "groups_data": result.groups_data,
+                "attachments_data": result.attachments_data,
+                "resolved_company_id": result.resolved_company_id or ctx.resolved_company_id,
+                "sources": result.sources,
+                "raw_data": result.raw_data,
+            }
+        except Exception as e:
+            logger.error(f"[DataDocs] Data fetch failed: {e}")
+            return {"error": str(e)}
+
+    def fetch_docs():
+        """Fetch docs via RAG (runs in thread)."""
+        try:
+            docs_answer, docs_sources = call_docs_rag(state["question"])
+            return {
+                "docs_answer": docs_answer,
+                "docs_sources": docs_sources,
+            }
+        except Exception as e:
+            logger.error(f"[DataDocs] Docs fetch failed: {e}")
+            return {"docs_answer": "", "docs_sources": [], "error": str(e)}
+
+    def fetch_account_context():
+        """Fetch account context via Account RAG (runs in thread)."""
+        try:
+            if not company_id:
+                return {"account_context_answer": "", "account_context_sources": []}
+
+            account_answer, account_sources = call_account_rag(
+                question=state["question"],
+                company_id=company_id,
+            )
+            return {
+                "account_context_answer": account_answer,
+                "account_context_sources": account_sources,
+            }
+        except Exception as e:
+            logger.error(f"[DataDocs] Account RAG failed: {e}")
+            return {"account_context_answer": "", "account_context_sources": [], "error": str(e)}
+
+    # Execute in parallel using ThreadPoolExecutor
+    max_workers = 3 if should_fetch_account_context else 2
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {}
+        futures["data"] = executor.submit(fetch_data)
+        futures["docs"] = executor.submit(fetch_docs)
+
+        if should_fetch_account_context:
+            futures["account"] = executor.submit(fetch_account_context)
+
+        # Collect results
+        for name, future in futures.items():
+            try:
+                result = future.result()
+                if name == "data":
+                    data_result = result
+                elif name == "docs":
+                    docs_result = result
+                elif name == "account":
+                    account_result = result
+            except Exception as e:
+                errors.append(f"{name}: {str(e)}")
+
+    # Merge results
+    all_sources = (
+        data_result.get("sources", []) +
+        docs_result.get("docs_sources", []) +
+        account_result.get("account_context_sources", [])
+    )
+
+    steps = [
+        {"id": "data", "label": "Fetching CRM data", "status": "done" if "error" not in data_result else "error"},
+        {"id": "docs", "label": "Checking documentation", "status": "done" if "error" not in docs_result else "error"},
+    ]
+
+    if should_fetch_account_context:
+        steps.append({
+            "id": "account_context",
+            "label": "Searching account notes",
+            "status": "done" if "error" not in account_result else "error"
+        })
+
+    merged = {
+        # Data results
+        "company_data": data_result.get("company_data"),
+        "activities_data": data_result.get("activities_data"),
+        "history_data": data_result.get("history_data"),
+        "pipeline_data": data_result.get("pipeline_data"),
+        "renewals_data": data_result.get("renewals_data"),
+        "contacts_data": data_result.get("contacts_data"),
+        "groups_data": data_result.get("groups_data"),
+        "attachments_data": data_result.get("attachments_data"),
+        "resolved_company_id": data_result.get("resolved_company_id"),
+        "raw_data": data_result.get("raw_data", {}),
+        # Docs results
+        "docs_answer": docs_result.get("docs_answer", ""),
+        "docs_sources": docs_result.get("docs_sources", []),
+        # Account RAG results
+        "account_context_answer": account_result.get("account_context_answer", ""),
+        "account_context_sources": account_result.get("account_context_sources", []),
+        # Combined sources
+        "sources": all_sources,
+        # Steps
+        "steps": steps,
+    }
+
+    if errors:
+        merged["error"] = "; ".join(errors)
+
+    logger.info(
+        f"[DataDocs] Parallel fetch complete: {len(all_sources)} sources "
+        f"(account_context={'yes' if should_fetch_account_context else 'no'})"
+    )
+    return merged
+
+
+# =============================================================================
 # Answer Node
 # =============================================================================
 
 def answer_node(state: AgentState) -> AgentState:
     """
-    Answer node: Synthesize final answer using LLM.
+    Answer node: Synthesize final answer using LCEL chains.
+
+    Uses LangChain LCEL chains (prompt | llm | parser) for answer synthesis.
     """
-    logger.info("[Answer] Synthesizing response...")
+    logger.info("[Answer] Synthesizing response with LCEL chain...")
 
     try:
         company_data = state.get("company_data")
@@ -227,13 +397,12 @@ def answer_node(state: AgentState) -> AgentState:
                 for m in company_data.get("close_matches", [])[:5]
             ]) or "No similar companies found."
 
-            prompt = COMPANY_NOT_FOUND_PROMPT.format(
+            # Use LCEL chain for company not found
+            answer, llm_latency = call_not_found_chain(
                 question=state["question"],
                 query=company_data.get("query", "unknown"),
                 matches=matches_text,
             )
-
-            answer, llm_latency = call_llm(prompt, AGENT_SYSTEM_PROMPT)
 
         else:
             # Build context sections
@@ -246,8 +415,12 @@ def answer_node(state: AgentState) -> AgentState:
             pipeline_section = format_pipeline_section(state.get("pipeline_data"))
             renewals_section = format_renewals_section(state.get("renewals_data"))
             docs_section = format_docs_section(state.get("docs_answer", ""))
+            account_context_section = format_account_context_section(
+                state.get("account_context_answer", "")
+            )
 
-            prompt = DATA_ANSWER_PROMPT.format(
+            # Use LCEL chain for answer synthesis
+            answer, llm_latency = call_answer_chain(
                 question=state["question"],
                 conversation_history_section=conversation_history_section,
                 company_section=company_section,
@@ -256,9 +429,8 @@ def answer_node(state: AgentState) -> AgentState:
                 pipeline_section=pipeline_section,
                 renewals_section=renewals_section,
                 docs_section=docs_section,
+                account_context_section=account_context_section,
             )
-
-            answer, llm_latency = call_llm(prompt, AGENT_SYSTEM_PROMPT)
 
         logger.info(f"[Answer] Synthesized in {llm_latency}ms")
 
@@ -342,6 +514,7 @@ __all__ = [
     "docs_node",
     "skip_data_node",
     "skip_docs_node",
+    "data_and_docs_parallel_node",
     "answer_node",
     "followup_node",
     "route_by_mode",

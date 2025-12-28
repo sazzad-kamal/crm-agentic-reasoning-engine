@@ -14,8 +14,20 @@ Usage:
 """
 
 import logging
-from itertools import batched
+import sys
 from pathlib import Path
+
+# Python 3.12+ has itertools.batched, add polyfill for 3.11
+if sys.version_info >= (3, 12):
+    from itertools import batched
+else:
+    from itertools import islice
+
+    def batched(iterable, n):
+        """Batch data into lists of length n. The last batch may be shorter."""
+        it = iter(iterable)
+        while batch := list(islice(it, n)):
+            yield batch
 
 import numpy as np
 from qdrant_client import QdrantClient
@@ -103,10 +115,14 @@ class RetrievalBackend(RankingMixin):
     
     @property
     def embedding_model(self) -> SentenceTransformer:
-        """Lazy load the embedding model."""
+        """Get the embedding model (uses preloaded if available)."""
         if self._embedding_model is None:
-            logger.info(f"Loading embedding model: {self._embedding_model_name}")
-            self._embedding_model = SentenceTransformer(self._embedding_model_name)
+            # Use preloaded model if available
+            from backend.rag.retrieval.preload import _embedding_model, get_embedding_model
+            if _embedding_model is not None:
+                self._embedding_model = _embedding_model
+            else:
+                self._embedding_model = get_embedding_model()
         return self._embedding_model
     
     def _tokenize(self, text: str) -> list[str]:

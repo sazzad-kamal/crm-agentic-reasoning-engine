@@ -36,10 +36,14 @@ class RankingMixin:
     
     @property
     def reranker(self) -> CrossEncoder:
-        """Lazy load the reranker model."""
+        """Get the reranker model (uses preloaded if available)."""
         if self._reranker is None:
-            logger.info(f"Loading reranker model: {self._reranker_model_name}")
-            self._reranker = CrossEncoder(self._reranker_model_name)
+            # Use preloaded model if available
+            from backend.rag.retrieval.preload import _reranker_model, get_reranker_model
+            if _reranker_model is not None:
+                self._reranker = _reranker_model
+            else:
+                self._reranker = get_reranker_model()
         return self._reranker
     
     def rrf_merge(

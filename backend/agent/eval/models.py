@@ -107,9 +107,11 @@ class E2EEvalResult(BaseModel):
     answer_relevance: int  # 0 or 1
     answer_grounded: int  # 0 or 1
     judge_explanation: str = ""
+    ragas_faithfulness: float | None = None  # RAGAS faithfulness score (0-1)
 
     # Metadata
     has_sources: bool
+    sources: list[str] = []  # Source IDs for debugging
     latency_ms: float
     total_tokens: int
     error: str | None = None

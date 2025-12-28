@@ -25,7 +25,10 @@ openai>=1.0.0
 sentence-transformers>=2.2.0
 tenacity>=8.2.0
 
-# Agent Framework
+# LangChain Framework
+langchain>=0.3.0
+langchain-openai>=0.2.0
+langsmith>=0.1.0
 langgraph>=0.2.0
 
 # Vector Store & Retrieval
@@ -40,3 +43,7 @@ python-dotenv>=1.0.0
 typer>=0.9.0
 rich>=13.0.0
 tqdm>=4.65.0
+
+# Evaluation & Metrics
+ragas>=0.2.0
+nest_asyncio>=1.5.0

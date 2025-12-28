@@ -306,6 +306,7 @@ class TestQuestionGeneration:
             EDGE_CASE_TEMPLATES,
             NATURAL_LANGUAGE_TEMPLATES,
             GROUND_TRUTH_TEMPLATES,
+            ACCOUNT_CONTEXT_TEMPLATES,
         )
 
         questions = generate_eval_questions()
@@ -322,7 +323,10 @@ class TestQuestionGeneration:
         # Ground truth: 4 companies × all GT templates
         ground_truth = 4 * len(GROUND_TRUTH_TEMPLATES)
 
-        expected = base + edge_cases + natural_language + ground_truth
+        # Account context: 5 companies × all account context templates
+        account_context = 5 * len(ACCOUNT_CONTEXT_TEMPLATES)
+
+        expected = base + edge_cases + natural_language + ground_truth + account_context
         assert len(questions) == expected
     
     def test_questions_have_required_fields(self):

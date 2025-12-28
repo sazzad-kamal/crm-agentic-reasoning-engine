@@ -55,6 +55,10 @@ class AgentState(TypedDict, total=False):
     docs_answer: str
     docs_sources: list[Source]
 
+    # Account RAG output (private CRM text: notes, attachments)
+    account_context_answer: str
+    account_context_sources: list[Source]
+
     # Sources accumulated from all steps (using reducer to append)
     sources: Annotated[list[Source], add]
 

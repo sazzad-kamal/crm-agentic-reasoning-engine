@@ -209,15 +209,15 @@ def print_e2e_regression_report(comparison: dict[str, Any]) -> None:
 
     # Regression/improvement summary
     if comparison["regressions"]:
-        console.print(f"\n[red bold]⚠ REGRESSION DETECTED: {len(comparison['regressions'])} metrics declined[/red bold]")
+        console.print(f"\n[red bold][!] REGRESSION DETECTED: {len(comparison['regressions'])} metrics declined[/red bold]")
         for r in comparison["regressions"]:
             if r.get("unit") == "ms":
-                console.print(f"  • {r['metric']}: {r['delta']:+.0f}ms")
+                console.print(f"  - {r['metric']}: {r['delta']:+.0f}ms")
             else:
-                console.print(f"  • {r['metric']}: {r['delta']:+.1%}")
+                console.print(f"  - {r['metric']}: {r['delta']:+.1%}")
 
     if comparison["improvements"]:
-        console.print(f"\n[green bold]✓ IMPROVEMENT: {len(comparison['improvements'])} metrics improved[/green bold]")
+        console.print(f"\n[green bold][OK] IMPROVEMENT: {len(comparison['improvements'])} metrics improved[/green bold]")
 
 
 # =============================================================================
@@ -294,7 +294,7 @@ def print_e2e_budget_report(results: list[E2EEvalResult]) -> None:
         for cat, stats in sorted(analysis["category_stats"].items()):
             exceeded = stats["exceeded"]
             total = stats["count"]
-            status = "[green]✓[/green]" if exceeded == 0 else f"[yellow]⚠ {exceeded}/{total}[/yellow]"
+            status = "[green]OK[/green]" if exceeded == 0 else f"[yellow]! {exceeded}/{total}[/yellow]"
 
             table.add_row(
                 cat,
@@ -308,12 +308,12 @@ def print_e2e_budget_report(results: list[E2EEvalResult]) -> None:
 
     # Total latency violations
     if analysis["total_violations"]:
-        console.print(f"\n[yellow bold]⚠ {len(analysis['total_violations'])} tests exceeded latency budget ({analysis['total_budget']}ms)[/yellow bold]")
+        console.print(f"\n[yellow bold][!] {len(analysis['total_violations'])} tests exceeded latency budget ({analysis['total_budget']}ms)[/yellow bold]")
 
         for v in analysis["total_violations"][:5]:
-            console.print(f"  • {v['test_case_id']}: {v['latency_ms']:.0f}ms (+{v['over_by']:.0f}ms over)")
+            console.print(f"  - {v['test_case_id']}: {v['latency_ms']:.0f}ms (+{v['over_by']:.0f}ms over)")
     else:
-        console.print(f"\n[green]✓ All tests within latency budget ({analysis['total_budget']}ms)[/green]")
+        console.print(f"\n[green][OK] All tests within latency budget ({analysis['total_budget']}ms)[/green]")
 
 
 # =============================================================================

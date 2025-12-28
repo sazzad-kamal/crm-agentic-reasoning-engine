@@ -1,23 +1,20 @@
 """
 LangGraph node functions for agent workflow.
 
-Each function represents a node in the graph that processes state.
-Includes RunnableParallel for concurrent data+docs fetching.
+Simplified 4-node architecture:
+  Route → Fetch (parallel) → Answer → Followup
+
+The Fetch node always runs CRM data + Docs RAG in parallel,
+with optional Account RAG for company-specific intents.
 """
 
 import logging
-from typing import Literal
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 
 from backend.agent.state import AgentState
 from backend.agent.config import get_config
 from backend.agent.llm_router import route_question
 from backend.agent.memory import format_history_for_prompt
-from backend.agent.prompts import (
-    AGENT_SYSTEM_PROMPT,
-    COMPANY_NOT_FOUND_PROMPT,
-    DATA_ANSWER_PROMPT,
-)
 from backend.agent.formatters import (
     format_company_section,
     format_activities_section,
@@ -92,108 +89,21 @@ def route_node(state: AgentState) -> AgentState:
 
 
 # =============================================================================
-# Data Node
+# Fetch Node (Unified Parallel Fetch)
 # =============================================================================
 
-def data_node(state: AgentState) -> AgentState:
+def fetch_node(state: AgentState) -> AgentState:
     """
-    Data node: Fetch CRM data based on router output.
+    Unified fetch node: Fetch CRM data, docs, and account context in parallel.
 
-    Uses intent dispatch pattern for extensibility (Open/Closed principle).
-    See intent_handlers.py for supported intents.
+    Always fetches both CRM data and documentation concurrently using
+    ThreadPoolExecutor. For company-specific intents, also fetches
+    Account RAG (notes, attachments) in parallel.
+
+    This unified approach simplifies the graph while maintaining
+    the same latency characteristics (LLM synthesis dominates).
     """
-    intent = state.get("intent", "general")
-    logger.info(f"[Data] Fetching CRM data for intent={intent}")
-
-    try:
-        # Build context for intent handler
-        ctx = IntentContext(
-            question=state.get("question", "").lower(),
-            resolved_company_id=state.get("resolved_company_id"),
-            days=state.get("days", 90),
-            router_result=state.get("router_result"),
-        )
-
-        # Dispatch to appropriate handler
-        result = dispatch_intent(intent, ctx)
-
-        return {
-            "company_data": result.company_data,
-            "activities_data": result.activities_data,
-            "history_data": result.history_data,
-            "pipeline_data": result.pipeline_data,
-            "renewals_data": result.renewals_data,
-            "contacts_data": result.contacts_data,
-            "groups_data": result.groups_data,
-            "attachments_data": result.attachments_data,
-            "resolved_company_id": result.resolved_company_id or ctx.resolved_company_id,
-            "sources": result.sources,
-            "raw_data": result.raw_data,
-            "steps": [{"id": "data", "label": "Fetching CRM data", "status": "done"}],
-        }
-
-    except Exception as e:
-        logger.error(f"[Data] Failed: {e}")
-        return {
-            "raw_data": {
-                "companies": [],
-                "contacts": [],
-                "activities": [],
-                "opportunities": [],
-                "history": [],
-                "renewals": [],
-                "groups": [],
-                "attachments": [],
-                "pipeline_summary": None,
-            },
-            "steps": [{"id": "data", "label": "Fetching CRM data", "status": "error"}],
-            "error": f"Data fetch failed: {e}",
-        }
-
-
-# =============================================================================
-# Docs Node
-# =============================================================================
-
-def docs_node(state: AgentState) -> AgentState:
-    """
-    Docs node: Fetch documentation via RAG.
-    """
-    logger.info("[Docs] Querying documentation...")
-
-    try:
-        docs_answer, docs_sources = call_docs_rag(state["question"])
-        logger.info(f"[Docs] Retrieved {len(docs_sources)} sources")
-
-        return {
-            "docs_answer": docs_answer,
-            "docs_sources": docs_sources,
-            "sources": docs_sources,
-            "steps": [{"id": "docs", "label": "Checking documentation", "status": "done"}],
-        }
-
-    except Exception as e:
-        logger.error(f"[Docs] Failed: {e}")
-        return {
-            "docs_answer": "",
-            "docs_sources": [],
-            "steps": [{"id": "docs", "label": "Checking documentation", "status": "error"}],
-        }
-
-
-# =============================================================================
-# Parallel Data + Docs Node (RunnableParallel Pattern)
-# =============================================================================
-
-def data_and_docs_parallel_node(state: AgentState) -> AgentState:
-    """
-    Parallel node: Fetch CRM data, docs, and account context concurrently.
-
-    This implements the RunnableParallel pattern for LangGraph,
-    fetching all data sources simultaneously to reduce latency.
-    Now includes Account RAG for unstructured text search (notes, attachments).
-    """
-    logger.info("[DataDocs] Fetching data, docs, and account context in parallel...")
+    logger.info("[Fetch] Fetching data, docs, and account context in parallel...")
 
     # Prepare results containers
     data_result = {}
@@ -234,7 +144,7 @@ def data_and_docs_parallel_node(state: AgentState) -> AgentState:
                 "raw_data": result.raw_data,
             }
         except Exception as e:
-            logger.error(f"[DataDocs] Data fetch failed: {e}")
+            logger.error(f"[Fetch] Data fetch failed: {e}")
             return {"error": str(e)}
 
     def fetch_docs():
@@ -246,7 +156,7 @@ def data_and_docs_parallel_node(state: AgentState) -> AgentState:
                 "docs_sources": docs_sources,
             }
         except Exception as e:
-            logger.error(f"[DataDocs] Docs fetch failed: {e}")
+            logger.error(f"[Fetch] Docs fetch failed: {e}")
             return {"docs_answer": "", "docs_sources": [], "error": str(e)}
 
     def fetch_account_context():
@@ -264,7 +174,7 @@ def data_and_docs_parallel_node(state: AgentState) -> AgentState:
                 "account_context_sources": account_sources,
             }
         except Exception as e:
-            logger.error(f"[DataDocs] Account RAG failed: {e}")
+            logger.error(f"[Fetch] Account RAG failed: {e}")
             return {"account_context_answer": "", "account_context_sources": [], "error": str(e)}
 
     # Execute in parallel using ThreadPoolExecutor
@@ -338,7 +248,7 @@ def data_and_docs_parallel_node(state: AgentState) -> AgentState:
         merged["error"] = "; ".join(errors)
 
     logger.info(
-        f"[DataDocs] Parallel fetch complete: {len(all_sources)} sources "
+        f"[Fetch] Parallel fetch complete: {len(all_sources)} sources "
         f"(account_context={'yes' if should_fetch_account_context else 'no'})"
     )
     return merged
@@ -459,30 +369,9 @@ def followup_node(state: AgentState) -> AgentState:
         }
 
 
-# =============================================================================
-# Routing Logic
-# =============================================================================
-
-def route_by_mode(state: AgentState) -> Literal["data_only", "docs_only", "data_and_docs"]:
-    """
-    Conditional edge: Route based on mode_used.
-    """
-    mode = state.get("mode_used", "data+docs")
-
-    if mode == "data":
-        return "data_only"
-    elif mode == "docs":
-        return "docs_only"
-    else:  # "data+docs" or fallback
-        return "data_and_docs"
-
-
 __all__ = [
     "route_node",
-    "data_node",
-    "docs_node",
-    "data_and_docs_parallel_node",
+    "fetch_node",
     "answer_node",
     "followup_node",
-    "route_by_mode",
 ]

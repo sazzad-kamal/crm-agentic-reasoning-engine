@@ -2,7 +2,7 @@
 Tests for the simplified LangGraph agent structure.
 
 Verifies:
-- Graph has 6 nodes (simplified from 8)
+- Graph has 4 nodes (simplified from 6)
 - All router intents are explicitly mapped
 - Account RAG triggers for correct intents
 """
@@ -13,8 +13,8 @@ import pytest
 class TestGraphStructure:
     """Tests for the simplified graph structure."""
 
-    def test_graph_has_six_nodes(self):
-        """Verify the graph was simplified to 6 nodes."""
+    def test_graph_has_four_nodes(self):
+        """Verify the graph was simplified to 4 nodes."""
         from backend.agent.graph import build_agent_graph
 
         # Build a fresh graph
@@ -23,21 +23,27 @@ class TestGraphStructure:
         # Get node names from the graph
         node_names = set(graph.nodes.keys())
 
-        # Should have exactly these 6 nodes (plus __start__ and __end__)
-        expected_nodes = {"route", "data", "docs", "data_and_docs", "answer", "followup"}
+        # Should have exactly these 4 nodes (plus __start__ and __end__)
+        expected_nodes = {"route", "fetch", "answer", "followup"}
 
         # Filter out internal nodes
         actual_nodes = {n for n in node_names if not n.startswith("__")}
 
         assert actual_nodes == expected_nodes, (
-            f"Expected 6 nodes {expected_nodes}, got {actual_nodes}"
+            f"Expected 4 nodes {expected_nodes}, got {actual_nodes}"
         )
 
-    def test_skip_nodes_removed(self):
-        """Verify skip_data and skip_docs nodes were removed."""
+    def test_old_nodes_removed(self):
+        """Verify data, docs, data_and_docs nodes were consolidated."""
         from backend.agent import nodes
 
-        # These should NOT exist anymore
+        # These should NOT exist anymore (consolidated into fetch_node)
+        assert not hasattr(nodes, "data_node"), "data_node should be removed"
+        assert not hasattr(nodes, "docs_node"), "docs_node should be removed"
+        assert not hasattr(nodes, "data_and_docs_parallel_node"), (
+            "data_and_docs_parallel_node should be removed"
+        )
+        assert not hasattr(nodes, "route_by_mode"), "route_by_mode should be removed"
         assert not hasattr(nodes, "skip_data_node"), "skip_data_node should be removed"
         assert not hasattr(nodes, "skip_docs_node"), "skip_docs_node should be removed"
 
@@ -47,12 +53,9 @@ class TestGraphStructure:
 
         expected_exports = {
             "route_node",
-            "data_node",
-            "docs_node",
-            "data_and_docs_parallel_node",
+            "fetch_node",
             "answer_node",
             "followup_node",
-            "route_by_mode",
         }
 
         assert set(__all__) == expected_exports

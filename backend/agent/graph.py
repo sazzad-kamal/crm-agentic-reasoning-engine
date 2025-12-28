@@ -1,37 +1,34 @@
 """
 LangGraph-based agent orchestration.
 
-Implements a simplified graph workflow for answering CRM questions:
+Implements a minimal 4-node graph workflow for answering CRM questions:
 
-                      ┌─────────┐
-                      │  Route  │
-                      └────┬────┘
-                           │
-          ┌────────────────┼────────────────┐
-          ▼                ▼                ▼
-     ┌─────────┐      ┌─────────┐     ┌───────────┐
-     │  Data   │      │  Docs   │     │Data+Docs  │
-     │  Only   │      │  Only   │     │(Parallel) │
-     └────┬────┘      └────┬────┘     └─────┬─────┘
-          │                │                │
-          └────────────────┴────────────────┘
-                           │
-                           ▼
-                    ┌─────────────┐
-                    │   Answer    │
-                    └──────┬──────┘
-                           │
-                           ▼
-                    ┌─────────────┐
-                    │  Follow-up  │
-                    └──────┬──────┘
-                           │
-                           ▼
-                       ┌───────┐
-                       │  END  │
-                       └───────┘
+                    ┌─────────┐
+                    │  Route  │
+                    └────┬────┘
+                         │
+                         ▼
+                  ┌─────────────┐
+                  │   Fetch     │  (Parallel: CRM + Docs + Account)
+                  └──────┬──────┘
+                         │
+                         ▼
+                  ┌─────────────┐
+                  │   Answer    │
+                  └──────┬──────┘
+                         │
+                         ▼
+                  ┌─────────────┐
+                  │  Follow-up  │
+                  └──────┬──────┘
+                         │
+                         ▼
+                     ┌───────┐
+                     │  END  │
+                     └───────┘
 
-6 nodes total (simplified from 8 - removed skip_data/skip_docs).
+4 nodes total. The Fetch node always runs CRM data + Docs RAG in parallel,
+with optional Account RAG for company-specific intents.
 
 Usage:
     from backend.agent.graph import agent_graph, run_agent
@@ -49,12 +46,9 @@ from langgraph.checkpoint.memory import MemorySaver
 from backend.agent.state import AgentState
 from backend.agent.nodes import (
     route_node,
-    data_node,
-    docs_node,
-    data_and_docs_parallel_node,
+    fetch_node,
     answer_node,
     followup_node,
-    route_by_mode,
 )
 from backend.agent.audit import AgentAuditLogger
 from backend.agent.memory import get_conversation_history, add_message
@@ -79,8 +73,11 @@ def build_agent_graph(checkpointer=None):
     """
     Build the LangGraph workflow.
 
-    Uses RunnableParallel pattern for data+docs mode to fetch
-    CRM data and documentation concurrently, reducing latency.
+    Simplified 4-node architecture:
+      Route → Fetch (parallel) → Answer → Followup
+
+    The Fetch node always runs CRM data + Docs RAG in parallel,
+    with optional Account RAG for company-specific intents.
 
     Args:
         checkpointer: Optional LangGraph checkpointer for conversation persistence.
@@ -91,40 +88,19 @@ def build_agent_graph(checkpointer=None):
     # Create graph with state schema
     graph = StateGraph(AgentState)
 
-    # Add nodes (simplified - no skip nodes needed)
+    # Add nodes (simplified 4-node architecture)
     graph.add_node("route", route_node)
-    graph.add_node("data", data_node)
-    graph.add_node("docs", docs_node)
-    graph.add_node("data_and_docs", data_and_docs_parallel_node)  # Parallel node
+    graph.add_node("fetch", fetch_node)  # Unified parallel fetch
     graph.add_node("answer", answer_node)
     graph.add_node("followup", followup_node)
 
     # Set entry point
     graph.set_entry_point("route")
 
-    # Add conditional routing after route node
-    # - data_only: fetch CRM data only
-    # - docs_only: fetch documentation only
-    # - data_and_docs: parallel fetch of data + docs + account context
-    graph.add_conditional_edges(
-        "route",
-        route_by_mode,
-        {
-            "data_only": "data",
-            "docs_only": "docs",
-            "data_and_docs": "data_and_docs",
-        }
-    )
-
-    # All paths lead to answer
-    graph.add_edge("data", "answer")
-    graph.add_edge("docs", "answer")
-    graph.add_edge("data_and_docs", "answer")
-
-    # Answer leads to followup
+    # Linear flow: route → fetch → answer → followup → END
+    graph.add_edge("route", "fetch")
+    graph.add_edge("fetch", "answer")
     graph.add_edge("answer", "followup")
-
-    # Followup is the end
     graph.add_edge("followup", END)
 
     # Compile with checkpointer for conversation persistence
@@ -291,21 +267,13 @@ def get_graph_mermaid() -> str:
     return """
 graph TD
     START((Start)) --> route[Route]
-    route -->|data| data[Fetch CRM Data]
-    route -->|docs| docs[Fetch Docs]
-    route -->|data+docs| data_and_docs[Parallel Fetch<br/>Data + Docs + Account]
-
-    data --> answer[Synthesize Answer]
-    docs --> answer
-    data_and_docs --> answer
-
+    route --> fetch[Fetch<br/>CRM + Docs + Account]
+    fetch --> answer[Synthesize Answer]
     answer --> followup[Generate Follow-ups]
     followup --> END((End))
 
     style route fill:#e1f5fe
-    style data fill:#fff3e0
-    style docs fill:#f3e5f5
-    style data_and_docs fill:#ffecb3
+    style fetch fill:#fff3e0
     style answer fill:#e8f5e9
     style followup fill:#fce4ec
 """
@@ -315,37 +283,32 @@ def print_graph_ascii() -> None:
     """Print ASCII representation of the graph."""
     print("""
     ┌─────────────────────────────────────────────────────────────┐
-    │         LANGGRAPH AGENT (Simplified - 6 nodes)              │
+    │             LANGGRAPH AGENT (4 nodes)                       │
     └─────────────────────────────────────────────────────────────┘
 
-                           ┌─────────┐
-                           │  Route  │  (LLM structured output)
-                           └────┬────┘
-                                │
-            ┌───────────────────┼───────────────────┐
-            │                   │                   │
-            ▼                   ▼                   ▼
-       ┌─────────┐        ┌─────────┐        ┌───────────────┐
-       │  Data   │        │  Docs   │        │  Data + Docs  │
-       │  Only   │        │  Only   │        │  (Parallel)   │
-       └────┬────┘        └────┬────┘        └───────┬───────┘
-            │                  │                     │
-            └──────────────────┴─────────────────────┘
-                                │
-                                ▼
-                         ┌─────────────┐
-                         │   Answer    │  (LCEL chain)
-                         └──────┬──────┘
-                                │
-                                ▼
-                         ┌─────────────┐
-                         │  Follow-up  │  (Structured output)
-                         └──────┬──────┘
-                                │
-                                ▼
-                            ┌───────┐
-                            │  END  │
-                            └───────┘
+                         ┌─────────┐
+                         │  Route  │  (LLM structured output)
+                         └────┬────┘
+                              │
+                              ▼
+                   ┌─────────────────────┐
+                   │       Fetch         │  (Parallel: CRM + Docs + Account)
+                   └──────────┬──────────┘
+                              │
+                              ▼
+                       ┌─────────────┐
+                       │   Answer    │  (LCEL chain)
+                       └──────┬──────┘
+                              │
+                              ▼
+                       ┌─────────────┐
+                       │  Follow-up  │  (Structured output)
+                       └──────┬──────┘
+                              │
+                              ▼
+                          ┌───────┐
+                          │  END  │
+                          └───────┘
     """)
 
 

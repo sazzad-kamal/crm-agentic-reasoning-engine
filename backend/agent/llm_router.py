@@ -148,45 +148,45 @@ Q: "What's the status of Beta Tech?"
  "key_entities": ["Beta Tech"], "action_type": "summarize", "confidence": 0.95}
 
 ### GLOBAL/AGGREGATE DATA QUERIES (no specific company)
-Q: "Who is Maria Silva?"
+Q: "Find John Patterson"
 {"mode": "data", "intent": "contact_search", "company_name": null, "days": 30,
- "query_expansion": "Find contact named Maria Silva",
- "key_entities": ["Maria Silva"], "action_type": "retrieve", "confidence": 0.95}
+ "query_expansion": "Search for contact named John Patterson",
+ "key_entities": ["John Patterson"], "action_type": "retrieve", "confidence": 0.95}
 
-Q: "Find all decision makers"
+Q: "Who are the executive sponsors in our accounts?"
 {"mode": "data", "intent": "contact_search", "company_name": null, "days": 30,
- "query_expansion": "List contacts with Decision Maker role",
- "key_entities": ["decision makers"], "action_type": "retrieve", "confidence": 0.95}
+ "query_expansion": "List contacts with Executive Sponsor role",
+ "key_entities": ["executive sponsors"], "action_type": "retrieve", "confidence": 0.95}
 
-Q: "Show me all enterprise accounts"
+Q: "List mid-market segment companies"
 {"mode": "data", "intent": "company_search", "company_name": null, "days": 30,
- "query_expansion": "List companies in Enterprise segment",
- "key_entities": ["enterprise", "accounts"], "action_type": "retrieve", "confidence": 0.95}
+ "query_expansion": "List companies in Mid-Market segment",
+ "key_entities": ["mid-market", "companies"], "action_type": "retrieve", "confidence": 0.95}
 
-Q: "What's the total pipeline value?"
+Q: "How many open deals do we have?"
 {"mode": "data", "intent": "pipeline_summary", "company_name": null, "days": 30,
- "query_expansion": "Show aggregate pipeline value across all accounts",
- "key_entities": ["pipeline", "total"], "action_type": "summarize", "confidence": 0.95}
+ "query_expansion": "Show count of open deals across all accounts",
+ "key_entities": ["deals", "open"], "action_type": "summarize", "confidence": 0.95}
 
 Q: "Which accounts have upcoming renewals?"
 {"mode": "data", "intent": "renewals", "company_name": null, "days": 90,
  "query_expansion": "List accounts with renewals in the next 90 days",
  "key_entities": ["renewals"], "action_type": "retrieve", "confidence": 0.95}
 
-Q: "Who is in the at-risk accounts group?"
+Q: "Show members of the strategic accounts group"
 {"mode": "data", "intent": "groups", "company_name": null, "days": 30,
- "query_expansion": "List members of the at-risk accounts group",
- "key_entities": ["at-risk", "group"], "action_type": "retrieve", "confidence": 0.95}
+ "query_expansion": "List members of the strategic accounts group",
+ "key_entities": ["strategic", "group"], "action_type": "retrieve", "confidence": 0.95}
 
-Q: "Find all proposals"
+Q: "Search for contract documents"
 {"mode": "data", "intent": "attachments", "company_name": null, "days": 30,
- "query_expansion": "Search for proposal documents",
- "key_entities": ["proposals"], "action_type": "retrieve", "confidence": 0.95}
+ "query_expansion": "Find documents containing contracts",
+ "key_entities": ["contracts"], "action_type": "retrieve", "confidence": 0.95}
 
-Q: "Show recent activities"
+Q: "What tasks are pending?"
 {"mode": "data", "intent": "activities", "company_name": null, "days": 30,
- "query_expansion": "List recent calls, emails, and meetings",
- "key_entities": ["activities"], "action_type": "retrieve", "confidence": 0.95}
+ "query_expansion": "List pending tasks and activities",
+ "key_entities": ["tasks", "pending"], "action_type": "retrieve", "confidence": 0.95}
 
 ### ACCOUNT CONTEXT (deep unstructured search)
 Q: "Why is the Acme deal stalled?"

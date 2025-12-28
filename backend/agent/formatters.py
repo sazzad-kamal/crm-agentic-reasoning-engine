@@ -177,14 +177,25 @@ _RENEWALS_FORMATTER = SectionFormatter(
 # =============================================================================
 
 def format_company_section(company_data: dict | None) -> str:
-    """Format company data for the prompt."""
+    """Format company data for the prompt.
+
+    Handles two data shapes:
+    - Single company: {"company": {...}, "contacts": [...]}
+    - Company list (from search): {"companies": [...], "count": N}
+    """
     if not company_data:
         return ""
-    
+
+    # Handle company list (from company_search intent)
+    companies = company_data.get("companies")
+    if companies:
+        return _format_companies_list(companies, company_data.get("count", len(companies)))
+
+    # Handle single company
     company = company_data.get("company")
     if not company:
         return ""
-    
+
     lines = [
         "=== COMPANY INFO ===",
         f"Name: {company.get('name', 'N/A')}",
@@ -197,14 +208,31 @@ def format_company_section(company_data: dict | None) -> str:
         f"Renewal Date: {company.get('renewal_date', 'N/A')}",
         f"Health: {company.get('health_flags', 'N/A')}",
     ]
-    
+
     contacts = company_data.get("contacts", [])
     if contacts:
         lines.append("\nKey Contacts:")
         for c in contacts[:3]:
             name = f"{c.get('first_name', '')} {c.get('last_name', '')}".strip()
             lines.append(f"  - {name} ({c.get('job_title', 'N/A')}): {c.get('email', 'N/A')}")
-    
+
+    return "\n".join(lines)
+
+
+def _format_companies_list(companies: list[dict], count: int) -> str:
+    """Format a list of companies from search results."""
+    if not companies:
+        return "=== COMPANY SEARCH RESULTS ===\nNo companies found matching the criteria."
+
+    lines = [f"=== COMPANY SEARCH RESULTS ({count} found) ==="]
+
+    for c in companies[:10]:  # Limit to 10
+        lines.append(
+            f"- {c.get('name', 'N/A')} ({c.get('company_id', 'N/A')}): "
+            f"{c.get('industry', 'N/A')} | {c.get('segment', 'N/A')} | "
+            f"{c.get('status', 'N/A')} | Health: {c.get('health_flags', 'N/A')}"
+        )
+
     return "\n".join(lines)
 
 
@@ -250,6 +278,74 @@ def format_pipeline_section(pipeline_data: dict | None) -> str:
 def format_renewals_section(renewals_data: dict | None) -> str:
     """Format renewals data for the prompt."""
     return _RENEWALS_FORMATTER.format(renewals_data)
+
+
+def format_contacts_section(contacts_data: dict | None) -> str:
+    """Format contacts search results for the prompt."""
+    if not contacts_data:
+        return ""
+
+    contacts = contacts_data.get("contacts", [])
+    if not contacts:
+        return "=== CONTACTS ===\nNo contacts found matching the criteria."
+
+    count = contacts_data.get("count", len(contacts))
+    lines = [f"=== CONTACTS ({count} found) ==="]
+
+    for c in contacts[:10]:
+        name = f"{c.get('first_name', '')} {c.get('last_name', '')}".strip()
+        lines.append(
+            f"- {name}: {c.get('job_title', 'N/A')} at {c.get('company_id', 'N/A')} | "
+            f"Role: {c.get('contact_role', 'N/A')} | Email: {c.get('email', 'N/A')}"
+        )
+
+    return "\n".join(lines)
+
+
+def format_groups_section(groups_data: dict | None) -> str:
+    """Format groups data for the prompt."""
+    if not groups_data:
+        return ""
+
+    # Handle group members list
+    members = groups_data.get("members", [])
+    if members:
+        group_name = groups_data.get("group_name", "Unknown Group")
+        lines = [f"=== GROUP: {group_name} ({len(members)} members) ==="]
+        for m in members[:10]:
+            lines.append(f"- {m.get('name', m.get('company_id', 'N/A'))}")
+        return "\n".join(lines)
+
+    # Handle groups list
+    groups = groups_data.get("groups", [])
+    if groups:
+        lines = [f"=== ACCOUNT GROUPS ({len(groups)} groups) ==="]
+        for g in groups[:10]:
+            lines.append(f"- {g.get('name', 'N/A')} ({g.get('group_id', 'N/A')}): {g.get('description', '')}")
+        return "\n".join(lines)
+
+    return ""
+
+
+def format_attachments_section(attachments_data: dict | None) -> str:
+    """Format attachments search results for the prompt."""
+    if not attachments_data:
+        return ""
+
+    attachments = attachments_data.get("attachments", [])
+    if not attachments:
+        return "=== ATTACHMENTS ===\nNo attachments found matching the criteria."
+
+    count = attachments_data.get("count", len(attachments))
+    lines = [f"=== ATTACHMENTS ({count} found) ==="]
+
+    for a in attachments[:10]:
+        lines.append(
+            f"- {a.get('name', 'N/A')} ({a.get('file_type', 'N/A')}): "
+            f"{_truncate(a.get('description', ''), 80)} | Company: {a.get('company_id', 'N/A')}"
+        )
+
+    return "\n".join(lines)
 
 
 def format_docs_section(docs_answer: str) -> str:
@@ -303,6 +399,9 @@ __all__ = [
     "format_history_section",
     "format_pipeline_section",
     "format_renewals_section",
+    "format_contacts_section",
+    "format_groups_section",
+    "format_attachments_section",
     "format_docs_section",
     "format_account_context_section",
     "format_conversation_history_section",

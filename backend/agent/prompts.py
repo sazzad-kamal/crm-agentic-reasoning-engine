@@ -81,6 +81,8 @@ User's question: {question}
 
 {company_section}
 
+{contacts_section}
+
 {activities_section}
 
 {history_section}
@@ -88,6 +90,10 @@ User's question: {question}
 {pipeline_section}
 
 {renewals_section}
+
+{groups_section}
+
+{attachments_section}
 
 {account_context_section}
 
@@ -147,6 +153,8 @@ User's question: {question}
 
 {company_section}
 
+{contacts_section}
+
 {activities_section}
 
 {history_section}
@@ -154,6 +162,10 @@ User's question: {question}
 {pipeline_section}
 
 {renewals_section}
+
+{groups_section}
+
+{attachments_section}
 
 {account_context_section}
 

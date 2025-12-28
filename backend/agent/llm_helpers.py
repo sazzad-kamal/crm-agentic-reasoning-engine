@@ -148,6 +148,9 @@ def call_answer_chain(
     renewals_section: str,
     docs_section: str,
     account_context_section: str = "",
+    contacts_section: str = "",
+    groups_section: str = "",
+    attachments_section: str = "",
 ) -> tuple[str, int]:
     """
     Call the answer synthesis chain using LCEL.
@@ -166,10 +169,13 @@ def call_answer_chain(
         "question": question,
         "conversation_history_section": conversation_history_section,
         "company_section": company_section,
+        "contacts_section": contacts_section,
         "activities_section": activities_section,
         "history_section": history_section,
         "pipeline_section": pipeline_section,
         "renewals_section": renewals_section,
+        "groups_section": groups_section,
+        "attachments_section": attachments_section,
         "docs_section": docs_section,
         "account_context_section": account_context_section,
     })

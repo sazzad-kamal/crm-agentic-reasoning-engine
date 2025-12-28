@@ -22,6 +22,9 @@ from backend.agent.formatters import (
     format_history_section,
     format_pipeline_section,
     format_renewals_section,
+    format_contacts_section,
+    format_groups_section,
+    format_attachments_section,
     format_docs_section,
     format_account_context_section,
     format_conversation_history_section,
@@ -395,10 +398,13 @@ def answer_node(state: AgentState) -> AgentState:
                 state.get("messages", [])
             )
             company_section = format_company_section(company_data)
+            contacts_section = format_contacts_section(state.get("contacts_data"))
             activities_section = format_activities_section(state.get("activities_data"))
             history_section = format_history_section(state.get("history_data"))
             pipeline_section = format_pipeline_section(state.get("pipeline_data"))
             renewals_section = format_renewals_section(state.get("renewals_data"))
+            groups_section = format_groups_section(state.get("groups_data"))
+            attachments_section = format_attachments_section(state.get("attachments_data"))
             docs_section = format_docs_section(state.get("docs_answer", ""))
             account_context_section = format_account_context_section(
                 state.get("account_context_answer", "")
@@ -409,10 +415,13 @@ def answer_node(state: AgentState) -> AgentState:
                 question=state["question"],
                 conversation_history_section=conversation_history_section,
                 company_section=company_section,
+                contacts_section=contacts_section,
                 activities_section=activities_section,
                 history_section=history_section,
                 pipeline_section=pipeline_section,
                 renewals_section=renewals_section,
+                groups_section=groups_section,
+                attachments_section=attachments_section,
                 docs_section=docs_section,
                 account_context_section=account_context_section,
             )

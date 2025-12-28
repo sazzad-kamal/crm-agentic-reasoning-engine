@@ -148,6 +148,7 @@ SLO_EVAL_LATENCY_P95_MS = 10000  # 10s P95 for eval (includes ~500ms judge call)
 SLO_EVAL_LATENCY_AVG_MS = 6000   # 6s average for eval
 
 # Quality SLOs
+SLO_TOOL_ACCURACY = 0.90        # 90% tool accuracy
 SLO_ROUTER_ACCURACY = 0.90      # 90% router accuracy (company extraction)
 SLO_ANSWER_RELEVANCE = 0.80     # 80% answer relevance
 SLO_GROUNDEDNESS = 0.80         # 80% groundedness

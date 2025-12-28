@@ -12,8 +12,9 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-# Check if OpenAI is available
-OPENAI_AVAILABLE = os.environ.get("OPENAI_API_KEY") is not None
+# Check if OpenAI is available (not just set, but a real key, not test placeholder)
+_api_key = os.environ.get("OPENAI_API_KEY", "")
+OPENAI_AVAILABLE = _api_key and not _api_key.startswith("test-key")
 
 
 # =============================================================================

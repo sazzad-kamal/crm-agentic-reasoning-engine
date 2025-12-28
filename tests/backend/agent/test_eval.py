@@ -117,14 +117,15 @@ class TestE2EEvalResult:
             test_case_id="e2e1",
             question="What's the status of Acme Manufacturing?",
             category="company_status",
-            expected_mode="data",
-            actual_mode="data",
-            expected_tools=["tool_company_lookup"],
-            actual_tools=["tool_company_lookup"],
+            expected_company_id="ACME-MFG",
+            actual_company_id="ACME-MFG",
+            company_correct=True,
+            expected_intent="company_status",
+            actual_intent="company_status",
+            intent_correct=True,
             answer="Acme Manufacturing is doing well.",
             answer_relevance=1,
             answer_grounded=1,
-            tool_selection_correct=True,
             has_sources=True,
             latency_ms=200.0,
             total_tokens=500,
@@ -132,7 +133,7 @@ class TestE2EEvalResult:
 
         assert result.answer_relevance == 1
         assert result.answer_grounded == 1
-        assert result.tool_selection_correct is True
+        assert result.intent_correct is True
 
     def test_e2e_eval_result_with_judge_explanation(self):
         """Test E2EEvalResult with judge explanation."""
@@ -140,14 +141,12 @@ class TestE2EEvalResult:
             test_case_id="e2e1",
             question="Test question",
             category="test",
-            expected_mode="data",
-            actual_mode="data",
-            expected_tools=[],
-            actual_tools=[],
+            expected_intent="general",
+            actual_intent="general",
+            intent_correct=True,
             answer="Test answer",
             answer_relevance=0,
             answer_grounded=0,
-            tool_selection_correct=True,
             has_sources=False,
             latency_ms=100.0,
             total_tokens=100,
@@ -205,9 +204,10 @@ class TestE2EEvalSummary:
         """Test creating an E2EEvalSummary."""
         summary = E2EEvalSummary(
             total_tests=25,
+            company_extraction_accuracy=0.95,
+            intent_accuracy=0.92,
             answer_relevance_rate=0.88,
             groundedness_rate=0.84,
-            tool_selection_accuracy=0.92,
             avg_latency_ms=350.0,
             p95_latency_ms=800.0,
             latency_slo_pass=True,
@@ -228,9 +228,10 @@ class TestAgentEvalSummary:
         """Test creating an AgentEvalSummary."""
         e2e = E2EEvalSummary(
             total_tests=25,
+            company_extraction_accuracy=0.95,
+            intent_accuracy=0.92,
             answer_relevance_rate=0.88,
             groundedness_rate=0.84,
-            tool_selection_accuracy=0.92,
             avg_latency_ms=350.0,
             p95_latency_ms=800.0,
             by_category={},
@@ -288,9 +289,10 @@ class TestAgentTrackingModule:
 
         current = E2EEvalSummary(
             total_tests=20,
+            company_extraction_accuracy=0.95,
+            intent_accuracy=0.90,
             answer_relevance_rate=0.85,
             groundedness_rate=0.80,
-            tool_selection_accuracy=0.90,
             avg_latency_ms=400.0,
             p95_latency_ms=1000.0,
             by_category={},
@@ -308,9 +310,10 @@ class TestAgentTrackingModule:
 
         previous = E2EEvalSummary(
             total_tests=20,
+            company_extraction_accuracy=0.95,
+            intent_accuracy=0.95,
             answer_relevance_rate=0.90,
             groundedness_rate=0.90,
-            tool_selection_accuracy=0.95,
             avg_latency_ms=300.0,
             p95_latency_ms=800.0,
             by_category={},
@@ -318,9 +321,10 @@ class TestAgentTrackingModule:
 
         current = E2EEvalSummary(
             total_tests=20,
+            company_extraction_accuracy=0.95,
+            intent_accuracy=0.95,
             answer_relevance_rate=0.70,  # Regression
             groundedness_rate=0.90,
-            tool_selection_accuracy=0.95,
             avg_latency_ms=300.0,
             p95_latency_ms=800.0,
             by_category={},
@@ -340,14 +344,12 @@ class TestAgentTrackingModule:
                 test_case_id="t1",
                 question="Test",
                 category="test",
-                expected_mode="data",
-                actual_mode="data",
-                expected_tools=[],
-                actual_tools=[],
+                expected_intent="general",
+                actual_intent="general",
+                intent_correct=True,
                 answer="Test",
                 answer_relevance=1,
                 answer_grounded=1,
-                tool_selection_correct=True,
                 has_sources=True,
                 latency_ms=1000.0,  # Well under budget
                 total_tokens=100,
@@ -367,14 +369,12 @@ class TestAgentTrackingModule:
                 test_case_id="t1",
                 question="Test",
                 category="test",
-                expected_mode="data",
-                actual_mode="data",
-                expected_tools=[],
-                actual_tools=[],
+                expected_intent="general",
+                actual_intent="general",
+                intent_correct=True,
                 answer="Test",
                 answer_relevance=1,
                 answer_grounded=1,
-                tool_selection_correct=True,
                 has_sources=True,
                 latency_ms=6000.0,  # Over budget (5000ms)
                 total_tokens=100,

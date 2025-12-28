@@ -84,6 +84,26 @@ class AgentConfig(BaseSettings):
     )
 
     # -------------------------------------------------------------------------
+    # Node Configuration
+    # -------------------------------------------------------------------------
+    default_days: int = Field(
+        default=90,
+        description="Default time window in days for data queries"
+    )
+    fetch_timeout_seconds: int = Field(
+        default=30,
+        description="Timeout for parallel fetch operations"
+    )
+    max_close_matches: int = Field(
+        default=5,
+        description="Maximum number of close matches to show for company not found"
+    )
+    max_followup_suggestions: int = Field(
+        default=3,
+        description="Maximum number of follow-up suggestions to return"
+    )
+
+    # -------------------------------------------------------------------------
     # RAG Pipeline Configuration
     # -------------------------------------------------------------------------
     rag_use_hyde: bool = Field(

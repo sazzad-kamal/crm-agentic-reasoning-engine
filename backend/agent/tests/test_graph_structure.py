@@ -52,10 +52,17 @@ class TestGraphStructure:
         from backend.agent.nodes import __all__
 
         expected_exports = {
+            # Node functions
             "route_node",
             "fetch_node",
             "answer_node",
             "followup_node",
+            # Constants (for testing)
+            "ACCOUNT_RAG_INTENTS",
+            # Helper functions (for testing)
+            "_fetch_crm_data",
+            "_fetch_docs",
+            "_fetch_account_context",
         }
 
         assert set(__all__) == expected_exports
@@ -113,28 +120,27 @@ class TestAccountRAGTrigger:
     """Tests for Account RAG trigger conditions."""
 
     def test_account_rag_trigger_intents(self):
-        """Verify Account RAG triggers for the correct intents."""
-        # The trigger condition from nodes.py
-        account_rag_intents = ("account_context", "company_status", "history", "pipeline")
+        """Verify Account RAG triggers for the correct intents using the constant."""
+        from backend.agent.nodes import ACCOUNT_RAG_INTENTS
 
-        # These intents should trigger Account RAG when company_id is set
-        for intent in account_rag_intents:
-            should_trigger = intent in account_rag_intents
-            assert should_trigger, f"Intent '{intent}' should trigger Account RAG"
+        # Expected intents that should trigger Account RAG
+        expected_intents = {"account_context", "company_status", "history", "pipeline"}
+
+        assert ACCOUNT_RAG_INTENTS == expected_intents, (
+            f"ACCOUNT_RAG_INTENTS should be {expected_intents}, got {ACCOUNT_RAG_INTENTS}"
+        )
 
     def test_account_rag_not_trigger_for_aggregate_intents(self):
         """Verify Account RAG does NOT trigger for aggregate intents."""
-        # Aggregate intents that don't need Account RAG
-        aggregate_intents = ("renewals", "pipeline_summary", "activities", "groups")
+        from backend.agent.nodes import ACCOUNT_RAG_INTENTS
 
-        # These should NOT trigger Account RAG
-        account_rag_intents = ("account_context", "company_status", "history", "pipeline")
+        # Aggregate intents that don't need Account RAG
+        aggregate_intents = {"renewals", "pipeline_summary", "activities", "groups"}
 
         for intent in aggregate_intents:
             if intent != "pipeline":  # pipeline is special - it can be company-specific
-                should_trigger = intent in account_rag_intents
-                assert not should_trigger, (
-                    f"Aggregate intent '{intent}' should not trigger Account RAG"
+                assert intent not in ACCOUNT_RAG_INTENTS, (
+                    f"Aggregate intent '{intent}' should not be in ACCOUNT_RAG_INTENTS"
                 )
 
 

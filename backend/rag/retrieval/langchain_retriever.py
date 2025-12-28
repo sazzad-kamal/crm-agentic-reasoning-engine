@@ -14,7 +14,7 @@ from typing import Any
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
-from pydantic import Field, PrivateAttr
+from pydantic import ConfigDict, Field, PrivateAttr
 
 from backend.rag.retrieval.base import RetrievalBackend, create_backend
 from backend.rag.models import ScoredChunk
@@ -47,8 +47,8 @@ class AcmeCRMRetriever(BaseRetriever):
     # Private backend instance
     _backend: RetrievalBackend | None = PrivateAttr(default=None)
 
-    class Config:
-        arbitrary_types_allowed = True
+    # Pydantic v2 configuration
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __init__(self, backend: RetrievalBackend | None = None, **kwargs):
         """

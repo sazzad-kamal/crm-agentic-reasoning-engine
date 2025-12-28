@@ -13,6 +13,7 @@ Features:
 import os
 import time
 import logging
+import threading
 from functools import lru_cache
 from typing import Protocol, runtime_checkable
 from dataclasses import dataclass, field
@@ -106,6 +107,93 @@ def reset_cost_tracker() -> None:
     """Reset the global cost tracker."""
     global _cost_tracker
     _cost_tracker = CostTracker()
+
+
+# =============================================================================
+# Rate Limiting
+# =============================================================================
+
+@dataclass
+class RateLimiter:
+    """
+    Token bucket rate limiter for LLM API calls.
+
+    Prevents hitting API rate limits by throttling requests.
+    Thread-safe implementation.
+    """
+    requests_per_minute: int = 60
+    tokens_per_minute: int = 150000
+    _request_tokens: float = field(default=0.0, init=False)
+    _token_tokens: float = field(default=0.0, init=False)
+    _last_refill: float = field(default_factory=time.time, init=False)
+    _lock: threading.Lock = field(default_factory=threading.Lock, init=False)
+
+    def _refill(self) -> None:
+        """Refill tokens based on elapsed time."""
+        now = time.time()
+        elapsed = now - self._last_refill
+        self._last_refill = now
+
+        # Refill request tokens
+        self._request_tokens = min(
+            self.requests_per_minute,
+            self._request_tokens + (elapsed / 60) * self.requests_per_minute
+        )
+
+        # Refill API token tokens
+        self._token_tokens = min(
+            self.tokens_per_minute,
+            self._token_tokens + (elapsed / 60) * self.tokens_per_minute
+        )
+
+    def acquire(self, estimated_tokens: int = 1000) -> float:
+        """
+        Acquire permission to make an LLM call.
+
+        Args:
+            estimated_tokens: Estimated tokens for this call
+
+        Returns:
+            Wait time in seconds (0 if no wait needed)
+        """
+        with self._lock:
+            self._refill()
+
+            wait_time = 0.0
+
+            # Check request rate
+            if self._request_tokens < 1:
+                wait_time = max(wait_time, (1 - self._request_tokens) * 60 / self.requests_per_minute)
+
+            # Check token rate
+            if self._token_tokens < estimated_tokens:
+                wait_time = max(wait_time, (estimated_tokens - self._token_tokens) * 60 / self.tokens_per_minute)
+
+            if wait_time > 0:
+                logger.debug(f"Rate limiter: waiting {wait_time:.2f}s")
+                return wait_time
+
+            # Consume tokens
+            self._request_tokens -= 1
+            self._token_tokens -= estimated_tokens
+            return 0.0
+
+    def wait_if_needed(self, estimated_tokens: int = 1000) -> None:
+        """Wait if rate limited, then proceed."""
+        wait_time = self.acquire(estimated_tokens)
+        if wait_time > 0:
+            time.sleep(wait_time)
+
+
+# Global rate limiter (configurable via env vars)
+_RATE_LIMIT_RPM = int(os.environ.get("LLM_RATE_LIMIT_RPM", "60"))
+_RATE_LIMIT_TPM = int(os.environ.get("LLM_RATE_LIMIT_TPM", "150000"))
+_rate_limiter = RateLimiter(requests_per_minute=_RATE_LIMIT_RPM, tokens_per_minute=_RATE_LIMIT_TPM)
+
+
+def get_rate_limiter() -> RateLimiter:
+    """Get the global rate limiter."""
+    return _rate_limiter
 
 
 class CostTrackingCallback(BaseCallbackHandler):
@@ -240,6 +328,7 @@ def call_llm(
     temperature: float = 0.0,
     max_tokens: int = 1024,
     use_cache: bool = True,
+    use_rate_limit: bool = True,
 ) -> str:
     """
     Call an OpenAI chat model and return the assistant's response.
@@ -253,10 +342,16 @@ def call_llm(
         temperature: Sampling temperature (default: 0.0 for deterministic)
         max_tokens: Maximum tokens in response
         use_cache: Whether to use response caching (default: True)
+        use_rate_limit: Whether to apply rate limiting (default: True)
 
     Returns:
         The assistant's message content as a string
     """
+    # Apply rate limiting
+    if use_rate_limit:
+        estimated_tokens = len(prompt) // 4 + max_tokens  # Rough estimate
+        _rate_limiter.wait_if_needed(estimated_tokens)
+
     chat = _get_chat_model(model, temperature, max_tokens)
 
     messages = []
@@ -279,6 +374,7 @@ def call_llm_with_metrics(
     model: str = "gpt-4o-mini",
     temperature: float = 0.0,
     max_tokens: int = 1024,
+    use_rate_limit: bool = True,
 ) -> dict:
     """
     Call an OpenAI chat model and return response with metrics.
@@ -293,6 +389,11 @@ def call_llm_with_metrics(
         - cost_usd: Estimated cost for this call
         - cached: Whether the response came from cache
     """
+    # Apply rate limiting
+    if use_rate_limit:
+        estimated_tokens = len(prompt) // 4 + max_tokens
+        _rate_limiter.wait_if_needed(estimated_tokens)
+
     chat = _get_chat_model(model, temperature, max_tokens)
 
     messages = []
@@ -440,4 +541,7 @@ __all__ = [
     "get_cost_tracker",
     "reset_cost_tracker",
     "MODEL_COSTS",
+    # Rate limiting
+    "RateLimiter",
+    "get_rate_limiter",
 ]

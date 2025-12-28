@@ -38,6 +38,7 @@ from backend.rag.retrieval.constants import (
 )
 from backend.rag.retrieval.embedding import get_cached_embedding, cache_embedding
 from backend.rag.retrieval.ranking import RankingMixin
+from backend.rag.retrieval.tokenizer import tokenize
 
 
 logger = logging.getLogger(__name__)
@@ -114,8 +115,13 @@ class RetrievalBackend(RankingMixin):
         return self._embedding_model
     
     def _tokenize(self, text: str) -> list[str]:
-        """Simple whitespace tokenizer for BM25."""
-        return text.lower().split()
+        """
+        Tokenize text for BM25 search.
+
+        Uses improved tokenizer with stemming and stop word removal
+        for better recall.
+        """
+        return tokenize(text, use_stemming=True, remove_stopwords=True)
     
     def build_indexes(self, chunks: list[DocumentChunk]) -> None:
         """

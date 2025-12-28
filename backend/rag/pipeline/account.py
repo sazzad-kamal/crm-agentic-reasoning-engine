@@ -22,16 +22,13 @@ import time
 
 from backend.rag.retrieval.private import PrivateRetrievalBackend, create_private_backend
 from backend.rag.retrieval.base import RetrievalBackend, create_backend as create_docs_backend
-from backend.rag.pipeline.constants import MAX_CONTEXT_TOKENS
+from backend.rag.pipeline.constants import MAX_CONTEXT_TOKENS, ANSWER_MODEL
 from backend.rag.pipeline.utils import estimate_tokens
 from backend.rag.pipeline.context_builder import build_private_context, build_docs_context
-from backend.rag.pipeline.prompts import (
-    QUERY_REWRITE_SYSTEM,
-    HYDE_SYSTEM,
-    format_account_answer_prompt,
-)
+from backend.rag.pipeline.prompts import format_account_answer_prompt
 from backend.rag.pipeline.company_resolver import load_companies_df
-from backend.common.llm_client import call_llm_safe, call_llm_with_metrics
+from backend.common.llm_client import call_llm_with_metrics
+from backend.common.query_ops import rewrite_query, generate_hyde
 
 
 logger = logging.getLogger(__name__)
@@ -107,32 +104,6 @@ def resolve_company_id(
 
 
 # =============================================================================
-# Query Enhancement
-# =============================================================================
-
-def rewrite_query(query: str, company_name: str) -> str:
-    """Rewrite query to be more specific."""
-    logger.debug(f"Rewriting query for {company_name}: {query[:50]}...")
-    return call_llm_safe(
-        prompt=f"Question about {company_name}: {query}",
-        system_prompt=QUERY_REWRITE_SYSTEM,
-        max_tokens=150,
-        default=query,
-    )
-
-
-def generate_hyde(query: str, company_name: str) -> str:
-    """Generate hypothetical answer for HyDE."""
-    logger.debug(f"Generating HyDE for {company_name}: {query[:50]}...")
-    return call_llm_safe(
-        prompt=f"Question about {company_name}: {query}",
-        system_prompt=HYDE_SYSTEM,
-        max_tokens=200,
-        default="",
-    )
-
-
-# =============================================================================
 # Answer Generation
 # =============================================================================
 
@@ -142,7 +113,7 @@ def generate_answer(question: str, context: str) -> dict:
     
     result = call_llm_with_metrics(
         prompt=prompt,
-        model="gpt-5.2",
+        model=ANSWER_MODEL,
         max_tokens=800,
     )
     
@@ -335,7 +306,7 @@ def answer_account_question(
             "completion_tokens": completion_tokens,
             "total_tokens": answer_result["total_tokens"],
             "estimated_cost": estimated_cost,
-            "model_used": "gpt-5.2",
+            "model_used": ANSWER_MODEL,
             "private_chunks_used": len(private_hits),
             "doc_chunks_used": len(doc_hits),
         },

@@ -14,26 +14,41 @@ __all__ = [
     "DocsEvalSummary",
     "AccountEvalSummary",
     "RAGEvalSummary",
+    # Quality SLOs
     "SLO_CONTEXT_RELEVANCE",
     "SLO_ANSWER_RELEVANCE",
     "SLO_GROUNDEDNESS",
     "SLO_RAG_TRIAD",
     "SLO_DOC_RECALL",
     "SLO_PRIVACY_LEAKAGE",
+    # Production latency SLOs
     "SLO_LATENCY_P95_MS",
+    "SLO_LATENCY_AVG_MS",
+    # Eval latency SLOs
+    "SLO_EVAL_LATENCY_P95_MS",
+    "SLO_EVAL_LATENCY_AVG_MS",
 ]
 
 
 # =============================================================================
 # SLO Constants (Service Level Objectives)
 # =============================================================================
+
+# Quality SLOs
 SLO_CONTEXT_RELEVANCE = 0.80    # 80% context relevance
 SLO_ANSWER_RELEVANCE = 0.80     # 80% answer relevance
 SLO_GROUNDEDNESS = 0.80         # 80% groundedness
 SLO_RAG_TRIAD = 0.70            # 70% full triad success
 SLO_DOC_RECALL = 0.70           # 70% doc recall
 SLO_PRIVACY_LEAKAGE = 0.0       # 0% privacy leakage (strict)
-SLO_LATENCY_P95_MS = 5000       # 5 second P95 latency
+
+# Production latency SLOs (what users experience)
+SLO_LATENCY_P95_MS = 5000       # 5s P95 - catches outliers
+SLO_LATENCY_AVG_MS = 3000       # 3s average - typical experience
+
+# Eval latency SLOs (more lenient due to judge LLM overhead)
+SLO_EVAL_LATENCY_P95_MS = 10000  # 10s P95 for eval (includes ~500ms judge call)
+SLO_EVAL_LATENCY_AVG_MS = 6000   # 6s average for eval
 
 
 class JudgeResult(BaseModel):

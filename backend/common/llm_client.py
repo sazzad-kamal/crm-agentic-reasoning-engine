@@ -5,6 +5,7 @@ Uses OpenAI API via the official Python client.
 Requires OPENAI_API_KEY environment variable.
 
 Features:
+- Protocol-based interface for dependency injection
 - Automatic retry with exponential backoff
 - Proper logging
 - Optional response caching
@@ -16,6 +17,38 @@ import time
 import logging
 import hashlib
 from functools import lru_cache
+from typing import Protocol, runtime_checkable
+
+
+# =============================================================================
+# LLM Client Protocol (for dependency injection / testing)
+# =============================================================================
+
+@runtime_checkable
+class LLMClient(Protocol):
+    """Protocol defining the LLM client interface."""
+
+    def call(
+        self,
+        prompt: str,
+        system_prompt: str | None = None,
+        model: str = "gpt-4o-mini",
+        temperature: float = 0.0,
+        max_tokens: int = 1024,
+    ) -> str:
+        """Call the LLM and return the response text."""
+        ...
+
+    def call_with_metrics(
+        self,
+        prompt: str,
+        system_prompt: str | None = None,
+        model: str = "gpt-4o-mini",
+        temperature: float = 0.0,
+        max_tokens: int = 1024,
+    ) -> dict:
+        """Call the LLM and return response with metrics."""
+        ...
 
 from openai import OpenAI, APIError, RateLimitError, APIConnectionError
 from tenacity import (
@@ -151,20 +184,20 @@ def _call_openai(
 def call_llm(
     prompt: str,
     system_prompt: str | None = None,
-    model: str = "gpt-5-nano",
+    model: str = "gpt-4o-mini",
     temperature: float = 0.0,
     max_tokens: int = 1024,
     use_cache: bool = True,
 ) -> str:
     """
     Call an OpenAI chat model and return the assistant's response.
-    
+
     Features automatic retry with exponential backoff for transient errors.
-    
+
     Args:
         prompt: The user message / prompt
         system_prompt: Optional system message to set context
-        model: The model to use (default: gpt-5-nano)
+        model: The model to use (default: gpt-4o-mini)
         temperature: Sampling temperature (default: 0.0 for deterministic)
         max_tokens: Maximum tokens in response
         use_cache: Whether to use response caching (default: True)
@@ -218,7 +251,7 @@ def call_llm(
 def call_llm_with_metrics(
     prompt: str,
     system_prompt: str | None = None,
-    model: str = "gpt-5-nano",
+    model: str = "gpt-4o-mini",
     temperature: float = 0.0,
     max_tokens: int = 1024,
 ) -> dict:
@@ -295,7 +328,7 @@ def call_llm_with_metrics(
 def call_llm_safe(
     prompt: str,
     system_prompt: str | None = None,
-    model: str = "gpt-5-nano",
+    model: str = "gpt-4o-mini",
     temperature: float = 0.0,
     max_tokens: int = 1024,
     default: str = "",
@@ -323,3 +356,76 @@ def call_llm_safe(
     except Exception as e:
         logger.warning(f"LLM call failed, using default: {e}")
         return default
+
+
+# =============================================================================
+# Concrete LLM Client Implementation
+# =============================================================================
+
+class OpenAIClient:
+    """
+    Concrete LLM client implementation using OpenAI API.
+
+    Implements the LLMClient protocol for dependency injection.
+    Uses module-level functions internally for caching and retry logic.
+    """
+
+    def call(
+        self,
+        prompt: str,
+        system_prompt: str | None = None,
+        model: str = "gpt-4o-mini",
+        temperature: float = 0.0,
+        max_tokens: int = 1024,
+    ) -> str:
+        """Call the LLM and return the response text."""
+        return call_llm(prompt, system_prompt, model, temperature, max_tokens)
+
+    def call_with_metrics(
+        self,
+        prompt: str,
+        system_prompt: str | None = None,
+        model: str = "gpt-4o-mini",
+        temperature: float = 0.0,
+        max_tokens: int = 1024,
+    ) -> dict:
+        """Call the LLM and return response with metrics."""
+        return call_llm_with_metrics(prompt, system_prompt, model, temperature, max_tokens)
+
+    def call_safe(
+        self,
+        prompt: str,
+        system_prompt: str | None = None,
+        model: str = "gpt-4o-mini",
+        temperature: float = 0.0,
+        max_tokens: int = 1024,
+        default: str = "",
+    ) -> str:
+        """Call with graceful error handling - returns default on failure."""
+        return call_llm_safe(prompt, system_prompt, model, temperature, max_tokens, default)
+
+
+# Default client instance
+_default_client: OpenAIClient | None = None
+
+
+def get_llm_client() -> OpenAIClient:
+    """Get the default LLM client instance."""
+    global _default_client
+    if _default_client is None:
+        _default_client = OpenAIClient()
+    return _default_client
+
+
+__all__ = [
+    # Protocol
+    "LLMClient",
+    # Concrete implementation
+    "OpenAIClient",
+    "get_llm_client",
+    # Module-level functions (backwards compatibility)
+    "call_llm",
+    "call_llm_with_metrics",
+    "call_llm_safe",
+    "clear_llm_cache",
+]

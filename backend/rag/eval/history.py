@@ -192,6 +192,7 @@ def print_trend_report(num_runs: int | None = None) -> None:
         ("Groundedness", "groundedness", "%", True),
         ("Doc Recall", "doc_recall", "%", True),
         ("P95 Latency", "p95_latency_ms", "ms", False),
+        ("Avg Latency", "avg_latency_ms", "ms", False),
     ]
 
     trend_table = Table(title="Metric Trends", show_header=True, header_style="bold cyan")
@@ -261,10 +262,12 @@ def print_trend_report(num_runs: int | None = None) -> None:
         triad = entry["metrics"].get("rag_triad", 0)
         latency = entry["metrics"].get("p95_latency_ms", 0)
         slos_passed = entry.get("slos_passed", True)
+        failed_slos = entry.get("failed_slos", [])
+        failed_count = len(failed_slos)
         tags = ", ".join(entry.get("tags", []))
 
         triad_color = "green" if triad >= 0.7 else "yellow" if triad >= 0.5 else "red"
-        slo_str = "[green]✓[/green]" if slos_passed else "[red]✗[/red]"
+        slo_str = "[green]✓[/green]" if slos_passed else f"[red]✗{failed_count}[/red]"
 
         runs_table.add_row(
             run_id,

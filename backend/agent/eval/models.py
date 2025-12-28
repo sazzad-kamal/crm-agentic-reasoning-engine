@@ -5,6 +5,78 @@ Data models for agent evaluation results.
 from pydantic import BaseModel
 
 
+# =============================================================================
+# Tool Evaluation Models
+# =============================================================================
+
+class ToolEvalResult(BaseModel):
+    """Result from individual tool evaluation."""
+
+    tool_name: str
+    test_case_id: str
+    input_params: dict = {}
+
+    # Expected vs actual
+    expected_found: bool = True
+    actual_found: bool = False
+    expected_company_id: str | None = None
+    actual_company_id: str | None = None
+
+    # Quality metrics
+    data_correct: bool = False
+    sources_present: bool = False
+    latency_ms: float = 0.0
+    error: str | None = None
+
+
+class ToolEvalSummary(BaseModel):
+    """Summary statistics for tool evaluation."""
+
+    total_tests: int
+    passed: int = 0
+    failed: int = 0
+    accuracy: float = 0.0
+    avg_latency_ms: float = 0.0
+    by_tool: dict[str, dict] = {}
+
+
+# =============================================================================
+# Router Evaluation Models
+# =============================================================================
+
+class RouterEvalResult(BaseModel):
+    """Result from router evaluation."""
+
+    test_case_id: str
+    question: str
+    expected_mode: str
+    actual_mode: str = ""
+    expected_company_id: str | None = None
+    actual_company_id: str | None = None
+    mode_correct: bool = False
+    company_correct: bool = True
+    intent_expected: str | None = None
+    intent_actual: str | None = None
+    intent_correct: bool = True
+    latency_ms: float = 0.0
+    error: str | None = None
+
+
+class RouterEvalSummary(BaseModel):
+    """Summary statistics for router evaluation."""
+
+    total_tests: int
+    mode_accuracy: float = 0.0
+    company_extraction_accuracy: float = 0.0
+    intent_accuracy: float = 0.0
+    avg_latency_ms: float = 0.0
+    by_mode: dict[str, dict] = {}
+
+
+# =============================================================================
+# E2E Evaluation Models
+# =============================================================================
+
 class E2EEvalResult(BaseModel):
     """Result from end-to-end agent evaluation."""
 
@@ -67,12 +139,25 @@ class E2EEvalSummary(BaseModel):
     by_mode: dict[str, dict] = {}  # mode -> {expected, correct, accuracy}
 
 
+# =============================================================================
 # SLO Thresholds
-SLO_LATENCY_P95_MS = 5000  # 5 second p95 latency
-SLO_MODE_ACCURACY = 0.90  # 90% routing accuracy
-SLO_ANSWER_RELEVANCE = 0.80  # 80% answer relevance
-SLO_GROUNDEDNESS = 0.80  # 80% groundedness
-SLO_OVERALL = 0.80  # 80% overall
+# =============================================================================
+
+# Production latency SLOs (what users experience)
+SLO_LATENCY_P95_MS = 5000       # 5s P95 - catches outliers
+SLO_LATENCY_AVG_MS = 3000       # 3s average - typical experience
+
+# Eval latency SLOs (more lenient due to judge LLM overhead)
+SLO_EVAL_LATENCY_P95_MS = 10000  # 10s P95 for eval (includes ~500ms judge call)
+SLO_EVAL_LATENCY_AVG_MS = 6000   # 6s average for eval
+
+# Quality SLOs
+SLO_TOOL_ACCURACY = 0.90        # 90% tool accuracy
+SLO_ROUTER_ACCURACY = 0.90      # 90% router accuracy
+SLO_MODE_ACCURACY = 0.90        # 90% routing accuracy
+SLO_ANSWER_RELEVANCE = 0.80     # 80% answer relevance
+SLO_GROUNDEDNESS = 0.80         # 80% groundedness
+SLO_OVERALL = 0.80              # 80% overall
 
 
 class AgentEvalSummary(BaseModel):

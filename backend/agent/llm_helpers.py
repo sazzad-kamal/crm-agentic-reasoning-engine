@@ -218,9 +218,16 @@ def generate_follow_up_suggestions(
             max_tokens=150,
         )
 
-        # Parse JSON array from response
+        # Parse JSON array from response - strip markdown code blocks first
         import json
         text = response.strip()
+
+        # Strip markdown code blocks (LLM often wraps JSON in ```json blocks)
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0].strip()
+        elif "```" in text:
+            text = text.split("```")[1].split("```")[0].strip()
+
         if text.startswith("["):
             suggestions = json.loads(text)
             if isinstance(suggestions, list) and len(suggestions) >= 3:

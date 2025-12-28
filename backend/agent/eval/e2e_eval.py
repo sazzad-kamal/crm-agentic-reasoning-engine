@@ -935,8 +935,15 @@ def check_refusal_response(
 def run_e2e_test(
     test_case: dict,
     verbose: bool = False,
+    agent_lock: threading.Lock | None = None,
 ) -> E2EEvalResult:
-    """Run a single end-to-end test case."""
+    """Run a single end-to-end test case.
+
+    Args:
+        test_case: Test case dictionary with question, expected values, etc.
+        verbose: Print detailed progress
+        agent_lock: Optional lock for thread-safe agent/RAG access in parallel mode
+    """
     test_id = test_case["id"]
     question = test_case["question"]
     category = test_case["category"]
@@ -960,8 +967,13 @@ def run_e2e_test(
     error = None
 
     try:
-        # Run the full agent pipeline (with session_id for multi-turn support)
-        result = answer_question(question, session_id=session_id)
+        # Run the full agent pipeline (with optional lock for thread safety)
+        # Lock serializes Qdrant/RAG access while LLM judge calls run in parallel
+        if agent_lock:
+            with agent_lock:
+                result = answer_question(question, session_id=session_id)
+        else:
+            result = answer_question(question, session_id=session_id)
         latency = (time.time() - start_time) * 1000
 
         answer = result.get("answer", "")
@@ -970,7 +982,7 @@ def run_e2e_test(
         meta = result.get("meta", {})
 
         # Extract actual mode and company from meta
-        actual_mode = meta.get("mode", "unknown")
+        actual_mode = meta.get("mode_used", "unknown")
         actual_company = meta.get("company_id")
 
         # Extract actual tools from steps
@@ -1115,12 +1127,19 @@ def run_e2e_eval(
 
     if parallel and regular_tests:
         # Run regular tests in parallel using ThreadPoolExecutor
+        # Use a lock to serialize Qdrant/RAG access (LLM judge calls still run in parallel)
         console.print(
             f"[cyan]Running {len(regular_tests)} regular tests in parallel (max {max_workers} workers)...[/cyan]"
         )
+        agent_lock = threading.Lock()
+
+        def run_with_lock(test_case: dict) -> E2EEvalResult:
+            """Wrapper that passes the agent lock for thread-safe RAG access."""
+            return run_e2e_test(test_case, verbose, agent_lock)
+
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
-                executor.submit(run_e2e_test, test_case, verbose): test_case
+                executor.submit(run_with_lock, test_case): test_case
                 for test_case in regular_tests
             }
             completed = 0
@@ -1310,14 +1329,19 @@ def print_e2e_eval_results(results: list[E2EEvalResult], summary: E2EEvalSummary
 
 app = typer.Typer()
 
-BASELINE_PATH = Path("data/processed/e2e_eval_baseline.json")
+# Use absolute path for baseline (relative to backend root)
+_BACKEND_ROOT = Path(__file__).parent.parent.parent.resolve()
+BASELINE_PATH = _BACKEND_ROOT / "data" / "processed" / "e2e_eval_baseline.json"
 
 
 @app.command()
 def main(
     limit: int | None = typer.Option(None, "--limit", "-l", help="Limit tests to run"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
-    parallel: bool = typer.Option(False, "--parallel", "-p", help="Run tests in parallel"),
+    parallel: bool = typer.Option(
+        False, "--parallel", "-p",
+        help="Run tests in parallel (uses lock to prevent Qdrant file conflicts)"
+    ),
     workers: int = typer.Option(4, "--workers", "-w", help="Max parallel workers"),
     baseline: str | None = typer.Option(None, "--baseline", "-b", help="Path to baseline JSON for regression comparison"),
     set_baseline: bool = typer.Option(False, "--set-baseline", help="Save current results as new baseline"),

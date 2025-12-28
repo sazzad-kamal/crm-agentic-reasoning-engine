@@ -17,6 +17,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # Configure module logger
 logger = logging.getLogger(__name__)
 
+# Resolve backend root directory (for default paths)
+_BACKEND_ROOT = Path(__file__).parent.parent.resolve()
+_DEFAULT_CSV_DIR = _BACKEND_ROOT / "data" / "csv"
+_DEFAULT_AUDIT_LOG = _BACKEND_ROOT / "data" / "logs" / "agent_audit.jsonl"
+
 
 class AgentConfig(BaseSettings):
     """
@@ -30,12 +35,12 @@ class AgentConfig(BaseSettings):
     # LLM Configuration
     # -------------------------------------------------------------------------
     llm_model: str = Field(
-        default="gpt-5.2",
+        default="gpt-4o",
         description="LLM model for agent responses"
     )
     router_model: str = Field(
-        default="gpt-5-nano",
-        description="LLM model for routing decisions"
+        default="gpt-4o-mini",
+        description="LLM model for routing decisions (fast, cheap)"
     )
     llm_temperature: float = Field(
         default=0.1,
@@ -51,22 +56,6 @@ class AgentConfig(BaseSettings):
     )
     
     # -------------------------------------------------------------------------
-    # Retry Configuration
-    # -------------------------------------------------------------------------
-    llm_max_retries: int = Field(
-        default=3,
-        description="Maximum retries for LLM calls"
-    )
-    llm_retry_min_wait: float = Field(
-        default=1.0,
-        description="Minimum wait time between retries (seconds)"
-    )
-    llm_retry_max_wait: float = Field(
-        default=10.0,
-        description="Maximum wait time between retries (seconds)"
-    )
-    
-    # -------------------------------------------------------------------------
     # Router Configuration
     # -------------------------------------------------------------------------
     use_llm_router: bool = Field(
@@ -76,30 +65,6 @@ class AgentConfig(BaseSettings):
     fallback_to_heuristics: bool = Field(
         default=True,
         description="Fall back to heuristics if LLM routing fails"
-    )
-    
-    # -------------------------------------------------------------------------
-    # Data Defaults
-    # -------------------------------------------------------------------------
-    default_days_lookback: int = Field(
-        default=90,
-        description="Default days to look back for activities"
-    )
-    max_activities: int = Field(
-        default=20,
-        description="Maximum activities to return"
-    )
-    max_history: int = Field(
-        default=20,
-        description="Maximum history items to return"
-    )
-    max_opportunities: int = Field(
-        default=10,
-        description="Maximum opportunities to return"
-    )
-    max_renewals: int = Field(
-        default=10,
-        description="Maximum renewals to return"
     )
     
     # -------------------------------------------------------------------------
@@ -119,26 +84,14 @@ class AgentConfig(BaseSettings):
     )
     
     # -------------------------------------------------------------------------
-    # Cache Configuration
-    # -------------------------------------------------------------------------
-    enable_llm_cache: bool = Field(
-        default=False,
-        description="Enable caching for LLM responses"
-    )
-    llm_cache_size: int = Field(
-        default=100,
-        description="Maximum entries in LLM cache"
-    )
-    
-    # -------------------------------------------------------------------------
     # Paths
     # -------------------------------------------------------------------------
     csv_dir: Path = Field(
-        default=Path("data/csv"),
+        default=_DEFAULT_CSV_DIR,
         description="Path to CSV data directory"
     )
     audit_log_file: Path = Field(
-        default=Path("data/logs/agent_audit.jsonl"),
+        default=_DEFAULT_AUDIT_LOG,
         description="Path to agent audit log file"
     )
     
@@ -154,8 +107,6 @@ class AgentConfig(BaseSettings):
         """Cross-field validation."""
         if self.llm_temperature < 0 or self.llm_temperature > 2:
             raise ValueError("llm_temperature must be between 0 and 2")
-        if self.default_days_lookback < 1:
-            raise ValueError("default_days_lookback must be >= 1")
         return self
 
 

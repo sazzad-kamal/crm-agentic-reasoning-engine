@@ -3,8 +3,8 @@ Constants for the pipeline module.
 """
 
 # LLM Configuration
-LLM_MODEL = "gpt-5-nano"  # Fast model for HyDE, query rewrite
-ANSWER_MODEL = "gpt-5.2"  # Best model for final answers
+LLM_MODEL = "gpt-4o-mini"  # Fast model for HyDE, query rewrite
+ANSWER_MODEL = "gpt-4o"  # Best model for final answers
 ANSWER_MAX_TOKENS = 800
 
 # Context Building

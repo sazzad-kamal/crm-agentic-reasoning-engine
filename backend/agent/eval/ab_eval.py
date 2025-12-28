@@ -150,7 +150,7 @@ def run_config_eval(
                 answer = result.get("answer", "")
                 sources = [s.get("id", "") for s in result.get("sources", [])]
                 meta = result.get("meta", {})
-                actual_mode = meta.get("mode", "unknown")
+                actual_mode = meta.get("mode_used", "unknown")
 
                 # Judge the response
                 judge_result = judge_e2e_response(question, answer, sources)

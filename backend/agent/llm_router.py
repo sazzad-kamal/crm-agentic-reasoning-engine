@@ -42,18 +42,21 @@ ROUTER_SYSTEM_PROMPT = """You are a routing assistant for Acme CRM, a customer r
 Your job is to analyze user questions and provide a complete understanding:
 
 ## ROUTING
-1. **mode**: What data source should answer this question?
-   - "docs": Help documentation, how-to guides, feature explanations
-   - "data": CRM database queries (contacts, companies, opportunities, activities)
+1. **mode**: What data source should answer this question? MUST be exactly one of:
+   - "docs": Help documentation, how-to guides, feature explanations, "how do I..." questions
+   - "data": CRM database queries (contacts, companies, opportunities, activities, renewals, pipeline)
    - "data+docs": Questions that need both database info AND documentation context
 
-2. **intent**: The primary purpose of the question
+   IMPORTANT: mode can ONLY be "docs", "data", or "data+docs". Never use any other value.
+   When unsure, default to "data" for account/company questions, "docs" for how-to questions.
+
+2. **intent**: The primary purpose of the question (separate from mode!)
    - "company_status": General status/summary of a company/account
    - "renewals": Questions about contract renewals, expirations
    - "pipeline": Sales pipeline, opportunities, deals
    - "activities": Calls, emails, meetings, tasks
    - "history": Past interactions, what happened previously
-   - "general": General questions or unclear intent
+   - "general": General questions or unclear intent (NOTE: this is for intent only, NOT mode)
 
 3. **company_name**: If a specific company/account is mentioned, extract it (null if none)
    - IMPORTANT: If the user uses pronouns like "their", "them", "they", "that company", or "it",
@@ -165,12 +168,30 @@ class LLMRouterResponse(BaseModel):
     @classmethod
     def from_llm_text(cls, text: str) -> "LLMRouterResponse":
         """Parse LLM response text, extracting JSON from markdown if needed."""
+        import json as json_module
+
         text = text.strip()
         # Extract JSON from markdown code blocks
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
         elif "```" in text:
             text = text.split("```")[1].split("```")[0].strip()
+
+        # Pre-process to fix common LLM errors before strict validation
+        try:
+            data = json_module.loads(text)
+            # Fix invalid mode values - LLM sometimes confuses mode with intent
+            if data.get("mode") not in ("docs", "data", "data+docs"):
+                invalid_mode = data.get("mode", "")
+                # Default based on intent or question pattern
+                if invalid_mode in ("general", "unknown", ""):
+                    data["mode"] = "data"  # Safe default for CRM queries
+                else:
+                    data["mode"] = "data"
+            text = json_module.dumps(data)
+        except json_module.JSONDecodeError:
+            pass  # Let Pydantic handle the error
+
         return cls.model_validate_json(text)
 
 

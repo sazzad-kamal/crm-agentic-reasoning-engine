@@ -13,7 +13,14 @@ from typing import Any
 from rich.table import Table
 from rich.panel import Panel
 
-from backend.agent.eval.models import E2EEvalSummary
+from backend.agent.eval.models import (
+    E2EEvalSummary,
+    SLO_EVAL_LATENCY_P95_MS,
+    SLO_EVAL_LATENCY_AVG_MS,
+    SLO_ANSWER_RELEVANCE,
+    SLO_GROUNDEDNESS,
+    SLO_MODE_ACCURACY,
+)
 from backend.agent.eval.base import console
 
 
@@ -60,6 +67,23 @@ def add_to_agent_history(
     """Add a new agent evaluation run to history."""
     history = load_agent_history()
 
+    # Compute SLO pass/fail using eval-specific thresholds
+    p95_slo_pass = summary.p95_latency_ms <= SLO_EVAL_LATENCY_P95_MS
+    avg_slo_pass = summary.avg_latency_ms <= SLO_EVAL_LATENCY_AVG_MS
+
+    # Compute which SLOs failed
+    failed_slos = []
+    if not p95_slo_pass:
+        failed_slos.append(f"P95 latency {summary.p95_latency_ms:.0f}ms > {SLO_EVAL_LATENCY_P95_MS}ms")
+    if not avg_slo_pass:
+        failed_slos.append(f"Avg latency {summary.avg_latency_ms:.0f}ms > {SLO_EVAL_LATENCY_AVG_MS}ms")
+    if summary.answer_relevance_rate < SLO_ANSWER_RELEVANCE:
+        failed_slos.append(f"Answer relevance {summary.answer_relevance_rate:.1%} < {SLO_ANSWER_RELEVANCE:.0%}")
+    if summary.groundedness_rate < SLO_GROUNDEDNESS:
+        failed_slos.append(f"Groundedness {summary.groundedness_rate:.1%} < {SLO_GROUNDEDNESS:.0%}")
+    if summary.mode_accuracy < SLO_MODE_ACCURACY:
+        failed_slos.append(f"Mode accuracy {summary.mode_accuracy:.1%} < {SLO_MODE_ACCURACY:.0%}")
+
     entry = {
         "run_id": run_id or datetime.now().isoformat(),
         "timestamp": datetime.now().isoformat(),
@@ -68,11 +92,15 @@ def add_to_agent_history(
             "answer_relevance": summary.answer_relevance_rate,
             "groundedness": summary.groundedness_rate,
             "tool_selection": summary.tool_selection_accuracy,
+            "mode_accuracy": summary.mode_accuracy,
             "p95_latency_ms": summary.p95_latency_ms,
             "avg_latency_ms": summary.avg_latency_ms,
         },
         "total_tests": summary.total_tests,
-        "latency_slo_pass": summary.latency_slo_pass,
+        "p95_slo_pass": p95_slo_pass,
+        "avg_slo_pass": avg_slo_pass,
+        "all_slos_passed": len(failed_slos) == 0,
+        "failed_slos": failed_slos,
     }
 
     history.append(entry)
@@ -136,8 +164,10 @@ def print_agent_trend_report(num_runs: int | None = None) -> None:
     metrics = [
         ("Answer Relevance", "answer_relevance", "%", True),
         ("Groundedness", "groundedness", "%", True),
+        ("Mode Accuracy", "mode_accuracy", "%", True),
         ("Tool Selection", "tool_selection", "%", True),
         ("P95 Latency", "p95_latency_ms", "ms", False),
+        ("Avg Latency", "avg_latency_ms", "ms", False),
     ]
 
     trend_table = Table(title="Agent Metric Trends", show_header=True, header_style="bold cyan")
@@ -174,9 +204,11 @@ def print_agent_trend_report(num_runs: int | None = None) -> None:
     # Recent runs
     runs_table = Table(title="Recent Agent Runs", show_header=True)
     runs_table.add_column("Date")
-    runs_table.add_column("Relevance", justify="right")
-    runs_table.add_column("Grounded", justify="right")
-    runs_table.add_column("Latency", justify="right")
+    runs_table.add_column("Rel", justify="right")
+    runs_table.add_column("Gnd", justify="right")
+    runs_table.add_column("Mode", justify="right")
+    runs_table.add_column("P95", justify="right")
+    runs_table.add_column("SLOs", justify="center")
 
     for entry in history[-5:]:
         try:
@@ -187,13 +219,20 @@ def print_agent_trend_report(num_runs: int | None = None) -> None:
 
         rel = entry["metrics"].get("answer_relevance", 0)
         gnd = entry["metrics"].get("groundedness", 0)
+        mode = entry["metrics"].get("mode_accuracy", 0)
         lat = entry["metrics"].get("p95_latency_ms", 0)
+        all_passed = entry.get("all_slos_passed", False)
+        failed_count = len(entry.get("failed_slos", []))
+
+        slo_str = "[green]✓[/green]" if all_passed else f"[red]✗{failed_count}[/red]"
 
         runs_table.add_row(
             date_str,
-            f"{rel:.1%}",
-            f"{gnd:.1%}",
-            f"{lat:.0f}ms",
+            f"{rel:.0%}",
+            f"{gnd:.0%}",
+            f"{mode:.0%}",
+            f"{lat/1000:.1f}s",
+            slo_str,
         )
 
     console.print(runs_table)

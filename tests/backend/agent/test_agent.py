@@ -22,7 +22,7 @@ from backend.agent.tools import (
     tool_forecast,
     tool_pipeline_by_owner,
 )
-from backend.agent.router import route_question
+from backend.agent.llm_router import route_question
 from backend.agent.orchestrator import answer_question
 
 # datastore fixture is provided by conftest.py
@@ -225,62 +225,44 @@ class TestTools:
 
 
 # =============================================================================
-# Router Tests
+# Router Tests (Mock Mode)
+# In mock mode, router returns default routing (data+docs, general intent)
+# Real routing behavior is tested via e2e_eval with actual API calls
 # =============================================================================
 
 class TestRouter:
-    """Tests for the router."""
-    
-    def test_route_docs_question(self):
-        """Test routing a docs question."""
+    """Tests for the router in mock mode."""
+
+    def test_route_returns_default_mode_in_mock(self):
+        """Test that mock mode returns data+docs."""
         result = route_question("How do I create a new opportunity?")
-        assert result.mode_used in ["docs", "data+docs"]
-    
-    def test_route_data_question(self):
-        """Test routing a data question."""
-        result = route_question("What's going on with Acme Manufacturing in the last 90 days?")
-        assert result.mode_used in ["data", "data+docs"]
-        assert result.company_id == "ACME-MFG"
-    
-    def test_route_renewals_question(self):
-        """Test routing a renewals question."""
-        result = route_question("Which accounts have upcoming renewals?")
-        assert result.mode_used in ["data", "data+docs"]
-        assert result.intent == "renewals"
-    
-    def test_route_pipeline_question(self):
-        """Test routing a pipeline question."""
-        result = route_question("Show the open pipeline for Beta Tech")
-        assert result.mode_used in ["data", "data+docs"]
-        assert result.intent == "pipeline"
-    
-    def test_route_extracts_days(self):
-        """Test that router extracts days from question."""
-        result = route_question("What happened in the last 30 days?")
-        assert result.days == 30
-        
+        assert result.mode_used == "data+docs"
+
+    def test_route_returns_default_intent_in_mock(self):
+        """Test that mock mode returns general intent."""
+        result = route_question("What's going on with Acme Manufacturing?")
+        assert result.intent == "general"
+
+    def test_route_returns_default_days_in_mock(self):
+        """Test that mock mode returns default 30 days."""
         result = route_question("What happened in the last 90 days?")
-        assert result.days == 90
-    
-    def test_route_explicit_mode(self):
-        """Test explicit mode override."""
+        assert result.days == 30  # Mock mode ignores timeframe in question
+
+    def test_route_explicit_mode_overrides(self):
+        """Test explicit mode override works in mock mode."""
         result = route_question("Tell me about Acme", mode="docs")
         assert result.mode_used == "docs"
 
         result = route_question("Tell me about Acme", mode="data")
         assert result.mode_used == "data"
 
-    def test_route_deals_at_risk_question(self):
-        """Test routing a deals at risk question."""
-        result = route_question("Which deals are stalled?")
-        assert result.mode_used in ["data", "data+docs"]
-        assert result.intent == "deals_at_risk"
+    def test_route_detects_owner_from_starter(self):
+        """Test that owner detection works in mock mode."""
+        result = route_question("How's my pipeline?")
+        assert result.owner == "jsmith"
 
-    def test_route_forecast_question(self):
-        """Test routing a forecast question."""
-        result = route_question("What's the forecast for this quarter?")
-        assert result.mode_used in ["data", "data+docs"]
-        assert result.intent == "forecast"
+        result = route_question("Any renewals at risk?")
+        assert result.owner == "amartin"
 
 
 # =============================================================================
@@ -291,31 +273,31 @@ class TestAgent:
     """Tests for the agent with MOCK_LLM."""
     
     def test_answer_question_company(self):
-        """Test answering a company question."""
+        """Test answering a company question.
+
+        Note: In mock mode, the router returns default values (general intent).
+        Real company resolution is tested via e2e_eval with actual API calls.
+        """
         result = answer_question("What's going on with Acme Manufacturing in the last 90 days?")
-        
+
         # Check all required keys exist
         assert "answer" in result
         assert "sources" in result
         assert "steps" in result
         assert "raw_data" in result
         assert "meta" in result
-        
+
         # Check meta
         assert "mode_used" in result["meta"]
         assert "latency_ms" in result["meta"]
-        
-        # Check raw_data structure
+
+        # Check raw_data structure exists (content depends on routing)
         assert "companies" in result["raw_data"]
         assert "activities" in result["raw_data"]
         assert "opportunities" in result["raw_data"]
-        
-        # Should have company data
-        assert len(result["raw_data"]["companies"]) > 0
-        assert result["raw_data"]["companies"][0]["company_id"] == "ACME-MFG"
-        
-        # Should have sources
-        assert len(result["sources"]) > 0
+
+        # Note: In mock mode, company resolution doesn't happen
+        # Full routing behavior is tested in e2e_eval with real API calls
     
     def test_answer_question_renewals(self):
         """Test answering a renewals question."""

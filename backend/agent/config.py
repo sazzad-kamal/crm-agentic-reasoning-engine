@@ -56,18 +56,6 @@ class AgentConfig(BaseSettings):
     )
     
     # -------------------------------------------------------------------------
-    # Router Configuration
-    # -------------------------------------------------------------------------
-    use_llm_router: bool = Field(
-        default=True,
-        description="Use LLM for routing instead of heuristics"
-    )
-    fallback_to_heuristics: bool = Field(
-        default=True,
-        description="Fall back to heuristics if LLM routing fails"
-    )
-    
-    # -------------------------------------------------------------------------
     # Feature Flags
     # -------------------------------------------------------------------------
     enable_follow_up_suggestions: bool = Field(
@@ -183,7 +171,7 @@ def _validate_startup_config(config: AgentConfig) -> None:
     # Log configuration summary
     logger.info(
         f"Agent Config loaded: llm_model={config.llm_model}, "
-        f"use_llm_router={config.use_llm_router}, "
+        f"router_model={config.router_model}, "
         f"follow_up_suggestions={config.enable_follow_up_suggestions}"
     )
     

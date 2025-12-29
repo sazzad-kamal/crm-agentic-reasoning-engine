@@ -43,17 +43,16 @@ class TestAgentConfig:
         config = AgentConfig()
         assert config.llm_model == "gpt-5.2"
         assert config.router_model == "gpt-4o-mini"
-        assert config.use_llm_router is True
-    
+
     def test_config_environment_override(self, monkeypatch):
         """Test that environment variables override defaults."""
         monkeypatch.setenv("AGENT_LLM_MODEL", "gpt-4")
-        monkeypatch.setenv("AGENT_USE_LLM_ROUTER", "false")
+        monkeypatch.setenv("AGENT_ROUTER_MODEL", "gpt-4o")
         reset_config()
-        
+
         config = AgentConfig()
         assert config.llm_model == "gpt-4"
-        assert config.use_llm_router is False
+        assert config.router_model == "gpt-4o"
     
     def test_config_validation_temperature(self):
         """Test that invalid temperature raises error."""
@@ -249,22 +248,23 @@ class TestLLMRouter:
         """Reset config between tests."""
         reset_config()
     
-    def test_router_falls_back_to_heuristics_in_mock(self):
-        """Test that router uses heuristics in mock mode."""
+    def test_router_returns_default_in_mock_mode(self):
+        """Test that router returns default routing in mock mode."""
         from backend.agent.llm_router import route_question
-        
+
         result = route_question("What's going on with Acme Corp?")
-        
-        # Should get a valid result from heuristics
-        assert result.mode_used in ["data", "docs", "data+docs"]
-        assert result.intent in ["company_status", "general", "renewals", "pipeline", "activities", "history"]
-    
-    def test_router_extracts_timeframe(self):
-        """Test that router extracts timeframe from question."""
+
+        # In mock mode, returns data+docs with general intent
+        assert result.mode_used == "data+docs"
+        assert result.intent == "general"
+
+    def test_router_returns_default_days_in_mock(self):
+        """Test that router returns default days in mock mode."""
         from backend.agent.llm_router import route_question
-        
+
         result = route_question("What happened in the last 30 days?")
-        
+
+        # Mock mode returns default 30 days
         assert result.days == 30
     
     def test_router_respects_explicit_mode(self):

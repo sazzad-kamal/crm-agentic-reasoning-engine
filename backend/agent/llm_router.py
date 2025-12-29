@@ -7,8 +7,6 @@ Uses an LLM to:
 3. Extract parameters (company, timeframe, etc.)
 4. Expand/rewrite queries for better understanding
 
-Falls back to heuristic router on LLM failures.
-
 Uses LangChain's .with_structured_output() for reliable Pydantic parsing.
 """
 
@@ -28,7 +26,6 @@ from langchain_openai import ChatOpenAI
 from backend.agent.config import get_config, is_mock_mode
 from backend.agent.schemas import RouterResult
 from backend.agent.datastore import get_datastore, CRMDataStore
-from backend.agent import router as heuristic_router  # Fallback
 
 
 # Configure module logger
@@ -490,8 +487,6 @@ def llm_route_question(
     """
     Route a question using LLM intelligence.
 
-    Falls back to heuristic router on failure.
-
     Args:
         question: The user's question
         mode: Explicit mode override ("auto" for LLM decision)
@@ -502,71 +497,64 @@ def llm_route_question(
     Returns:
         RouterResult with routing decision and extracted parameters
     """
-    config = get_config()
     ds = datastore or get_datastore()
 
-    # If mode is explicitly set, skip LLM routing
+    # If mode is explicitly set, return minimal routing
     if mode and mode != "auto":
-        logger.debug(f"Mode explicitly set to '{mode}', skipping LLM router")
-        return heuristic_router.route_question(question, mode, company_id, datastore)
+        logger.debug(f"Mode explicitly set to '{mode}'")
+        return RouterResult(
+            mode_used=mode,
+            company_id=company_id,
+            days=30,
+            intent="general",
+            owner=detect_owner_from_starter(question),
+        )
 
-    # Skip LLM in mock mode
+    # Mock mode returns default routing (for testing without API)
     if is_mock_mode():
-        logger.debug("Mock mode: Using heuristic router")
-        return heuristic_router.route_question(question, mode, company_id, datastore)
+        logger.debug("Mock mode: returning default routing")
+        return RouterResult(
+            mode_used="data+docs",
+            company_id=company_id,
+            days=30,
+            intent="general",
+            owner=detect_owner_from_starter(question),
+        )
 
-    # Try LLM routing
-    if config.use_llm_router:
-        try:
-            llm_result = _call_llm_router(question, conversation_history)
-            
-            logger.info(
-                f"LLM Router: mode={llm_result['mode']}, "
-                f"intent={llm_result['intent']}, "
-                f"confidence={llm_result.get('confidence', 'N/A')}"
-            )
-            
-            # Resolve company ID if LLM found a company name
-            resolved_company = company_id
-            if not resolved_company and llm_result.get("company_name"):
-                resolved_company = ds.resolve_company_id(llm_result["company_name"])
-                if resolved_company:
-                    logger.debug(f"Resolved company '{llm_result['company_name']}' to ID: {resolved_company}")
-            
-            # Detect owner from starter pattern (role-based filtering)
-            owner = detect_owner_from_starter(question)
+    # LLM routing
+    llm_result = _call_llm_router(question, conversation_history)
 
-            return RouterResult(
-                mode_used=llm_result["mode"],
-                company_id=resolved_company,
-                days=llm_result.get("days", 30),
-                intent=llm_result.get("intent", "general"),
-                query_expansion=llm_result.get("query_expansion"),
-                llm_confidence=llm_result.get("confidence"),
-                key_entities=llm_result.get("key_entities", []),
-                action_type=llm_result.get("action_type"),
-                owner=owner,
-            )
-            
-        except LLMRouterError as e:
-            logger.warning(f"LLM router response error: {e}")
-            if config.fallback_to_heuristics:
-                logger.info("Falling back to heuristic router")
-            else:
-                raise
-        except Exception as e:
-            logger.warning(f"LLM router failed: {e}")
-            if config.fallback_to_heuristics:
-                logger.info("Falling back to heuristic router")
-            else:
-                raise
-    
-    # Fallback to heuristic router
-    return heuristic_router.route_question(question, mode, company_id, datastore)
+    logger.info(
+        f"LLM Router: mode={llm_result['mode']}, "
+        f"intent={llm_result['intent']}, "
+        f"confidence={llm_result.get('confidence', 'N/A')}"
+    )
+
+    # Resolve company ID if LLM found a company name
+    resolved_company = company_id
+    if not resolved_company and llm_result.get("company_name"):
+        resolved_company = ds.resolve_company_id(llm_result["company_name"])
+        if resolved_company:
+            logger.debug(f"Resolved company '{llm_result['company_name']}' to ID: {resolved_company}")
+
+    # Detect owner from starter pattern (role-based filtering)
+    owner = detect_owner_from_starter(question)
+
+    return RouterResult(
+        mode_used=llm_result["mode"],
+        company_id=resolved_company,
+        days=llm_result.get("days", 30),
+        intent=llm_result.get("intent", "general"),
+        query_expansion=llm_result.get("query_expansion"),
+        llm_confidence=llm_result.get("confidence"),
+        key_entities=llm_result.get("key_entities", []),
+        action_type=llm_result.get("action_type"),
+        owner=owner,
+    )
 
 
 # =============================================================================
-# Unified Router Function
+# Main Entry Point
 # =============================================================================
 
 def route_question(
@@ -577,7 +565,7 @@ def route_question(
     conversation_history: str = "",
 ) -> RouterResult:
     """
-    Main routing function - uses LLM or heuristics based on config.
+    Main routing function - uses LLM for intelligent routing.
 
     This is the recommended entry point for routing questions.
     Merges routing + query understanding into a single LLM call.
@@ -589,14 +577,9 @@ def route_question(
         datastore: Optional datastore instance
         conversation_history: Formatted conversation history for context
     """
-    config = get_config()
+    result = llm_route_question(question, mode, company_id, datastore, conversation_history)
 
-    if config.use_llm_router:
-        result = llm_route_question(question, mode, company_id, datastore, conversation_history)
-    else:
-        result = heuristic_router.route_question(question, mode, company_id, datastore)
-
-    # Ensure owner is detected for role-based starters (works for both LLM and heuristic)
+    # Ensure owner is detected for role-based starters
     if result.owner is None:
         result.owner = detect_owner_from_starter(question)
 

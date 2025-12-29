@@ -3,7 +3,6 @@ A/B Evaluation for Agent Pipeline Configuration.
 
 Runs the same evaluation questions with different agent configurations
 to quantify the quality vs latency tradeoffs of:
-- LLM Router vs Heuristic Router
 - Follow-up Suggestions enabled/disabled
 - Docs Integration enabled/disabled
 
@@ -48,44 +47,26 @@ app = typer.Typer(help="A/B Evaluation for agent configurations")
 AGENT_AB_CONFIGS: dict[str, dict[str, Any]] = {
     # Full quality (all features on)
     "full_quality": {
-        "AGENT_USE_LLM_ROUTER": "true",
-        "AGENT_ENABLE_FOLLOW_UP_SUGGESTIONS": "true",
-        "AGENT_ENABLE_DOCS_INTEGRATION": "true",
-    },
-
-    # Heuristic router (no LLM routing)
-    "heuristic_router": {
-        "AGENT_USE_LLM_ROUTER": "false",
         "AGENT_ENABLE_FOLLOW_UP_SUGGESTIONS": "true",
         "AGENT_ENABLE_DOCS_INTEGRATION": "true",
     },
 
     # No follow-up suggestions
     "no_followups": {
-        "AGENT_USE_LLM_ROUTER": "true",
         "AGENT_ENABLE_FOLLOW_UP_SUGGESTIONS": "false",
         "AGENT_ENABLE_DOCS_INTEGRATION": "true",
     },
 
     # No docs integration (data-only mode)
     "no_docs": {
-        "AGENT_USE_LLM_ROUTER": "true",
         "AGENT_ENABLE_FOLLOW_UP_SUGGESTIONS": "true",
         "AGENT_ENABLE_DOCS_INTEGRATION": "false",
     },
 
-    # Minimal (heuristic router, no extras)
+    # Minimal (no extras)
     "minimal": {
-        "AGENT_USE_LLM_ROUTER": "false",
         "AGENT_ENABLE_FOLLOW_UP_SUGGESTIONS": "false",
         "AGENT_ENABLE_DOCS_INTEGRATION": "false",
-    },
-
-    # Fast mode (heuristic + no follow-ups)
-    "fast": {
-        "AGENT_USE_LLM_ROUTER": "false",
-        "AGENT_ENABLE_FOLLOW_UP_SUGGESTIONS": "false",
-        "AGENT_ENABLE_DOCS_INTEGRATION": "true",
     },
 }
 
@@ -180,7 +161,6 @@ def run_config_eval(
 
         return {
             "config_name": config_name,
-            "use_llm_router": config.get("AGENT_USE_LLM_ROUTER") == "true",
             "follow_ups": config.get("AGENT_ENABLE_FOLLOW_UP_SUGGESTIONS") == "true",
             "docs_integration": config.get("AGENT_ENABLE_DOCS_INTEGRATION") == "true",
             "num_questions": n,
@@ -243,7 +223,6 @@ def print_agent_ab_results(results: list[dict[str, Any]]) -> None:
     # Main comparison table
     table = Table(title="Agent A/B Configuration Comparison", show_header=True, header_style="bold cyan")
     table.add_column("Config", style="bold")
-    table.add_column("LLM Router", justify="center")
     table.add_column("Follow-ups", justify="center")
     table.add_column("Docs", justify="center")
     table.add_column("Latency", justify="right")
@@ -253,7 +232,6 @@ def print_agent_ab_results(results: list[dict[str, Any]]) -> None:
     for r in results_sorted:
         table.add_row(
             r["config_name"],
-            format_check_mark(r["use_llm_router"]),
             format_check_mark(r["follow_ups"]),
             format_check_mark(r["docs_integration"]),
             f"{r['avg_latency_ms']:.0f}ms",

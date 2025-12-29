@@ -5,16 +5,26 @@ This module provides a deterministic tree of questions and follow-ups,
 ensuring 100% reliability for demos - no LLM generation variability.
 
 Structure:
-- 5 starter questions (all CRM data focused)
+- 3 role-based starter questions:
+  * Sales Rep (jsmith): "How's my pipeline?" - Pipeline focus
+  * CSM (amartin): "Any renewals at risk?" - Retention focus
+  * Manager (all): "How's the team doing?" - Aggregate view
 - Each leads to 3 follow-ups (layer 2)
 - Each leads to 3 follow-ups (layer 3)
 - Each leads to 3 follow-ups (layer 4)
-- Total: 135 paths (5 * 3 * 3 * 3)
+- Total: 81 paths (3 * 3 * 3 * 3)
+
+Owner mapping:
+- jsmith: Sales Rep (owns ACME-MFG, CROWN-FOODS, FUSION-RETAIL)
+- amartin: CSM (owns DELTA-HEALTH)
+- ljones: Sales Rep (owns BETA-TECH, GREEN-ENERGY)
+- mmalik: Sales Rep (owns EASTERN-TRAVEL, HARBOR-LOGISTICS)
 
 Contact names verified against seed data:
 - ACME: Anna Lopez (Ops Manager), Joe Smith (IT), Beth Turner (CFO)
 - BETA: Lisa Ng (Head of Sales), Omar Haddad (CEO), Sam Clarke (Sales Ops)
 - CROWN: Maria Silva (VP Ops), Alex Dupont (IT Director), Nina Foster (Analyst)
+- DELTA: Erin Cho (Medical Director), Mike Tran (IT Manager)
 
 Usage:
     from backend.agent.question_tree import get_follow_ups, get_starters, generate_all_paths
@@ -23,7 +33,7 @@ Usage:
     starters = get_starters()
 
     # Get follow-ups for a question
-    follow_ups = get_follow_ups("What's going on with Acme Manufacturing?")
+    follow_ups = get_follow_ups("How's my pipeline?")
 
     # Generate all paths for testing
     paths = generate_all_paths()
@@ -46,7 +56,421 @@ class QuestionNode(TypedDict):
 
 QUESTION_TREE: dict[str, QuestionNode] = {
     # =========================================================================
-    # STARTER 1: Acme Manufacturing - Activity Focus
+    # ROLE-BASED STARTER 1: Sales Rep Pipeline (jsmith)
+    # =========================================================================
+    "How's my pipeline?": {
+        "company_id": None,  # Filtered by owner=jsmith
+        "follow_ups": [
+            "Which deals need attention?",
+            "What's going on with Acme Manufacturing?",
+            "What's the forecast for this quarter?",
+        ],
+    },
+
+    # Layer 2 from Sales Rep Starter
+    "Which deals need attention?": {
+        "company_id": None,
+        "follow_ups": [
+            "What stage is the upgrade deal in?",
+            "What's blocking the Crown Foods renewal?",
+            "Who should I follow up with?",
+        ],
+    },
+    "What's the forecast for this quarter?": {
+        "company_id": None,
+        "follow_ups": [
+            "What's the expected close value?",
+            "Which deals are most likely to close?",
+            "What's at risk in my pipeline?",
+        ],
+    },
+
+    # Layer 3 from "Which deals need attention?"
+    "What's blocking the Crown Foods renewal?": {
+        "company_id": "CROWN-FOODS",
+        "follow_ups": [
+            "When did we last talk to Crown Foods?",
+            "Who is Maria Silva?",
+            "What's the renewal value?",
+        ],
+    },
+    "Who should I follow up with?": {
+        "company_id": None,
+        "follow_ups": [
+            "What's the next scheduled activity?",
+            "Show me overdue activities",
+            "What meetings do I have this week?",
+        ],
+    },
+
+    # Layer 3 from "What's the forecast for this quarter?"
+    "What's the expected close value?": {
+        "company_id": None,
+        "follow_ups": [
+            "What's the weighted pipeline?",
+            "Which deals are in negotiation?",
+            "How many open opportunities do I have?",
+        ],
+    },
+    "Which deals are most likely to close?": {
+        "company_id": None,
+        "follow_ups": [
+            "Tell me about the Beta Tech negotiation deal",
+            "What's the next step for my biggest deal?",
+            "Who owns the contacts for these deals?",
+        ],
+    },
+    "What's at risk in my pipeline?": {
+        "company_id": None,
+        "follow_ups": [
+            "Which deals are stalled?",
+            "What accounts have low engagement?",
+            "Show me deals with no recent activity",
+        ],
+    },
+
+    # =========================================================================
+    # ROLE-BASED STARTER 2: CSM Renewals (amartin)
+    # =========================================================================
+    "Any renewals at risk?": {
+        "company_id": None,  # Filtered by owner=amartin
+        "follow_ups": [
+            "Tell me about Delta Health's status",
+            "Which renewals close this quarter?",
+            "What accounts need immediate attention?",
+        ],
+    },
+
+    # Layer 2 from CSM Starter
+    "Tell me about Delta Health's status": {
+        "company_id": "DELTA-HEALTH",
+        "follow_ups": [
+            "When does Delta Health renew?",
+            "Who are the contacts at Delta Health?",
+            "What's the expansion opportunity?",
+        ],
+    },
+    "Which renewals close this quarter?": {
+        "company_id": None,
+        "follow_ups": [
+            "What's the total renewal value at risk?",
+            "Which renewals are in good standing?",
+            "Show me renewal timeline",
+        ],
+    },
+    "What accounts need immediate attention?": {
+        "company_id": None,
+        "follow_ups": [
+            "What happened with Green Energy?",
+            "Tell me about Eastern Travel's trial",
+            "How is Harbor Logistics progressing?",
+        ],
+    },
+
+    # Layer 3 from "Tell me about Delta Health's status"
+    "When does Delta Health renew?": {
+        "company_id": "DELTA-HEALTH",
+        "follow_ups": [
+            "What's the renewal value for Delta Health?",
+            "Are there any risks with Delta Health?",
+            "What's the engagement level with Delta Health?",
+        ],
+    },
+    "Who are the contacts at Delta Health?": {
+        "company_id": "DELTA-HEALTH",
+        "follow_ups": [
+            "Who is Erin Cho?",
+            "What is Mike Tran's role?",
+            "When did we last meet with Delta Health?",
+        ],
+    },
+    "What's the expansion opportunity?": {
+        "company_id": "DELTA-HEALTH",
+        "follow_ups": [
+            "What's the expansion deal worth?",
+            "Which clinics are we expanding to?",
+            "Who's driving the expansion?",
+        ],
+    },
+
+    # Layer 3 from "Which renewals close this quarter?"
+    "What's the total renewal value at risk?": {
+        "company_id": None,
+        "follow_ups": [
+            "Which account has the highest risk?",
+            "What's causing the risk?",
+            "How can I save these renewals?",
+        ],
+    },
+    "Which renewals are in good standing?": {
+        "company_id": None,
+        "follow_ups": [
+            "What's the total healthy renewal value?",
+            "Any upsell opportunities?",
+            "When should I reach out?",
+        ],
+    },
+    "Show me renewal timeline": {
+        "company_id": None,
+        "follow_ups": [
+            "What's due next month?",
+            "Which renewals need prep?",
+            "What's the 90-day renewal forecast?",
+        ],
+    },
+
+    # =========================================================================
+    # ROLE-BASED STARTER 3: Manager Team View (all)
+    # =========================================================================
+    "How's the team doing?": {
+        "company_id": None,  # No owner filter - sees all
+        "follow_ups": [
+            "What's the total pipeline?",
+            "Which reps are behind on activities?",
+            "What's the team's forecast?",
+        ],
+    },
+
+    # Layer 2 from Manager Starter
+    "What's the total pipeline?": {
+        "company_id": None,
+        "follow_ups": [
+            "Break down pipeline by rep",
+            "What's the average deal size?",
+            "Which stage has the most value?",
+        ],
+    },
+    "Which reps are behind on activities?": {
+        "company_id": None,
+        "follow_ups": [
+            "Who has overdue tasks?",
+            "What's the activity breakdown by type?",
+            "Which accounts need more engagement?",
+        ],
+    },
+    "What's the team's forecast?": {
+        "company_id": None,
+        "follow_ups": [
+            "What's the weighted pipeline by rep?",
+            "Tell me about Fusion Retail's upsell",
+            "What's at risk this quarter?",
+        ],
+    },
+
+    # Layer 3 from "What's the total pipeline?"
+    "Break down pipeline by rep": {
+        "company_id": None,
+        "follow_ups": [
+            "Who has the biggest deals?",
+            "Who needs coaching?",
+            "What's the average close rate?",
+        ],
+    },
+    "What's the average deal size?": {
+        "company_id": None,
+        "follow_ups": [
+            "How does this compare to last quarter?",
+            "Which segment has the largest deals?",
+            "What's the deal size trend?",
+        ],
+    },
+    "Which stage has the most value?": {
+        "company_id": None,
+        "follow_ups": [
+            "Show me deals in negotiation",
+            "What's stuck in discovery?",
+            "What's the conversion rate by stage?",
+        ],
+    },
+
+    # Layer 3 from "Which reps are behind on activities?"
+    "Who has overdue tasks?": {
+        "company_id": None,
+        "follow_ups": [
+            "What are the overdue tasks?",
+            "Which accounts are affected?",
+            "When were these tasks due?",
+        ],
+    },
+    "What's the activity breakdown by type?": {
+        "company_id": None,
+        "follow_ups": [
+            "How many calls were made this week?",
+            "Which rep has the most meetings?",
+            "What's the email activity level?",
+        ],
+    },
+    "Which accounts need more engagement?": {
+        "company_id": None,
+        "follow_ups": [
+            "Show me accounts with no recent activity",
+            "What's the average activity per account?",
+            "Which accounts are at risk?",
+        ],
+    },
+
+    # Layer 3 from "What's the team's forecast?"
+    "What's the weighted pipeline by rep?": {
+        "company_id": None,
+        "follow_ups": [
+            "Who has the highest weighted value?",
+            "Which rep is behind target?",
+            "What's the forecast accuracy?",
+        ],
+    },
+    "What's at risk this quarter?": {
+        "company_id": None,
+        "follow_ups": [
+            "Which deals are past due?",
+            "What's the total at-risk value?",
+            "How can we recover these deals?",
+        ],
+    },
+
+    # =========================================================================
+    # NEW COMPANY PATHS: GREEN-ENERGY, EASTERN-TRAVEL, HARBOR-LOGISTICS, FUSION
+    # Addresses missing company coverage from CSM and Manager paths
+    # =========================================================================
+
+    # GREEN-ENERGY - Churned account (ljones) - valuable learning case
+    "What happened with Green Energy?": {
+        "company_id": "GREEN-ENERGY",
+        "follow_ups": [
+            "Why did Green Energy churn?",
+            "Who were the contacts at Green Energy?",
+            "What was the timeline of the Green Energy relationship?",
+        ],
+    },
+    "Why did Green Energy churn?": {
+        "company_id": "GREEN-ENERGY",
+        "follow_ups": [
+            "What were the warning signs?",
+            "Could we have saved the account?",
+            "What can we learn from this?",
+        ],
+    },
+    "Who were the contacts at Green Energy?": {
+        "company_id": "GREEN-ENERGY",
+        "follow_ups": [
+            "Who was Carlos at Green Energy?",
+            "What was Linda's role?",
+            "When did we last engage with them?",
+        ],
+    },
+    "What was the timeline of the Green Energy relationship?": {
+        "company_id": "GREEN-ENERGY",
+        "follow_ups": [
+            "When did they first become a customer?",
+            "What milestones happened?",
+            "When did issues start?",
+        ],
+    },
+
+    # EASTERN-TRAVEL - Trial account (mmalik) - conversion opportunity
+    "Tell me about Eastern Travel's trial": {
+        "company_id": "EASTERN-TRAVEL",
+        "follow_ups": [
+            "What's blocking the trial conversion?",
+            "Who are the contacts at Eastern Travel?",
+            "What's the trial usage like?",
+        ],
+    },
+    "What's blocking the trial conversion?": {
+        "company_id": "EASTERN-TRAVEL",
+        "follow_ups": [
+            "Who has budget authority?",
+            "What are their concerns?",
+            "When was the trial extended?",
+        ],
+    },
+    "Who are the contacts at Eastern Travel?": {
+        "company_id": "EASTERN-TRAVEL",
+        "follow_ups": [
+            "Who is Sanjay Patel?",
+            "What is Ravi's role?",
+            "Who should we escalate to?",
+        ],
+    },
+    "What's the trial usage like?": {
+        "company_id": "EASTERN-TRAVEL",
+        "follow_ups": [
+            "Which features are they using?",
+            "How active are the users?",
+            "What's the engagement trend?",
+        ],
+    },
+
+    # HARBOR-LOGISTICS - New business (mmalik) - discovery stage
+    "How is Harbor Logistics progressing?": {
+        "company_id": "HARBOR-LOGISTICS",
+        "follow_ups": [
+            "What's the status of the Harbor deal?",
+            "Who are the contacts at Harbor Logistics?",
+            "What's the implementation plan?",
+        ],
+    },
+    "What's the status of the Harbor deal?": {
+        "company_id": "HARBOR-LOGISTICS",
+        "follow_ups": [
+            "What stage is Harbor Logistics in?",
+            "What's the deal value?",
+            "When is the expected close?",
+        ],
+    },
+    "Who are the contacts at Harbor Logistics?": {
+        "company_id": "HARBOR-LOGISTICS",
+        "follow_ups": [
+            "Who is Jacob Wu?",
+            "Who handles operations at Harbor?",
+            "Who's the decision maker?",
+        ],
+    },
+    "What's the implementation plan?": {
+        "company_id": "HARBOR-LOGISTICS",
+        "follow_ups": [
+            "What's the rollout timeline?",
+            "Which teams are involved?",
+            "What training is needed?",
+        ],
+    },
+
+    # FUSION-RETAIL - Upsell opportunity (jsmith)
+    "Tell me about Fusion Retail's upsell": {
+        "company_id": "FUSION-RETAIL",
+        "follow_ups": [
+            "What's the upsell opportunity?",
+            "Who are the contacts at Fusion Retail?",
+            "What's Fusion's current usage?",
+        ],
+    },
+    "What's the upsell opportunity?": {
+        "company_id": "FUSION-RETAIL",
+        "follow_ups": [
+            "What's the expansion deal worth?",
+            "How many additional seats?",
+            "What's driving the expansion?",
+        ],
+    },
+    "Who are the contacts at Fusion Retail?": {
+        "company_id": "FUSION-RETAIL",
+        "follow_ups": [
+            "Who is Emma at Fusion?",
+            "Who is Lars?",
+            "Who approved the original deal?",
+        ],
+    },
+    "What's Fusion's current usage?": {
+        "company_id": "FUSION-RETAIL",
+        "follow_ups": [
+            "How many active users?",
+            "Which features are popular?",
+            "What's the adoption rate?",
+        ],
+    },
+
+    # =========================================================================
+    # LEGACY STARTER 1: Acme Manufacturing - Activity Focus
+    # (Now accessible as follow-up from "How's my pipeline?")
     # =========================================================================
     "What's going on with Acme Manufacturing?": {
         "company_id": "ACME-MFG",
@@ -129,7 +553,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
     "Show me recent activities with Acme Manufacturing": {
         "company_id": "ACME-MFG",
         "follow_ups": [
-            "Who is Ravi Kumar at Eastern Travel?",
+            "What was discussed in the last Acme call?",
             "When was the last meeting with Acme?",
             "How many activities has Acme had this month?",
         ],
@@ -155,25 +579,15 @@ QUESTION_TREE: dict[str, QuestionNode] = {
     "What is Beth Turner's role at Acme?": {
         "company_id": "ACME-MFG",
         "follow_ups": [
-            "Who is Dan O'Brien at Harbor Logistics?",
-            "Who is Linda Park at Green Energy?",
+            "What's Beth Turner's email address?",
+            "Has Beth Turner been involved in any deals?",
             "What's the Acme industry segment?",
         ],
     },
 
     # =========================================================================
-    # STARTER 2: Beta Tech - Pipeline Focus
+    # Beta Tech deal paths (reachable from "Which deals are most likely to close?")
     # =========================================================================
-    "Show me Beta Tech's pipeline": {
-        "company_id": "BETA-TECH",
-        "follow_ups": [
-            "Tell me about the Beta Tech negotiation deal",
-            "What's the Beta Tech add-on deal?",
-            "Who are the contacts at Beta Tech?",
-        ],
-    },
-
-    # Layer 2 from Starter 2
     "Tell me about the Beta Tech negotiation deal": {
         "company_id": "BETA-TECH",
         "follow_ups": [
@@ -182,24 +596,8 @@ QUESTION_TREE: dict[str, QuestionNode] = {
             "What's the negotiation deal value?",
         ],
     },
-    "What's the Beta Tech add-on deal?": {
-        "company_id": "BETA-TECH",
-        "follow_ups": [
-            "What stage is the add-on in?",
-            "Who's the contact for the add-on deal?",
-            "When does Beta Tech's contract renew?",
-        ],
-    },
-    "Who are the contacts at Beta Tech?": {
-        "company_id": "BETA-TECH",
-        "follow_ups": [
-            "What is Lisa Ng's role?",
-            "Tell me about Sam Clarke",
-            "Show me activities with Beta Tech",
-        ],
-    },
 
-    # Layer 3 from "Tell me about the Beta Tech negotiation deal"
+    # Layer 4 from "Tell me about the Beta Tech negotiation deal"
     "When is the negotiation deal expected to close?": {
         "company_id": "BETA-TECH",
         "follow_ups": [
@@ -225,123 +623,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
         ],
     },
 
-    # Layer 3 from "What's the Beta Tech add-on deal"
-    "What stage is the add-on in?": {
-        "company_id": "BETA-TECH",
-        "follow_ups": [
-            "Show me closed lost opportunities",
-            "Who's driving the add-on deal?",
-            "Show me all Beta Tech opportunities",
-        ],
-    },
-    "Who's the contact for the add-on deal?": {
-        "company_id": "BETA-TECH",
-        "follow_ups": [
-            "What is Sam Clarke's role?",
-            "When did we last engage with Sam Clarke?",
-            "Who is Mike Rivera at Delta Health?",
-        ],
-    },
-    "When does Beta Tech's contract renew?": {
-        "company_id": "BETA-TECH",
-        "follow_ups": [
-            "What's the Beta Tech renewal value?",
-            "Show me internal notes for Crown Foods",
-            "What's the health status of Beta Tech?",
-        ],
-    },
-
-    # Layer 3 from "Who are the contacts at Beta Tech"
-    "What is Lisa Ng's role?": {
-        "company_id": "BETA-TECH",
-        "follow_ups": [
-            "What deals is Lisa Ng involved in?",
-            "When did we last meet with Lisa Ng?",
-            "Who is Tom Baker at Green Energy?",
-        ],
-    },
-    "Tell me about Sam Clarke": {
-        "company_id": "BETA-TECH",
-        "follow_ups": [
-            "What opportunities involve Sam Clarke?",
-            "What is Sam Clarke's email?",
-            "What's Sam Clarke's job title?",
-        ],
-    },
-    "Show me activities with Beta Tech": {
-        "company_id": "BETA-TECH",
-        "follow_ups": [
-            "What was the last Beta Tech meeting about?",
-            "Who attended the recent Beta Tech calls?",
-            "What's Beta Tech's activity count this month?",
-        ],
-    },
-
-    # =========================================================================
-    # STARTER 3: Renewals - Cross-Company Focus
-    # =========================================================================
-    "Which renewals are coming up this month?": {
-        "company_id": None,  # General query
-        "follow_ups": [
-            "Tell me more about Crown Foods' renewal",
-            "What's the health status of accounts with upcoming renewals?",
-            "Which renewal has the highest value?",
-        ],
-    },
-
-    # Layer 2 from Starter 3
-    "Tell me more about Crown Foods' renewal": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "Who is the contact for Crown Foods?",
-            "What's the Crown Foods renewal value?",
-            "What activities happened with Crown Foods?",
-        ],
-    },
-    "What's the health status of accounts with upcoming renewals?": {
-        "company_id": None,
-        "follow_ups": [
-            "Which accounts are at risk?",
-            "How many accounts are in each health status?",
-            "Show me accounts with low activity",
-        ],
-    },
-    "Which renewal has the highest value?": {
-        "company_id": None,
-        "follow_ups": [
-            "What's the total renewal value this quarter?",
-            "Who owns the highest value renewal?",
-            "When do the other renewals close?",
-        ],
-    },
-
-    # Layer 3 from "Tell me more about Crown Foods' renewal"
-    "Who is the contact for Crown Foods?": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "What is Maria Silva's role?",
-            "When did we last talk to Crown Foods?",
-            "Who is Lars Muller at Fusion Retail?",
-        ],
-    },
-    "What's the Crown Foods renewal value?": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "Who is Carlos Mendez at Green Energy?",
-            "Who owns the Crown Foods account?",
-            "What's the next renewal after Crown Foods?",
-        ],
-    },
-    "What activities happened with Crown Foods?": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "What was discussed in the last Crown Foods call?",
-            "Who attended the Crown Foods meetings?",
-            "What's the next scheduled activity with Crown Foods?",
-        ],
-    },
-
-    # Layer 3 from "What's the health status"
+    # Risk identification (reachable from "What's at risk in my pipeline?")
     "Which accounts are at risk?": {
         "company_id": None,
         "follow_ups": [
@@ -350,149 +632,8 @@ QUESTION_TREE: dict[str, QuestionNode] = {
             "Show me at-risk renewals",
         ],
     },
-    "How many accounts are in each health status?": {
-        "company_id": None,
-        "follow_ups": [
-            "Which accounts have healthy status?",
-            "What's the average activity count for at-risk accounts?",
-            "When was the last activity for at-risk accounts?",
-        ],
-    },
-    "Show me accounts with low activity": {
-        "company_id": None,
-        "follow_ups": [
-            "Which accounts need immediate attention?",
-            "What's the last activity for each account?",
-            "What types of activities have been logged recently?",
-        ],
-    },
 
-    # Layer 3 from "Which renewal has the highest value"
-    "What's the total renewal value this quarter?": {
-        "company_id": None,
-        "follow_ups": [
-            "Break down renewals by owner",
-            "Which renewals are at risk?",
-            "How many accounts churned this quarter?",
-        ],
-    },
-    "Who owns the highest value renewal?": {
-        "company_id": None,
-        "follow_ups": [
-            "What other accounts does this owner have?",
-            "Show me the account details",
-            "What's the owner's total pipeline?",
-        ],
-    },
-    "When do the other renewals close?": {
-        "company_id": None,
-        "follow_ups": [
-            "Which renewals close next quarter?",
-            "Show me renewals by close date",
-            "What's the total pipeline for renewals?",
-        ],
-    },
-
-    # =========================================================================
-    # STARTER 4: Portfolio Overview - Global/Aggregate Focus
-    # Tests: pipeline_summary, company_search, groups, global activities
-    # =========================================================================
-    "What's our total pipeline?": {
-        "company_id": None,  # Global aggregate query
-        "follow_ups": [
-            "Which companies have the biggest deals?",
-            "What groups do we have?",
-            "What meetings are coming up?",
-        ],
-    },
-
-    # Layer 2 from Starter 4
-    "Which companies have the biggest deals?": {
-        "company_id": None,
-        "follow_ups": [
-            "Show me all mid-market accounts",
-            "What's the pipeline breakdown by owner?",
-            "Which deals are in negotiation stage?",
-        ],
-    },
-    "What groups do we have?": {
-        "company_id": None,
-        "follow_ups": [
-            "Who is in the at-risk accounts group?",
-            "Show me the churned accounts group",
-            "What's the distribution of accounts by group?",
-        ],
-    },
-    "What meetings are coming up?": {
-        "company_id": None,
-        "follow_ups": [
-            "Show me all recent calls",
-            "What's the next scheduled activity?",
-            "What's the breakdown of activity types this month?",
-        ],
-    },
-
-    # Layer 3 from "Which companies have the biggest deals"
-    "Show me all mid-market accounts": {
-        "company_id": None,
-        "follow_ups": [
-            "Tell me about Fusion Retail Group",
-            "What's the total enterprise pipeline value?",
-            "Who are the decision makers at enterprise accounts?",
-        ],
-    },
-    "What's the pipeline breakdown by owner?": {
-        "company_id": None,
-        "follow_ups": [
-            "Who has the most deals?",
-            "What accounts does mmalik own? Like Harbor Logistics?",
-            "Which accounts are in Europe?",
-        ],
-    },
-    "Which deals are in negotiation stage?": {
-        "company_id": None,
-        "follow_ups": [
-            "How many negotiation deals do we have?",
-            "Which negotiation deals close this month?",
-            "Who owns the negotiation deals?",
-        ],
-    },
-
-    # Layer 3 from "What groups do we have"
-    "Who is in the at-risk accounts group?": {
-        "company_id": None,
-        "follow_ups": [
-            "Tell me about Delta Health's risk status",
-            "Show me the last activity for at-risk accounts",
-            "What's the pipeline for at-risk accounts?",
-        ],
-    },
-    "Show me the churned accounts group": {
-        "company_id": None,
-        "follow_ups": [
-            "What happened with Green Energy Partners?",
-            "When did these accounts churn?",
-            "What was the total value of churned accounts?",
-        ],
-    },
-    "What's the distribution of accounts by group?": {
-        "company_id": None,
-        "follow_ups": [
-            "How many accounts are in each group?",
-            "What's the pipeline value for at-risk accounts?",
-            "Which group has the highest total value?",
-        ],
-    },
-
-    # Layer 3 from "What meetings are coming up?"
-    "Show me all recent calls": {
-        "company_id": None,
-        "follow_ups": [
-            "Which accounts had calls this week?",
-            "Who made the most calls?",
-            "What was discussed in the last call?",
-        ],
-    },
+    # Activity-related follow-ups (reachable from "Who should I follow up with?")
     "What's the next scheduled activity?": {
         "company_id": None,
         "follow_ups": [
@@ -501,131 +642,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
             "What type of activity is it?",
         ],
     },
-    "What's the breakdown of activity types this month?": {
-        "company_id": None,
-        "follow_ups": [
-            "What percentage are calls vs meetings?",
-            "What open tasks do we have?",
-            "Any demos scheduled?",
-        ],
-    },
 
-    # =========================================================================
-    # STARTER 5: Account Deep Dive - Crown Foods
-    # Tests: account_context, complex summaries, attachments, notes search
-    # =========================================================================
-    "Give me the full picture on Crown Foods": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "Who are the key contacts at Crown Foods?",
-            "What's the status of Crown Foods' renewal?",
-            "Show me all Crown Foods activities",
-        ],
-    },
-
-    # Layer 2 from Starter 5
-    "Who are the key contacts at Crown Foods?": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "Who is Erin Cho at Delta Health?",
-            "Who handles IT at Crown Foods?",
-            "Show me the decision makers at Crown Foods",
-        ],
-    },
-    "What's the status of Crown Foods' renewal?": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "When exactly does Crown Foods renew?",
-            "What's the renewal value for Crown Foods?",
-            "Are there any risks with the Crown Foods renewal?",
-        ],
-    },
-    "Show me all Crown Foods activities": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "What was the last call with Crown Foods about?",
-            "Who attended the recent Crown Foods meetings?",
-            "What's Eastern Travel's trial status?",
-        ],
-    },
-
-    # Layer 3 from "Who are the key contacts at Crown Foods"
-    "What is Maria Silva's role?": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "What deals is Maria Silva involved in?",
-            "When did we last talk to Maria Silva?",
-            "What's Maria Silva's contact info?",
-        ],
-    },
-    "Who handles IT at Crown Foods?": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "What is Alex Dupont's role?",
-            "Show me activities with Alex Dupont",
-            "What deals involve Alex Dupont?",
-        ],
-    },
-    "Show me the decision makers at Crown Foods": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "Who should I contact about the renewal?",
-            "What's the VP's email address?",
-            "Who else influences decisions at Crown Foods?",
-        ],
-    },
-
-    # Layer 3 from "What's the status of Crown Foods' renewal"
-    "When exactly does Crown Foods renew?": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "Who is Mei Chen at Harbor Logistics?",
-            "What's the Crown Foods account health?",
-            "What segment is Crown Foods in?",
-        ],
-    },
-    "What's the renewal value for Crown Foods?": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "Who is Sanjay Patel at Eastern Travel?",
-            "What plan is Crown Foods on?",
-            "Who is Emma Khan at Fusion Retail?",
-        ],
-    },
-    "Are there any risks with the Crown Foods renewal?": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "What's the engagement level with Crown Foods?",
-            "What's Fusion Retail's ARR?",
-            "What's Crown Foods' usage like?",
-        ],
-    },
-
-    # Layer 3 from "Show me all Crown Foods activities"
-    "What was the last call with Crown Foods about?": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "Who was on that call?",
-            "What action items came out of it?",
-            "When is the next follow-up scheduled?",
-        ],
-    },
-    "Who attended the recent Crown Foods meetings?": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "Who is Jacob Wu at Harbor Logistics?",
-            "What topics were discussed?",
-            "Who is Nina Foster at Crown Foods?",
-        ],
-    },
-    "What's the next scheduled activity with Crown Foods?": {
-        "company_id": "CROWN-FOODS",
-        "follow_ups": [
-            "When was this activity scheduled?",
-            "Who is attending?",
-            "What qualified opportunities do we have?",
-        ],
-    },
     # =========================================================================
     # Layer 4 Terminal Questions (these have generic follow-ups)
     # =========================================================================
@@ -637,15 +654,13 @@ TERMINAL_FOLLOW_UPS: list[str] = []
 
 
 # =============================================================================
-# Starter Questions (Entry Points)
+# Starter Questions (Entry Points) - Role-Based
 # =============================================================================
 
 STARTER_QUESTIONS = [
-    "What's going on with Acme Manufacturing?",
-    "Show me Beta Tech's pipeline",
-    "Which renewals are coming up this month?",
-    "What's our total pipeline?",
-    "Give me the full picture on Crown Foods",
+    "How's my pipeline?",           # Sales Rep (jsmith)
+    "Any renewals at risk?",        # CSM (amartin)
+    "How's the team doing?",        # Manager (all)
 ]
 
 

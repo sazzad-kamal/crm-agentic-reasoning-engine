@@ -415,42 +415,48 @@ class CRMDataStore:
     def get_upcoming_renewals(
         self,
         days: int = 90,
-        limit: int = 20
+        limit: int = 20,
+        owner: str | None = None
     ) -> list[dict]:
         """
         Get companies with upcoming renewals.
-        
+
         Args:
             days: Number of days to look ahead
             limit: Maximum number of results
-            
+            owner: Optional filter by account_owner
+
         Returns:
             List of company dicts with renewal_date within the window
         """
         self._ensure_table("companies")
-        
+
         today = datetime.now().strftime("%Y-%m-%d")
         cutoff = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
-        
+
+        owner_filter = f"AND account_owner = '{owner}'" if owner else ""
+
         try:
             result = self.conn.execute(f"""
-                SELECT * FROM companies 
+                SELECT * FROM companies
                 WHERE renewal_date >= '{today}'
                 AND renewal_date <= '{cutoff}'
                 AND status = 'Active'
+                {owner_filter}
                 ORDER BY renewal_date ASC
                 LIMIT {limit}
             """).fetchall()
         except Exception:
             # Fallback: just get all with renewal_date
             result = self.conn.execute(f"""
-                SELECT * FROM companies 
+                SELECT * FROM companies
                 WHERE renewal_date IS NOT NULL
                 AND status = 'Active'
+                {owner_filter}
                 ORDER BY renewal_date ASC
                 LIMIT {limit}
             """).fetchall()
-        
+
         columns = [desc[0] for desc in self.conn.description]
         return [dict(zip(columns, row)) for row in result]
     
@@ -977,6 +983,184 @@ class CRMDataStore:
         return {
             "total_value": total_value,
             "breakdown": breakdown,
+        }
+
+    def get_pipeline_by_owner(self, owner: str | None = None) -> dict:
+        """
+        Get pipeline grouped by owner.
+
+        Args:
+            owner: Optional filter to specific owner
+
+        Returns:
+            Dict with breakdown by owner and totals
+        """
+        self._ensure_table("opportunities")
+
+        conditions = ["LOWER(stage) NOT LIKE '%closed%'"]
+        params = []
+
+        if owner:
+            conditions.append("owner = ?")
+            params.append(owner)
+
+        where_clause = " AND ".join(conditions)
+
+        result = self.conn.execute(f"""
+            SELECT
+                owner,
+                COUNT(*) as deal_count,
+                SUM(COALESCE(value, 0)) as total_value,
+                AVG(COALESCE(days_in_stage, 0)) as avg_days_in_stage
+            FROM opportunities
+            WHERE {where_clause}
+            GROUP BY owner
+            ORDER BY total_value DESC
+        """, params).fetchall()
+
+        total_value = sum(float(row[2] or 0) for row in result)
+        total_count = sum(row[1] for row in result)
+
+        breakdown = [
+            {
+                "owner": owner_id,
+                "deal_count": count,
+                "total_value": float(value or 0),
+                "avg_days_in_stage": round(float(avg_days or 0), 1),
+                "percentage": round(float(value or 0) / total_value * 100, 1) if total_value > 0 else 0
+            }
+            for owner_id, count, value, avg_days in result
+        ]
+
+        return {
+            "total_count": total_count,
+            "total_value": total_value,
+            "owner_filter": owner,
+            "breakdown": breakdown,
+        }
+
+    def get_deals_at_risk(
+        self,
+        owner: str | None = None,
+        days_threshold: int = 45,
+        limit: int = 20
+    ) -> list[dict]:
+        """
+        Get deals that are at risk (stale or need attention).
+
+        Risk criteria:
+        - days_in_stage > threshold
+        - No recent activity
+
+        Args:
+            owner: Optional filter to specific owner
+            days_threshold: Days in stage to consider at risk
+            limit: Max results
+
+        Returns:
+            List of at-risk opportunity dicts
+        """
+        self._ensure_table("opportunities")
+
+        conditions = [
+            "LOWER(stage) NOT LIKE '%closed%'",
+            f"COALESCE(days_in_stage, 0) >= {days_threshold}"
+        ]
+        params = []
+
+        if owner:
+            conditions.append("owner = ?")
+            params.append(owner)
+
+        where_clause = " AND ".join(conditions)
+
+        return self._fetch_all_dicts(f"""
+            SELECT * FROM opportunities
+            WHERE {where_clause}
+            ORDER BY days_in_stage DESC, value DESC
+            LIMIT {limit}
+        """, params)
+
+    def get_forecast(self, owner: str | None = None) -> dict:
+        """
+        Get weighted pipeline forecast.
+
+        Uses stage probabilities:
+        - New/Discovery: 10%
+        - Qualified: 25%
+        - Proposal: 50%
+        - Negotiation: 75%
+
+        Args:
+            owner: Optional filter to specific owner
+
+        Returns:
+            Dict with forecast data by stage and owner
+        """
+        self._ensure_table("opportunities")
+
+        # Stage probability mapping
+        stage_probs = {
+            "new": 0.10,
+            "discovery": 0.10,
+            "qualified": 0.25,
+            "proposal": 0.50,
+            "negotiation": 0.75,
+        }
+
+        conditions = ["LOWER(stage) NOT LIKE '%closed%'"]
+        params = []
+
+        if owner:
+            conditions.append("owner = ?")
+            params.append(owner)
+
+        where_clause = " AND ".join(conditions)
+
+        # Get all open opportunities
+        opps = self._fetch_all_dicts(f"""
+            SELECT owner, stage, value, name, expected_close_date
+            FROM opportunities
+            WHERE {where_clause}
+        """, params)
+
+        # Calculate weighted values
+        by_stage = {}
+        by_owner = {}
+        total_pipeline = 0
+        total_weighted = 0
+
+        for opp in opps:
+            stage = (opp.get("stage") or "").lower()
+            value = float(opp.get("value") or 0)
+            owner_id = opp.get("owner", "unknown")
+
+            prob = stage_probs.get(stage, 0.20)  # default 20%
+            weighted = value * prob
+
+            total_pipeline += value
+            total_weighted += weighted
+
+            # Aggregate by stage
+            if stage not in by_stage:
+                by_stage[stage] = {"count": 0, "pipeline": 0, "weighted": 0, "probability": prob}
+            by_stage[stage]["count"] += 1
+            by_stage[stage]["pipeline"] += value
+            by_stage[stage]["weighted"] += weighted
+
+            # Aggregate by owner
+            if owner_id not in by_owner:
+                by_owner[owner_id] = {"count": 0, "pipeline": 0, "weighted": 0}
+            by_owner[owner_id]["count"] += 1
+            by_owner[owner_id]["pipeline"] += value
+            by_owner[owner_id]["weighted"] += weighted
+
+        return {
+            "total_pipeline": total_pipeline,
+            "total_weighted": round(total_weighted, 2),
+            "owner_filter": owner,
+            "by_stage": by_stage,
+            "by_owner": by_owner,
         }
 
     def get_activity_count_by_filter(

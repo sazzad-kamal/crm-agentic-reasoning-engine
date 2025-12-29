@@ -36,6 +36,54 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
+# Role-Based Starter Detection
+# =============================================================================
+
+# Maps starter question patterns to owner IDs
+# Sales Rep = jsmith, CSM = amartin, Manager = None (sees all)
+STARTER_OWNER_MAP = {
+    # Sales Rep starters
+    "how's my pipeline": "jsmith",
+    "hows my pipeline": "jsmith",
+    "how is my pipeline": "jsmith",
+    "show my pipeline": "jsmith",
+    "what's in my pipeline": "jsmith",
+    # CSM starters
+    "any renewals at risk": "amartin",
+    "renewals at risk": "amartin",
+    "which renewals are at risk": "amartin",
+    "at-risk renewals": "amartin",
+    "at risk renewals": "amartin",
+    # Manager starters (no owner filter - sees all)
+    "how's the team doing": None,
+    "hows the team doing": None,
+    "how is the team doing": None,
+    "team performance": None,
+    "how's my team": None,
+}
+
+
+def detect_owner_from_starter(question: str) -> str | None:
+    """
+    Detect if question is a role-based starter and return owner.
+
+    Args:
+        question: The user's question
+
+    Returns:
+        Owner ID (e.g., "jsmith") or None if not a starter or Manager role
+    """
+    q = question.lower().strip().rstrip("?")
+
+    for pattern, owner in STARTER_OWNER_MAP.items():
+        if pattern in q:
+            logger.debug(f"Detected starter pattern '{pattern}' → owner={owner}")
+            return owner
+
+    return None
+
+
+# =============================================================================
 # LLM Router Prompt Template (LangChain)
 # =============================================================================
 
@@ -75,16 +123,21 @@ The CRM has distinct data tables - route based on which table has the data:
    AGGREGATE/GLOBAL INTENTS (no specific company):
    - "renewals": Contract renewals across ALL accounts
    - "pipeline_summary": Total pipeline value, deal counts across ALL accounts
+   - "deals_at_risk": At-risk deals - stalled, overdue, or flagged for attention
+     * Pattern: "at risk", "stalled", "overdue", "stuck", "need attention"
+     * "Any renewals at risk?" → deals_at_risk
+     * "Which deals are stalled?" → deals_at_risk
+   - "forecast": Pipeline forecast, projections, weighted pipeline
+     * Pattern: "forecast", "projection", "expected", "what will close"
+     * "What's the forecast for this quarter?" → forecast
    - "activities": Global activity search (recent calls, emails, meetings)
    - "contact_search": Search contacts by name or role (e.g., "Who is Maria Silva?", "Find decision makers")
    - "company_search": Search companies by segment/industry (e.g., "Show enterprise accounts")
-   - "groups": Account group queries (e.g., "Who is in the at-risk group?")
    - "attachments": Document/file searches (e.g., "Find all proposals")
    - "analytics": Counts, breakdowns, distributions, aggregations
      * Pattern: "How many...", "What's the breakdown...", "What percentage...", "What's the distribution..."
      * "What's the breakdown of contact roles at Acme?" → analytics (with company_name)
      * "How many activities has Acme had this month?" → analytics (with company_name)
-     * "What's the distribution of accounts by group?" → analytics (no company_name)
      * "Which activity type is most common?" → analytics (no company_name)
 
    DOCUMENTATION INTENT:
@@ -193,10 +246,27 @@ Q: "Which accounts have upcoming renewals?"
  "query_expansion": "List accounts with renewals in the next 90 days",
  "key_entities": ["renewals"], "action_type": "retrieve", "confidence": 0.95}
 
-Q: "Show members of the strategic accounts group"
-{"mode": "data", "intent": "groups", "company_name": null, "days": 30,
- "query_expansion": "List members of the strategic accounts group",
- "key_entities": ["strategic", "group"], "action_type": "retrieve", "confidence": 0.95}
+### DEALS AT RISK (stalled, overdue deals)
+Q: "Any renewals at risk?"
+{"mode": "data", "intent": "deals_at_risk", "company_name": null, "days": 90,
+ "query_expansion": "Show deals that are at risk or stalled",
+ "key_entities": ["renewals", "at-risk"], "action_type": "retrieve", "confidence": 0.95}
+
+Q: "Which deals are stalled?"
+{"mode": "data", "intent": "deals_at_risk", "company_name": null, "days": 90,
+ "query_expansion": "List deals that have been stalled or stuck",
+ "key_entities": ["deals", "stalled"], "action_type": "retrieve", "confidence": 0.95}
+
+### FORECAST (pipeline projections)
+Q: "What's the forecast for this quarter?"
+{"mode": "data", "intent": "forecast", "company_name": null, "days": 90,
+ "query_expansion": "Show weighted pipeline forecast for the quarter",
+ "key_entities": ["forecast", "quarter"], "action_type": "summarize", "confidence": 0.95}
+
+Q: "How much pipeline will close this month?"
+{"mode": "data", "intent": "forecast", "company_name": null, "days": 30,
+ "query_expansion": "Calculate expected pipeline closure for the month",
+ "key_entities": ["pipeline", "close"], "action_type": "summarize", "confidence": 0.95}
 
 Q: "Search for contract documents"
 {"mode": "data", "intent": "attachments", "company_name": null, "days": 30,
@@ -231,11 +301,6 @@ Q: "Show me activity counts by type"
 {"mode": "data", "intent": "analytics", "company_name": null, "days": 30,
  "query_expansion": "Break down activities by type",
  "key_entities": ["activities"], "action_type": "summarize", "confidence": 0.95}
-
-Q: "What's the deal value split across groups?"
-{"mode": "data", "intent": "analytics", "company_name": null, "days": 30,
- "query_expansion": "Show pipeline value distribution by group",
- "key_entities": ["deals", "groups"], "action_type": "summarize", "confidence": 0.95}
 
 ### COMBINED DATA + DOCS
 Q: "Which accounts are at risk and what should I do?"
@@ -307,13 +372,14 @@ class LLMRouterResponse(BaseModel):
         "renewals",        # Contract renewals, expirations
         "pipeline",        # Company-specific opportunities/deals
         "pipeline_summary", # Aggregate pipeline across all accounts
+        "deals_at_risk",   # At-risk deals (stalled, overdue)
+        "forecast",        # Pipeline forecast/projections
         "activities",      # Global activity search (calls, emails, meetings)
         "history",         # Past interactions for a company
         "account_context", # Deep context from notes/attachments
         "contact_lookup",  # Contacts for a specific company
         "contact_search",  # Global contact search by name/role
         "company_search",  # Search companies by criteria (segment, industry)
-        "groups",          # Account groups queries
         "attachments",     # Document/file searches
         "analytics",       # Counts, breakdowns, aggregations (how many, breakdown, distribution)
         "general",         # Documentation/help questions
@@ -467,6 +533,9 @@ def llm_route_question(
                 if resolved_company:
                     logger.debug(f"Resolved company '{llm_result['company_name']}' to ID: {resolved_company}")
             
+            # Detect owner from starter pattern (role-based filtering)
+            owner = detect_owner_from_starter(question)
+
             return RouterResult(
                 mode_used=llm_result["mode"],
                 company_id=resolved_company,
@@ -476,6 +545,7 @@ def llm_route_question(
                 llm_confidence=llm_result.get("confidence"),
                 key_entities=llm_result.get("key_entities", []),
                 action_type=llm_result.get("action_type"),
+                owner=owner,
             )
             
         except LLMRouterError as e:
@@ -522,9 +592,15 @@ def route_question(
     config = get_config()
 
     if config.use_llm_router:
-        return llm_route_question(question, mode, company_id, datastore, conversation_history)
+        result = llm_route_question(question, mode, company_id, datastore, conversation_history)
     else:
-        return heuristic_router.route_question(question, mode, company_id, datastore)
+        result = heuristic_router.route_question(question, mode, company_id, datastore)
+
+    # Ensure owner is detected for role-based starters (works for both LLM and heuristic)
+    if result.owner is None:
+        result.owner = detect_owner_from_starter(question)
+
+    return result
 
 
 # =============================================================================

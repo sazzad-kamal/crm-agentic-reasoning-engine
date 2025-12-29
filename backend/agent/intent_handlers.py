@@ -12,7 +12,6 @@ from backend.agent.schemas import Source
 from backend.agent.extractors import (
     extract_role_from_question,
     extract_company_criteria,
-    extract_group_id,
     extract_attachment_query,
     extract_activity_type,
 )
@@ -24,12 +23,13 @@ from backend.agent.tools import (
     tool_upcoming_renewals,
     tool_search_contacts,
     tool_search_companies,
-    tool_group_members,
-    tool_list_groups,
     tool_search_attachments,
     tool_pipeline_summary,
     tool_search_activities,
     tool_analytics,
+    tool_pipeline_by_owner,
+    tool_deals_at_risk,
+    tool_forecast,
 )
 
 
@@ -49,6 +49,7 @@ class IntentContext:
     resolved_company_id: str | None
     days: int
     router_result: object | None = None
+    owner: str | None = None  # Role-based owner filter (jsmith, amartin, or None for all)
 
 
 @dataclass
@@ -62,7 +63,7 @@ class IntentResult:
     pipeline_data: dict | None = None
     renewals_data: dict | None = None
     contacts_data: dict | None = None
-    groups_data: dict | None = None
+    groups_data: dict | None = None  # For group-related queries
     attachments_data: dict | None = None
     analytics_data: dict | None = None
     resolved_company_id: str | None = None
@@ -77,7 +78,6 @@ def _empty_raw_data() -> dict:
         "opportunities": [],
         "history": [],
         "renewals": [],
-        "groups": [],
         "attachments": [],
         "pipeline_summary": None,
         "analytics": None,
@@ -86,23 +86,33 @@ def _empty_raw_data() -> dict:
 
 def handle_pipeline_summary(ctx: IntentContext) -> IntentResult:
     """Handle pipeline_summary intent."""
-    logger.debug("[Data] Fetching aggregate pipeline summary")
+    logger.debug(f"[Data] Fetching pipeline summary (owner={ctx.owner})")
     result = IntentResult(raw_data=_empty_raw_data())
 
-    summary_result = tool_pipeline_summary()
-    result.pipeline_data = summary_result.data
-    _safe_extend(result.sources, summary_result.sources)
-    result.raw_data["pipeline_summary"] = {
-        "total_count": result.pipeline_data.get("total_count"),
-        "total_value": result.pipeline_data.get("total_value"),
-        "by_stage": result.pipeline_data.get("by_stage", []),
-    }
-    result.raw_data["opportunities"] = result.pipeline_data.get("top_opportunities", [])[:8]
+    # Use owner-filtered pipeline tool when owner is set
+    if ctx.owner:
+        pipeline_result = tool_pipeline_by_owner(owner=ctx.owner)
+        result.pipeline_data = pipeline_result.data
+        _safe_extend(result.sources, pipeline_result.sources)
+        result.raw_data["pipeline_summary"] = pipeline_result.data.get("summary", {})
+        result.raw_data["opportunities"] = pipeline_result.data.get("opportunities", [])[:8]
+    else:
+        # Manager view - all opportunities
+        summary_result = tool_pipeline_summary()
+        result.pipeline_data = summary_result.data
+        _safe_extend(result.sources, summary_result.sources)
+        result.raw_data["pipeline_summary"] = {
+            "total_count": result.pipeline_data.get("total_count"),
+            "total_value": result.pipeline_data.get("total_value"),
+            "by_stage": result.pipeline_data.get("by_stage", []),
+        }
+        result.raw_data["opportunities"] = result.pipeline_data.get("top_opportunities", [])[:8]
     return result
 
 
 def handle_renewals(ctx: IntentContext) -> IntentResult:
     """Handle renewals intent."""
+    logger.debug(f"[Data] Fetching renewals for next {ctx.days} days (owner={ctx.owner})")
     result = IntentResult(raw_data=_empty_raw_data(), resolved_company_id=ctx.resolved_company_id)
 
     if ctx.resolved_company_id:
@@ -112,8 +122,8 @@ def handle_renewals(ctx: IntentContext) -> IntentResult:
             _safe_extend(result.sources, company_result.sources)
             result.raw_data["companies"] = [result.company_data["company"]]
 
-    logger.debug(f"[Data] Fetching renewals for next {ctx.days} days")
-    renewals_result = tool_upcoming_renewals(days=ctx.days)
+    # Pass owner for role-based filtering
+    renewals_result = tool_upcoming_renewals(days=ctx.days, owner=ctx.owner or "")
     result.renewals_data = renewals_result.data
     _safe_extend(result.sources, renewals_result.sources)
     result.raw_data["renewals"] = result.renewals_data.get("renewals", [])[:8]
@@ -147,29 +157,6 @@ def handle_company_search(ctx: IntentContext) -> IntentResult:
     result.company_data = companies_result.data
     _safe_extend(result.sources, companies_result.sources)
     result.raw_data["companies"] = result.company_data.get("companies", [])[:10]
-    return result
-
-
-def handle_groups(ctx: IntentContext) -> IntentResult:
-    """Handle groups intent."""
-    logger.debug("[Data] Handling groups query")
-    result = IntentResult(raw_data=_empty_raw_data())
-
-    group_id = extract_group_id(ctx.question)
-    if group_id:
-        members_result = tool_group_members(group_id)
-        result.groups_data = members_result.data
-        _safe_extend(result.sources, members_result.sources)
-        result.raw_data["groups"] = [{
-            "group_id": group_id,
-            "name": result.groups_data.get("group_name"),
-            "members": result.groups_data.get("members", [])[:10],
-        }]
-    else:
-        groups_result = tool_list_groups()
-        result.groups_data = groups_result.data
-        _safe_extend(result.sources, groups_result.sources)
-        result.raw_data["groups"] = result.groups_data.get("groups", [])[:10]
     return result
 
 
@@ -218,9 +205,6 @@ def _detect_analytics_metric(question: str) -> tuple[str, str, str]:
     # Detect entity type
     has_contact = "contact" in q
     has_activity = "activit" in q
-    has_account = "account" in q or "compan" in q
-    has_group = "group" in q
-    has_pipeline = "pipeline" in q or "deal" in q or "value" in q
 
     # Detect specific activity types
     activity_type = ""
@@ -241,15 +225,6 @@ def _detect_analytics_metric(question: str) -> tuple[str, str, str]:
         if is_count_query:
             return "activity_count", "", ""
 
-    if has_group:
-        if has_pipeline or has_account and ("value" in q or is_comparison):
-            return "pipeline_by_group", "", ""
-        if has_account or is_count_query or is_breakdown_query:
-            return "accounts_by_group", "", ""
-
-    if has_pipeline and has_group:
-        return "pipeline_by_group", "", ""
-
     # Default based on query type
     if is_count_query:
         return "activity_count", "", ""
@@ -257,20 +232,6 @@ def _detect_analytics_metric(question: str) -> tuple[str, str, str]:
         return "activity_breakdown", "type", ""
 
     return "activity_breakdown", "type", ""
-
-
-def _extract_group_id_for_analytics(question: str) -> str:
-    """Extract group ID from analytics question."""
-    q = question.lower()
-    if "at-risk" in q or "at risk" in q:
-        return "at-risk"
-    if "enterprise" in q:
-        return "enterprise"
-    if "churn" in q:
-        return "churned"
-    if "strategic" in q:
-        return "strategic"
-    return ""
 
 
 def handle_analytics(ctx: IntentContext) -> IntentResult:
@@ -281,16 +242,13 @@ def handle_analytics(ctx: IntentContext) -> IntentResult:
     # Detect the metric type from the question
     metric, group_by, activity_type = _detect_analytics_metric(ctx.question)
 
-    # Extract group_id if needed
-    group_id = _extract_group_id_for_analytics(ctx.question) if "group" in metric else ""
-
     logger.debug(f"[Analytics] metric={metric}, group_by={group_by}, activity_type={activity_type}, company={ctx.resolved_company_id}")
 
     analytics_result = tool_analytics(
         metric=metric,
         group_by=group_by,
         company_id=ctx.resolved_company_id or "",
-        group_id=group_id,
+        group_id="",  # Groups feature removed
         activity_type=activity_type,
         days=ctx.days,
     )
@@ -364,15 +322,55 @@ def handle_fallback(ctx: IntentContext) -> IntentResult:
     return result
 
 
+def handle_deals_at_risk(ctx: IntentContext) -> IntentResult:
+    """Handle deals_at_risk intent - shows stalled/at-risk deals."""
+    logger.debug(f"[Data] Fetching at-risk deals (owner={ctx.owner})")
+    result = IntentResult(raw_data=_empty_raw_data())
+
+    # Get deals at risk with owner filter
+    risk_result = tool_deals_at_risk(owner=ctx.owner or "")
+    result.pipeline_data = risk_result.data
+    _safe_extend(result.sources, risk_result.sources)
+
+    # Also get upcoming renewals for context
+    renewals_result = tool_upcoming_renewals(days=ctx.days, owner=ctx.owner or "")
+    result.renewals_data = renewals_result.data
+    _safe_extend(result.sources, renewals_result.sources)
+
+    result.raw_data["opportunities"] = result.pipeline_data.get("deals", [])[:8]
+    result.raw_data["renewals"] = result.renewals_data.get("renewals", [])[:8]
+    result.raw_data["pipeline_summary"] = {
+        "at_risk_count": result.pipeline_data.get("count", 0),
+        "at_risk_value": result.pipeline_data.get("total_value", 0),
+    }
+    return result
+
+
+def handle_forecast(ctx: IntentContext) -> IntentResult:
+    """Handle forecast intent - shows weighted pipeline projections."""
+    logger.debug(f"[Data] Fetching pipeline forecast (owner={ctx.owner})")
+    result = IntentResult(raw_data=_empty_raw_data())
+
+    # Get forecast with owner filter
+    forecast_result = tool_forecast(owner=ctx.owner or "")
+    result.pipeline_data = forecast_result.data
+    _safe_extend(result.sources, forecast_result.sources)
+
+    result.raw_data["pipeline_summary"] = forecast_result.data
+    result.raw_data["opportunities"] = forecast_result.data.get("top_opportunities", [])[:8]
+    return result
+
+
 # Intent dispatcher - maps intent strings to handler functions
 # Explicit mappings for all router intents (no implicit fallthrough)
 INTENT_HANDLERS = {
     # Aggregate queries (no company_id required)
     "pipeline_summary": handle_pipeline_summary,
     "renewals": handle_renewals,
+    "deals_at_risk": handle_deals_at_risk,  # At-risk/stalled deals
+    "forecast": handle_forecast,  # Pipeline projections
     "activities": handle_activities,
     "company_search": handle_company_search,
-    "groups": handle_groups,
     "attachments": handle_attachments,
     "analytics": handle_analytics,  # Counts, breakdowns, aggregations
     # Contact queries
@@ -398,17 +396,25 @@ def dispatch_intent(intent: str, ctx: IntentContext) -> IntentResult:
     Returns:
         IntentResult with fetched data
     """
+    # Intents that always use their dedicated handler (even with company context)
+    dedicated_intents = frozenset({
+        "pipeline_summary", "deals_at_risk", "forecast",
+        "company_search", "analytics"
+    })
+
     # Special case: activities without company goes to activities handler
     if intent == "activities" and not ctx.resolved_company_id:
         return handle_activities(ctx)
 
-    # Special case: analytics always goes to analytics handler (even with company_id)
-    if intent == "analytics":
-        return handle_analytics(ctx)
+    # Special case: dedicated intents always go to their handler
+    if intent in dedicated_intents:
+        handler = INTENT_HANDLERS.get(intent)
+        if handler:
+            return handler(ctx)
 
     # Special case: company-specific queries
     if ctx.resolved_company_id or (ctx.router_result and getattr(ctx.router_result, 'company_name_query', None)):
-        if intent not in ("pipeline_summary", "company_search", "analytics"):
+        if intent not in dedicated_intents:
             return handle_company_status(ctx)
 
     # Normal dispatch

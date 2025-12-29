@@ -230,33 +230,37 @@ def tool_pipeline(
 def tool_upcoming_renewals(
     days: int = 90,
     limit: int = 20,
+    owner: str = "",
     datastore: CRMDataStore | None = None
 ) -> ToolResult:
     """
     Get companies with upcoming renewals.
-    
+
     Args:
         days: Number of days to look ahead
         limit: Maximum results to return
+        owner: Optional filter by account_owner
         datastore: Optional datastore instance
-        
+
     Returns:
         ToolResult with renewals and sources
     """
     ds = datastore or get_datastore()
-    
-    renewals = ds.get_upcoming_renewals(days=days, limit=limit)
-    
+
+    renewals = ds.get_upcoming_renewals(days=days, limit=limit, owner=owner or None)
+
+    label = f"Upcoming renewals (next {days} days)"
+    if owner:
+        label = f"Renewals for {owner} (next {days} days)"
+
     return ToolResult(
         data={
             "days": days,
             "count": len(renewals),
+            "owner_filter": owner or None,
             "renewals": renewals,
         },
-        sources=_make_sources(
-            renewals, "renewals", "upcoming",
-            f"Upcoming renewals (next {days} days)"
-        )
+        sources=_make_sources(renewals, "renewals", "upcoming", label)
     )
 
 
@@ -806,6 +810,123 @@ def tool_analytics(
             )
 
 
+# =============================================================================
+# Tool: Pipeline by Owner
+# =============================================================================
+
+def tool_pipeline_by_owner(
+    owner: str = "",
+    datastore: CRMDataStore | None = None
+) -> ToolResult:
+    """
+    Get pipeline summary grouped by owner.
+
+    Args:
+        owner: Optional filter to specific owner
+        datastore: Optional datastore instance
+
+    Returns:
+        ToolResult with pipeline breakdown by owner
+    """
+    ds = datastore or get_datastore()
+
+    data = ds.get_pipeline_by_owner(owner=owner or None)
+
+    label = "Pipeline by owner"
+    if owner:
+        label = f"Pipeline for {owner}"
+
+    return ToolResult(
+        data=data,
+        sources=[Source(
+            type="pipeline",
+            id=f"by_owner_{owner or 'all'}",
+            label=label
+        )] if data.get("total_count", 0) > 0 else []
+    )
+
+
+# =============================================================================
+# Tool: Deals at Risk
+# =============================================================================
+
+def tool_deals_at_risk(
+    owner: str = "",
+    days_threshold: int = 45,
+    limit: int = 20,
+    datastore: CRMDataStore | None = None
+) -> ToolResult:
+    """
+    Get deals that are at risk (stale, need attention).
+
+    Args:
+        owner: Optional filter to specific owner
+        days_threshold: Days in stage to consider at risk
+        limit: Max results
+        datastore: Optional datastore instance
+
+    Returns:
+        ToolResult with at-risk deals
+    """
+    ds = datastore or get_datastore()
+
+    deals = ds.get_deals_at_risk(
+        owner=owner or None,
+        days_threshold=days_threshold,
+        limit=limit
+    )
+
+    label = f"At-risk deals (>{days_threshold} days in stage)"
+    if owner:
+        label = f"At-risk deals for {owner}"
+
+    return ToolResult(
+        data={
+            "count": len(deals),
+            "days_threshold": days_threshold,
+            "owner_filter": owner or None,
+            "deals": deals,
+        },
+        sources=_make_sources(deals, "opportunities", "at_risk", label)
+    )
+
+
+# =============================================================================
+# Tool: Forecast
+# =============================================================================
+
+def tool_forecast(
+    owner: str = "",
+    datastore: CRMDataStore | None = None
+) -> ToolResult:
+    """
+    Get weighted pipeline forecast.
+
+    Args:
+        owner: Optional filter to specific owner
+        datastore: Optional datastore instance
+
+    Returns:
+        ToolResult with forecast data
+    """
+    ds = datastore or get_datastore()
+
+    data = ds.get_forecast(owner=owner or None)
+
+    label = "Pipeline forecast"
+    if owner:
+        label = f"Forecast for {owner}"
+
+    return ToolResult(
+        data=data,
+        sources=[Source(
+            type="forecast",
+            id=f"forecast_{owner or 'all'}",
+            label=f"{label}: ${data.get('total_weighted', 0):,.0f} weighted"
+        )] if data.get("total_pipeline", 0) > 0 else []
+    )
+
+
 __all__ = [
     "tool_company_lookup",
     "tool_recent_activity",
@@ -815,12 +936,13 @@ __all__ = [
     "tool_contact_lookup",
     "tool_search_contacts",
     "tool_search_companies",
-    "tool_group_members",
-    "tool_list_groups",
     "tool_search_attachments",
     "tool_pipeline_summary",
     "tool_search_activities",
     "tool_analytics",
+    "tool_pipeline_by_owner",
+    "tool_deals_at_risk",
+    "tool_forecast",
 ]
 
 

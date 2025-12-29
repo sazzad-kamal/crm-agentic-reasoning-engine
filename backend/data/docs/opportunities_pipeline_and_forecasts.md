@@ -161,3 +161,84 @@ the expected close date.
 - **"Can I reopen a closed-lost opportunity?"**
   Yes, closed opportunities can be reopened by changing the stage back to
   an active stage. See Section 8 for details and best practices.
+
+---
+
+## 10. Identifying At-Risk Deals
+
+Deals can become "at risk" for several reasons. The system automatically
+flags deals based on these indicators:
+
+### Stale Deals (Days in Stage)
+
+Deals that sit in the same stage too long are flagged:
+
+- **45+ days in Discovery** – Qualification is stalled
+- **45+ days in Proposal** – Waiting too long for customer response
+- **60+ days in Negotiation** – Contract review is taking too long
+
+**What to do with stale deals:**
+
+1. Review the `next_step` field – is there a clear action?
+2. Check recent activities – when was the last customer contact?
+3. Decide: advance, re-qualify, or close as lost
+
+### Health Indicators
+
+Beyond stage duration, consider:
+
+- **No activities in 30+ days** – Engagement has dropped
+- **Missed expected close date** – Deal is overdue
+- **No next step defined** – No clear path forward
+
+**Pro tip:** Ask "Why is this deal stalled?" to get a summary of
+blockers from notes and history.
+
+---
+
+## 11. Weighted Pipeline Forecast
+
+The system calculates a **weighted forecast** using stage probabilities:
+
+| Stage | Probability |
+|-------|-------------|
+| New / Discovery | 10% |
+| Qualified | 25% |
+| Proposal | 50% |
+| Negotiation | 75% |
+| Closed Won | 100% |
+| Closed Lost | 0% |
+
+**Weighted Value** = Deal Value × Stage Probability
+
+**Example:**
+A $32,000 deal in Negotiation contributes $24,000 to weighted forecast
+(32,000 × 0.75).
+
+### Understanding Your Forecast
+
+- **Total Pipeline** – Sum of all open deal values
+- **Weighted Pipeline** – Risk-adjusted forecast (more realistic)
+- **Best Case** – All open deals close at full value
+- **Committed** – Deals in Negotiation or later stages
+
+Ask "What's the forecast for this quarter?" to see your weighted pipeline.
+
+---
+
+## 12. Managing Next Steps
+
+Every opportunity should have a clear `next_step` defined:
+
+**Good next steps are:**
+- Specific: "Send revised proposal to Anna by Friday"
+- Actionable: "Schedule demo with IT team"
+- Time-bound: "Follow up on pricing concerns by 11/25"
+
+**Bad next steps:**
+- Vague: "Continue discussions"
+- Passive: "Waiting for customer"
+- Stale: "TBD"
+
+**Pro tip:** Update the next step after every customer interaction.
+Ask "What's the next step for my biggest deal?" to surface action items.

@@ -18,6 +18,9 @@ from backend.agent.tools import (
     tool_recent_history,
     tool_pipeline,
     tool_upcoming_renewals,
+    tool_deals_at_risk,
+    tool_forecast,
+    tool_pipeline_by_owner,
 )
 from backend.agent.router import route_question
 from backend.agent.orchestrator import answer_question
@@ -172,6 +175,54 @@ class TestTools:
         assert "renewals" in result.data
         assert "count" in result.data
 
+    def test_tool_deals_at_risk(self):
+        """Test deals at risk tool."""
+        result = tool_deals_at_risk()
+        assert "deals" in result.data
+        assert "count" in result.data
+        assert isinstance(result.data["deals"], list)
+        # Verify deals returned have days_in_stage (risk indicator)
+        if result.data["count"] > 0:
+            assert "days_in_stage" in result.data["deals"][0]
+
+    def test_tool_deals_at_risk_with_owner(self):
+        """Test deals at risk with owner filter."""
+        result = tool_deals_at_risk(owner="jsmith")
+        assert "deals" in result.data
+        assert "owner_filter" in result.data
+        assert result.data["owner_filter"] == "jsmith"
+
+    def test_tool_forecast(self):
+        """Test pipeline forecast tool."""
+        result = tool_forecast()
+        assert "total_pipeline" in result.data
+        assert "total_weighted" in result.data
+        assert "by_stage" in result.data
+        # Verify weighted value is less than or equal to total (due to probability weighting)
+        assert result.data["total_weighted"] <= result.data["total_pipeline"]
+
+    def test_tool_forecast_with_owner(self):
+        """Test pipeline forecast with owner filter."""
+        result = tool_forecast(owner="jsmith")
+        assert "total_pipeline" in result.data
+        assert "owner_filter" in result.data
+        assert result.data["owner_filter"] == "jsmith"
+
+    def test_tool_pipeline_by_owner(self):
+        """Test pipeline grouped by owner."""
+        result = tool_pipeline_by_owner()
+        assert "total_count" in result.data
+        assert "total_value" in result.data
+        assert "breakdown" in result.data
+        assert isinstance(result.data["breakdown"], list)
+
+    def test_tool_pipeline_by_owner_filtered(self):
+        """Test pipeline filtered to specific owner."""
+        result = tool_pipeline_by_owner(owner="jsmith")
+        assert "total_count" in result.data
+        assert "owner_filter" in result.data
+        assert result.data["owner_filter"] == "jsmith"
+
 
 # =============================================================================
 # Router Tests
@@ -215,9 +266,21 @@ class TestRouter:
         """Test explicit mode override."""
         result = route_question("Tell me about Acme", mode="docs")
         assert result.mode_used == "docs"
-        
+
         result = route_question("Tell me about Acme", mode="data")
         assert result.mode_used == "data"
+
+    def test_route_deals_at_risk_question(self):
+        """Test routing a deals at risk question."""
+        result = route_question("Which deals are stalled?")
+        assert result.mode_used in ["data", "data+docs"]
+        assert result.intent == "deals_at_risk"
+
+    def test_route_forecast_question(self):
+        """Test routing a forecast question."""
+        result = route_question("What's the forecast for this quarter?")
+        assert result.mode_used in ["data", "data+docs"]
+        assert result.intent == "forecast"
 
 
 # =============================================================================

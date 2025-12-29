@@ -65,6 +65,7 @@ def _fetch_crm_data(
     resolved_company_id: str | None,
     days: int,
     router_result: object | None,
+    owner: str | None = None,
 ) -> dict:
     """
     Fetch CRM data based on intent.
@@ -77,6 +78,7 @@ def _fetch_crm_data(
             resolved_company_id=resolved_company_id,
             days=days,
             router_result=router_result,
+            owner=owner,
         )
         result = dispatch_intent(intent, ctx)
         return {
@@ -254,6 +256,9 @@ def fetch_node(state: AgentState) -> AgentState:
     router_result = state.get("router_result")
     timeout = config.fetch_timeout_seconds
 
+    # Get owner for role-based filtering (from router result)
+    owner = getattr(router_result, "owner", None) if router_result else None
+
     # Execute in parallel using ThreadPoolExecutor
     max_workers = 3 if should_fetch_account_context else 2
 
@@ -266,6 +271,7 @@ def fetch_node(state: AgentState) -> AgentState:
             resolved_company_id=company_id,
             days=days,
             router_result=router_result,
+            owner=owner,
         )
         futures["docs"] = executor.submit(_fetch_docs, question=question)
 

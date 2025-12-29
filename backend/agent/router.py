@@ -109,16 +109,31 @@ INTENT_PATTERNS = {
         r"\bopportunit(y|ies)\b",
         r"\bsales\s+pipeline\b",
         r"\bdeals?\s+in\s+progress\b",
-        r"\bforecast\b",
     ],
     "pipeline_summary": [
         r"\b(total|all|overall|aggregate)\s+(pipeline|deals?|opportunities?)\b",
         r"\bpipeline\s+(overview|summary|total)\b",
         r"\bhow\s+(many|much)\b.*\b(deals?|opportunities?|pipeline)\b",
-        r"\b(forecast|revenue)\s+(summary|total|across)\b",
-        r"\bforecast\s+summary\b",
         r"\btotal\s+(value|amount)\b",
         r"\bacross\s+all\b",
+    ],
+    "deals_at_risk": [
+        r"\bat\s*risk\b",
+        r"\bstalled\b",
+        r"\bstuck\b",
+        r"\boverdue\b",
+        r"\bneeds?\s+attention\b",
+        r"\bblocked\b",
+        r"\bat-risk\b",
+    ],
+    "forecast": [
+        r"\bforecast\b",
+        r"\bprojection(s)?\b",
+        r"\bexpected\s+(revenue|close|value)\b",
+        r"\bwhat\s+will\s+close\b",
+        r"\bweighted\s+(pipeline|value)\b",
+        r"\b(forecast|revenue)\s+(summary|total|across)\b",
+        r"\bforecast\s+(this|next|for)\b",
     ],
     "activities": [
         r"\bactivit(y|ies)\b",
@@ -288,7 +303,9 @@ def _detect_intent(question: str) -> str:
     # e.g., "pipeline_summary" over "pipeline", "contact_lookup" over "contact_search"
     INTENT_PRIORITY = {
         "pipeline_summary": 10,
-        "contact_lookup": 5, 
+        "deals_at_risk": 10,  # "at risk" should beat generic patterns
+        "forecast": 10,  # "forecast" should beat pipeline
+        "contact_lookup": 5,
         "groups": 10,  # "who is in the group" should beat "who is"
         "company_status": 5,
         "pipeline": 1,

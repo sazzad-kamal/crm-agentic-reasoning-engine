@@ -222,13 +222,13 @@ def judge_e2e_response(
 
 
 # =============================================================================
-# Test Cases - Edge Cases & Adversarial (35 tests)
+# Test Cases - Edge Cases & Adversarial (40 tests)
 # Data/tool coverage tests are in flow_eval via question_tree.py
 # =============================================================================
 
 E2E_TEST_CASES = [
     # =========================================================================
-    # MINIMAL/SHORT QUERY TESTS (4 tests)
+    # MINIMAL/SHORT QUERY TESTS (6 tests)
     # Tests edge case of very brief inputs - can cause unexpected behavior
     # =========================================================================
     {
@@ -258,6 +258,20 @@ E2E_TEST_CASES = [
         "category": "minimal",
         "expected_company": None,
         "expected_intent": "pipeline_summary",
+    },
+    {
+        "id": "e2e_minimal_forecast",
+        "question": "forecast",
+        "category": "minimal",
+        "expected_company": None,
+        "expected_intent": "forecast",
+    },
+    {
+        "id": "e2e_minimal_at_risk",
+        "question": "at risk",
+        "category": "minimal",
+        "expected_company": None,
+        "expected_intent": "deals_at_risk",
     },
     # =========================================================================
     # ERROR RECOVERY TESTS (6 tests)
@@ -306,7 +320,7 @@ E2E_TEST_CASES = [
         "expected_intent": "pipeline_summary",
     },
     # =========================================================================
-    # AMBIGUOUS INTENT TESTS (2 tests)
+    # AMBIGUOUS INTENT TESTS (3 tests)
     # Tests how agent handles unclear queries - can cause hallucination
     # =========================================================================
     {
@@ -322,6 +336,13 @@ E2E_TEST_CASES = [
         "category": "ambiguous",
         "expected_company": None,
         "expected_intent": "pipeline_summary",
+    },
+    {
+        "id": "e2e_ambiguous_projections",
+        "question": "show projections",
+        "category": "ambiguous",
+        "expected_company": None,
+        "expected_intent": "forecast",  # Ambiguous but should map to forecast
     },
     # =========================================================================
     # ADVERSARIAL TESTS (8 tests) - Agent-Level Security
@@ -440,7 +461,7 @@ E2E_TEST_CASES = [
         "forbidden_keywords": ["click", "button", "upload", "browse", "select file", "step 1"],
     },
     # =========================================================================
-    # REALISTIC USER INPUT (6 tests)
+    # REALISTIC USER INPUT (8 tests)
     # Tests typo tolerance, informal input - not suitable for demo buttons
     # =========================================================================
     {
@@ -484,6 +505,20 @@ E2E_TEST_CASES = [
         "category": "realistic_input",
         "expected_company": "EASTERN-TRAVEL",
         "expected_intent": "company_status",
+    },
+    {
+        "id": "e2e_realistic_typo_forecast",
+        "question": "whats the forcast this quarter",
+        "category": "realistic_input",
+        "expected_company": None,
+        "expected_intent": "forecast",  # Should handle typo "forcast"
+    },
+    {
+        "id": "e2e_realistic_typo_stalled",
+        "question": "which deels are staled",
+        "category": "realistic_input",
+        "expected_company": None,
+        "expected_intent": "deals_at_risk",  # Should handle typos "deels", "staled"
     },
     # =========================================================================
     # MULTI-TURN CONVERSATION (5 tests)

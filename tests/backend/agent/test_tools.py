@@ -9,17 +9,17 @@ from backend.agent.tools import (
     tool_recent_history,
     tool_pipeline,
     tool_upcoming_renewals,
-    _make_sources,
+    make_sources,
 )
 from backend.agent.schemas import Source, ToolResult
 
 
 class TestMakeSources:
-    """Tests for _make_sources helper."""
+    """Tests for make_sources helper."""
 
     def test_returns_source_for_non_empty_list(self):
         """Test returns source when data is non-empty list."""
-        sources = _make_sources([1, 2, 3], "company", "C001", "Acme Corp")
+        sources = make_sources([1, 2, 3], "company", "C001", "Acme Corp")
         assert len(sources) == 1
         assert sources[0].type == "company"
         assert sources[0].id == "C001"
@@ -27,22 +27,22 @@ class TestMakeSources:
 
     def test_returns_source_for_non_empty_dict(self):
         """Test returns source when data is non-empty dict."""
-        sources = _make_sources({"key": "value"}, "doc", "D001", "Document")
+        sources = make_sources({"key": "value"}, "doc", "D001", "Document")
         assert len(sources) == 1
 
     def test_returns_empty_for_empty_list(self):
         """Test returns empty for empty list."""
-        sources = _make_sources([], "company", "C001", "Acme")
+        sources = make_sources([], "company", "C001", "Acme")
         assert sources == []
 
     def test_returns_empty_for_none(self):
         """Test returns empty for None."""
-        sources = _make_sources(None, "company", "C001", "Acme")
+        sources = make_sources(None, "company", "C001", "Acme")
         assert sources == []
 
     def test_returns_empty_for_empty_dict(self):
         """Test returns empty for empty dict."""
-        sources = _make_sources({}, "company", "C001", "Acme")
+        sources = make_sources({}, "company", "C001", "Acme")
         assert sources == []
 
 

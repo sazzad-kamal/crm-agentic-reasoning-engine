@@ -550,6 +550,14 @@ QUESTION_TREE: dict[str, QuestionNode] = {
     },
 
     # Layer 3 from "Who are the key contacts at Crown Foods"
+    "Who is Erin Cho at Delta Health?": {
+        "company_id": "DELTA-HEALTH",
+        "follow_ups": [
+            "What is Erin Cho's role?",
+            "What deals is Erin Cho involved in?",
+            "What's Erin Cho's contact info?",
+        ],
+    },
     "What is Maria Silva's role?": {
         "company_id": "CROWN-FOODS",
         "follow_ups": [
@@ -624,6 +632,14 @@ QUESTION_TREE: dict[str, QuestionNode] = {
             "When was this activity scheduled?",
             "Who is attending?",
             "What qualified opportunities do we have?",
+        ],
+    },
+    "What's Eastern Travel's trial status?": {
+        "company_id": "EASTERN-TRAVEL",
+        "follow_ups": [
+            "When does the Eastern Travel trial end?",
+            "Who is the contact for the trial?",
+            "What's the trial conversion likelihood?",
         ],
     },
 

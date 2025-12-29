@@ -35,6 +35,12 @@ from backend.agent.tools import (
 logger = logging.getLogger(__name__)
 
 
+def _safe_extend(target_list: list, source_list: list | None) -> None:
+    """Safely extend a list, handling None sources."""
+    if source_list:
+        target_list.extend(source_list)
+
+
 @dataclass
 class IntentContext:
     """Context passed to intent handlers."""
@@ -82,7 +88,7 @@ def handle_pipeline_summary(ctx: IntentContext) -> IntentResult:
 
     summary_result = tool_pipeline_summary()
     result.pipeline_data = summary_result.data
-    result.sources.extend(summary_result.sources)
+    _safe_extend(result.sources, summary_result.sources)
     result.raw_data["pipeline_summary"] = {
         "total_count": result.pipeline_data.get("total_count"),
         "total_value": result.pipeline_data.get("total_value"),
@@ -100,13 +106,13 @@ def handle_renewals(ctx: IntentContext) -> IntentResult:
         company_result = tool_company_lookup(ctx.resolved_company_id)
         if company_result.data.get("found"):
             result.company_data = company_result.data
-            result.sources.extend(company_result.sources)
+            _safe_extend(result.sources, company_result.sources)
             result.raw_data["companies"] = [result.company_data["company"]]
 
     logger.debug(f"[Data] Fetching renewals for next {ctx.days} days")
     renewals_result = tool_upcoming_renewals(days=ctx.days)
     result.renewals_data = renewals_result.data
-    result.sources.extend(renewals_result.sources)
+    _safe_extend(result.sources, renewals_result.sources)
     result.raw_data["renewals"] = result.renewals_data.get("renewals", [])[:8]
     return result
 
@@ -123,7 +129,7 @@ def handle_contacts(ctx: IntentContext) -> IntentResult:
         contacts_result = tool_search_contacts(role=role)
 
     result.contacts_data = contacts_result.data
-    result.sources.extend(contacts_result.sources)
+    _safe_extend(result.sources, contacts_result.sources)
     result.raw_data["contacts"] = result.contacts_data.get("contacts", [])[:10]
     return result
 
@@ -136,7 +142,7 @@ def handle_company_search(ctx: IntentContext) -> IntentResult:
     segment, industry = extract_company_criteria(ctx.question)
     companies_result = tool_search_companies(segment=segment, industry=industry)
     result.company_data = companies_result.data
-    result.sources.extend(companies_result.sources)
+    _safe_extend(result.sources, companies_result.sources)
     result.raw_data["companies"] = result.company_data.get("companies", [])[:10]
     return result
 
@@ -150,7 +156,7 @@ def handle_groups(ctx: IntentContext) -> IntentResult:
     if group_id:
         members_result = tool_group_members(group_id)
         result.groups_data = members_result.data
-        result.sources.extend(members_result.sources)
+        _safe_extend(result.sources, members_result.sources)
         result.raw_data["groups"] = [{
             "group_id": group_id,
             "name": result.groups_data.get("group_name"),
@@ -159,7 +165,7 @@ def handle_groups(ctx: IntentContext) -> IntentResult:
     else:
         groups_result = tool_list_groups()
         result.groups_data = groups_result.data
-        result.sources.extend(groups_result.sources)
+        _safe_extend(result.sources, groups_result.sources)
         result.raw_data["groups"] = result.groups_data.get("groups", [])[:10]
     return result
 
@@ -172,7 +178,7 @@ def handle_attachments(ctx: IntentContext) -> IntentResult:
     query = extract_attachment_query(ctx.question)
     attachments_result = tool_search_attachments(query=query, company_id=ctx.resolved_company_id)
     result.attachments_data = attachments_result.data
-    result.sources.extend(attachments_result.sources)
+    _safe_extend(result.sources, attachments_result.sources)
     result.raw_data["attachments"] = result.attachments_data.get("attachments", [])[:10]
     return result
 
@@ -185,7 +191,7 @@ def handle_activities(ctx: IntentContext) -> IntentResult:
     activity_type = extract_activity_type(ctx.question)
     activities_result = tool_search_activities(activity_type=activity_type, days=ctx.days)
     result.activities_data = activities_result.data
-    result.sources.extend(activities_result.sources)
+    _safe_extend(result.sources, activities_result.sources)
     result.raw_data["activities"] = result.activities_data.get("activities", [])[:10]
     return result
 
@@ -203,7 +209,7 @@ def handle_company_status(ctx: IntentContext) -> IntentResult:
 
     if company_result.data.get("found"):
         result.company_data = company_result.data
-        result.sources.extend(company_result.sources)
+        _safe_extend(result.sources, company_result.sources)
         result.resolved_company_id = result.company_data["company"]["company_id"]
         result.raw_data["companies"] = [result.company_data["company"]]
 
@@ -212,19 +218,19 @@ def handle_company_status(ctx: IntentContext) -> IntentResult:
         # Get activities
         activities_result = tool_recent_activity(result.resolved_company_id, days=ctx.days)
         result.activities_data = activities_result.data
-        result.sources.extend(activities_result.sources)
+        _safe_extend(result.sources, activities_result.sources)
         result.raw_data["activities"] = result.activities_data.get("activities", [])[:8]
 
         # Get history
         history_result = tool_recent_history(result.resolved_company_id, days=ctx.days)
         result.history_data = history_result.data
-        result.sources.extend(history_result.sources)
+        _safe_extend(result.sources, history_result.sources)
         result.raw_data["history"] = result.history_data.get("history", [])[:8]
 
         # Get pipeline
         pipeline_result = tool_pipeline(result.resolved_company_id)
         result.pipeline_data = pipeline_result.data
-        result.sources.extend(pipeline_result.sources)
+        _safe_extend(result.sources, pipeline_result.sources)
         result.raw_data["opportunities"] = result.pipeline_data.get("opportunities", [])[:8]
         result.raw_data["pipeline_summary"] = result.pipeline_data.get("summary")
 
@@ -247,7 +253,7 @@ def handle_fallback(ctx: IntentContext) -> IntentResult:
 
     renewals_result = tool_upcoming_renewals(days=ctx.days)
     result.renewals_data = renewals_result.data
-    result.sources.extend(renewals_result.sources)
+    _safe_extend(result.sources, renewals_result.sources)
     result.raw_data["renewals"] = result.renewals_data.get("renewals", [])[:8]
     return result
 

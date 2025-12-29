@@ -21,6 +21,7 @@ from backend.agent.intent_handlers import (
     handle_fallback,
     INTENT_HANDLERS,
     _empty_raw_data,
+    _safe_extend,
 )
 from backend.agent.schemas import Source
 
@@ -567,3 +568,47 @@ class TestIntentHandlers:
         """All handlers are callable."""
         for handler in INTENT_HANDLERS.values():
             assert callable(handler)
+
+
+# =============================================================================
+# _safe_extend Tests
+# =============================================================================
+
+class TestSafeExtend:
+    """Tests for _safe_extend helper function."""
+
+    def test_extends_list_with_valid_source(self):
+        """Extends target list with source list."""
+        target = [1, 2]
+        source = [3, 4]
+        _safe_extend(target, source)
+        assert target == [1, 2, 3, 4]
+
+    def test_handles_none_source(self):
+        """Handles None source gracefully."""
+        target = [1, 2]
+        _safe_extend(target, None)
+        assert target == [1, 2]
+
+    def test_handles_empty_source(self):
+        """Handles empty source list."""
+        target = [1, 2]
+        _safe_extend(target, [])
+        assert target == [1, 2]
+
+    def test_modifies_target_in_place(self):
+        """Modifies target list in place."""
+        target = ["a"]
+        source = ["b", "c"]
+        original_id = id(target)
+        _safe_extend(target, source)
+        assert id(target) == original_id
+        assert target == ["a", "b", "c"]
+
+    def test_works_with_source_objects(self):
+        """Works with Source objects."""
+        target = []
+        source = [Source(id="src1", type="company", label="Acme")]
+        _safe_extend(target, source)
+        assert len(target) == 1
+        assert target[0].id == "src1"

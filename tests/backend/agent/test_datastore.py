@@ -314,3 +314,43 @@ class TestCRMDataStoreCompanyNameMatches:
         store = CRMDataStore()
         result = store.get_company_name_matches("tech", limit=3)
         assert len(result) <= 3
+
+
+class TestGetDatastoreThreadLocal:
+    """Tests for thread-local get_datastore function."""
+
+    def test_returns_datastore(self):
+        """Test returns a CRMDataStore instance."""
+        from backend.agent.datastore import get_datastore
+        store = get_datastore()
+        assert isinstance(store, CRMDataStore)
+
+    def test_same_thread_same_instance(self):
+        """Test same thread gets same instance."""
+        from backend.agent.datastore import get_datastore
+        store1 = get_datastore()
+        store2 = get_datastore()
+        assert store1 is store2
+
+    def test_different_threads_different_instances(self):
+        """Test different threads get different instances."""
+        import threading
+        from backend.agent.datastore import get_datastore
+
+        results = {}
+
+        def get_store_id(thread_name):
+            store = get_datastore()
+            results[thread_name] = id(store)
+
+        # Get instance in main thread
+        main_store = get_datastore()
+        results["main"] = id(main_store)
+
+        # Get instance in different thread
+        thread = threading.Thread(target=get_store_id, args=("thread1",))
+        thread.start()
+        thread.join()
+
+        # Different threads should have different instances
+        assert results["main"] != results["thread1"]

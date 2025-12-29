@@ -394,3 +394,147 @@ class TestCallAnswerChainMockMode:
             docs_section="Docs",
         )
         assert latency == 100
+
+
+# =============================================================================
+# clear_chain_caches Tests
+# =============================================================================
+
+class TestClearChainCaches:
+    """Tests for clear_chain_caches function."""
+
+    def test_clears_caches_without_error(self):
+        """Clears caches without raising errors."""
+        from backend.agent.llm_helpers import clear_chain_caches
+        # Should not raise
+        clear_chain_caches()
+
+    def test_can_be_called_multiple_times(self):
+        """Can be called multiple times."""
+        from backend.agent.llm_helpers import clear_chain_caches
+        clear_chain_caches()
+        clear_chain_caches()
+        clear_chain_caches()
+        # No errors
+
+
+# =============================================================================
+# _format_available_data Tests
+# =============================================================================
+
+class TestFormatAvailableData:
+    """Tests for _format_available_data helper function."""
+
+    def test_returns_string(self):
+        """Returns a string."""
+        from backend.agent.llm_helpers import _format_available_data
+        result = _format_available_data(None, None)
+        assert isinstance(result, str)
+
+    def test_handles_none_data(self):
+        """Handles None data gracefully."""
+        from backend.agent.llm_helpers import _format_available_data
+        result = _format_available_data(None, "Acme Corp")
+        assert "No specific data available" in result
+
+    def test_handles_empty_data(self):
+        """Handles empty data dict."""
+        from backend.agent.llm_helpers import _format_available_data
+        result = _format_available_data({}, "Acme Corp")
+        assert "No specific data available" in result
+
+    def test_formats_contacts(self):
+        """Formats contacts count."""
+        from backend.agent.llm_helpers import _format_available_data
+        result = _format_available_data({"contacts": 5}, "Acme Corp")
+        assert "Contacts" in result
+        assert "5" in result
+        assert "Acme Corp" in result
+
+    def test_formats_activities(self):
+        """Formats activities count."""
+        from backend.agent.llm_helpers import _format_available_data
+        result = _format_available_data({"activities": 10}, "Test Co")
+        assert "Activities" in result
+        assert "10" in result
+
+    def test_formats_opportunities(self):
+        """Formats opportunities count."""
+        from backend.agent.llm_helpers import _format_available_data
+        result = _format_available_data({"opportunities": 3}, "Test Co")
+        assert "Opportunities" in result
+        assert "3" in result
+
+    def test_formats_multiple_data_types(self):
+        """Formats multiple data types."""
+        from backend.agent.llm_helpers import _format_available_data
+        data = {
+            "contacts": 5,
+            "activities": 10,
+            "opportunities": 3,
+            "renewals": 1,
+        }
+        result = _format_available_data(data, "Acme")
+        assert "Contacts" in result
+        assert "Activities" in result
+        assert "Opportunities" in result
+        assert "Renewals" in result
+
+    def test_excludes_zero_counts(self):
+        """Excludes data types with zero counts."""
+        from backend.agent.llm_helpers import _format_available_data
+        data = {"contacts": 0, "activities": 5}
+        result = _format_available_data(data, "Acme")
+        assert "Activities" in result
+        # Should not mention contacts with 0 count
+        lines = result.split("\n")
+        assert not any("Contacts" in line and ": 0" in line for line in lines)
+
+
+# =============================================================================
+# generate_follow_up_suggestions Tests
+# =============================================================================
+
+class TestGenerateFollowUpSuggestionsMock:
+    """Tests for generate_follow_up_suggestions in mock mode."""
+
+    def test_returns_list(self):
+        """Returns a list of suggestions."""
+        from backend.agent.llm_helpers import generate_follow_up_suggestions
+        result = generate_follow_up_suggestions(
+            question="What's happening with Acme?",
+            mode="data",
+        )
+        assert isinstance(result, list)
+
+    def test_returns_up_to_three_suggestions(self):
+        """Returns up to 3 suggestions."""
+        from backend.agent.llm_helpers import generate_follow_up_suggestions
+        result = generate_follow_up_suggestions(
+            question="Show me renewals",
+            mode="data",
+        )
+        assert len(result) <= 3
+
+    def test_suggestions_are_strings(self):
+        """All suggestions are strings."""
+        from backend.agent.llm_helpers import generate_follow_up_suggestions
+        result = generate_follow_up_suggestions(
+            question="What's in the pipeline?",
+            mode="data",
+        )
+        for suggestion in result:
+            assert isinstance(suggestion, str)
+
+    def test_uses_company_name_when_provided(self):
+        """Uses company name in context-aware suggestions."""
+        from backend.agent.llm_helpers import generate_follow_up_suggestions
+        result = generate_follow_up_suggestions(
+            question="Tell me about Acme",
+            mode="data",
+            company_id="ACME-001",
+            company_name="Acme Manufacturing",
+            available_data={"opportunities": 5, "contacts": 3},
+        )
+        # Should have some suggestions
+        assert len(result) > 0

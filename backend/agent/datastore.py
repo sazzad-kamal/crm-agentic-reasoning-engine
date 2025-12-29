@@ -739,18 +739,23 @@ class CRMDataStore:
 
 
 # =============================================================================
-# Singleton instance
+# Thread-local datastore instance
 # =============================================================================
 
-_datastore: CRMDataStore | None = None
+import threading
+
+_thread_local = threading.local()
 
 
 def get_datastore() -> CRMDataStore:
-    """Get the singleton CRMDataStore instance."""
-    global _datastore
-    if _datastore is None:
-        _datastore = CRMDataStore()
-    return _datastore
+    """Get a thread-local CRMDataStore instance.
+
+    Each thread gets its own DuckDB connection to avoid
+    concurrent access issues.
+    """
+    if not hasattr(_thread_local, 'datastore'):
+        _thread_local.datastore = CRMDataStore()
+    return _thread_local.datastore
 
 
 __all__ = ["CRMDataStore", "get_datastore", "get_csv_base_path"]

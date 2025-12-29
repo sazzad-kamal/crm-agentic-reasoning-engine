@@ -609,6 +609,13 @@ body {
   max-width: 500px;
 }
 
+.empty-state__loading {
+  padding: var(--space-lg);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
 .suggestion-btn {
   display: flex;
   align-items: center;

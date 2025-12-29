@@ -204,3 +204,35 @@ router.get(
     summary="Get all opportunity descriptions",
     description="Returns all opportunity description records from the CRM.",
 )(_create_simple_data_endpoint("opportunity_descriptions.csv"))
+
+
+# =============================================================================
+# Starter Questions Endpoint
+# =============================================================================
+
+class StarterQuestionsResponse(BaseModel):
+    """Response containing dynamic starter questions."""
+    questions: list[str] = Field(description="List of starter questions for the chat interface")
+
+
+@router.get(
+    "/data/starter-questions",
+    response_model=StarterQuestionsResponse,
+    summary="Get starter questions",
+    description="Returns hardcoded starter questions from the question tree for demo reliability.",
+)
+async def get_starter_questions(
+    settings: Settings = Depends(get_settings),
+) -> StarterQuestionsResponse:
+    """
+    Return hardcoded starter questions from the question tree.
+
+    Uses hardcoded questions for 100% demo reliability.
+    Each starter leads to a tree of follow-up questions.
+    """
+    from backend.agent.question_tree import get_starters
+
+    # Use hardcoded starters from the question tree
+    starters = get_starters()
+
+    return StarterQuestionsResponse(questions=starters)

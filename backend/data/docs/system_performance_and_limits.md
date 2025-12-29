@@ -225,7 +225,7 @@ main patterns that can influence how quickly certain operations complete.
   temporary API suspension. See Section 2 for details.
 
 - **"How do I check my current usage against limits?"**
-  Go to Settings > Usage & Billing to see current counts for companies,
+  Usage and billing information shows current counts for companies,
   contacts, storage, and API calls against your plan limits.
 
 - **"Can I request a limit increase?"**

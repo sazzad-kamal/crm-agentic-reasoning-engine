@@ -93,7 +93,38 @@ Useful views for SMBs:
 - “No Activity – 30 Days” – find companies that have gone quiet.
 - “Upcoming Calls” – tasks due in the next week.
 
-## 6. Troubleshooting Tips (for SMB users)
+## 6. Account Health and At-Risk Flags
+
+Acme CRM Suite automatically calculates **account health** based on
+engagement patterns. This helps identify accounts that need attention.
+
+### Health Status Levels
+
+- **Healthy** (Green) – Regular engagement, no concerns
+- **Needs Attention** (Yellow) – Some warning signs present
+- **At-Risk** (Red) – Significant concerns, action needed
+
+### What Causes an Account to Be Marked At-Risk?
+
+Accounts are flagged as at-risk based on several factors:
+
+1. **Low activity** – No calls, meetings, or emails logged in 30+ days
+2. **Missed check-ins** – Scheduled tasks or calls that weren't completed
+3. **Declining engagement** – Reduced response rates or meeting frequency
+4. **Support issues** – Open tickets or unresolved complaints
+5. **Upcoming renewal without engagement** – Renewal within 60 days but
+   no recent contact
+6. **Contact changes** – Key contacts leaving or changing roles
+
+### Low-Activity Warnings
+
+A low-activity warning is triggered when:
+
+- No activities have been logged for 30 days (default threshold)
+- The account is marked as "Active" status
+- There are no scheduled future tasks or meetings
+
+## 7. Troubleshooting Tips (for SMB users)
 
 If you can’t find an activity:
 
@@ -110,7 +141,7 @@ If history looks cluttered:
 For strategic use of activities with sales and success, see:
 `opportunities_pipeline_and_forecasts.md`.
 
-## 7. Common Questions
+## 8. Common Questions
 
 - **“How can I see everything that happened with a single account?”**  
   Open the Company record and use the History or Activities tab; filter by

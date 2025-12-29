@@ -119,8 +119,7 @@ Acme CRM Suite includes ready-to-use templates:
 - Proposal Sent – accompany a quote or proposal
 - Deal Won – thank you and onboarding handoff
 
-To use a template, go to Campaigns > New Campaign > Select Template.
-You can customize any template or create your own from scratch.
+Templates can be customized or you can create your own from scratch.
 
 ### Merge Fields (Personalization)
 

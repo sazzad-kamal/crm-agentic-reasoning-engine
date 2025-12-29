@@ -1,8 +1,8 @@
 """
-Shared parallel execution utilities for RAG evaluation.
+Shared parallel execution utilities for evaluation.
 
 Provides a reusable ThreadPoolExecutor-based runner with progress tracking.
-Used by docs_eval.py and account_eval.py to eliminate code duplication.
+Used by agent e2e_eval.py for parallel test execution.
 """
 
 import threading

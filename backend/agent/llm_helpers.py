@@ -38,29 +38,42 @@ class FollowUpSuggestions(BaseModel):
 # =============================================================================
 
 FOLLOW_UP_PROMPT_TEMPLATE = ChatPromptTemplate.from_messages([
-    ("system", "You are a helpful CRM assistant. Generate follow-up question suggestions based on the conversation context."),
-    ("human", """Based on the user's question and conversation context, suggest 3 natural follow-up questions they might want to ask next.
+    ("system", "You are a helpful CRM assistant. Generate 3 follow-up question suggestions."),
+    ("human", """Suggest 3 follow-up questions for the user.
 
-User's current question: {question}
-Mode used: {mode}
-Company context: {company}
+User's question: {question}
+Current company: {company}
+
+=== AVAILABLE DATA FOR THIS COMPANY ===
+{available_data}
 
 {conversation_history_section}
 
-Generate 3 SHORT, SPECIFIC follow-up questions that would be valuable. Focus on:
-- Drilling deeper into the data shown
-- Related information they might need
-- Actionable next steps
-- Questions that build on the conversation context
+GENERATE 3 QUESTIONS:
+1. First question: Drill deeper into current company's available data (use company name)
+2. Second question: Another angle on current company's data (use company name)
+3. Third question: Let user explore something NEW - different company, general CRM question, or documentation topic
 
-IMPORTANT: If there's conversation history, suggest follow-ups that continue that flow naturally."""),
+RULES:
+- Questions 1-2: ONLY ask about data types listed as available above
+- Question 3: Can be general (renewals, pipeline summary) or about CRM features
+- Always use company name, not "they" or "their"
+- Keep questions SHORT"""),
 ])
 
 
-# Cached chains
+# Cached chains - set to None to force rebuild when module reloads
 _followup_chain = None
 _answer_chain = None
 _not_found_chain = None
+
+
+def clear_chain_caches():
+    """Clear all cached chains. Call when prompts change."""
+    global _followup_chain, _answer_chain, _not_found_chain
+    _followup_chain = None
+    _answer_chain = None
+    _not_found_chain = None
 
 
 def _get_followup_chain():
@@ -357,18 +370,25 @@ def generate_follow_up_suggestions(
     question: str,
     mode: str,
     company_id: str | None = None,
+    company_name: str | None = None,
     conversation_history: str = "",
+    available_data: dict | None = None,
+    use_hardcoded_tree: bool = True,
 ) -> list[str]:
     """
-    Generate follow-up question suggestions using LLM with structured output.
+    Generate follow-up question suggestions.
 
-    Uses LCEL chain with .with_structured_output() for reliable parsing.
+    For demo reliability, uses hardcoded question tree by default.
+    Falls back to LLM generation if question not in tree.
 
     Args:
         question: The user's current question
         mode: The mode used (data, docs, data+docs)
-        company_id: The company context if any
+        company_id: The company ID if any
+        company_name: The company name for display
         conversation_history: Formatted conversation history for context
+        available_data: Dict with counts of available data types
+        use_hardcoded_tree: If True, use hardcoded tree (default for demos)
 
     Returns:
         List of 3 suggested follow-up questions.
@@ -378,33 +398,46 @@ def generate_follow_up_suggestions(
     if not config.enable_follow_up_suggestions:
         return []
 
+    # Try hardcoded tree first (100% reliable for demos)
+    if use_hardcoded_tree:
+        try:
+            from backend.agent.question_tree import get_follow_ups, TERMINAL_FOLLOW_UPS
+
+            follow_ups = get_follow_ups(question)
+            # If we got real follow-ups (not terminal), use them
+            if follow_ups and follow_ups != TERMINAL_FOLLOW_UPS:
+                logger.debug(f"Using hardcoded follow-ups for: {question[:50]}...")
+                return follow_ups[:3]
+            # For terminal questions, fall through to LLM/mock
+        except ImportError:
+            logger.warning("Question tree not available, falling back to LLM")
+
+    # Format available data for the prompt
+    data_context = _format_available_data(available_data, company_name)
+
     if is_mock_mode():
-        # Return context-aware mock suggestions
-        if "renewal" in question.lower():
-            return [
-                "Which renewals are at risk?",
-                "What's the total renewal value this quarter?",
-                "Show me accounts with no recent activity",
-            ]
-        elif "pipeline" in question.lower():
-            return [
-                "Which deals are stalled?",
-                "What's the forecast for this quarter?",
-                "Show me deals closing this month",
-            ]
-        elif company_id:
-            # Company-specific follow-ups
-            return [
-                "What are their recent activities?",
-                "Show me their open opportunities",
-                "Who are the key contacts?",
-            ]
-        else:
-            return [
-                "What are the recent activities?",
-                "Show me the open opportunities",
-                "Any upcoming renewals?",
-            ]
+        # Return context-aware mock suggestions: 2 grounded + 1 exploratory
+        suggestions = []
+        name = company_name or "the account"
+
+        # First 2: Grounded in available data
+        if available_data:
+            if available_data.get("opportunities", 0) > 0:
+                suggestions.append(f"What stage are {name}'s opportunities in?")
+            if available_data.get("activities", 0) > 0:
+                suggestions.append(f"What were {name}'s recent activities?")
+            if available_data.get("contacts", 0) > 0:
+                suggestions.append(f"Who are {name}'s key contacts?")
+            if available_data.get("renewals", 0) > 0:
+                suggestions.append(f"When is {name}'s renewal coming up?")
+
+        # Limit to 2 grounded questions
+        suggestions = suggestions[:2]
+
+        # Third: Always add an exploratory question
+        suggestions.append("Show me the overall pipeline summary")
+
+        return suggestions[:3]
 
     try:
         # Get the LCEL chain with structured output
@@ -418,8 +451,8 @@ def generate_follow_up_suggestions(
         # Invoke chain with structured output
         result: FollowUpSuggestions = chain.invoke({
             "question": question,
-            "mode": mode,
-            "company": company_id or "None specified",
+            "company": company_name or company_id or "None specified",
+            "available_data": data_context,
             "conversation_history_section": history_section,
         })
 
@@ -429,6 +462,35 @@ def generate_follow_up_suggestions(
     except Exception as e:
         logger.warning(f"Follow-up generation failed: {e}")
         return []
+
+
+def _format_available_data(data: dict | None, company_name: str | None) -> str:
+    """Format available data counts into a readable string for the prompt."""
+    if not data:
+        return "No specific data available. Suggest general CRM questions."
+
+    lines = []
+    company_label = company_name or "this company"
+
+    if data.get("contacts", 0) > 0:
+        lines.append(f"- Contacts: {data['contacts']} contacts for {company_label}")
+    if data.get("activities", 0) > 0:
+        lines.append(f"- Activities: {data['activities']} recent activities")
+    if data.get("opportunities", 0) > 0:
+        lines.append(f"- Opportunities: {data['opportunities']} open opportunities")
+    if data.get("history", 0) > 0:
+        lines.append(f"- History: {data['history']} timeline entries")
+    if data.get("renewals", 0) > 0:
+        lines.append(f"- Renewals: {data['renewals']} upcoming renewals")
+    if data.get("pipeline_summary"):
+        lines.append("- Pipeline: Overall pipeline summary available")
+    if data.get("docs", 0) > 0:
+        lines.append(f"- Documentation: {data['docs']} relevant docs")
+
+    if not lines:
+        return "No specific data available. Suggest general CRM questions."
+
+    return "\n".join(lines)
 
 
 __all__ = [

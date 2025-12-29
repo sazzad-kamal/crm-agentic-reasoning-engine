@@ -1,8 +1,8 @@
 import type { Ref } from "react";
-import { useId } from "react";
+import { useId, useState, useEffect } from "react";
 import type { ChatMessage } from "../types";
 import { MessageBlock } from "./MessageBlock";
-import { EXAMPLE_PROMPTS } from "../config";
+import { EXAMPLE_PROMPTS, endpoints } from "../config";
 
 interface ChatAreaProps {
   messages: ChatMessage[];
@@ -65,9 +65,34 @@ interface EmptyStateProps {
 /**
  * Empty state with illustration and example prompts.
  * Uses useId for unique, accessible label IDs.
+ * Fetches dynamic starter questions from the backend.
  */
 function EmptyState({ onSuggestionClick }: EmptyStateProps) {
   const suggestionsLabelId = useId();
+  const [starterQuestions, setStarterQuestions] = useState<string[]>([...EXAMPLE_PROMPTS]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch dynamic starter questions from backend
+    const fetchStarterQuestions = async () => {
+      try {
+        const response = await fetch(endpoints.starterQuestions);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.questions && data.questions.length > 0) {
+            setStarterQuestions(data.questions);
+          }
+        }
+      } catch {
+        // Fallback to static prompts on error (already set as default)
+        console.debug("Using fallback starter questions");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStarterQuestions();
+  }, []);
 
   return (
     <div className="empty-state" role="region" aria-label="Getting started">
@@ -104,24 +129,29 @@ function EmptyState({ onSuggestionClick }: EmptyStateProps) {
       <div className="empty-state__title" id={suggestionsLabelId}>
         Try one of these to get started:
       </div>
-      
+
       <div
         className="empty-state__suggestions"
         role="group"
         aria-labelledby={suggestionsLabelId}
       >
-        {EXAMPLE_PROMPTS.map((prompt, index) => (
-          <button
-            key={index}
-            className="suggestion-btn"
-            onClick={() => onSuggestionClick(prompt)}
-            type="button"
-            aria-label={`Ask: ${prompt}`}
-          >
-            <span className="suggestion-btn__icon">💬</span>
-            <span className="suggestion-btn__text">{prompt}</span>
-          </button>
-        ))}
+        {isLoading ? (
+          // Show placeholder while loading
+          <div className="empty-state__loading">Loading suggestions...</div>
+        ) : (
+          starterQuestions.map((prompt, index) => (
+            <button
+              key={index}
+              className="suggestion-btn"
+              onClick={() => onSuggestionClick(prompt)}
+              type="button"
+              aria-label={`Ask: ${prompt}`}
+            >
+              <span className="suggestion-btn__icon">💬</span>
+              <span className="suggestion-btn__text">{prompt}</span>
+            </button>
+          ))
+        )}
       </div>
     </div>
   );

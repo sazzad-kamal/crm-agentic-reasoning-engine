@@ -161,8 +161,7 @@ Acme CRM Suite integrates with popular business tools:
 - **CSV Import/Export** – bulk data operations
 - **Salesforce Migration** – one-time import tool for switching CRMs
 
-To enable integrations, go to Settings > Integrations and follow the
-setup wizard for each service.
+Integrations can be enabled through the Settings area.
 
 ## 7. Common Questions
 

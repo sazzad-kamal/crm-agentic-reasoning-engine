@@ -216,53 +216,6 @@ class TestPrivateRetrievalFilter:
 
 
 # =============================================================================
-# Test: Privacy Leakage Detection
-# =============================================================================
-
-class TestPrivacyLeakage:
-    """Tests for privacy leakage detection."""
-    
-    def test_no_leakage_when_all_match(self):
-        """Test that no leakage is detected when all hits match target."""
-        from backend.rag.eval.judge import check_privacy_leakage
-        
-        target = "ACME-MFG"
-        hits = [
-            {"id": "hist1", "company_id": "ACME-MFG"},
-            {"id": "hist2", "company_id": "ACME-MFG"},
-        ]
-        
-        leakage, leaked = check_privacy_leakage(target, hits)
-        
-        assert leakage == 0
-        assert leaked == []
-    
-    def test_leakage_detected_when_mismatch(self):
-        """Test that leakage is detected when hits from other company."""
-        from backend.rag.eval.judge import check_privacy_leakage
-        
-        target = "ACME-MFG"
-        hits = [
-            {"id": "hist1", "company_id": "ACME-MFG"},
-            {"id": "hist2", "company_id": "BETA-TECH"},  # Leaked!
-        ]
-        
-        leakage, leaked = check_privacy_leakage(target, hits)
-        
-        assert leakage == 1
-        assert "BETA-TECH" in leaked
-    
-    def test_empty_hits_no_leakage(self):
-        """Test that empty hits result in no leakage."""
-        from backend.rag.eval.judge import check_privacy_leakage
-        
-        leakage, leaked = check_privacy_leakage("ACME-MFG", [])
-        
-        assert leakage == 0
-        assert leaked == []
-
-
-# =============================================================================
 # Test: CSV Directory Locator
 # =============================================================================
 
@@ -289,72 +242,6 @@ class TestCsvDirLocator:
                    [tmp_path / "nonexistent1", tmp_path / "nonexistent2"]):
             with pytest.raises(FileNotFoundError, match="Could not find CSV data directory"):
                 find_csv_dir()
-
-
-# =============================================================================
-# Test: Question Generation
-# =============================================================================
-
-class TestQuestionGeneration:
-    """Tests for evaluation question generation."""
-    
-    def test_generates_expected_number_of_questions(self):
-        """Test that question generation produces expected count."""
-        from backend.rag.eval.questions import (
-            generate_eval_questions,
-            NUM_COMPANIES,
-            NUM_QUESTIONS_PER_COMPANY,
-            EDGE_CASE_TEMPLATES,
-            NATURAL_LANGUAGE_TEMPLATES,
-            GROUND_TRUTH_TEMPLATES,
-            ACCOUNT_CONTEXT_TEMPLATES,
-        )
-
-        questions = generate_eval_questions()
-
-        # Base questions: all companies × questions per company
-        base = NUM_COMPANIES * NUM_QUESTIONS_PER_COMPANY
-
-        # Edge cases: 3 companies × all edge case templates
-        edge_cases = 3 * len(EDGE_CASE_TEMPLATES)
-
-        # Natural language: 4 companies × all NL templates
-        natural_language = 4 * len(NATURAL_LANGUAGE_TEMPLATES)
-
-        # Ground truth: 4 companies × all GT templates
-        ground_truth = 4 * len(GROUND_TRUTH_TEMPLATES)
-
-        # Account context: 5 companies × all account context templates
-        account_context = 5 * len(ACCOUNT_CONTEXT_TEMPLATES)
-
-        expected = base + edge_cases + natural_language + ground_truth + account_context
-        assert len(questions) == expected
-    
-    def test_questions_have_required_fields(self):
-        """Test that generated questions have all required fields."""
-        from backend.rag.eval.questions import generate_eval_questions
-        
-        questions = generate_eval_questions()
-        
-        required_fields = ["id", "company_id", "company_name", "question", "question_type"]
-        
-        for q in questions:
-            for field in required_fields:
-                assert field in q, f"Missing field: {field}"
-                assert q[field], f"Empty field: {field}"
-    
-    def test_questions_are_deterministic(self):
-        """Test that question generation is deterministic."""
-        from backend.rag.eval.questions import generate_eval_questions
-        
-        q1 = generate_eval_questions(seed=42)
-        q2 = generate_eval_questions(seed=42)
-        
-        assert len(q1) == len(q2)
-        for a, b in zip(q1, q2):
-            assert a["id"] == b["id"]
-            assert a["company_id"] == b["company_id"]
-            assert a["question"] == b["question"]
 
 
 # =============================================================================

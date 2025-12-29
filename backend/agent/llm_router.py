@@ -43,6 +43,14 @@ ROUTER_SYSTEM_PROMPT = """You are a routing assistant for Acme CRM, a customer r
 
 Your job is to analyze user questions and provide a complete understanding:
 
+## DATA MODEL
+The CRM has distinct data tables - route based on which table has the data:
+- **companies**: Account metadata (name, industry, segment, region, status, plan, account_owner, renewal_date, health_flags)
+- **contacts**: People who work AT a company (first_name, last_name, email, job_title, role)
+- **opportunities**: Sales deals linked to a company (name, stage, value, expected_close_date)
+- **activities**: Tasks/events (calls, emails, meetings) with due dates and owners
+- **history**: Completed past interactions with notes
+
 ## ROUTING
 1. **mode**: What data source should answer this question? MUST be exactly one of:
    - "docs": Help documentation, how-to guides, feature explanations, "how do I..." questions
@@ -55,12 +63,10 @@ Your job is to analyze user questions and provide a complete understanding:
 2. **intent**: The primary purpose of the question (separate from mode!)
 
    COMPANY-SPECIFIC INTENTS (require a company name):
-   - "company_status": General status/summary of a specific company/account
-     * ALSO use for: "activities for [company]", "what's happening with [company]"
-     * If a company is mentioned with activities/calls/emails, use company_status NOT activities
+   - "company_status": General status/summary of a specific company/account. Use for account metadata fields.
    - "pipeline": Opportunities/deals for a SPECIFIC company
    - "history": Past interactions for a SPECIFIC company
-   - "contact_lookup": Get contacts for a SPECIFIC company (e.g., "show me Acme's contacts")
+   - "contact_lookup": Get contacts (people) for a SPECIFIC company
    - "account_context": Deep context from notes/attachments for a company - use this for:
      * "Why is the deal stalled?" (needs notes about blockers)
      * "What concerns have they raised?" (needs meeting notes)
@@ -84,8 +90,12 @@ Your job is to analyze user questions and provide a complete understanding:
 3. **company_name**: If a specific company/account is mentioned, extract it EXACTLY as stated (null if none)
    - Extract the FULL name as the user wrote it (e.g., "Global Tech Solutions" not just "Global")
    - For partial names like "Show me Global's pipeline", extract "Global"
-   - IMPORTANT: If the user uses pronouns like "their", "them", "they", "that company", or "it",
-     look at the CONVERSATION HISTORY to find the most recently mentioned company and use that name.
+   - IMPORTANT: For pronouns like "their", "them", "they", "that company", or "it",
+     look at CONVERSATION HISTORY to find the most recently mentioned company.
+   - CRITICAL: For implicit references like "the deal", "the upgrade", "the renewal", "the opportunity",
+     "the contact", look at CONVERSATION HISTORY to find which company/entity was being discussed.
+     Example: If history discusses "Acme's opportunities" and question is "What stage is the upgrade deal in?",
+     company_name = "Acme" because "the upgrade deal" refers to Acme's deal from context.
 
 4. **days**: Relevant time period in days (default 30 if not specified)
    - "last 90 days" → 90, "this month" → 30, "this quarter" → 90, "recent" → 90
@@ -216,6 +226,19 @@ Q: "What about their contacts?"
 {"mode": "data", "intent": "contact_lookup", "company_name": "Northwind Corp", "days": 30,
  "query_expansion": "List contacts for Northwind Corp",
  "key_entities": ["Northwind Corp", "contacts"], "action_type": "retrieve", "confidence": 0.9}
+
+### IMPLICIT CONTEXT RESOLUTION (requires conversation history)
+# Given conversation history: "User: Show me Acme Manufacturing's opportunities / Assistant: [listed opportunities including upgrade deal]"
+Q: "What stage is the upgrade deal in?"
+{"mode": "data", "intent": "pipeline", "company_name": "Acme Manufacturing", "days": 30,
+ "query_expansion": "What stage is Acme Manufacturing's upgrade deal opportunity in?",
+ "key_entities": ["Acme Manufacturing", "upgrade deal"], "action_type": "retrieve", "confidence": 0.9}
+
+# Given conversation history: "User asked about Beta Tech's pipeline"
+Q: "What's the deal worth?"
+{"mode": "data", "intent": "pipeline", "company_name": "Beta Tech", "days": 30,
+ "query_expansion": "What is the value of Beta Tech's deal?",
+ "key_entities": ["Beta Tech", "deal value"], "action_type": "retrieve", "confidence": 0.9}
 """
 
 # =============================================================================
@@ -296,6 +319,13 @@ class LLMRouterResponse(BaseModel):
 
 # Cached structured LLM chain
 _router_chain = None
+
+
+def clear_router_chain_cache():
+    """Clear the cached router chain. Call when prompts change."""
+    global _router_chain
+    _router_chain = None
+    logger.debug("Router chain cache cleared")
 
 
 def _get_router_chain():

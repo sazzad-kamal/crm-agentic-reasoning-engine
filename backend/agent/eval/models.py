@@ -99,10 +99,12 @@ class E2EEvalResult(BaseModel):
     refusal_correct: bool = True  # Did the agent properly refuse (or not refuse)?
     has_forbidden_content: bool = False  # Did the response contain forbidden keywords?
 
-    # Answer quality (LLM-judged)
+    # Answer quality (LLM-judged) - RAGAS-style metrics
     answer: str
-    answer_relevance: int  # 0 or 1
-    answer_grounded: int  # 0 or 1
+    answer_relevance: int  # 0 or 1 - Does answer address the question?
+    answer_grounded: int  # 0 or 1 - Is answer grounded in expected data type?
+    context_relevance: int = 0  # 0 or 1 - Was retrieved context relevant to question?
+    faithfulness: int = 0  # 0 or 1 - Is answer faithful to retrieved context (no hallucination)?
     judge_explanation: str = ""
 
     # Metadata
@@ -122,9 +124,11 @@ class E2EEvalSummary(BaseModel):
     company_extraction_accuracy: float = 0.0
     intent_accuracy: float = 0.0
 
-    # Answer quality
-    answer_relevance_rate: float
-    groundedness_rate: float
+    # Answer quality (RAGAS-style metrics)
+    answer_relevance_rate: float  # Does answer address the question?
+    groundedness_rate: float  # Is answer grounded in expected data type?
+    context_relevance_rate: float = 0.0  # Was retrieved context relevant?
+    faithfulness_rate: float = 0.0  # Is answer faithful to context (no hallucination)?
 
     # Latency
     avg_latency_ms: float

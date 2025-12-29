@@ -434,8 +434,22 @@ def answer_node(state: AgentState) -> AgentState:
         total_latency_ms = int((time.time() - start_time) * 1000)
         logger.info(f"[Answer] Synthesized in {total_latency_ms}ms (LLM: {llm_latency}ms)")
 
+        # Update messages for conversation memory (persisted via LangGraph checkpoint)
+        messages = list(state.get("messages", []))
+        messages.append({
+            "role": "user",
+            "content": state["question"],
+            "company_id": state.get("resolved_company_id"),
+        })
+        messages.append({
+            "role": "assistant",
+            "content": answer,
+            "company_id": state.get("resolved_company_id"),
+        })
+
         return {
             "answer": answer,
+            "messages": messages,  # Updated messages for next turn
             "answer_latency_ms": total_latency_ms,
             "llm_latency_ms": llm_latency,
             "steps": [{
@@ -449,8 +463,24 @@ def answer_node(state: AgentState) -> AgentState:
     except Exception as e:
         total_latency_ms = int((time.time() - start_time) * 1000)
         logger.error(f"[Answer] Failed after {total_latency_ms}ms: {e}")
+        error_answer = f"I encountered an error generating the answer: {str(e)}"
+
+        # Still update messages for conversation continuity
+        messages = list(state.get("messages", []))
+        messages.append({
+            "role": "user",
+            "content": state["question"],
+            "company_id": state.get("resolved_company_id"),
+        })
+        messages.append({
+            "role": "assistant",
+            "content": error_answer,
+            "company_id": state.get("resolved_company_id"),
+        })
+
         return {
-            "answer": f"I encountered an error generating the answer: {str(e)}",
+            "answer": error_answer,
+            "messages": messages,
             "answer_latency_ms": total_latency_ms,
             "llm_latency_ms": 0,
             "error": str(e),
@@ -471,7 +501,7 @@ def followup_node(state: AgentState) -> AgentState:
     """
     Follow-up node: Generate suggested follow-up questions.
 
-    Uses conversation history for contextual suggestions.
+    Uses conversation history and available data for grounded suggestions.
     """
     config = get_config()
     start_time = time.time()
@@ -486,12 +516,33 @@ def followup_node(state: AgentState) -> AgentState:
     messages = state.get("messages", [])
     conversation_history = format_history_for_prompt(messages) if messages else ""
 
+    # Extract company name from company_data
+    company_data = state.get("company_data", {})
+    company_name = None
+    if company_data and company_data.get("found"):
+        company_info = company_data.get("company", {})
+        company_name = company_info.get("name")
+
+    # Build available data counts from raw_data
+    raw_data = state.get("raw_data", {})
+    available_data = {
+        "contacts": len(raw_data.get("contacts", [])) if isinstance(raw_data, dict) else 0,
+        "activities": len(raw_data.get("activities", [])) if isinstance(raw_data, dict) else 0,
+        "opportunities": len(raw_data.get("opportunities", [])) if isinstance(raw_data, dict) else 0,
+        "history": len(raw_data.get("history", [])) if isinstance(raw_data, dict) else 0,
+        "renewals": len(raw_data.get("renewals", [])) if isinstance(raw_data, dict) else 0,
+        "pipeline_summary": raw_data.get("pipeline_summary") if isinstance(raw_data, dict) else None,
+        "docs": len(state.get("doc_sources", [])),
+    }
+
     try:
         suggestions = generate_follow_up_suggestions(
             question=state["question"],
             mode=state.get("mode_used", "auto"),
             company_id=state.get("resolved_company_id"),
+            company_name=company_name,
             conversation_history=conversation_history,
+            available_data=available_data,
         )
 
         # Validate and limit suggestions

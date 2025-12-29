@@ -10,6 +10,7 @@ Usage:
 """
 
 import logging
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -21,26 +22,34 @@ from backend.rag.retrieval.constants import EMBEDDING_MODEL, RERANKER_MODEL
 logger = logging.getLogger(__name__)
 
 
-# Cached model instances
+# Thread-safe model loading
 _embedding_model: SentenceTransformer | None = None
 _reranker_model: CrossEncoder | None = None
+_embedding_lock = threading.Lock()
+_reranker_lock = threading.Lock()
 
 
 def get_embedding_model() -> SentenceTransformer:
-    """Get the cached embedding model, loading if necessary."""
+    """Get the cached embedding model, loading if necessary (thread-safe)."""
     global _embedding_model
     if _embedding_model is None:
-        logger.info(f"Loading embedding model: {EMBEDDING_MODEL}")
-        _embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+        with _embedding_lock:
+            # Double-check after acquiring lock
+            if _embedding_model is None:
+                logger.info(f"Loading embedding model: {EMBEDDING_MODEL}")
+                _embedding_model = SentenceTransformer(EMBEDDING_MODEL)
     return _embedding_model
 
 
 def get_reranker_model() -> CrossEncoder:
-    """Get the cached reranker model, loading if necessary."""
+    """Get the cached reranker model, loading if necessary (thread-safe)."""
     global _reranker_model
     if _reranker_model is None:
-        logger.info(f"Loading reranker model: {RERANKER_MODEL}")
-        _reranker_model = CrossEncoder(RERANKER_MODEL)
+        with _reranker_lock:
+            # Double-check after acquiring lock
+            if _reranker_model is None:
+                logger.info(f"Loading reranker model: {RERANKER_MODEL}")
+                _reranker_model = CrossEncoder(RERANKER_MODEL)
     return _reranker_model
 
 

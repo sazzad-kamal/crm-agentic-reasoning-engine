@@ -45,16 +45,9 @@ also store:
 **Can a contact belong to multiple companies?**
 
 Yes. A contact has one **primary company** but can have **secondary
-company associations**:
-
-1. Go to the contact record.
-2. Click "Add Company Association" in the Companies section.
-3. Select the additional company and relationship type (e.g., Consultant,
-   Board Member, Advisor).
-
-Secondary associations appear in the contact's profile and in the
-associated companies' contact lists. This is useful for consultants,
-board members, or contacts who work across multiple client organizations.
+company associations** with relationship types like Consultant, Board
+Member, or Advisor. This is useful for consultants, board members, or
+contacts who work across multiple client organizations.
 
 ## 3. Groups and Segmentation
 
@@ -118,18 +111,10 @@ Then use these groups to drive tasks, calls, and campaigns.
 
 ## 5. Importing Contacts and Companies
 
-You can import contacts and companies from:
-
-- spreadsheets,
-- exports from other CRMs,
-- signup forms (depending on your setup).
-
-Basic steps:
-
-1. Download or prepare a CSV file.
-2. Map your columns to Acme fields (Company Name, Email, etc.).
-3. Choose how to handle duplicates (skip, update, or create new).
-4. Run the import and review the summary.
+You can import contacts and companies from spreadsheets, exports from
+other CRMs, or signup forms. Imports use CSV files with column mapping
+to Acme fields. Duplicate handling options include skip, update existing,
+or create new records.
 
 See `faq_data_import_export.md` for more on imports and exports.
 
@@ -180,13 +165,9 @@ the status to "Former" instead if you want to preserve history.
 
 ### Handling Duplicates
 
-If you find duplicate companies:
-
-1. Go to Settings > Data Management > Merge Records.
-2. Select the duplicate records.
-3. Choose which record to keep as the primary.
-4. The system merges contacts, opportunities, and activities into the
-   primary record.
+Duplicate companies can be merged. When merging, one record is kept as
+primary and the system combines contacts, opportunities, and activities
+from both records into the primary.
 
 ---
 

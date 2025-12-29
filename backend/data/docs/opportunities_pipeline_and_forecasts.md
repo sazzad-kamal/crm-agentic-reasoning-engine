@@ -131,14 +131,9 @@ For more detail, see:
 **Can I reopen a closed-lost opportunity?**
 
 Yes. If circumstances change (e.g., the customer comes back, budget is
-approved, or a new decision maker takes over), you can reopen a closed
-opportunity:
-
-1. Open the closed opportunity record.
-2. Click the "Reopen" button (or change the Stage from Closed Lost/Won).
-3. Select the appropriate active stage (e.g., Qualified, Negotiation).
-4. Update the Expected Close Date to a realistic future date.
-5. Add a note explaining why the opportunity was reopened.
+approved, or a new decision maker takes over), a closed opportunity can
+be reopened by changing its stage back to an active stage and updating
+the expected close date.
 
 **Best practices for reopening:**
 
@@ -146,15 +141,6 @@ opportunity:
 - Update the opportunity value if pricing has changed.
 - Consider creating a new opportunity instead if significant time has
   passed (6+ months) to keep historical reporting accurate.
-
-**Reopening Closed-Won opportunities:**
-
-This is less common but may be needed if:
-
-- The deal fell through after being marked as won.
-- You need to renegotiate terms.
-
-Change the stage back to an active stage and update the close date.
 
 ---
 
@@ -173,5 +159,5 @@ Change the stage back to an active stage and update the close date.
   stage weekly, focusing on stuck or stale deals.
 
 - **"Can I reopen a closed-lost opportunity?"**
-  Yes. Click "Reopen" on the opportunity record and select a new active
-  stage. See Section 8 for details and best practices.
+  Yes, closed opportunities can be reopened by changing the stage back to
+  an active stage. See Section 8 for details and best practices.

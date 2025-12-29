@@ -273,7 +273,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
         "follow_ups": [
             "What was the last Beta Tech meeting about?",
             "Who attended the recent Beta Tech calls?",
-            "Beta Tech is marked at-risk. What causes that status?",
+            "What's Beta Tech's activity count this month?",
         ],
     },
 
@@ -302,7 +302,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
         "company_id": None,
         "follow_ups": [
             "Which accounts are at risk?",
-            "What causes an account to be marked at-risk?",
+            "How many accounts are in each health status?",
             "Show me accounts with low activity",
         ],
     },
@@ -346,11 +346,11 @@ QUESTION_TREE: dict[str, QuestionNode] = {
         "company_id": None,
         "follow_ups": [
             "Why is Beta Tech marked at-risk?",
-            "What causes low-activity warnings?",
+            "Which accounts have the lowest activity?",
             "Show me at-risk renewals",
         ],
     },
-    "What causes an account to be marked at-risk?": {
+    "How many accounts are in each health status?": {
         "company_id": None,
         "follow_ups": [
             "Which accounts have healthy status?",
@@ -373,7 +373,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
         "follow_ups": [
             "Break down renewals by owner",
             "Which renewals are at risk?",
-            "What typically causes accounts to churn?",
+            "How many accounts churned this quarter?",
         ],
     },
     "Who owns the highest value renewal?": {
@@ -472,7 +472,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
         "follow_ups": [
             "What happened with Green Energy Partners?",
             "When did these accounts churn?",
-            "What causes accounts to churn?",
+            "What was the total value of churned accounts?",
         ],
     },
     "What's the distribution of accounts by group?": {

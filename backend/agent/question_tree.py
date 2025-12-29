@@ -168,7 +168,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
         "company_id": "BETA-TECH",
         "follow_ups": [
             "Tell me about the Beta Tech negotiation deal",
-            "What's the analytics add-on opportunity?",
+            "What's the Beta Tech add-on deal?",
             "Who are the contacts at Beta Tech?",
         ],
     },
@@ -182,7 +182,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
             "What's the negotiation deal value?",
         ],
     },
-    "What's the analytics add-on opportunity?": {
+    "What's the Beta Tech add-on deal?": {
         "company_id": "BETA-TECH",
         "follow_ups": [
             "What stage is the add-on in?",
@@ -225,7 +225,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
         ],
     },
 
-    # Layer 3 from "What's the analytics add-on opportunity"
+    # Layer 3 from "What's the Beta Tech add-on deal"
     "What stage is the add-on in?": {
         "company_id": "BETA-TECH",
         "follow_ups": [
@@ -402,7 +402,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
         "follow_ups": [
             "Which companies have the biggest deals?",
             "What groups do we have?",
-            "What meetings are scheduled this week?",
+            "What meetings do we have coming up?",
         ],
     },
 
@@ -423,7 +423,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
             "What's the distribution of accounts by group?",
         ],
     },
-    "What meetings are scheduled this week?": {
+    "What meetings do we have coming up?": {
         "company_id": None,
         "follow_ups": [
             "Show me all recent calls",
@@ -484,7 +484,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
         ],
     },
 
-    # Layer 3 from "What meetings are scheduled this week"
+    # Layer 3 from "What meetings do we have coming up"
     "Show me all recent calls": {
         "company_id": None,
         "follow_ups": [

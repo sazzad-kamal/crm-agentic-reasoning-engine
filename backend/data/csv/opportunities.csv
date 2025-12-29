@@ -1,14 +1,14 @@
 opportunity_id,company_id,primary_contact_id,name,stage,type,value,currency,source,owner,expected_close_date,created_at,updated_at,closed_at
-OPP-ACME-UPGRADE,ACME-MFG,C-ACME-ANNA,Acme Manufacturing - Pro to Enterprise upgrade,Proposal,Expansion,15000,USD,Existing Customer,jsmith,2025-12-15,2025-10-01,2025-11-10,
-OPP-ACME-RENEWAL,ACME-MFG,C-ACME-JOE,Acme Manufacturing - Annual renewal,Qualified,Renewal,24000,USD,Existing Customer,jsmith,2026-03-15,2025-09-15,2025-11-01,
-OPP-BETA-NEW,BETA-TECH,C-BETA-LISA,Beta Tech - New rollout,Negotiation,New Business,32000,USD,Referral,ljones,2025-12-31,2025-08-20,2025-11-02,
-OPP-BETA-ADDON,BETA-TECH,C-BETA-SAM,Beta Tech - Analytics add-on,Discovery,Expansion,8000,USD,Existing Customer,ljones,2026-02-15,2025-11-01,2025-11-15,
-OPP-CROWN-RENEW,CROWN-FOODS,C-CROWN-MARIA,Crown Foods - Subscription renewal,Proposal,Renewal,18000,USD,Existing Customer,jsmith,2025-12-20,2025-09-10,2025-10-30,
+OPP-ACME-UPGRADE,ACME-MFG,C-ACME-ANNA,Acme Manufacturing - Pro to Enterprise upgrade,Proposal,Expansion,15000,USD,Existing Customer,jsmith,2026-01-25,2025-10-01,2025-11-10,
+OPP-ACME-RENEWAL,ACME-MFG,C-ACME-JOE,Acme Manufacturing - Annual renewal,Qualified,Renewal,24000,USD,Existing Customer,jsmith,2026-04-15,2025-09-15,2025-11-01,
+OPP-BETA-NEW,BETA-TECH,C-BETA-LISA,Beta Tech - New rollout,Negotiation,New Business,32000,USD,Referral,ljones,2026-02-15,2025-08-20,2025-11-02,
+OPP-BETA-ADDON,BETA-TECH,C-BETA-SAM,Beta Tech - Analytics add-on,Discovery,Expansion,8000,USD,Existing Customer,ljones,2026-03-15,2025-11-01,2025-11-15,
+OPP-CROWN-RENEW,CROWN-FOODS,C-CROWN-MARIA,Crown Foods - Subscription renewal,Proposal,Renewal,18000,USD,Existing Customer,jsmith,2026-01-30,2025-09-10,2025-10-30,
 OPP-DELTA-RENEW,DELTA-HEALTH,C-DELTA-ERIN,Delta Health - Renewal,Qualified,Renewal,22000,USD,Existing Customer,amartin,2025-09-01,2025-06-01,2025-08-15,
-OPP-DELTA-EXPAND,DELTA-HEALTH,C-DELTA-ERIN,Delta Health - Additional clinics,Discovery,Expansion,15000,USD,Existing Customer,amartin,2026-03-01,2025-10-01,2025-11-10,
-OPP-EAST-TRIAL,EASTERN-TRAVEL,C-EAST-SANJAY,Eastern Travel - Trial to paid,New,New Business,8000,USD,Inbound,mmalik,2025-02-28,2025-01-10,2025-10-05,
-OPP-FUSION-UPSELL,FUSION-RETAIL,C-FUSION-EMMA,Fusion Retail - Seats expansion,Qualified,Expansion,12000,USD,Existing Customer,jsmith,2026-05-10,2025-07-01,2025-10-25,
+OPP-DELTA-EXPAND,DELTA-HEALTH,C-DELTA-ERIN,Delta Health - Additional clinics,Discovery,Expansion,15000,USD,Existing Customer,amartin,2026-04-01,2025-10-01,2025-11-10,
+OPP-EAST-TRIAL,EASTERN-TRAVEL,C-EAST-SANJAY,Eastern Travel - Trial to paid,New,New Business,8000,USD,Inbound,mmalik,2026-03-28,2025-01-10,2025-10-05,
+OPP-FUSION-UPSELL,FUSION-RETAIL,C-FUSION-EMMA,Fusion Retail - Seats expansion,Qualified,Expansion,12000,USD,Existing Customer,jsmith,2026-06-10,2025-07-01,2025-10-25,
 OPP-FUSION-RENEW,FUSION-RETAIL,C-FUSION-LARS,Fusion Retail - Annual renewal,Closed Won,Renewal,28000,USD,Existing Customer,jsmith,2025-10-01,2025-07-15,2025-09-30,2025-09-30
 OPP-GREEN-RENEW,GREEN-ENERGY,C-GREEN-CARLOS,Green Energy - Renewal 2025,Closed Lost,Renewal,20000,USD,Existing Customer,ljones,2025-06-30,2025-03-01,2025-06-15,2025-06-15
 OPP-GREEN-EXPAND,GREEN-ENERGY,C-GREEN-LINDA,Green Energy - Solar division rollout,Closed Lost,Expansion,35000,USD,Existing Customer,ljones,2025-05-15,2024-11-01,2025-05-10,2025-05-10
-OPP-HARBOR-NEW,HARBOR-LOGISTICS,C-HARBOR-JACOB,Harbor Logistics - Initial rollout,Discovery,New Business,26000,USD,Outbound,mmalik,2025-08-30,2025-05-15,2025-11-10,
+OPP-HARBOR-NEW,HARBOR-LOGISTICS,C-HARBOR-JACOB,Harbor Logistics - Initial rollout,Discovery,New Business,26000,USD,Outbound,mmalik,2026-02-28,2025-05-15,2025-11-10,

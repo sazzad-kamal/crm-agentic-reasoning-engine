@@ -14,11 +14,12 @@ from backend.agent.intent_handlers import (
     handle_renewals,
     handle_contacts,
     handle_company_search,
-    handle_groups,
     handle_attachments,
     handle_activities,
     handle_company_status,
     handle_fallback,
+    handle_deals_at_risk,
+    handle_forecast,
     INTENT_HANDLERS,
     _empty_raw_data,
     _safe_extend,
@@ -127,9 +128,9 @@ class TestEmptyRawData:
         assert data["opportunities"] == []
         assert data["history"] == []
         assert data["renewals"] == []
-        assert data["groups"] == []
         assert data["attachments"] == []
         assert data["pipeline_summary"] is None
+        assert data["analytics"] is None
 
 
 # =============================================================================
@@ -274,46 +275,6 @@ class TestHandleCompanySearch:
         call_kwargs = mock_tool.call_args[1]
         assert call_kwargs["segment"] == "Enterprise"
         assert call_kwargs["industry"] == "Software"
-
-
-# =============================================================================
-# handle_groups Tests
-# =============================================================================
-
-class TestHandleGroups:
-    """Tests for handle_groups handler."""
-
-    @patch('backend.agent.intent_handlers.tool_list_groups')
-    def test_lists_groups_when_no_specific_group(self, mock_tool, basic_context):
-        """Lists all groups when no specific group."""
-        mock_tool.return_value.data = {
-            "groups": [{"group_id": "GRP-1", "name": "Group 1"}],
-        }
-        mock_tool.return_value.sources = []
-
-        result = handle_groups(basic_context)
-
-        assert result.groups_data is not None
-        mock_tool.assert_called_once()
-
-    @patch('backend.agent.intent_handlers.tool_group_members')
-    def test_gets_members_for_specific_group(self, mock_tool):
-        """Gets members for specific group."""
-        mock_tool.return_value.data = {
-            "group_name": "At Risk",
-            "members": [{"name": "Company 1"}],
-        }
-        mock_tool.return_value.sources = []
-
-        ctx = IntentContext(
-            question="show at risk accounts",
-            resolved_company_id=None,
-            days=90,
-        )
-        result = handle_groups(ctx)
-
-        mock_tool.assert_called_with("GRP-AT-RISK")
-        assert result.raw_data["groups"][0]["group_id"] == "GRP-AT-RISK"
 
 
 # =============================================================================
@@ -552,14 +513,19 @@ class TestIntentHandlers:
         expected = [
             "pipeline_summary",
             "renewals",
+            "deals_at_risk",
+            "forecast",
             "contact_lookup",
             "contact_search",
             "company_search",
-            "groups",
             "attachments",
             "activities",
+            "analytics",
             "company_status",
             "pipeline",
+            "history",
+            "account_context",
+            "general",
         ]
         for intent in expected:
             assert intent in INTENT_HANDLERS

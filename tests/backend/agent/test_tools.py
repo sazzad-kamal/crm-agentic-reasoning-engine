@@ -271,16 +271,16 @@ class TestToolUpcomingRenewals:
         """Test passes parameters to datastore."""
         mock_ds = MagicMock()
         mock_ds.get_upcoming_renewals.return_value = []
-        
+
         tool_upcoming_renewals(days=120, limit=50, datastore=mock_ds)
-        
-        mock_ds.get_upcoming_renewals.assert_called_once_with(days=120, limit=50)
+
+        mock_ds.get_upcoming_renewals.assert_called_once_with(days=120, limit=50, owner=None)
 
     def test_default_params(self):
         """Test uses default parameters."""
         mock_ds = MagicMock()
         mock_ds.get_upcoming_renewals.return_value = []
-        
+
         tool_upcoming_renewals(datastore=mock_ds)
-        
-        mock_ds.get_upcoming_renewals.assert_called_once_with(days=90, limit=20)
+
+        mock_ds.get_upcoming_renewals.assert_called_once_with(days=90, limit=20, owner=None)

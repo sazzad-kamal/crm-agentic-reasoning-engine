@@ -30,9 +30,9 @@ class TestGetStarters:
         assert isinstance(starters, list)
 
     def test_returns_expected_count(self):
-        """Returns expected number of starters."""
+        """Returns expected number of starters (role-based)."""
         starters = get_starters()
-        assert len(starters) == 5
+        assert len(starters) == 3  # Sales Rep, CSM, Manager
 
     def test_starters_are_strings(self):
         """All starters are strings."""
@@ -48,14 +48,12 @@ class TestGetStarters:
         starters1.append("modified")
         assert "modified" not in starters2
 
-    def test_contains_expected_starters(self):
-        """Contains expected starter questions."""
+    def test_contains_role_based_starters(self):
+        """Contains role-based starter questions."""
         starters = get_starters()
-        assert "What's going on with Acme Manufacturing?" in starters
-        assert "Show me Beta Tech's pipeline" in starters
-        assert "Which renewals are coming up this month?" in starters
-        assert "What's our total pipeline?" in starters
-        assert "Give me the full picture on Crown Foods" in starters
+        assert "How's my pipeline?" in starters  # Sales Rep
+        assert "Any renewals at risk?" in starters  # CSM
+        assert "How's the team doing?" in starters  # Manager
 
 
 # =============================================================================
@@ -113,12 +111,12 @@ class TestGetCompanyId:
 
     def test_returns_company_id_for_beta_question(self):
         """Returns company ID for Beta Tech question."""
-        company_id = get_company_id("Show me Beta Tech's pipeline")
+        company_id = get_company_id("Tell me about the Beta Tech negotiation deal")
         assert company_id == "BETA-TECH"
 
     def test_returns_none_for_general_question(self):
         """Returns None for general (non-company-specific) question."""
-        company_id = get_company_id("Which renewals are coming up this month?")
+        company_id = get_company_id("How's my pipeline?")
         assert company_id is None
 
     def test_returns_none_for_unknown_question(self):

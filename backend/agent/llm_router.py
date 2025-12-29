@@ -586,28 +586,3 @@ def route_question(
     return result
 
 
-# =============================================================================
-# Test
-# =============================================================================
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    
-    print("Testing LLM Router")
-    print("=" * 60)
-    
-    test_questions = [
-        "What's going on with Acme Manufacturing in the last 90 days?",
-        "How do I create a new opportunity?",
-        "Which accounts have upcoming renewals in the next 90 days?",
-        "Show the open pipeline for Beta Tech Solutions",
-    ]
-    
-    for q in test_questions:
-        print(f"\nQ: {q}")
-        result = route_question(q)
-        print(f"   Mode: {result.mode_used}")
-        print(f"   Company: {result.company_id}")
-        print(f"   Days: {result.days}")
-        print(f"   Intent: {result.intent}")
-        print(f"   Query Expansion: {result.query_expansion}")

@@ -796,24 +796,3 @@ def validate_tree() -> list[str]:
     return issues
 
 
-if __name__ == "__main__":
-    # Quick test
-    print("Question Tree Stats:")
-    stats = get_tree_stats()
-    for key, value in stats.items():
-        print(f"  {key}: {value}")
-
-    print("\nValidation:")
-    issues = validate_tree()
-    if issues:
-        for issue in issues:
-            print(f"  WARNING: {issue}")
-    else:
-        print("  All checks passed!")
-
-    print("\nSample paths:")
-    paths = generate_all_paths()
-    for i, path in enumerate(paths[:3]):
-        print(f"\n  Path {i+1}:")
-        for j, q in enumerate(path):
-            print(f"    {j+1}. {q}")

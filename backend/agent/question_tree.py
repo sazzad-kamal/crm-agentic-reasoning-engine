@@ -89,7 +89,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
         "follow_ups": [
             "Who is the contact for the upgrade opportunity?",
             "What's the upgrade deal worth?",
-            "What's the typical close probability for Proposal stage?",
+            "How many Acme deals are in Proposal stage?",
         ],
     },
     "When does the Acme renewal opportunity close?": {
@@ -229,7 +229,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
     "What stage is the add-on in?": {
         "company_id": "BETA-TECH",
         "follow_ups": [
-            "What's the typical forecast probability for Discovery stage?",
+            "How many Beta Tech deals are in Discovery stage?",
             "Who's driving the add-on deal?",
             "Show me all Beta Tech opportunities",
         ],
@@ -329,7 +329,7 @@ QUESTION_TREE: dict[str, QuestionNode] = {
         "follow_ups": [
             "Is there upsell potential at Crown Foods?",
             "Who owns the Crown Foods account?",
-            "What happens if a renewal deal closes successfully?",
+            "What's the next renewal after Crown Foods?",
         ],
     },
     "What activities happened with Crown Foods?": {

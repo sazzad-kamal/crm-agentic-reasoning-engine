@@ -1163,6 +1163,84 @@ class CRMDataStore:
             "by_owner": by_owner,
         }
 
+    def get_forecast_accuracy(self, owner: str | None = None) -> dict:
+        """
+        Get forecast accuracy metrics based on historical closed deals.
+
+        Calculates win rate and compares actual outcomes to stage probabilities.
+
+        Args:
+            owner: Optional filter to specific owner
+
+        Returns:
+            Dict with accuracy metrics by owner and overall
+        """
+        self._ensure_table("opportunities")
+
+        conditions = ["LOWER(stage) LIKE '%closed%'"]
+        params = []
+
+        if owner:
+            conditions.append("owner = ?")
+            params.append(owner)
+
+        where_clause = " AND ".join(conditions)
+
+        # Get all closed opportunities
+        closed = self._fetch_all_dicts(f"""
+            SELECT owner, stage, value, name, type
+            FROM opportunities
+            WHERE {where_clause}
+        """, params)
+
+        # Calculate metrics
+        by_owner = {}
+        total_won = 0
+        total_lost = 0
+        total_won_value = 0
+        total_lost_value = 0
+
+        for opp in closed:
+            stage = (opp.get("stage") or "").lower()
+            value = float(opp.get("value") or 0)
+            owner_id = opp.get("owner", "unknown")
+
+            is_won = "won" in stage
+
+            if owner_id not in by_owner:
+                by_owner[owner_id] = {"won": 0, "lost": 0, "won_value": 0, "lost_value": 0}
+
+            if is_won:
+                total_won += 1
+                total_won_value += value
+                by_owner[owner_id]["won"] += 1
+                by_owner[owner_id]["won_value"] += value
+            else:
+                total_lost += 1
+                total_lost_value += value
+                by_owner[owner_id]["lost"] += 1
+                by_owner[owner_id]["lost_value"] += value
+
+        # Calculate win rates
+        total_closed = total_won + total_lost
+        overall_win_rate = (total_won / total_closed * 100) if total_closed > 0 else 0
+
+        for owner_id, stats in by_owner.items():
+            owner_total = stats["won"] + stats["lost"]
+            stats["win_rate"] = round(stats["won"] / owner_total * 100, 1) if owner_total > 0 else 0
+            stats["total_closed"] = owner_total
+
+        return {
+            "overall_win_rate": round(overall_win_rate, 1),
+            "total_won": total_won,
+            "total_lost": total_lost,
+            "total_won_value": total_won_value,
+            "total_lost_value": total_lost_value,
+            "total_closed": total_closed,
+            "owner_filter": owner,
+            "by_owner": by_owner,
+        }
+
     def get_activity_count_by_filter(
         self,
         activity_type: str | None = None,

@@ -137,6 +137,28 @@ def tool_forecast(
     )
 
 
+@with_datastore
+def tool_forecast_accuracy(
+    owner: str = "",
+    datastore: CRMDataStore | None = None
+) -> ToolResult:
+    """Get forecast accuracy metrics (win rate) based on historical closed deals."""
+    ds = datastore
+    data = ds.get_forecast_accuracy(owner=owner or None)
+
+    label = f"Forecast accuracy for {owner}" if owner else "Forecast accuracy"
+    win_rate = data.get("overall_win_rate", 0)
+
+    return ToolResult(
+        data=data,
+        sources=[Source(
+            type="forecast",
+            id=f"accuracy_{owner or 'all'}",
+            label=f"{label}: {win_rate}% win rate"
+        )] if data.get("total_closed", 0) > 0 else []
+    )
+
+
 __all__ = [
     "tool_pipeline",
     "tool_pipeline_summary",
@@ -144,4 +166,5 @@ __all__ = [
     "tool_upcoming_renewals",
     "tool_deals_at_risk",
     "tool_forecast",
+    "tool_forecast_accuracy",
 ]

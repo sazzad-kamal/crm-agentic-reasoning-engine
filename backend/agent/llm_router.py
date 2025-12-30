@@ -265,6 +265,17 @@ Q: "How much pipeline will close this month?"
  "query_expansion": "Calculate expected pipeline closure for the month",
  "key_entities": ["pipeline", "close"], "action_type": "summarize", "confidence": 0.95}
 
+### FORECAST ACCURACY (win rate metrics)
+Q: "What's our win rate?"
+{"mode": "data", "intent": "forecast_accuracy", "company_name": null, "days": 30,
+ "query_expansion": "Show overall win rate from closed deals",
+ "key_entities": ["win rate", "accuracy"], "action_type": "summarize", "confidence": 0.95}
+
+Q: "How accurate are our forecasts?"
+{"mode": "data", "intent": "forecast_accuracy", "company_name": null, "days": 30,
+ "query_expansion": "Show forecast accuracy based on historical closed deals",
+ "key_entities": ["forecast", "accuracy"], "action_type": "summarize", "confidence": 0.95}
+
 Q: "Search for contract documents"
 {"mode": "data", "intent": "attachments", "company_name": null, "days": 30,
  "query_expansion": "Find documents containing contracts",
@@ -390,6 +401,7 @@ class LLMRouterResponse(BaseModel):
         "pipeline_summary", # Aggregate pipeline across all accounts
         "deals_at_risk",   # At-risk deals (stalled, overdue)
         "forecast",        # Pipeline forecast/projections
+        "forecast_accuracy", # Win rate and accuracy metrics
         "activities",      # Global activity search (calls, emails, meetings)
         "history",         # Past interactions for a company
         "account_context", # Deep context from notes/attachments

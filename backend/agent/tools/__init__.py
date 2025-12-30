@@ -30,6 +30,7 @@ from backend.agent.tools.pipeline import (
     tool_upcoming_renewals,
     tool_deals_at_risk,
     tool_forecast,
+    tool_forecast_accuracy,
 )
 
 # Activity tools
@@ -59,6 +60,7 @@ __all__ = [
     "tool_upcoming_renewals",
     "tool_deals_at_risk",
     "tool_forecast",
+    "tool_forecast_accuracy",
     # Activity tools
     "tool_recent_activity",
     "tool_recent_history",

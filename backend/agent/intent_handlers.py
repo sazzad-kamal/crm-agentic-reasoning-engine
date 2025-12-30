@@ -30,6 +30,7 @@ from backend.agent.tools import (
     tool_pipeline_by_owner,
     tool_deals_at_risk,
     tool_forecast,
+    tool_forecast_accuracy,
 )
 
 
@@ -361,6 +362,21 @@ def handle_forecast(ctx: IntentContext) -> IntentResult:
     return result
 
 
+def handle_forecast_accuracy(ctx: IntentContext) -> IntentResult:
+    """Handle forecast_accuracy intent - shows win rate metrics."""
+    logger.debug(f"[Data] Fetching forecast accuracy (owner={ctx.owner})")
+    result = IntentResult(raw_data=_empty_raw_data())
+
+    # Get accuracy metrics with owner filter
+    accuracy_result = tool_forecast_accuracy(owner=ctx.owner or "")
+    result.pipeline_data = accuracy_result.data
+    _safe_extend(result.sources, accuracy_result.sources)
+
+    result.raw_data["pipeline_summary"] = accuracy_result.data
+    result.raw_data["analytics"] = accuracy_result.data
+    return result
+
+
 # Intent dispatcher - maps intent strings to handler functions
 # Explicit mappings for all router intents (no implicit fallthrough)
 INTENT_HANDLERS = {
@@ -369,6 +385,7 @@ INTENT_HANDLERS = {
     "renewals": handle_renewals,
     "deals_at_risk": handle_deals_at_risk,  # At-risk/stalled deals
     "forecast": handle_forecast,  # Pipeline projections
+    "forecast_accuracy": handle_forecast_accuracy,  # Win rate metrics
     "activities": handle_activities,
     "company_search": handle_company_search,
     "attachments": handle_attachments,
@@ -392,7 +409,7 @@ def dispatch_intent(intent: str, ctx: IntentContext) -> IntentResult:
     Simple dict lookup with one override: company-specific queries get full context.
     """
     # These intents always use their dedicated handler (global aggregates)
-    global_intents = {"pipeline_summary", "deals_at_risk", "forecast", "company_search", "analytics"}
+    global_intents = {"pipeline_summary", "deals_at_risk", "forecast", "forecast_accuracy", "company_search", "analytics"}
 
     # If there's a company and intent isn't a global aggregate, fetch full company context
     has_company = ctx.resolved_company_id or (ctx.router_result and getattr(ctx.router_result, 'company_name_query', None))

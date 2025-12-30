@@ -100,6 +100,23 @@ def tool_search_activities(
     )
 
 
+def _analytics_result(ds: CRMDataStore, data: dict, source_id: str, label: str) -> ToolResult:
+    """Helper to build analytics ToolResult."""
+    return ToolResult(data=data, sources=[Source(type="analytics", id=source_id, label=label)])
+
+
+def _resolve_company_name(ds: CRMDataStore, company_id: str) -> tuple[str | None, str]:
+    """Resolve company ID and get name. Returns (resolved_id, name)."""
+    if not company_id:
+        return None, ""
+    resolved = ds.resolve_company_id(company_id)
+    if not resolved:
+        return None, ""
+    company = ds.get_company(resolved)
+    name = company.get("name", resolved) if company else resolved
+    return resolved, name
+
+
 @with_datastore
 def tool_analytics(
     metric: str,
@@ -110,96 +127,43 @@ def tool_analytics(
     days: int = 30,
     datastore: CRMDataStore | None = None
 ) -> ToolResult:
-    """
-    Get analytics and breakdowns for CRM data.
-
-    Supports metrics: contact_breakdown, activity_breakdown, activity_count,
-    accounts_by_group, pipeline_by_group.
-    """
+    """Get analytics and breakdowns for CRM data."""
     ds = datastore
+    resolved, company_name = _resolve_company_name(ds, company_id)
+    suffix = f" for {company_name}" if company_name else ""
 
     match metric:
         case "contact_breakdown":
-            resolved_company = ds.resolve_company_id(company_id) if company_id else None
-            data = ds.get_contact_breakdown(company_id=resolved_company, group_by=group_by or "role")
-
-            company_name = ""
-            if resolved_company:
-                company = ds.get_company(resolved_company)
-                company_name = company.get("name", resolved_company) if company else resolved_company
-
-            label = f"Contact breakdown by {group_by or 'role'}"
-            if company_name: label += f" for {company_name}"
-
-            return ToolResult(
-                data=data,
-                sources=[Source(type="analytics", id=f"contacts_{resolved_company or 'all'}", label=label)]
-            )
+            data = ds.get_contact_breakdown(company_id=resolved, group_by=group_by or "role")
+            return _analytics_result(ds, data, f"contacts_{resolved or 'all'}",
+                                     f"Contact breakdown by {group_by or 'role'}{suffix}")
 
         case "activity_breakdown":
-            resolved_company = ds.resolve_company_id(company_id) if company_id else None
-            data = ds.get_activity_breakdown(company_id=resolved_company, days=days, group_by=group_by or "type")
-
-            company_name = ""
-            if resolved_company:
-                company = ds.get_company(resolved_company)
-                company_name = company.get("name", resolved_company) if company else resolved_company
-
-            label = f"Activity breakdown by {group_by or 'type'} (last {days} days)"
-            if company_name: label += f" for {company_name}"
-
-            return ToolResult(
-                data=data,
-                sources=[Source(type="analytics", id=f"activities_{resolved_company or 'all'}", label=label)]
-            )
+            data = ds.get_activity_breakdown(company_id=resolved, days=days, group_by=group_by or "type")
+            return _analytics_result(ds, data, f"activities_{resolved or 'all'}",
+                                     f"Activity breakdown by {group_by or 'type'} (last {days} days){suffix}")
 
         case "activity_count":
-            resolved_company = ds.resolve_company_id(company_id) if company_id else None
-            data = ds.get_activity_count_by_filter(
-                activity_type=activity_type or None, days=days, company_id=resolved_company
-            )
-
-            company_name = ""
-            if resolved_company:
-                company = ds.get_company(resolved_company)
-                company_name = company.get("name", resolved_company) if company else resolved_company
-
-            label_parts = [f"Activity count (last {days} days)"]
-            if activity_type: label_parts.append(f"type={activity_type}")
-            if company_name: label_parts.append(f"for {company_name}")
-
-            return ToolResult(
-                data=data,
-                sources=[Source(type="analytics", id="activity_count", label=" ".join(label_parts))]
-            )
+            data = ds.get_activity_count_by_filter(activity_type=activity_type or None, days=days, company_id=resolved)
+            parts = [f"Activity count (last {days} days)"]
+            if activity_type: parts.append(f"type={activity_type}")
+            if company_name: parts.append(f"for {company_name}")
+            return _analytics_result(ds, data, "activity_count", " ".join(parts))
 
         case "accounts_by_group":
-            data = ds.get_accounts_by_group()
-            return ToolResult(
-                data=data,
-                sources=[Source(type="analytics", id="accounts_by_group", label="Account distribution by group")]
-            )
+            return _analytics_result(ds, ds.get_accounts_by_group(), "accounts_by_group", "Account distribution by group")
 
         case "pipeline_by_group":
             data = ds.get_pipeline_by_group(group_id=group_id or None)
             label = f"Pipeline for group: {group_id}" if group_id else "Pipeline by group"
-
-            return ToolResult(
-                data=data,
-                sources=[Source(type="analytics", id=f"pipeline_{group_id or 'all_groups'}", label=label)]
-            )
+            return _analytics_result(ds, data, f"pipeline_{group_id or 'all_groups'}", label)
 
         case _:
             return ToolResult(
-                data={
-                    "error": f"Unknown metric: {metric}",
-                    "available_metrics": [
-                        "contact_breakdown", "activity_breakdown", "activity_count",
-                        "accounts_by_group", "pipeline_by_group",
-                    ]
-                },
-                sources=[],
-                error=f"Unknown analytics metric: {metric}"
+                data={"error": f"Unknown metric: {metric}",
+                      "available_metrics": ["contact_breakdown", "activity_breakdown", "activity_count",
+                                            "accounts_by_group", "pipeline_by_group"]},
+                sources=[], error=f"Unknown analytics metric: {metric}"
             )
 
 

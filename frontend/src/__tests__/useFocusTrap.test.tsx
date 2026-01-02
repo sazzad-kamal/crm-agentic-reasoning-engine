@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  act,
+  waitFor,
+} from "@testing-library/react";
 import { useRef, useState } from "react";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 
@@ -16,7 +22,7 @@ function TestModal({
   const containerRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-  const { focusFirst, focusLast } = useFocusTrap(containerRef, {
+  useFocusTrap(containerRef, {
     isActive: isOpen,
     onEscape: onClose,
     restoreFocus: true,
@@ -33,18 +39,18 @@ function TestModal({
       <input data-testid="input-1" type="text" placeholder="First input" />
       <input data-testid="input-2" type="text" placeholder="Second input" />
       <button data-testid="save-btn">Save</button>
-      <button data-testid="focus-first" onClick={focusFirst}>
-        Focus First
-      </button>
-      <button data-testid="focus-last" onClick={focusLast}>
-        Focus Last
-      </button>
     </div>
   );
 }
 
 // Component with no focusable elements
-function EmptyModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function EmptyModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useFocusTrap(containerRef, {
@@ -112,7 +118,6 @@ describe("useFocusTrap", () => {
 
   beforeEach(() => {
     originalBodyOverflow = document.body.style.overflow;
-    // Clear any focus
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -121,10 +126,6 @@ describe("useFocusTrap", () => {
   afterEach(() => {
     document.body.style.overflow = originalBodyOverflow;
   });
-
-  // ===========================================================================
-  // Basic Activation
-  // ===========================================================================
 
   describe("activation", () => {
     it("focuses first element when activated", async () => {
@@ -158,7 +159,6 @@ describe("useFocusTrap", () => {
         expect(document.body.style.overflow).toBe("hidden");
       });
 
-      // Close modal by triggering close
       const closeBtn = screen.getByTestId("close-btn");
       fireEvent.click(closeBtn);
 
@@ -168,10 +168,6 @@ describe("useFocusTrap", () => {
     });
   });
 
-  // ===========================================================================
-  // Tab Trapping
-  // ===========================================================================
-
   describe("tab trapping", () => {
     it("traps Tab at last element", async () => {
       render(<ModalWrapper initialOpen />);
@@ -180,10 +176,10 @@ describe("useFocusTrap", () => {
         expect(screen.getByTestId("close-btn")).toHaveFocus();
       });
 
-      // Navigate to last focusable element (focus-last button)
-      const focusLastBtn = screen.getByTestId("focus-last");
+      // Navigate to last focusable element
+      const saveBtn = screen.getByTestId("save-btn");
       act(() => {
-        focusLastBtn.focus();
+        saveBtn.focus();
       });
 
       // Press Tab - should cycle to first element
@@ -205,7 +201,7 @@ describe("useFocusTrap", () => {
       fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
 
       await waitFor(() => {
-        expect(screen.getByTestId("focus-last")).toHaveFocus();
+        expect(screen.getByTestId("save-btn")).toHaveFocus();
       });
     });
 
@@ -216,28 +212,20 @@ describe("useFocusTrap", () => {
         expect(screen.getByTestId("close-btn")).toHaveFocus();
       });
 
-      // Tab to next element
       const input1 = screen.getByTestId("input-1");
       act(() => {
         input1.focus();
       });
 
-      // Should be focused on input-1
       expect(input1).toHaveFocus();
     });
   });
-
-  // ===========================================================================
-  // Escape Key
-  // ===========================================================================
 
   describe("escape key", () => {
     it("calls onEscape when Escape is pressed", async () => {
       const onClose = vi.fn();
 
-      render(
-        <TestModal isOpen onClose={onClose} />
-      );
+      render(<TestModal isOpen onClose={onClose} />);
 
       await waitFor(() => {
         expect(screen.getByTestId("modal")).toBeInTheDocument();
@@ -251,19 +239,13 @@ describe("useFocusTrap", () => {
     it("does not call onEscape when not active", () => {
       const onClose = vi.fn();
 
-      render(
-        <TestModal isOpen={false} onClose={onClose} />
-      );
+      render(<TestModal isOpen={false} onClose={onClose} />);
 
       fireEvent.keyDown(document, { key: "Escape" });
 
       expect(onClose).not.toHaveBeenCalled();
     });
   });
-
-  // ===========================================================================
-  // Focus Restoration
-  // ===========================================================================
 
   describe("focus restoration", () => {
     it("restores focus to trigger element when closed", async () => {
@@ -274,14 +256,12 @@ describe("useFocusTrap", () => {
         trigger.focus();
       });
 
-      // Open modal
       fireEvent.click(trigger);
 
       await waitFor(() => {
         expect(screen.getByTestId("close-btn")).toHaveFocus();
       });
 
-      // Close modal
       fireEvent.click(screen.getByTestId("close-btn"));
 
       await waitFor(() => {
@@ -290,79 +270,26 @@ describe("useFocusTrap", () => {
     });
   });
 
-  // ===========================================================================
-  // Empty Container
-  // ===========================================================================
-
   describe("empty container", () => {
     it("focuses container when no focusable elements", async () => {
       render(<EmptyModal isOpen onClose={() => {}} />);
 
       await waitFor(() => {
         const modal = screen.getByTestId("empty-modal");
-        // Container should be focused (or at least exist)
         expect(modal).toBeInTheDocument();
       });
     });
   });
-
-  // ===========================================================================
-  // Disabled Elements
-  // ===========================================================================
 
   describe("disabled elements", () => {
     it("skips disabled elements in focus trap", async () => {
       render(<ModalWithDisabled isOpen />);
 
       await waitFor(() => {
-        // Should focus the first enabled element
         expect(screen.getByTestId("enabled-btn")).toHaveFocus();
       });
     });
   });
-
-  // ===========================================================================
-  // Helper Functions
-  // ===========================================================================
-
-  describe("helper functions", () => {
-    it("focusFirst focuses first focusable element", async () => {
-      render(<ModalWrapper initialOpen />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("close-btn")).toHaveFocus();
-      });
-
-      // Focus something else
-      const input = screen.getByTestId("input-2");
-      act(() => {
-        input.focus();
-      });
-      expect(input).toHaveFocus();
-
-      // Click focus first button
-      fireEvent.click(screen.getByTestId("focus-first"));
-
-      expect(screen.getByTestId("close-btn")).toHaveFocus();
-    });
-
-    it("focusLast focuses last focusable element", async () => {
-      render(<ModalWrapper initialOpen />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("close-btn")).toHaveFocus();
-      });
-
-      // Click focus last button
-      fireEvent.click(screen.getByTestId("focus-last"));
-
-      expect(screen.getByTestId("focus-last")).toHaveFocus();
-    });
-  });
-
-  // ===========================================================================
-  // Edge Cases
-  // ===========================================================================
 
   describe("edge cases", () => {
     it("handles rapid open/close", async () => {
@@ -370,59 +297,28 @@ describe("useFocusTrap", () => {
 
       const trigger = screen.getByTestId("trigger");
 
-      // Open
       fireEvent.click(trigger);
       await waitFor(() => {
         expect(screen.queryByTestId("modal")).toBeInTheDocument();
       });
 
-      // Close immediately
       fireEvent.click(screen.getByTestId("close-btn"));
 
-      // Open again
       fireEvent.click(trigger);
       await waitFor(() => {
         expect(screen.queryByTestId("modal")).toBeInTheDocument();
       });
 
-      // Should work normally
       expect(screen.getByTestId("close-btn")).toHaveFocus();
-    });
-
-    it("handles focus outside container", async () => {
-      render(<ModalWrapper initialOpen />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("close-btn")).toHaveFocus();
-      });
-
-      // Simulate focus being lost outside
-      const saveBtn = screen.getByTestId("save-btn");
-      act(() => {
-        saveBtn.focus();
-      });
-
-      // Tab should wrap properly even if focus was moved
-      fireEvent.keyDown(document, { key: "Tab" });
-
-      // Should still work
-      expect(document.activeElement).not.toBeNull();
     });
 
     it("does not trap when inactive", async () => {
       render(<ModalWrapper initialOpen={false} />);
 
-      // Modal not rendered
       expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
-
-      // Body overflow should not be affected
       expect(document.body.style.overflow).not.toBe("hidden");
     });
   });
-
-  // ===========================================================================
-  // WCAG Compliance
-  // ===========================================================================
 
   describe("WCAG 2.4.3 compliance", () => {
     it("ensures keyboard focus can be trapped within modal", async () => {
@@ -432,14 +328,12 @@ describe("useFocusTrap", () => {
         expect(screen.getByTestId("close-btn")).toHaveFocus();
       });
 
-      // Focus the last element
-      const lastBtn = screen.getByTestId("focus-last");
+      const saveBtn = screen.getByTestId("save-btn");
       act(() => {
-        lastBtn.focus();
+        saveBtn.focus();
       });
-      expect(lastBtn).toHaveFocus();
+      expect(saveBtn).toHaveFocus();
 
-      // Press Tab at last element - should wrap to first
       fireEvent.keyDown(document, { key: "Tab" });
       await waitFor(() => {
         expect(screen.getByTestId("close-btn")).toHaveFocus();
@@ -453,10 +347,9 @@ describe("useFocusTrap", () => {
         expect(screen.getByTestId("close-btn")).toHaveFocus();
       });
 
-      // Press Shift+Tab at first element - should wrap to last
       fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
       await waitFor(() => {
-        expect(screen.getByTestId("focus-last")).toHaveFocus();
+        expect(screen.getByTestId("save-btn")).toHaveFocus();
       });
     });
   });

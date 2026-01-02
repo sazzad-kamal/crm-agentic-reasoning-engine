@@ -136,18 +136,4 @@ export function useFocusTrap(
     }
   }, [isActive, handleKeyDown, getFocusableElements, containerRef, restoreFocus, initialFocusRef]);
 
-  return {
-    /** Get all focusable elements in the container */
-    getFocusableElements,
-    /** Focus the first focusable element */
-    focusFirst: useCallback(() => {
-      const elements = getFocusableElements();
-      elements[0]?.focus();
-    }, [getFocusableElements]),
-    /** Focus the last focusable element */
-    focusLast: useCallback(() => {
-      const elements = getFocusableElements();
-      elements[elements.length - 1]?.focus();
-    }, [getFocusableElements]),
-  };
 }

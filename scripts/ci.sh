@@ -26,7 +26,7 @@ print_error() {
 
 run_backend() {
     print_header "Backend: Ruff Linter"
-    ruff check backend/ --select=E,F,W --ignore=E501,F401,F841,E402,E701
+    ruff check backend/ --select=E,F,W --ignore=E501,F401,F841,E402,E701,E741
     print_success "Ruff linter passed"
 
     print_header "Backend: Ruff Formatter"

@@ -75,7 +75,7 @@ class TestIntentHandlers:
 
     def test_all_router_intents_mapped(self):
         """Verify all possible router intents have explicit handlers."""
-        from backend.agent.intent_handlers import INTENT_HANDLERS
+        from backend.agent.handlers import INTENT_HANDLERS
 
         # All intents that the router can return (from llm_router.py)
         router_intents = {
@@ -96,7 +96,7 @@ class TestIntentHandlers:
 
     def test_account_context_intent_mapped(self):
         """Verify account_context intent is explicitly mapped."""
-        from backend.agent.intent_handlers import INTENT_HANDLERS
+        from backend.agent.handlers import INTENT_HANDLERS
 
         assert "account_context" in INTENT_HANDLERS
         # It should map to handle_company_status
@@ -105,7 +105,7 @@ class TestIntentHandlers:
 
     def test_history_intent_mapped(self):
         """Verify history intent is explicitly mapped (was implicit fallthrough)."""
-        from backend.agent.intent_handlers import INTENT_HANDLERS
+        from backend.agent.handlers import INTENT_HANDLERS
 
         assert "history" in INTENT_HANDLERS
         handler = INTENT_HANDLERS["history"]
@@ -113,7 +113,7 @@ class TestIntentHandlers:
 
     def test_general_intent_mapped(self):
         """Verify general intent is explicitly mapped."""
-        from backend.agent.intent_handlers import INTENT_HANDLERS
+        from backend.agent.handlers import INTENT_HANDLERS
 
         assert "general" in INTENT_HANDLERS
 

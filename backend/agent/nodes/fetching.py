@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 from backend.agent.state import AgentState
 from backend.agent.config import get_config
 from backend.agent.llm_helpers import call_docs_rag, call_account_rag
-from backend.agent.intent_handlers import IntentContext, dispatch_intent
+from backend.agent.handlers import IntentContext, dispatch_intent
 
 
 logger = logging.getLogger(__name__)

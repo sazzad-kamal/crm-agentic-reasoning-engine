@@ -6,23 +6,28 @@ import pytest
 from unittest.mock import patch, MagicMock
 from dataclasses import dataclass
 
-from backend.agent.intent_handlers import (
+from backend.agent.handlers import (
     IntentContext,
     IntentResult,
     dispatch_intent,
+    INTENT_HANDLERS,
+)
+from backend.agent.handlers.common import empty_raw_data, safe_extend
+from backend.agent.handlers.pipeline import (
     handle_pipeline_summary,
     handle_renewals,
-    handle_contacts,
-    handle_company_search,
-    handle_attachments,
-    handle_activities,
-    handle_company_status,
-    handle_fallback,
     handle_deals_at_risk,
     handle_forecast,
-    INTENT_HANDLERS,
-    _empty_raw_data,
-    _safe_extend,
+)
+from backend.agent.handlers.company import (
+    handle_company_status,
+    handle_company_search,
+    handle_contacts,
+    handle_attachments,
+)
+from backend.agent.handlers.activity import (
+    handle_activities,
+    handle_fallback,
 )
 from backend.agent.schemas import Source
 
@@ -121,7 +126,7 @@ class TestEmptyRawData:
 
     def test_returns_empty_structure(self):
         """Returns correct empty structure."""
-        data = _empty_raw_data()
+        data = empty_raw_data()
         assert data["companies"] == []
         assert data["contacts"] == []
         assert data["activities"] == []
@@ -140,7 +145,7 @@ class TestEmptyRawData:
 class TestHandlePipelineSummary:
     """Tests for handle_pipeline_summary handler."""
 
-    @patch('backend.agent.intent_handlers.tool_pipeline_summary')
+    @patch('backend.agent.handlers.pipeline.tool_pipeline_summary')
     def test_fetches_pipeline_summary(self, mock_tool, basic_context):
         """Fetches pipeline summary data."""
         mock_tool.return_value.data = {
@@ -165,7 +170,7 @@ class TestHandlePipelineSummary:
 class TestHandleRenewals:
     """Tests for handle_renewals handler."""
 
-    @patch('backend.agent.intent_handlers.tool_upcoming_renewals')
+    @patch('backend.agent.handlers.pipeline.tool_upcoming_renewals')
     def test_fetches_renewals(self, mock_tool, basic_context):
         """Fetches renewal data."""
         mock_tool.return_value.data = {
@@ -178,8 +183,8 @@ class TestHandleRenewals:
         assert result.renewals_data is not None
         assert len(result.raw_data["renewals"]) == 1
 
-    @patch('backend.agent.intent_handlers.tool_company_lookup')
-    @patch('backend.agent.intent_handlers.tool_upcoming_renewals')
+    @patch('backend.agent.handlers.common.tool_company_lookup')
+    @patch('backend.agent.handlers.pipeline.tool_upcoming_renewals')
     def test_includes_company_when_resolved(self, mock_renewals, mock_company):
         """Includes company data when company_id is resolved."""
         mock_company.return_value.data = {
@@ -208,7 +213,7 @@ class TestHandleRenewals:
 class TestHandleContacts:
     """Tests for handle_contacts handler."""
 
-    @patch('backend.agent.intent_handlers.tool_search_contacts')
+    @patch('backend.agent.handlers.company.tool_search_contacts')
     def test_fetches_contacts(self, mock_tool, basic_context):
         """Fetches contact data."""
         mock_tool.return_value.data = {
@@ -221,7 +226,7 @@ class TestHandleContacts:
         assert result.contacts_data is not None
         assert len(result.raw_data["contacts"]) == 1
 
-    @patch('backend.agent.intent_handlers.tool_search_contacts')
+    @patch('backend.agent.handlers.company.tool_search_contacts')
     def test_extracts_role_from_question(self, mock_tool):
         """Extracts and uses role from question."""
         mock_tool.return_value.data = {"contacts": []}
@@ -246,7 +251,7 @@ class TestHandleContacts:
 class TestHandleCompanySearch:
     """Tests for handle_company_search handler."""
 
-    @patch('backend.agent.intent_handlers.tool_search_companies')
+    @patch('backend.agent.handlers.company.tool_search_companies')
     def test_searches_companies(self, mock_tool, basic_context):
         """Searches companies."""
         mock_tool.return_value.data = {
@@ -259,7 +264,7 @@ class TestHandleCompanySearch:
         assert result.company_data is not None
         assert len(result.raw_data["companies"]) == 1
 
-    @patch('backend.agent.intent_handlers.tool_search_companies')
+    @patch('backend.agent.handlers.company.tool_search_companies')
     def test_extracts_criteria_from_question(self, mock_tool):
         """Extracts segment and industry from question."""
         mock_tool.return_value.data = {"companies": []}
@@ -284,7 +289,7 @@ class TestHandleCompanySearch:
 class TestHandleAttachments:
     """Tests for handle_attachments handler."""
 
-    @patch('backend.agent.intent_handlers.tool_search_attachments')
+    @patch('backend.agent.handlers.company.tool_search_attachments')
     def test_searches_attachments(self, mock_tool, basic_context):
         """Searches attachments."""
         mock_tool.return_value.data = {
@@ -297,7 +302,7 @@ class TestHandleAttachments:
         assert result.attachments_data is not None
         assert len(result.raw_data["attachments"]) == 1
 
-    @patch('backend.agent.intent_handlers.tool_search_attachments')
+    @patch('backend.agent.handlers.company.tool_search_attachments')
     def test_extracts_query_from_question(self, mock_tool):
         """Extracts search query from question."""
         mock_tool.return_value.data = {"attachments": []}
@@ -321,7 +326,7 @@ class TestHandleAttachments:
 class TestHandleActivities:
     """Tests for handle_activities handler."""
 
-    @patch('backend.agent.intent_handlers.tool_search_activities')
+    @patch('backend.agent.handlers.activity.tool_search_activities')
     def test_searches_activities(self, mock_tool, basic_context):
         """Searches activities."""
         mock_tool.return_value.data = {
@@ -334,7 +339,7 @@ class TestHandleActivities:
         assert result.activities_data is not None
         assert len(result.raw_data["activities"]) == 1
 
-    @patch('backend.agent.intent_handlers.tool_search_activities')
+    @patch('backend.agent.handlers.activity.tool_search_activities')
     def test_extracts_activity_type(self, mock_tool):
         """Extracts activity type from question."""
         mock_tool.return_value.data = {"activities": []}
@@ -358,10 +363,10 @@ class TestHandleActivities:
 class TestHandleCompanyStatus:
     """Tests for handle_company_status handler."""
 
-    @patch('backend.agent.intent_handlers.tool_pipeline')
-    @patch('backend.agent.intent_handlers.tool_recent_history')
-    @patch('backend.agent.intent_handlers.tool_recent_activity')
-    @patch('backend.agent.intent_handlers.tool_company_lookup')
+    @patch('backend.agent.handlers.company.tool_pipeline')
+    @patch('backend.agent.handlers.company.tool_recent_history')
+    @patch('backend.agent.handlers.company.tool_recent_activity')
+    @patch('backend.agent.handlers.common.tool_company_lookup')
     def test_fetches_full_company_data(
         self, mock_lookup, mock_activity, mock_history, mock_pipeline
     ):
@@ -397,7 +402,7 @@ class TestHandleCompanyStatus:
         assert result.pipeline_data is not None
         assert result.resolved_company_id == "ACME-001"
 
-    @patch('backend.agent.intent_handlers.tool_company_lookup')
+    @patch('backend.agent.handlers.common.tool_company_lookup')
     def test_handles_company_not_found(self, mock_lookup):
         """Handles company not found."""
         mock_lookup.return_value.data = {"found": False}
@@ -421,7 +426,7 @@ class TestHandleCompanyStatus:
 class TestHandleFallback:
     """Tests for handle_fallback handler."""
 
-    @patch('backend.agent.intent_handlers.tool_upcoming_renewals')
+    @patch('backend.agent.handlers.pipeline.tool_upcoming_renewals')
     def test_fetches_renewals_as_fallback(self, mock_tool, basic_context):
         """Fetches renewals as fallback."""
         mock_tool.return_value.data = {
@@ -441,7 +446,7 @@ class TestHandleFallback:
 class TestDispatchIntent:
     """Tests for dispatch_intent function."""
 
-    @patch('backend.agent.intent_handlers.tool_pipeline_summary')
+    @patch('backend.agent.handlers.pipeline.tool_pipeline_summary')
     def test_dispatches_to_pipeline_summary(self, mock_tool, basic_context):
         """Dispatches pipeline_summary intent."""
         mock_tool.return_value.data = {"total_count": 0, "total_value": 0, "by_stage": [], "top_opportunities": []}
@@ -452,7 +457,7 @@ class TestDispatchIntent:
         assert result is not None
         mock_tool.assert_called_once()
 
-    @patch('backend.agent.intent_handlers.tool_upcoming_renewals')
+    @patch('backend.agent.handlers.pipeline.tool_upcoming_renewals')
     def test_dispatches_to_renewals(self, mock_tool, basic_context):
         """Dispatches renewals intent."""
         mock_tool.return_value.data = {"renewals": []}
@@ -463,7 +468,7 @@ class TestDispatchIntent:
         assert result is not None
         mock_tool.assert_called_once()
 
-    @patch('backend.agent.intent_handlers.tool_search_activities')
+    @patch('backend.agent.handlers.activity.tool_search_activities')
     def test_dispatches_activities_without_company(self, mock_tool):
         """Dispatches activities without company to activities handler."""
         from backend.agent.schemas import ToolResult
@@ -480,7 +485,7 @@ class TestDispatchIntent:
         mock_tool.assert_called_once()
         assert result is not None
 
-    @patch('backend.agent.intent_handlers.handle_company_status')
+    @patch('backend.agent.handlers.handle_company_status')
     def test_dispatches_to_company_status_when_company_resolved(self, mock_handler):
         """Dispatches to company_status when company is resolved."""
         mock_handler.return_value = IntentResult()
@@ -494,7 +499,7 @@ class TestDispatchIntent:
 
         mock_handler.assert_called_once()
 
-    @patch('backend.agent.intent_handlers.handle_fallback')
+    @patch('backend.agent.handlers.handle_fallback')
     def test_dispatches_to_fallback_for_unknown(self, mock_handler, basic_context):
         """Dispatches to fallback for unknown intent."""
         mock_handler.return_value = IntentResult()
@@ -550,19 +555,19 @@ class TestSafeExtend:
         """Extends target list with source list."""
         target = [1, 2]
         source = [3, 4]
-        _safe_extend(target, source)
+        safe_extend(target, source)
         assert target == [1, 2, 3, 4]
 
     def test_handles_none_source(self):
         """Handles None source gracefully."""
         target = [1, 2]
-        _safe_extend(target, None)
+        safe_extend(target, None)
         assert target == [1, 2]
 
     def test_handles_empty_source(self):
         """Handles empty source list."""
         target = [1, 2]
-        _safe_extend(target, [])
+        safe_extend(target, [])
         assert target == [1, 2]
 
     def test_modifies_target_in_place(self):
@@ -570,7 +575,7 @@ class TestSafeExtend:
         target = ["a"]
         source = ["b", "c"]
         original_id = id(target)
-        _safe_extend(target, source)
+        safe_extend(target, source)
         assert id(target) == original_id
         assert target == ["a", "b", "c"]
 
@@ -578,6 +583,6 @@ class TestSafeExtend:
         """Works with Source objects."""
         target = []
         source = [Source(id="src1", type="company", label="Acme")]
-        _safe_extend(target, source)
+        safe_extend(target, source)
         assert len(target) == 1
         assert target[0].id == "src1"

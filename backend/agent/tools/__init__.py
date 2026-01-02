@@ -20,6 +20,7 @@ from backend.agent.tools.company import (
     tool_group_members,
     tool_list_groups,
     tool_search_attachments,
+    tool_accounts_needing_attention,
 )
 
 # Pipeline tools
@@ -53,6 +54,7 @@ __all__ = [
     "tool_group_members",
     "tool_list_groups",
     "tool_search_attachments",
+    "tool_accounts_needing_attention",
     # Pipeline tools
     "tool_pipeline",
     "tool_pipeline_summary",

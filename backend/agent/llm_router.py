@@ -120,10 +120,11 @@ The CRM has distinct data tables - route based on which table has the data:
    AGGREGATE/GLOBAL INTENTS (no specific company):
    - "renewals": Contract renewals across ALL accounts
    - "pipeline_summary": Total pipeline value, deal counts across ALL accounts
-   - "deals_at_risk": At-risk deals - stalled, overdue, or flagged for attention
-     * Pattern: "at risk", "stalled", "overdue", "stuck", "need attention"
+   - "deals_at_risk": At-risk deals AND accounts needing attention
+     * Pattern: "at risk", "stalled", "overdue", "stuck", "need attention", "require action"
      * "Any renewals at risk?" → deals_at_risk
      * "Which deals are stalled?" → deals_at_risk
+     * "Which accounts need attention?" → deals_at_risk (includes trial, churned accounts)
    - "forecast": Pipeline forecast, projections, weighted pipeline
      * Pattern: "forecast", "projection", "expected", "what will close"
      * "What's the forecast for this quarter?" → forecast
@@ -243,7 +244,7 @@ Q: "Which accounts have upcoming renewals?"
  "query_expansion": "List accounts with renewals in the next 90 days",
  "key_entities": ["renewals"], "action_type": "retrieve", "confidence": 0.95}
 
-### DEALS AT RISK (stalled, overdue deals)
+### DEALS AT RISK (stalled, overdue deals, accounts needing attention)
 Q: "Any renewals at risk?"
 {"mode": "data", "intent": "deals_at_risk", "company_name": null, "days": 90,
  "query_expansion": "Show deals that are at risk or stalled",
@@ -253,6 +254,16 @@ Q: "Which deals are stalled?"
 {"mode": "data", "intent": "deals_at_risk", "company_name": null, "days": 90,
  "query_expansion": "List deals that have been stalled or stuck",
  "key_entities": ["deals", "stalled"], "action_type": "retrieve", "confidence": 0.95}
+
+Q: "Show accounts requiring follow-up"
+{"mode": "data", "intent": "deals_at_risk", "company_name": null, "days": 90,
+ "query_expansion": "List accounts that need follow-up or attention",
+ "key_entities": ["accounts", "follow-up"], "action_type": "retrieve", "confidence": 0.95}
+
+Q: "Which customers need action?"
+{"mode": "data", "intent": "deals_at_risk", "company_name": null, "days": 90,
+ "query_expansion": "Show customers and accounts that require action",
+ "key_entities": ["customers", "action"], "action_type": "retrieve", "confidence": 0.95}
 
 ### FORECAST (pipeline projections)
 Q: "What's the forecast for this quarter?"

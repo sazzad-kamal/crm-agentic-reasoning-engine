@@ -1241,6 +1241,57 @@ class CRMDataStore:
             "by_owner": by_owner,
         }
 
+    def get_accounts_needing_attention(
+        self,
+        owner: str | None = None,
+        limit: int = 20
+    ) -> list[dict]:
+        """
+        Get accounts that need immediate attention.
+
+        Criteria for needing attention:
+        - Trial status (pending conversion)
+        - Churned status (recently lost)
+        - At-risk health flags
+
+        Args:
+            owner: Optional filter by account_owner
+            limit: Max results
+
+        Returns:
+            List of company dicts that need attention
+        """
+        self._ensure_table("companies")
+
+        conditions = []
+        params = []
+
+        # Filter: Trial, Churned, or at-risk health
+        conditions.append("""
+            (LOWER(status) = 'trial'
+            OR LOWER(status) = 'churned'
+            OR LOWER(COALESCE(health_flags, '')) LIKE '%risk%')
+        """)
+
+        if owner:
+            conditions.append("account_owner = ?")
+            params.append(owner)
+
+        where_clause = " AND ".join(conditions)
+
+        return self._fetch_all_dicts(f"""
+            SELECT * FROM companies
+            WHERE {where_clause}
+            ORDER BY
+                CASE LOWER(status)
+                    WHEN 'trial' THEN 1
+                    WHEN 'churned' THEN 2
+                    ELSE 3
+                END,
+                name
+            LIMIT {limit}
+        """, params)
+
     def get_activity_count_by_filter(
         self,
         activity_type: str | None = None,

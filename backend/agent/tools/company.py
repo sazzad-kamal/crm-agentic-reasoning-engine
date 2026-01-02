@@ -211,6 +211,29 @@ def tool_search_attachments(
     )
 
 
+@with_datastore
+def tool_accounts_needing_attention(
+    owner: str = "",
+    limit: int = 20,
+    datastore: CRMDataStore | None = None
+) -> ToolResult:
+    """Get accounts that need immediate attention (trial, churned, at-risk)."""
+    ds = datastore
+
+    accounts = ds.get_accounts_needing_attention(owner=owner or None, limit=limit)
+
+    label = f"Accounts needing attention for {owner}" if owner else "Accounts needing immediate attention"
+
+    return ToolResult(
+        data={
+            "count": len(accounts),
+            "owner_filter": owner or None,
+            "accounts": accounts,
+        },
+        sources=make_sources(accounts, "companies", "attention", label)
+    )
+
+
 __all__ = [
     "tool_company_lookup",
     "tool_search_companies",
@@ -219,4 +242,5 @@ __all__ = [
     "tool_group_members",
     "tool_list_groups",
     "tool_search_attachments",
+    "tool_accounts_needing_attention",
 ]

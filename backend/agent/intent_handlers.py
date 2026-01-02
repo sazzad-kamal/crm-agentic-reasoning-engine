@@ -31,6 +31,7 @@ from backend.agent.tools import (
     tool_deals_at_risk,
     tool_forecast,
     tool_forecast_accuracy,
+    tool_accounts_needing_attention,
 )
 
 
@@ -324,8 +325,8 @@ def handle_fallback(ctx: IntentContext) -> IntentResult:
 
 
 def handle_deals_at_risk(ctx: IntentContext) -> IntentResult:
-    """Handle deals_at_risk intent - shows stalled/at-risk deals."""
-    logger.debug(f"[Data] Fetching at-risk deals (owner={ctx.owner})")
+    """Handle deals_at_risk intent - shows stalled/at-risk deals and accounts needing attention."""
+    logger.debug(f"[Data] Fetching at-risk deals and accounts (owner={ctx.owner})")
     result = IntentResult(raw_data=_empty_raw_data())
 
     # Get deals at risk with owner filter
@@ -338,11 +339,17 @@ def handle_deals_at_risk(ctx: IntentContext) -> IntentResult:
     result.renewals_data = renewals_result.data
     _safe_extend(result.sources, renewals_result.sources)
 
+    # Get accounts needing attention (trial, churned, at-risk)
+    accounts_result = tool_accounts_needing_attention(owner=ctx.owner or "")
+    _safe_extend(result.sources, accounts_result.sources)
+
     result.raw_data["opportunities"] = result.pipeline_data.get("deals", [])[:8]
     result.raw_data["renewals"] = result.renewals_data.get("renewals", [])[:8]
+    result.raw_data["companies"] = accounts_result.data.get("accounts", [])[:8]
     result.raw_data["pipeline_summary"] = {
         "at_risk_count": result.pipeline_data.get("count", 0),
         "at_risk_value": result.pipeline_data.get("total_value", 0),
+        "accounts_needing_attention": accounts_result.data.get("count", 0),
     }
     return result
 

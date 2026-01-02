@@ -60,9 +60,9 @@ from backend.agent.eval.models import (
     SLO_FLOW_GROUNDED,
     SLO_FLOW_AVG_LATENCY_MS,
     SLO_FLOW_P95_LATENCY_MS,
-    FlowFlowStepResult,
+    FlowStepResult,
     FlowResult,
-    FlowFlowEvalResults,
+    FlowEvalResults,
 )
 
 logger = logging.getLogger(__name__)

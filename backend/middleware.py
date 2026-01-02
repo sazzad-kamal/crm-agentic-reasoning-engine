@@ -11,20 +11,12 @@ import logging
 from collections import defaultdict
 from typing import Callable
 
-try:
-    from typing import override
-except ImportError:
-    from typing_extensions import override
-
+from typing_extensions import override
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-# Handle both package and direct imports
-try:
-    from backend.config import get_settings
-except ImportError:
-    from config import get_settings
+from backend.config import get_settings
 
 logger = logging.getLogger(__name__)
 

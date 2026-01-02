@@ -126,10 +126,9 @@ def compute_agent_trends(history: list[dict[str, Any]], metric: str) -> dict[str
         recent_avg = sum(values[-3:]) / 3
         prev_avg = sum(values[-6:-3]) / 3
         trend = recent_avg - prev_avg
-    elif len(values) >= 2:
-        trend = values[-1] - values[-2]
     else:
-        trend = 0
+        # len(values) >= 2 guaranteed by early return above
+        trend = values[-1] - values[-2]
 
     return {
         "has_trend": True,

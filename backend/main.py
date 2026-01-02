@@ -20,18 +20,12 @@ Example curl:
 """
 
 import logging
-import time
-import uuid
-from collections import defaultdict
 from pathlib import Path
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Callable
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request, Response, status
+from fastapi import FastAPI, Request, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
-from starlette.middleware.base import BaseHTTPMiddleware
 
 # =============================================================================
 # Environment Setup
@@ -49,132 +43,23 @@ from backend.config import get_settings
 from backend.api.chat import router as chat_router
 from backend.api.health import router as health_router
 from backend.api.data import router as data_router
-from backend.middleware import RequestLoggingMiddleware, CacheControlMiddleware, RateLimitMiddleware
+from backend.middleware import (
+    RequestLoggingMiddleware,
+    CacheControlMiddleware,
+    RateLimitMiddleware,
+)
 from backend.exceptions import APIError, ErrorResponse
+from backend.startup import setup_logging, lifespan
+
+# Initialize logging
+setup_logging()
+logger = logging.getLogger(__name__)
 
 # Combined API router
-from fastapi import APIRouter
 router = APIRouter(prefix="/api")
 router.include_router(chat_router, tags=["chat"])
 router.include_router(health_router, tags=["health"])
 router.include_router(data_router, tags=["data"])
-
-# =============================================================================
-# Logging Setup
-# =============================================================================
-
-
-def setup_logging() -> None:
-    """Configure logging for the application."""
-    settings = get_settings()
-
-    logging.basicConfig(
-        level=getattr(logging, settings.log_level.upper(), logging.INFO),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
-    # Reduce noise from third-party libraries
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
-    logging.getLogger("openai").setLevel(logging.WARNING)
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
-
-
-setup_logging()
-logger = logging.getLogger(__name__)
-
-
-# =============================================================================
-# RAG Collection Setup
-# =============================================================================
-
-
-def ensure_rag_collections_exist() -> None:
-    """
-    Ensure RAG Qdrant collections exist, create if missing.
-
-    This runs at startup to auto-ingest data if collections don't exist.
-    """
-    from qdrant_client import QdrantClient
-    from backend.agent.rag_tools import (
-        QDRANT_PATH,
-        DOCS_COLLECTION,
-        PRIVATE_COLLECTION,
-        ingest_docs,
-        ingest_private_texts,
-    )
-
-    qdrant = QdrantClient(path=str(QDRANT_PATH))
-
-    try:
-        # Check docs collection
-        if not qdrant.collection_exists(DOCS_COLLECTION):
-            logger.info(f"Collection '{DOCS_COLLECTION}' not found, ingesting docs...")
-            qdrant.close()
-            ingest_docs()
-            qdrant = QdrantClient(path=str(QDRANT_PATH))
-        else:
-            info = qdrant.get_collection(DOCS_COLLECTION)
-            if info.points_count == 0:
-                logger.info(f"Collection '{DOCS_COLLECTION}' is empty, ingesting docs...")
-                qdrant.close()
-                ingest_docs()
-                qdrant = QdrantClient(path=str(QDRANT_PATH))
-            else:
-                logger.info(f"Docs collection ready with {info.points_count} points")
-
-        # Check private collection
-        if not qdrant.collection_exists(PRIVATE_COLLECTION):
-            logger.info(f"Collection '{PRIVATE_COLLECTION}' not found, ingesting private texts...")
-            qdrant.close()
-            ingest_private_texts()
-            qdrant = QdrantClient(path=str(QDRANT_PATH))
-        else:
-            info = qdrant.get_collection(PRIVATE_COLLECTION)
-            if info.points_count == 0:
-                logger.info(
-                    f"Collection '{PRIVATE_COLLECTION}' is empty, ingesting private texts..."
-                )
-                qdrant.close()
-                ingest_private_texts()
-                qdrant = QdrantClient(path=str(QDRANT_PATH))
-            else:
-                logger.info(f"Private collection ready with {info.points_count} points")
-
-        qdrant.close()
-    except Exception as e:
-        qdrant.close()
-        logger.error(f"Failed to ensure RAG collections: {e}")
-        raise
-
-
-# =============================================================================
-# Application Lifespan
-# =============================================================================
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """
-    Application lifespan manager.
-
-    Handles startup and shutdown events.
-    """
-    settings = get_settings()
-
-    # Startup
-    logger.info(f"Starting {settings.app_name} v{settings.app_version}")
-    logger.info(f"Debug mode: {settings.debug}")
-    logger.info(f"CORS origins: {settings.cors_origins_list}")
-
-    # Ensure RAG collections exist
-    ensure_rag_collections_exist()
-
-    yield
-
-    # Shutdown
-    logger.info("Shutting down...")
 
 
 # =============================================================================
@@ -221,7 +106,6 @@ Talk to your CRM data using natural language.
     # Middleware (order matters - first added = last executed)
     # ==========================================================================
 
-    # CORS
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
@@ -236,7 +120,6 @@ Talk to your CRM data using natural language.
         ],
     )
 
-    # Custom middleware (order matters - first added = last executed)
     app.add_middleware(CacheControlMiddleware)
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
@@ -289,12 +172,9 @@ Talk to your CRM data using natural language.
 
     app.include_router(router)
 
-    # Root redirect to docs
     @app.get("/", include_in_schema=False)
     async def root() -> RedirectResponse:
         """Redirect root to API docs."""
-        from fastapi.responses import RedirectResponse
-
         return RedirectResponse(url="/docs")
 
     return app

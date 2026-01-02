@@ -220,7 +220,7 @@ class TestGraphIntegration:
     @pytest.mark.integration
     @patch("backend.agent.llm_helpers.call_answer_chain")
     @patch("backend.agent.llm_router.route_question")
-    @patch("backend.agent.intent_handlers.tool_company_lookup")
+    @patch("backend.agent.handlers.common.tool_company_lookup")
     def test_graph_execution_data_mode(self, mock_company, mock_route, mock_answer_chain):
         """Test graph execution in data mode."""
         from backend.agent.schemas import RouterResult, ToolResult, Source

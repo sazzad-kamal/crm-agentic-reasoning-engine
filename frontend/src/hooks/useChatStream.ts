@@ -129,6 +129,24 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
       const accumulatedSteps: Step[] = [];
       let finalResponse: ChatResponse | null = null;
 
+      // Helper to update message with current accumulated state (DRY)
+      const updateMessageResponse = () => {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId
+              ? {
+                  ...msg,
+                  response: {
+                    answer: accumulatedAnswer,
+                    sources: accumulatedSources,
+                    steps: [...accumulatedSteps],
+                  },
+                }
+              : msg
+          )
+        );
+      };
+
       try {
         const requestBody: ChatRequest = {
           question: trimmedQuestion,
@@ -184,21 +202,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
                 
               case "step":
                 accumulatedSteps.push(event.data as unknown as Step);
-                // Update message with current steps
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === messageId
-                      ? {
-                          ...msg,
-                          response: {
-                            answer: accumulatedAnswer,
-                            sources: accumulatedSources,
-                            steps: [...accumulatedSteps],
-                          },
-                        }
-                      : msg
-                  )
-                );
+                updateMessageResponse();
                 break;
                 
               case "sources": {
@@ -213,21 +217,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
                 
               case "answer_chunk":
                 accumulatedAnswer += event.data.chunk as string;
-                // Update message with current answer
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === messageId
-                      ? {
-                          ...msg,
-                          response: {
-                            answer: accumulatedAnswer,
-                            sources: accumulatedSources,
-                            steps: accumulatedSteps,
-                          },
-                        }
-                      : msg
-                  )
-                );
+                updateMessageResponse();
                 break;
                 
               case "answer_end":

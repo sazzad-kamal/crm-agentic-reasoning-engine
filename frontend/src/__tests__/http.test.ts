@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import {
   checkHttpResponse,
-  normalizeError,
   isAbortError,
   CONNECTION_ERROR_MESSAGE,
 } from "../utils/http";
@@ -115,101 +114,6 @@ describe("http utilities", () => {
   });
 
   // ===========================================================================
-  // normalizeError
-  // ===========================================================================
-
-  describe("normalizeError", () => {
-    it("returns Error objects as-is", () => {
-      const original = new Error("Original error");
-      const result = normalizeError(original);
-
-      expect(result).toBe(original);
-      expect(result.message).toBe("Original error");
-    });
-
-    it("preserves error name and stack", () => {
-      const original = new TypeError("Type error");
-      const result = normalizeError(original);
-
-      expect(result).toBe(original);
-      expect(result.name).toBe("TypeError");
-      expect(result.stack).toBeDefined();
-    });
-
-    it("converts string to Error with default message", () => {
-      const result = normalizeError("String error message");
-
-      expect(result).toBeInstanceOf(Error);
-      // Implementation uses default message for non-Error types
-      expect(result.message).toBe("An unexpected error occurred");
-    });
-
-    it("converts number to Error with default message", () => {
-      const result = normalizeError(404);
-
-      expect(result).toBeInstanceOf(Error);
-      expect(result.message).toBe("An unexpected error occurred");
-    });
-
-    it("converts object to Error with default message", () => {
-      const result = normalizeError({ code: "ERR_001" });
-
-      expect(result).toBeInstanceOf(Error);
-      expect(result.message).toBe("An unexpected error occurred");
-    });
-
-    it("converts null to Error with default message", () => {
-      const result = normalizeError(null);
-
-      expect(result).toBeInstanceOf(Error);
-      expect(result.message).toBe("An unexpected error occurred");
-    });
-
-    it("converts undefined to Error with default message", () => {
-      const result = normalizeError(undefined);
-
-      expect(result).toBeInstanceOf(Error);
-      expect(result.message).toBe("An unexpected error occurred");
-    });
-
-    it("uses custom default message for null", () => {
-      const result = normalizeError(null, "Custom fallback message");
-
-      expect(result).toBeInstanceOf(Error);
-      expect(result.message).toBe("Custom fallback message");
-    });
-
-    it("uses custom default message for undefined", () => {
-      const result = normalizeError(undefined, "Something went wrong");
-
-      expect(result).toBeInstanceOf(Error);
-      expect(result.message).toBe("Something went wrong");
-    });
-
-    it("ignores custom message for Error objects", () => {
-      const original = new Error("Original message");
-      const result = normalizeError(original, "This should be ignored");
-
-      expect(result.message).toBe("Original message");
-    });
-
-    it("handles boolean values", () => {
-      const resultFalse = normalizeError(false);
-      expect(resultFalse.message).toBe("An unexpected error occurred");
-
-      const resultTrue = normalizeError(true);
-      expect(resultTrue.message).toBe("An unexpected error occurred");
-    });
-
-    it("handles empty string", () => {
-      const result = normalizeError("");
-
-      expect(result).toBeInstanceOf(Error);
-      expect(result.message).toBe("An unexpected error occurred");
-    });
-  });
-
-  // ===========================================================================
   // isAbortError
   // ===========================================================================
 
@@ -300,9 +204,9 @@ describe("http utilities", () => {
         await checkHttpResponse(response);
         expect.fail("Should have thrown");
       } catch (err) {
-        const normalizedError = normalizeError(err);
-        expect(normalizedError.message).toContain("404");
-        expect(isAbortError(normalizedError)).toBe(false);
+        expect(err).toBeInstanceOf(Error);
+        expect((err as Error).message).toContain("404");
+        expect(isAbortError(err)).toBe(false);
       }
     });
 
@@ -314,10 +218,6 @@ describe("http utilities", () => {
       const abortError = new DOMException("The operation was aborted", "AbortError");
 
       expect(isAbortError(abortError)).toBe(true);
-
-      // Normalizing should preserve the abort error
-      const normalized = normalizeError(abortError);
-      expect(isAbortError(normalized)).toBe(true);
     });
 
     it("handles network failures gracefully", () => {
@@ -325,9 +225,7 @@ describe("http utilities", () => {
       const networkError = new TypeError("Failed to fetch");
 
       expect(isAbortError(networkError)).toBe(false);
-
-      const normalized = normalizeError(networkError);
-      expect(normalized.message).toBe("Failed to fetch");
+      expect(networkError.message).toBe("Failed to fetch");
     });
   });
 });

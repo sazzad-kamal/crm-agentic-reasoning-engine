@@ -14,14 +14,15 @@ export interface Step {
   status: "done" | "pending" | "running" | "error" | "skipped";
 }
 
-export interface Company {
+// Internal types for RawData (not exported - only used within this module)
+interface Company {
   company_id: string;
   name: string;
   plan: string;
   renewal_date: string;
 }
 
-export interface Activity {
+interface Activity {
   activity_id: string;
   type: string;
   occurred_at: string;
@@ -30,7 +31,7 @@ export interface Activity {
   subject?: string;
 }
 
-export interface Opportunity {
+interface Opportunity {
   opportunity_id: string;
   name: string;
   stage: string;
@@ -38,7 +39,7 @@ export interface Opportunity {
   value: number;
 }
 
-export interface HistoryEntry {
+interface HistoryEntry {
   history_id: string;
   event_type: string;
   occurred_at: string;

@@ -4,9 +4,10 @@
  * Provides consistent error handling and logging across the application.
  */
 
-export type LogLevel = "debug" | "info" | "warn" | "error";
+// Internal types (not exported - callers pass object literals)
+type LogLevel = "debug" | "info" | "warn" | "error";
 
-export interface ErrorContext {
+interface ErrorContext {
   /** Component or module where the error occurred */
   component?: string;
   /** Action being performed when the error occurred */

@@ -14,16 +14,6 @@ export async function checkHttpResponse(response: Response): Promise<void> {
 }
 
 /**
- * Normalize error to Error instance with user-friendly message
- */
-export function normalizeError(err: unknown, defaultMessage?: string): Error {
-  if (err instanceof Error) {
-    return err;
-  }
-  return new Error(defaultMessage ?? "An unexpected error occurred");
-}
-
-/**
  * Check if error is an abort error (should be ignored)
  */
 export function isAbortError(err: unknown): boolean {

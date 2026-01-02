@@ -54,23 +54,16 @@ from backend.agent.eval.shared import (
     print_overall_result_panel,
 )
 from backend.agent.eval.prompts import FLOW_JUDGE_SYSTEM, FLOW_JUDGE_PROMPT
+from backend.agent.eval.models import (
+    SLO_FLOW_PATH_PASS_RATE,
+    SLO_FLOW_QUESTION_PASS_RATE,
+    SLO_FLOW_RELEVANCE,
+    SLO_FLOW_GROUNDED,
+    SLO_FLOW_AVG_LATENCY_MS,
+    SLO_FLOW_P95_LATENCY_MS,
+)
 
 logger = logging.getLogger(__name__)
-
-
-# =============================================================================
-# SLO Thresholds for Flow Evaluation
-# =============================================================================
-
-# Quality SLOs
-SLO_PATH_PASS_RATE = 0.85  # 85% of conversation paths should pass
-SLO_QUESTION_PASS_RATE = 0.90  # 90% of individual questions should pass
-SLO_RELEVANCE = 0.85  # 85% relevance score
-SLO_GROUNDED = 0.80  # 80% groundedness score
-
-# Latency SLOs
-SLO_AVG_LATENCY_MS = 4000  # 4s average per question
-SLO_P95_LATENCY_MS = 8000  # 8s P95 per question (flow has multi-turn overhead)
 
 
 # =============================================================================
@@ -480,7 +473,7 @@ def print_summary(results: EvalResults):
 
     # Path metrics
     path_pass_rate = results.path_pass_rate
-    path_slo_pass = path_pass_rate >= SLO_PATH_PASS_RATE
+    path_slo_pass = path_pass_rate >= SLO_FLOW_PATH_PASS_RATE
     summary_table.add_row(
         "Paths Tested",
         f"{results.paths_tested}/{results.total_paths}",
@@ -490,14 +483,14 @@ def print_summary(results: EvalResults):
     summary_table.add_row(
         "Path Pass Rate",
         format_percentage(path_pass_rate),
-        f">={format_percentage(SLO_PATH_PASS_RATE)}",
+        f">={format_percentage(SLO_FLOW_PATH_PASS_RATE)}",
         format_check_mark(path_slo_pass),
     )
     summary_table.add_row("", "", "", "")  # Spacer
 
     # Question metrics
     q_pass_rate = results.question_pass_rate
-    q_slo_pass = q_pass_rate >= SLO_QUESTION_PASS_RATE
+    q_slo_pass = q_pass_rate >= SLO_FLOW_QUESTION_PASS_RATE
     summary_table.add_row(
         "Questions Total",
         str(results.total_questions),
@@ -507,14 +500,14 @@ def print_summary(results: EvalResults):
     summary_table.add_row(
         "Question Pass Rate",
         format_percentage(q_pass_rate),
-        f">={format_percentage(SLO_QUESTION_PASS_RATE)}",
+        f">={format_percentage(SLO_FLOW_QUESTION_PASS_RATE)}",
         format_check_mark(q_slo_pass),
     )
     summary_table.add_row("", "", "", "")  # Spacer
 
     # Judge score metrics
-    relevance_slo_pass = results.avg_relevance >= SLO_RELEVANCE
-    grounded_slo_pass = results.avg_grounded >= SLO_GROUNDED
+    relevance_slo_pass = results.avg_relevance >= SLO_FLOW_RELEVANCE
+    grounded_slo_pass = results.avg_grounded >= SLO_FLOW_GROUNDED
     summary_table.add_row(
         "[bold]LLM Judge Scores[/bold]",
         "",
@@ -524,13 +517,13 @@ def print_summary(results: EvalResults):
     summary_table.add_row(
         "  Relevance",
         format_percentage(results.avg_relevance),
-        f">={format_percentage(SLO_RELEVANCE)}",
+        f">={format_percentage(SLO_FLOW_RELEVANCE)}",
         format_check_mark(relevance_slo_pass),
     )
     summary_table.add_row(
         "  Groundedness",
         format_percentage(results.avg_grounded),
-        f">={format_percentage(SLO_GROUNDED)}",
+        f">={format_percentage(SLO_FLOW_GROUNDED)}",
         format_check_mark(grounded_slo_pass),
     )
     summary_table.add_row("", "", "", "")  # Spacer
@@ -581,25 +574,25 @@ def print_summary(results: EvalResults):
             "Path Pass Rate",
             path_slo_pass,
             format_percentage(path_pass_rate),
-            f">={format_percentage(SLO_PATH_PASS_RATE)}",
+            f">={format_percentage(SLO_FLOW_PATH_PASS_RATE)}",
         ),
         (
             "Question Pass Rate",
             q_slo_pass,
             format_percentage(q_pass_rate),
-            f">={format_percentage(SLO_QUESTION_PASS_RATE)}",
+            f">={format_percentage(SLO_FLOW_QUESTION_PASS_RATE)}",
         ),
         (
             "Relevance",
             relevance_slo_pass,
             format_percentage(results.avg_relevance),
-            f">={format_percentage(SLO_RELEVANCE)}",
+            f">={format_percentage(SLO_FLOW_RELEVANCE)}",
         ),
         (
             "Groundedness",
             grounded_slo_pass,
             format_percentage(results.avg_grounded),
-            f">={format_percentage(SLO_GROUNDED)}",
+            f">={format_percentage(SLO_FLOW_GROUNDED)}",
         ),
     ]
 
@@ -685,23 +678,23 @@ def save_results(results: EvalResults, output_path: Path):
         "slo_results": {
             "path_pass_rate": {
                 "value": results.path_pass_rate,
-                "target": SLO_PATH_PASS_RATE,
-                "passed": results.path_pass_rate >= SLO_PATH_PASS_RATE,
+                "target": SLO_FLOW_PATH_PASS_RATE,
+                "passed": results.path_pass_rate >= SLO_FLOW_PATH_PASS_RATE,
             },
             "question_pass_rate": {
                 "value": results.question_pass_rate,
-                "target": SLO_QUESTION_PASS_RATE,
-                "passed": results.question_pass_rate >= SLO_QUESTION_PASS_RATE,
+                "target": SLO_FLOW_QUESTION_PASS_RATE,
+                "passed": results.question_pass_rate >= SLO_FLOW_QUESTION_PASS_RATE,
             },
             "relevance": {
                 "value": results.avg_relevance,
-                "target": SLO_RELEVANCE,
-                "passed": results.avg_relevance >= SLO_RELEVANCE,
+                "target": SLO_FLOW_RELEVANCE,
+                "passed": results.avg_relevance >= SLO_FLOW_RELEVANCE,
             },
             "groundedness": {
                 "value": results.avg_grounded,
-                "target": SLO_GROUNDED,
-                "passed": results.avg_grounded >= SLO_GROUNDED,
+                "target": SLO_FLOW_GROUNDED,
+                "passed": results.avg_grounded >= SLO_FLOW_GROUNDED,
             },
         },
         "tracked_metrics": {
@@ -886,10 +879,10 @@ async def _run_eval_async(
 
     # Check SLOs for exit code
     slo_results = {
-        "Path Pass Rate": results.path_pass_rate >= SLO_PATH_PASS_RATE,
-        "Question Pass Rate": results.question_pass_rate >= SLO_QUESTION_PASS_RATE,
-        "Relevance": results.avg_relevance >= SLO_RELEVANCE,
-        "Groundedness": results.avg_grounded >= SLO_GROUNDED,
+        "Path Pass Rate": results.path_pass_rate >= SLO_FLOW_PATH_PASS_RATE,
+        "Question Pass Rate": results.question_pass_rate >= SLO_FLOW_QUESTION_PASS_RATE,
+        "Relevance": results.avg_relevance >= SLO_FLOW_RELEVANCE,
+        "Groundedness": results.avg_grounded >= SLO_FLOW_GROUNDED,
     }
 
     all_slos_passed = all(slo_results.values())

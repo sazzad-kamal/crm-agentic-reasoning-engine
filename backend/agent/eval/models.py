@@ -154,12 +154,20 @@ SLO_LATENCY_AVG_MS = 3000  # 3s average - typical experience
 SLO_EVAL_LATENCY_P95_MS = 10000  # 10s P95 for eval (includes ~500ms judge call)
 SLO_EVAL_LATENCY_AVG_MS = 6000  # 6s average for eval
 
-# Quality SLOs
+# Quality SLOs (E2E)
 SLO_TOOL_ACCURACY = 0.90  # 90% tool accuracy
 SLO_ROUTER_ACCURACY = 0.90  # 90% router accuracy (company extraction)
 SLO_ANSWER_RELEVANCE = 0.80  # 80% answer relevance
 SLO_GROUNDEDNESS = 0.80  # 80% groundedness
 SLO_OVERALL = 0.80  # 80% overall
+
+# Flow Eval SLOs
+SLO_FLOW_PATH_PASS_RATE = 0.85  # 85% of conversation paths should pass
+SLO_FLOW_QUESTION_PASS_RATE = 0.90  # 90% of individual questions should pass
+SLO_FLOW_RELEVANCE = 0.85  # 85% relevance score
+SLO_FLOW_GROUNDED = 0.80  # 80% groundedness score
+SLO_FLOW_AVG_LATENCY_MS = 4000  # 4s average per question
+SLO_FLOW_P95_LATENCY_MS = 8000  # 8s P95 per question (flow has multi-turn overhead)
 
 
 class AgentEvalSummary(BaseModel):

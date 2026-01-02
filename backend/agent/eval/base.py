@@ -16,6 +16,8 @@ def ensure_qdrant_collections() -> None:
         PRIVATE_COLLECTION,
         QDRANT_PATH,
         get_qdrant_client,
+        ingest_docs,
+        ingest_private_texts,
     )
 
     QDRANT_PATH.mkdir(parents=True, exist_ok=True)
@@ -36,13 +38,11 @@ def ensure_qdrant_collections() -> None:
 
     if not docs_exists:
         print("Ingesting docs into Qdrant...")
-        from backend.ingest import ingest_docs
         chunk_count = ingest_docs()
         print(f"  Docs collection created with {chunk_count} chunks")
 
     if not private_exists:
         print("Ingesting private texts into Qdrant...")
-        from backend.ingest import ingest_private_texts
         ingest_private_texts()
         print("  Private collection created")
 

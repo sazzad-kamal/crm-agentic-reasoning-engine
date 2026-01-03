@@ -27,24 +27,17 @@ Implements a minimal 4-node graph workflow for answering CRM questions:
                      │  END  │
                      └───────┘
 
-4 nodes total. The Fetch node always runs CRM data + Docs RAG in parallel,
-with optional Account RAG for company-specific intents.
-
 Usage:
     from backend.agent.graph import agent_graph, run_agent
 
     result = run_agent("What's going on with Acme Manufacturing?")
 """
 
-import hashlib
 import logging
 import time
-import uuid
-from functools import lru_cache
 from typing import Any
 
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import MemorySaver
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from backend.agent.state import AgentState, Message
@@ -53,65 +46,12 @@ from backend.agent.nodes.fetching import fetch_node
 from backend.agent.nodes.generation import answer_node, followup_node
 from backend.agent.audit import AgentAuditLogger
 
+# Import from extracted modules
+from backend.agent.cache import make_cache_key, get_cached_result, set_cached_result, clear_query_cache
+from backend.agent.conversation import get_checkpointer, get_session_state, get_session_messages, build_thread_config
+
 
 logger = logging.getLogger(__name__)
-
-
-# =============================================================================
-# LangGraph Checkpointing
-# =============================================================================
-
-# Global checkpointer for conversation persistence
-_checkpointer = MemorySaver()
-
-
-# =============================================================================
-# Query Cache
-# =============================================================================
-
-# Cache for repeated identical queries (max 128 entries)
-_query_cache: dict[str, tuple[dict, float]] = {}
-_CACHE_MAX_SIZE = 128
-_CACHE_TTL_SECONDS = 300  # 5 minutes
-
-
-def _make_cache_key(question: str, mode: str, company_id: str | None) -> str:
-    """Generate cache key from query parameters."""
-    key_data = f"{question.lower().strip()}|{mode}|{company_id or ''}"
-    return hashlib.sha256(key_data.encode()).hexdigest()[:16]
-
-
-def _get_cached_result(cache_key: str) -> dict | None:
-    """Get cached result if valid (not expired)."""
-    if cache_key in _query_cache:
-        result, timestamp = _query_cache[cache_key]
-        if time.time() - timestamp < _CACHE_TTL_SECONDS:
-            logger.debug(f"[Cache] Hit for key {cache_key}")
-            return result
-        else:
-            # Expired, remove from cache
-            del _query_cache[cache_key]
-            logger.debug(f"[Cache] Expired key {cache_key}")
-    return None
-
-
-def _set_cached_result(cache_key: str, result: dict) -> None:
-    """Store result in cache with timestamp."""
-    # Evict oldest entries if cache is full
-    if len(_query_cache) >= _CACHE_MAX_SIZE:
-        # Remove oldest entry (first inserted)
-        oldest_key = next(iter(_query_cache))
-        del _query_cache[oldest_key]
-        logger.debug(f"[Cache] Evicted oldest key {oldest_key}")
-
-    _query_cache[cache_key] = (result, time.time())
-    logger.debug(f"[Cache] Stored key {cache_key}")
-
-
-def clear_query_cache() -> None:
-    """Clear the query cache (useful for testing)."""
-    _query_cache.clear()
-    logger.debug("[Cache] Cleared all entries")
 
 
 # =============================================================================
@@ -126,21 +66,17 @@ def build_agent_graph(checkpointer: Any = None) -> Any:
     Simplified 4-node architecture:
       Route → Fetch (parallel) → Answer → Followup
 
-    The Fetch node always runs CRM data + Docs RAG in parallel,
-    with optional Account RAG for company-specific intents.
-
     Args:
         checkpointer: Optional LangGraph checkpointer for conversation persistence.
                      If None, uses the global MemorySaver.
 
     Returns compiled graph ready for execution.
     """
-    # Create graph with state schema
     graph = StateGraph(AgentState)
 
     # Add nodes (simplified 4-node architecture)
     graph.add_node("route", route_node)
-    graph.add_node("fetch", fetch_node)  # Unified parallel fetch
+    graph.add_node("fetch", fetch_node)
     graph.add_node("answer", answer_node)
     graph.add_node("followup", followup_node)
 
@@ -153,11 +89,10 @@ def build_agent_graph(checkpointer: Any = None) -> Any:
     graph.add_edge("answer", "followup")
     graph.add_edge("followup", END)
 
-    # Compile with checkpointer for conversation persistence
-    return graph.compile(checkpointer=checkpointer or _checkpointer)
+    return graph.compile(checkpointer=checkpointer or get_checkpointer())
 
 
-# Compile the graph once at module load (with checkpointing enabled)
+# Compile the graph once at module load
 agent_graph = build_agent_graph()
 
 
@@ -168,13 +103,7 @@ agent_graph = build_agent_graph()
 
 class TransientAgentError(Exception):
     """Transient error that should trigger a retry."""
-
     pass
-
-
-# =============================================================================
-# Runner Function
-# =============================================================================
 
 
 @retry(
@@ -183,24 +112,8 @@ class TransientAgentError(Exception):
     retry=retry_if_exception_type(TransientAgentError),
     reraise=True,
 )
-def _execute_graph(
-    initial_state: AgentState,
-    config: dict,
-) -> dict:
-    """
-    Execute the graph with retry logic for transient failures.
-
-    Args:
-        initial_state: The initial agent state
-        config: LangGraph config with thread_id
-
-    Returns:
-        Final state from graph execution
-
-    Raises:
-        TransientAgentError: For retriable errors (network, timeout)
-        Exception: For non-retriable errors
-    """
+def _execute_graph(initial_state: AgentState, config: dict) -> dict:
+    """Execute the graph with retry logic for transient failures."""
     try:
         return agent_graph.invoke(initial_state, config=config)
     except ConnectionError as e:
@@ -209,6 +122,11 @@ def _execute_graph(
     except TimeoutError as e:
         logger.warning(f"[Agent] Transient timeout error, will retry: {e}")
         raise TransientAgentError(str(e)) from e
+
+
+# =============================================================================
+# Runner Function
+# =============================================================================
 
 
 def run_agent(
@@ -221,10 +139,6 @@ def run_agent(
 ) -> dict:
     """
     Run the agent graph and return formatted response.
-
-    Uses LangGraph checkpointing for conversation persistence when session_id
-    is provided. The checkpointer automatically stores and retrieves conversation
-    state based on the thread_id.
 
     Args:
         question: The user's question
@@ -239,28 +153,21 @@ def run_agent(
     """
     start_time = time.time()
 
-    # Check query cache first (only for non-session queries to avoid stale context)
+    # Check query cache first (only for non-session queries)
     cache_key = None
     if use_cache and not session_id:
-        cache_key = _make_cache_key(question, mode, company_id)
-        cached = _get_cached_result(cache_key)
+        cache_key = make_cache_key(question, mode, company_id)
+        cached = get_cached_result(cache_key)
         if cached:
             logger.info("[Agent] Cache hit, returning cached result")
-            # Update latency to reflect cache hit
             cached_copy = cached.copy()
             cached_copy["meta"] = cached["meta"].copy()
             cached_copy["meta"]["latency_ms"] = int((time.time() - start_time) * 1000)
             cached_copy["meta"]["cached"] = True
             return cached_copy
 
-    # Load conversation history from LangGraph checkpoint
-    messages: list[Message] = []
-    if session_id:
-        checkpoint_state = get_session_state(session_id)
-        if checkpoint_state:
-            messages = checkpoint_state.get("messages", [])
-            if messages:
-                logger.debug(f"[Agent] Loaded {len(messages)} messages from checkpoint")
+    # Load conversation history from checkpoint
+    messages: list[Message] = get_session_messages(session_id) if session_id else []
 
     # Initialize state
     initial_state: AgentState = {
@@ -276,20 +183,17 @@ def run_agent(
         "follow_up_suggestions": [],
     }
 
-    # Build config with thread_id for LangGraph checkpointing
-    # Always provide a thread_id (use session_id if provided, else generate one)
-    thread_id = session_id or str(uuid.uuid4())
-    config = {"configurable": {"thread_id": thread_id}}
+    # Build config with thread_id
+    config = build_thread_config(session_id)
     if session_id:
         logger.debug(f"[Agent] Using LangGraph checkpointing with thread_id={session_id}")
 
-    # Run the graph with retry logic
+    # Run the graph
     logger.info(f"[Agent] Starting graph execution for: {question[:50]}...")
 
     try:
         final_state = _execute_graph(initial_state, config)
     except TransientAgentError as e:
-        # Retries exhausted
         logger.error(f"[Agent] Graph execution failed after retries: {e}")
         return _build_error_response(str(e), start_time)
     except Exception as e:
@@ -299,8 +203,7 @@ def run_agent(
     latency_ms = int((time.time() - start_time) * 1000)
 
     # Audit logging
-    audit = AgentAuditLogger()
-    audit.log_query(
+    AgentAuditLogger().log_query(
         question=question,
         mode_used=final_state.get("mode_used", "unknown"),
         company_id=final_state.get("resolved_company_id"),
@@ -312,7 +215,7 @@ def run_agent(
 
     logger.info(f"[Agent] Complete in {latency_ms}ms")
 
-    # Build response with per-node latencies
+    # Build response
     result = {
         "answer": final_state.get("answer", ""),
         "sources": [
@@ -328,7 +231,6 @@ def run_agent(
             "company_id": final_state.get("resolved_company_id"),
             "intent": final_state.get("intent", "general"),
             "days": final_state.get("days", 90),
-            # Per-node latency breakdown
             "router_latency_ms": final_state.get("router_latency_ms"),
             "fetch_latency_ms": final_state.get("fetch_latency_ms"),
             "answer_latency_ms": final_state.get("answer_latency_ms"),
@@ -338,7 +240,7 @@ def run_agent(
 
     # Cache result for non-session queries
     if cache_key:
-        _set_cached_result(cache_key, result)
+        set_cached_result(cache_key, result)
 
     return result
 
@@ -374,11 +276,7 @@ def answer_question(
     session_id: str | None = None,
     user_id: str | None = None,
 ) -> dict:
-    """
-    Backwards-compatible wrapper for run_agent.
-
-    This maintains the same API as the previous orchestrator.
-    """
+    """Backwards-compatible wrapper for run_agent."""
     return run_agent(
         question=question,
         mode=mode,
@@ -388,18 +286,8 @@ def answer_question(
     )
 
 
-# =============================================================================
-# Visualization
-# =============================================================================
-
-
 def get_graph_mermaid() -> str:
-    """
-    Get Mermaid diagram of the graph.
-
-    Returns:
-        Mermaid diagram string
-    """
+    """Get Mermaid diagram of the graph."""
     return """
 graph TD
     START((Start)) --> route[Route]
@@ -415,41 +303,16 @@ graph TD
 """
 
 
-def get_checkpointer() -> MemorySaver:
-    """Get the global checkpointer instance."""
-    return _checkpointer
-
-
-def get_session_state(session_id: str) -> dict | None:
-    """
-    Get the checkpointed state for a session.
-
-    Args:
-        session_id: The session/thread ID
-
-    Returns:
-        The stored state dict, or None if not found
-    """
-    try:
-        config = {"configurable": {"thread_id": session_id}}
-        checkpoint = _checkpointer.get(config)
-        if checkpoint:
-            return checkpoint.get("channel_values", {})
-    except Exception as e:
-        logger.warning(f"Failed to get session state: {e}")
-    return None
-
-
 __all__ = [
     "agent_graph",
     "run_agent",
     "answer_question",
     "build_agent_graph",
     "get_graph_mermaid",
-    # Checkpointing
+    # Re-export from conversation module
     "get_checkpointer",
     "get_session_state",
-    # Cache
+    # Re-export from cache module
     "clear_query_cache",
     # Errors
     "TransientAgentError",

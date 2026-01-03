@@ -1,11 +1,12 @@
 """
 Generic data formatting utilities.
 
-Consolidates the repetitive format_*_section() functions from formatters.py
-into a flexible formatter factory pattern.
+Uses a declarative formatter factory pattern for consistent, maintainable
+formatting of CRM data sections.
 """
 
-from typing import Optional, Callable, Any
+from typing import Callable, Any
+from datetime import datetime, timedelta
 
 
 class SectionFormatter:
@@ -26,18 +27,6 @@ class SectionFormatter:
         items_key: str = "items",
         days_key: str = "days",
     ):
-        """
-        Initialize the formatter.
-
-        Args:
-            header: Section header text (without ===)
-            empty_message: Message when no data available
-            item_formatter: Function to format each item
-            max_items: Maximum items to display
-            count_key: Key for count in data dict
-            items_key: Key for items list in data dict
-            days_key: Key for days in data dict (for time-scoped sections)
-        """
         self.header = header
         self.empty_message = empty_message
         self.item_formatter = item_formatter
@@ -47,15 +36,7 @@ class SectionFormatter:
         self.days_key = days_key
 
     def format(self, data: dict[str, Any] | None) -> str:
-        """
-        Format the data section.
-
-        Args:
-            data: Dict containing items and optional metadata
-
-        Returns:
-            Formatted section string
-        """
+        """Format the data section."""
         if not data:
             return ""
 
@@ -65,7 +46,6 @@ class SectionFormatter:
 
         # Build header with optional count and days
         header_parts = [f"=== {self.header}"]
-
         count = data.get(self.count_key)
         days = data.get(self.days_key)
 
@@ -79,11 +59,15 @@ class SectionFormatter:
         header_parts.append(" ===")
 
         lines = ["".join(header_parts)]
-
         for item in items[: self.max_items]:
             lines.append(self.item_formatter(item))
 
         return "\n".join(lines)
+
+
+# =============================================================================
+# Helper functions
+# =============================================================================
 
 
 def _format_date(date_str: str) -> str:
@@ -98,18 +82,15 @@ def _truncate(text: str, max_len: int = 100) -> str:
     if not text:
         return ""
     text = str(text)
-    if len(text) > max_len:
-        return text[:max_len] + "..."
-    return text
+    return text[:max_len] + "..." if len(text) > max_len else text
 
 
 # =============================================================================
-# Pre-configured formatters
+# Item formatters (used by SectionFormatter)
 # =============================================================================
 
 
 def _format_activity(act: dict) -> str:
-    """Format a single activity item."""
     due = _format_date(act.get("due_datetime", act.get("created_at")))
     return (
         f"- [{act.get('type', 'N/A')}] {act.get('subject', 'N/A')} "
@@ -118,7 +99,6 @@ def _format_activity(act: dict) -> str:
 
 
 def _format_history(h: dict) -> str:
-    """Format a single history item."""
     occurred = _format_date(h.get("occurred_at"))
     lines = [
         f"- [{h.get('type', 'N/A')}] {h.get('subject', 'N/A')} "
@@ -130,7 +110,6 @@ def _format_history(h: dict) -> str:
 
 
 def _format_opportunity(opp: dict) -> str:
-    """Format a single opportunity item."""
     close_date = opp.get("expected_close_date", "N/A")
     return (
         f"  - {opp.get('name', 'N/A')}: {opp.get('stage', 'N/A')} - "
@@ -139,7 +118,6 @@ def _format_opportunity(opp: dict) -> str:
 
 
 def _format_renewal(r: dict) -> str:
-    """Format a single renewal item."""
     return (
         f"- {r.get('name', 'N/A')} ({r.get('company_id', 'N/A')}): "
         f"Renewal {r.get('renewal_date', 'N/A')} | Plan: {r.get('plan', 'N/A')} | "
@@ -147,30 +125,85 @@ def _format_renewal(r: dict) -> str:
     )
 
 
-# Create singleton formatters for each section type
-_ACTIVITIES_FORMATTER = SectionFormatter(
-    header="RECENT ACTIVITIES",
-    empty_message="No recent activities found.",
-    item_formatter=_format_activity,
-    max_items=8,
-    items_key="activities",
-)
+def _format_contact(c: dict) -> str:
+    name = f"{c.get('first_name', '')} {c.get('last_name', '')}".strip()
+    return (
+        f"- {name}: {c.get('job_title', 'N/A')} at {c.get('company_id', 'N/A')} | "
+        f"Role: {c.get('contact_role', 'N/A')} | Email: {c.get('email', 'N/A')}"
+    )
 
-_HISTORY_FORMATTER = SectionFormatter(
-    header="HISTORY LOG",
-    empty_message="No recent history entries.",
-    item_formatter=_format_history,
-    max_items=8,
-    items_key="history",
-)
 
-_RENEWALS_FORMATTER = SectionFormatter(
-    header="UPCOMING RENEWALS",
-    empty_message="No renewals in the specified timeframe.",
-    item_formatter=_format_renewal,
-    max_items=10,
-    items_key="renewals",
-)
+def _format_attachment(a: dict) -> str:
+    return (
+        f"- {a.get('name', 'N/A')} ({a.get('file_type', 'N/A')}): "
+        f"{_truncate(a.get('description', ''), 80)} | Company: {a.get('company_id', 'N/A')}"
+    )
+
+
+def _format_company_search_item(c: dict) -> str:
+    return (
+        f"- {c.get('name', 'N/A')} ({c.get('company_id', 'N/A')}): "
+        f"{c.get('industry', 'N/A')} | {c.get('segment', 'N/A')} | "
+        f"{c.get('status', 'N/A')} | Health: {c.get('health_flags', 'N/A')}"
+    )
+
+
+# =============================================================================
+# Declarative Formatters Registry
+# =============================================================================
+
+
+FORMATTERS = {
+    "activities": SectionFormatter(
+        header="RECENT ACTIVITIES",
+        empty_message="No recent activities found.",
+        item_formatter=_format_activity,
+        max_items=8,
+        items_key="activities",
+    ),
+    "history": SectionFormatter(
+        header="HISTORY LOG",
+        empty_message="No recent history entries.",
+        item_formatter=_format_history,
+        max_items=8,
+        items_key="history",
+    ),
+    "renewals": SectionFormatter(
+        header="UPCOMING RENEWALS",
+        empty_message="No renewals in the specified timeframe.",
+        item_formatter=_format_renewal,
+        max_items=10,
+        items_key="renewals",
+    ),
+    "contacts": SectionFormatter(
+        header="CONTACTS",
+        empty_message="No contacts found matching the criteria.",
+        item_formatter=_format_contact,
+        max_items=10,
+        items_key="contacts",
+    ),
+    "attachments": SectionFormatter(
+        header="ATTACHMENTS",
+        empty_message="No attachments found matching the criteria.",
+        item_formatter=_format_attachment,
+        max_items=10,
+        items_key="attachments",
+    ),
+    "companies": SectionFormatter(
+        header="COMPANY SEARCH RESULTS",
+        empty_message="No companies found matching the criteria.",
+        item_formatter=_format_company_search_item,
+        max_items=10,
+        items_key="companies",
+    ),
+}
+
+
+def format_section(section_type: str, data: dict | None) -> str:
+    """Generic section formatter using the registry."""
+    if section_type not in FORMATTERS:
+        raise ValueError(f"Unknown section type: {section_type}")
+    return FORMATTERS[section_type].format(data)
 
 
 # =============================================================================
@@ -179,19 +212,13 @@ _RENEWALS_FORMATTER = SectionFormatter(
 
 
 def format_company_section(company_data: dict | None) -> str:
-    """Format company data for the prompt.
-
-    Handles two data shapes:
-    - Single company: {"company": {...}, "contacts": [...]}
-    - Company list (from search): {"companies": [...], "count": N}
-    """
+    """Format company data for the prompt."""
     if not company_data:
         return ""
 
     # Handle company list (from company_search intent)
-    companies = company_data.get("companies")
-    if companies:
-        return _format_companies_list(companies, company_data.get("count", len(companies)))
+    if company_data.get("companies"):
+        return format_section("companies", company_data)
 
     # Handle single company
     company = company_data.get("company")
@@ -221,31 +248,14 @@ def format_company_section(company_data: dict | None) -> str:
     return "\n".join(lines)
 
 
-def _format_companies_list(companies: list[dict], count: int) -> str:
-    """Format a list of companies from search results."""
-    if not companies:
-        return "=== COMPANY SEARCH RESULTS ===\nNo companies found matching the criteria."
-
-    lines = [f"=== COMPANY SEARCH RESULTS ({count} found) ==="]
-
-    for c in companies[:10]:  # Limit to 10
-        lines.append(
-            f"- {c.get('name', 'N/A')} ({c.get('company_id', 'N/A')}): "
-            f"{c.get('industry', 'N/A')} | {c.get('segment', 'N/A')} | "
-            f"{c.get('status', 'N/A')} | Health: {c.get('health_flags', 'N/A')}"
-        )
-
-    return "\n".join(lines)
-
-
 def format_activities_section(activities_data: dict | None) -> str:
     """Format activities data for the prompt."""
-    return _ACTIVITIES_FORMATTER.format(activities_data)
+    return format_section("activities", activities_data) if activities_data else ""
 
 
 def format_history_section(history_data: dict | None) -> str:
     """Format history data for the prompt."""
-    return _HISTORY_FORMATTER.format(history_data)
+    return format_section("history", history_data) if history_data else ""
 
 
 def format_pipeline_section(pipeline_data: dict | None) -> str:
@@ -267,9 +277,7 @@ def format_pipeline_section(pipeline_data: dict | None) -> str:
     ]
 
     for stage, data in summary.get("stages", {}).items():
-        lines.append(
-            f"  - {stage}: {data.get('count', 0)} deals (${data.get('total_value', 0):,.0f})"
-        )
+        lines.append(f"  - {stage}: {data.get('count', 0)} deals (${data.get('total_value', 0):,.0f})")
 
     if opps:
         lines.append("\nOpen Opportunities:")
@@ -280,7 +288,7 @@ def format_pipeline_section(pipeline_data: dict | None) -> str:
 
 
 def format_renewals_section(renewals_data: dict | None) -> str:
-    """Format renewals data for the prompt with explicit date range."""
+    """Format renewals data with explicit date range."""
     if not renewals_data:
         return ""
 
@@ -288,19 +296,14 @@ def format_renewals_section(renewals_data: dict | None) -> str:
     if not renewals:
         return "=== UPCOMING RENEWALS ===\nNo renewals in the specified timeframe."
 
-    # Show explicit date range from the actual data
     days = renewals_data.get("days", 90)
     count = renewals_data.get("count", len(renewals))
-
-    # Calculate actual date range from today
-    from datetime import datetime, timedelta
 
     today = datetime.now()
     end_date = today + timedelta(days=days)
     date_range = f"{today.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
 
     lines = [f"=== UPCOMING RENEWALS ({count} in next {days} days: {date_range}) ==="]
-
     for r in renewals[:10]:
         lines.append(_format_renewal(r))
 
@@ -308,25 +311,8 @@ def format_renewals_section(renewals_data: dict | None) -> str:
 
 
 def format_contacts_section(contacts_data: dict | None) -> str:
-    """Format contacts search results for the prompt."""
-    if not contacts_data:
-        return ""
-
-    contacts = contacts_data.get("contacts", [])
-    if not contacts:
-        return "=== CONTACTS ===\nNo contacts found matching the criteria."
-
-    count = contacts_data.get("count", len(contacts))
-    lines = [f"=== CONTACTS ({count} found) ==="]
-
-    for c in contacts[:10]:
-        name = f"{c.get('first_name', '')} {c.get('last_name', '')}".strip()
-        lines.append(
-            f"- {name}: {c.get('job_title', 'N/A')} at {c.get('company_id', 'N/A')} | "
-            f"Role: {c.get('contact_role', 'N/A')} | Email: {c.get('email', 'N/A')}"
-        )
-
-    return "\n".join(lines)
+    """Format contacts search results."""
+    return format_section("contacts", contacts_data) if contacts_data else ""
 
 
 def format_groups_section(groups_data: dict | None) -> str:
@@ -348,60 +334,29 @@ def format_groups_section(groups_data: dict | None) -> str:
     if groups:
         lines = [f"=== ACCOUNT GROUPS ({len(groups)} groups) ==="]
         for g in groups[:10]:
-            lines.append(
-                f"- {g.get('name', 'N/A')} ({g.get('group_id', 'N/A')}): {g.get('description', '')}"
-            )
+            lines.append(f"- {g.get('name', 'N/A')} ({g.get('group_id', 'N/A')}): {g.get('description', '')}")
         return "\n".join(lines)
 
     return ""
 
 
 def format_attachments_section(attachments_data: dict | None) -> str:
-    """Format attachments search results for the prompt."""
-    if not attachments_data:
-        return ""
-
-    attachments = attachments_data.get("attachments", [])
-    if not attachments:
-        return "=== ATTACHMENTS ===\nNo attachments found matching the criteria."
-
-    count = attachments_data.get("count", len(attachments))
-    lines = [f"=== ATTACHMENTS ({count} found) ==="]
-
-    for a in attachments[:10]:
-        lines.append(
-            f"- {a.get('name', 'N/A')} ({a.get('file_type', 'N/A')}): "
-            f"{_truncate(a.get('description', ''), 80)} | Company: {a.get('company_id', 'N/A')}"
-        )
-
-    return "\n".join(lines)
+    """Format attachments search results."""
+    return format_section("attachments", attachments_data) if attachments_data else ""
 
 
 def format_docs_section(docs_answer: str) -> str:
     """Format docs RAG answer for the prompt."""
-    if not docs_answer:
-        return ""
-    return f"=== DOCUMENTATION GUIDANCE ===\n{docs_answer}"
+    return f"=== DOCUMENTATION GUIDANCE ===\n{docs_answer}" if docs_answer else ""
 
 
 def format_account_context_section(account_context: str) -> str:
     """Format account RAG context (notes, attachments) for the prompt."""
-    if not account_context:
-        return ""
-    return f"=== ACCOUNT CONTEXT (Notes & Attachments) ===\n{account_context}"
+    return f"=== ACCOUNT CONTEXT (Notes & Attachments) ===\n{account_context}" if account_context else ""
 
 
 def format_conversation_history_section(messages: list[dict] | None, max_messages: int = 4) -> str:
-    """
-    Format conversation history for the prompt.
-
-    Args:
-        messages: List of message dicts with 'role' and 'content'
-        max_messages: Maximum number of recent messages to include
-
-    Returns:
-        Formatted conversation history section
-    """
+    """Format conversation history for the prompt."""
     if not messages:
         return ""
 
@@ -413,7 +368,6 @@ def format_conversation_history_section(messages: list[dict] | None, max_message
     for msg in recent:
         role = "User" if msg.get("role") == "user" else "Assistant"
         content = msg.get("content", "")
-        # Truncate long messages
         if len(content) > 150:
             content = content[:150] + "..."
         lines.append(f"{role}: {content}")
@@ -423,6 +377,8 @@ def format_conversation_history_section(messages: list[dict] | None, max_message
 
 __all__ = [
     "SectionFormatter",
+    "FORMATTERS",
+    "format_section",
     "format_company_section",
     "format_activities_section",
     "format_history_section",

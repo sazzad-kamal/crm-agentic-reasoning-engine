@@ -17,7 +17,7 @@ from backend.agent.schemas import (
     RawData,
     MetaInfo,
 )
-from backend.agent.orchestrator import answer_question
+from backend.agent.graph import answer_question
 from backend.agent.streaming import stream_agent
 from backend.config import get_settings, Settings
 from backend.exceptions import AgentError, ValidationError

@@ -24,7 +24,7 @@ from backend.agent.config import (
     is_mock_mode,
 )
 from backend.agent.audit import AgentAuditLogger, AgentAuditEntry
-from backend.agent.orchestrator import AgentProgress
+from backend.agent.progress import AgentProgress
 
 
 # =============================================================================
@@ -254,7 +254,7 @@ class TestAgentIntegration:
     
     def test_agent_uses_progress_tracking(self):
         """Test that agent uses progress tracking."""
-        from backend.agent.orchestrator import answer_question
+        from backend.agent.graph import answer_question
         
         result = answer_question("Which accounts have renewals?")
         
@@ -270,7 +270,7 @@ class TestAgentIntegration:
     
     def test_agent_returns_meta_info(self):
         """Test that agent returns metadata."""
-        from backend.agent.orchestrator import answer_question
+        from backend.agent.graph import answer_question
         
         result = answer_question("Show me pipeline")
         
@@ -280,7 +280,7 @@ class TestAgentIntegration:
     
     def test_agent_handles_company_query(self):
         """Test agent handles company-specific queries."""
-        from backend.agent.orchestrator import answer_question
+        from backend.agent.graph import answer_question
         
         result = answer_question("What's happening with Acme Manufacturing?")
         
@@ -289,7 +289,7 @@ class TestAgentIntegration:
     
     def test_agent_handles_docs_query(self):
         """Test agent handles documentation queries."""
-        from backend.agent.orchestrator import answer_question
+        from backend.agent.graph import answer_question
         
         result = answer_question("How do I create an opportunity?", mode="docs")
         

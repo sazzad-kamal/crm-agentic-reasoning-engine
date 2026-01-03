@@ -1569,8 +1569,8 @@ class TestBaseEnsureQdrant:
             return mock_client
 
         # Patch the imports inside ensure_qdrant_collections
-        import backend.agent.rag
-        monkeypatch.setattr(backend.agent.rag, "get_qdrant_client", mock_get_client)
+        import backend.agent.rag.client
+        monkeypatch.setattr(backend.agent.rag.client, "get_qdrant_client", mock_get_client)
 
         from backend.agent.eval.base import ensure_qdrant_collections
 
@@ -1594,11 +1594,13 @@ class TestBaseEnsureQdrant:
         def mock_ingest_private():
             pass
 
-        import backend.agent.rag
-        monkeypatch.setattr(backend.agent.rag, "get_qdrant_client", mock_get_client)
-        monkeypatch.setattr(backend.agent.rag, "ingest_docs", mock_ingest_docs)
-        monkeypatch.setattr(backend.agent.rag, "ingest_private_texts", mock_ingest_private)
-        monkeypatch.setattr(backend.agent.rag, "QDRANT_PATH", tmp_path / "qdrant")
+        import backend.agent.rag.client
+        import backend.agent.rag.ingest
+        import backend.agent.rag.config
+        monkeypatch.setattr(backend.agent.rag.client, "get_qdrant_client", mock_get_client)
+        monkeypatch.setattr(backend.agent.rag.ingest, "ingest_docs", mock_ingest_docs)
+        monkeypatch.setattr(backend.agent.rag.ingest, "ingest_private_texts", mock_ingest_private)
+        monkeypatch.setattr(backend.agent.rag.config, "QDRANT_PATH", tmp_path / "qdrant")
 
         from backend.agent.eval.base import ensure_qdrant_collections
 

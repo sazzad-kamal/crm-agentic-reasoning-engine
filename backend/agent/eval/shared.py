@@ -516,6 +516,146 @@ def print_debug_failures(
         console.print("-" * 40)
 
 
+# =============================================================================
+# Generic Eval CLI Finalization
+# =============================================================================
+
+
+def finalize_eval_cli(
+    primary_score: float,
+    slo_checks: list[tuple[str, bool, str, str]],
+    baseline_path: Path,
+    score_key: str,
+    set_baseline: bool = False,
+    baseline_data: dict | None = None,
+    extra_failure_check: bool = False,
+    extra_failure_reason: str = "",
+) -> int:
+    """
+    Finalize evaluation CLI: handle baseline, SLOs, and exit code.
+
+    This is a shared helper for eval CLIs to avoid duplication.
+
+    Args:
+        primary_score: The primary score to compare against baseline
+        slo_checks: List of (name, passed, actual_value, target_value) tuples
+        baseline_path: Path to baseline JSON file
+        score_key: Key for score in baseline JSON
+        set_baseline: Whether to save current results as baseline
+        baseline_data: Data to save as baseline (required if set_baseline=True)
+        extra_failure_check: Additional failure condition (e.g., paths_failed > 0)
+        extra_failure_reason: Reason for extra failure
+
+    Returns:
+        Exit code (0 for success, 1 for failure)
+    """
+    # Baseline comparison
+    is_regression, baseline_score = compare_to_baseline(
+        primary_score,
+        baseline_path,
+        score_key=score_key,
+    )
+    print_baseline_comparison(primary_score, baseline_score, is_regression)
+
+    # Save as new baseline if requested
+    if set_baseline and baseline_data:
+        save_baseline(baseline_data, baseline_path)
+
+    # Check SLOs
+    failed_slos = get_failed_slos(slo_checks)
+    all_slos_passed = len(failed_slos) == 0
+    exit_code = determine_exit_code(all_slos_passed, is_regression)
+
+    # Include extra failure condition
+    if extra_failure_check:
+        exit_code = 1
+
+    # Build failure reasons
+    failure_reasons = []
+    if extra_failure_check and extra_failure_reason:
+        failure_reasons.append(extra_failure_reason)
+    if failed_slos:
+        failure_reasons.append(f"{len(failed_slos)} SLOs failed: {', '.join(failed_slos)}")
+    if is_regression:
+        failure_reasons.append("Regression detected vs baseline")
+
+    # Print overall result panel
+    console.print()
+    print_overall_result_panel(
+        all_passed=exit_code == 0,
+        failure_reasons=failure_reasons,
+        success_message=f"All {len(slo_checks)} SLOs met, no regression detected",
+    )
+
+    return exit_code
+
+
+def save_eval_results(
+    output_path: str,
+    summary: Any,
+    results: list[Any],
+    result_mapper: Callable[[Any], dict],
+) -> None:
+    """
+    Save evaluation results to JSON file.
+
+    Args:
+        output_path: Path to save JSON results
+        summary: Summary object (must have model_dump() or be dict)
+        results: List of result objects
+        result_mapper: Function to convert result object to dict
+    """
+    summary_dict = summary.model_dump() if hasattr(summary, "model_dump") else summary
+    output_data = {
+        "summary": summary_dict,
+        "results": [result_mapper(r) for r in results],
+    }
+    with open(output_path, "w") as f:
+        json.dump(output_data, f, indent=2)
+    console.print(f"[dim]Results saved to {output_path}[/dim]")
+
+
+# =============================================================================
+# Generic Eval Summary Table Builder
+# =============================================================================
+
+
+def build_eval_table(
+    title: str,
+    sections: list[tuple[str, list[tuple[str, str, str | None, bool | None]]]],
+) -> Table:
+    """
+    Build a standardized evaluation summary table.
+
+    Args:
+        title: Table title
+        sections: List of (section_name, rows) where rows are
+                  (label, value, slo_target, slo_passed)
+                  slo_target=None means "tracked", slo_passed=None means no status
+
+    Returns:
+        Rich Table
+    """
+    table = Table(title=title, show_header=True, header_style="bold cyan")
+    table.add_column("Metric", style="bold")
+    table.add_column("Value", justify="right")
+    table.add_column("SLO", justify="right", style="dim")
+    table.add_column("Status", justify="center")
+
+    for section_name, rows in sections:
+        if section_name:
+            table.add_row(f"[bold]{section_name}[/bold]", "", "", "")
+
+        for label, value, slo_target, slo_passed in rows:
+            slo_display = slo_target if slo_target else "[dim]tracked[/dim]"
+            status = format_check_mark(slo_passed) if slo_passed is not None else ""
+            table.add_row(label, value, slo_display, status)
+
+        table.add_row("", "", "", "")  # Spacer
+
+    return table
+
+
 __all__ = [
     "console",
     "create_summary_table",
@@ -540,4 +680,8 @@ __all__ = [
     "determine_exit_code",
     "print_overall_result_panel",
     "print_debug_failures",
+    # Generic eval CLI utilities
+    "finalize_eval_cli",
+    "save_eval_results",
+    "build_eval_table",
 ]

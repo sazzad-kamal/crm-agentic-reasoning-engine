@@ -814,7 +814,7 @@ class TestFormatCompaniesListSection:
         }
         result = format_company_section(data)
         assert "COMPANY SEARCH RESULTS" in result
-        assert "2 found" in result
+        assert "(2)" in result or "2 found" in result
         assert "Acme" in result
         assert "Beta Inc" in result
 
@@ -827,9 +827,9 @@ class TestFormatCompaniesListSection:
         assert result == ""
 
     def test_format_companies_list_helper_handles_empty(self):
-        """The _format_companies_list helper handles empty list."""
-        from backend.agent.formatters import _format_companies_list
-        result = _format_companies_list([], 0)
+        """The format_section helper handles empty list via companies formatter."""
+        from backend.agent.formatters import format_section
+        result = format_section("companies", {"companies": [], "count": 0})
         assert "No companies found" in result
 
 
@@ -859,7 +859,7 @@ class TestFormatContactsSection:
         }
         result = format_contacts_section(data)
         assert "CONTACTS" in result
-        assert "1 found" in result
+        assert "(1)" in result or "1 found" in result
         assert "John Doe" in result
         assert "CEO" in result
         assert "Decision Maker" in result
@@ -935,7 +935,7 @@ class TestFormatAttachmentsSection:
         }
         result = format_attachments_section(data)
         assert "ATTACHMENTS" in result
-        assert "1 found" in result
+        assert "(1)" in result or "1 found" in result
         assert "Contract.pdf" in result
         assert "PDF" in result
 

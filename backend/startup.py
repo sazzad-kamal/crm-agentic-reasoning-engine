@@ -50,13 +50,8 @@ def ensure_rag_collections_exist() -> None:
     This runs at startup to auto-ingest data if collections don't exist.
     """
     from qdrant_client import QdrantClient
-    from backend.agent.rag import (
-        QDRANT_PATH,
-        DOCS_COLLECTION,
-        PRIVATE_COLLECTION,
-        ingest_docs,
-        ingest_private_texts,
-    )
+    from backend.agent.rag.config import QDRANT_PATH, DOCS_COLLECTION, PRIVATE_COLLECTION
+    from backend.agent.rag.ingest import ingest_docs, ingest_private_texts
 
     qdrant = QdrantClient(path=str(QDRANT_PATH))
 

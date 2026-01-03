@@ -57,8 +57,8 @@ class TestEnsureRagCollections:
     """Tests for ensure_rag_collections_exist function."""
 
     @patch("qdrant_client.QdrantClient")
-    @patch("backend.agent.rag.ingest_docs")
-    @patch("backend.agent.rag.ingest_private_texts")
+    @patch("backend.agent.rag.ingest.ingest_docs")
+    @patch("backend.agent.rag.ingest.ingest_private_texts")
     def test_creates_docs_collection_when_missing(
         self, mock_ingest_private, mock_ingest_docs, mock_qdrant_class
     ):
@@ -78,8 +78,8 @@ class TestEnsureRagCollections:
         mock_ingest_docs.assert_called_once()
 
     @patch("qdrant_client.QdrantClient")
-    @patch("backend.agent.rag.ingest_docs")
-    @patch("backend.agent.rag.ingest_private_texts")
+    @patch("backend.agent.rag.ingest.ingest_docs")
+    @patch("backend.agent.rag.ingest.ingest_private_texts")
     def test_creates_private_collection_when_missing(
         self, mock_ingest_private, mock_ingest_docs, mock_qdrant_class
     ):
@@ -99,8 +99,8 @@ class TestEnsureRagCollections:
         mock_ingest_private.assert_called_once()
 
     @patch("qdrant_client.QdrantClient")
-    @patch("backend.agent.rag.ingest_docs")
-    @patch("backend.agent.rag.ingest_private_texts")
+    @patch("backend.agent.rag.ingest.ingest_docs")
+    @patch("backend.agent.rag.ingest.ingest_private_texts")
     def test_ingests_when_docs_collection_empty(
         self, mock_ingest_private, mock_ingest_docs, mock_qdrant_class
     ):
@@ -127,8 +127,8 @@ class TestEnsureRagCollections:
         mock_ingest_docs.assert_called_once()
 
     @patch("qdrant_client.QdrantClient")
-    @patch("backend.agent.rag.ingest_docs")
-    @patch("backend.agent.rag.ingest_private_texts")
+    @patch("backend.agent.rag.ingest.ingest_docs")
+    @patch("backend.agent.rag.ingest.ingest_private_texts")
     def test_ingests_when_private_collection_empty(
         self, mock_ingest_private, mock_ingest_docs, mock_qdrant_class
     ):
@@ -155,8 +155,8 @@ class TestEnsureRagCollections:
         mock_ingest_private.assert_called_once()
 
     @patch("qdrant_client.QdrantClient")
-    @patch("backend.agent.rag.ingest_docs")
-    @patch("backend.agent.rag.ingest_private_texts")
+    @patch("backend.agent.rag.ingest.ingest_docs")
+    @patch("backend.agent.rag.ingest.ingest_private_texts")
     def test_skips_ingestion_when_collections_have_data(
         self, mock_ingest_private, mock_ingest_docs, mock_qdrant_class
     ):

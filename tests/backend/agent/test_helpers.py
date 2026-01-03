@@ -248,14 +248,14 @@ class TestAgentProgress:
     
     def test_starts_with_empty_steps(self):
         """Starts with no steps."""
-        from backend.agent.progress import AgentProgress
+        from backend.agent.state import AgentProgress
         
         progress = AgentProgress()
         assert progress.steps == []
     
     def test_add_step(self):
         """Can add a step."""
-        from backend.agent.progress import AgentProgress
+        from backend.agent.state import AgentProgress
         
         progress = AgentProgress()
         progress.add_step("route", "Analyzing question", "done")
@@ -267,7 +267,7 @@ class TestAgentProgress:
     
     def test_add_multiple_steps(self):
         """Can add multiple steps."""
-        from backend.agent.progress import AgentProgress
+        from backend.agent.state import AgentProgress
         
         progress = AgentProgress()
         progress.add_step("step1", "First step")
@@ -278,7 +278,7 @@ class TestAgentProgress:
     
     def test_default_status_is_done(self):
         """Default status is 'done'."""
-        from backend.agent.progress import AgentProgress
+        from backend.agent.state import AgentProgress
         
         progress = AgentProgress()
         progress.add_step("test", "Test step")
@@ -287,7 +287,7 @@ class TestAgentProgress:
     
     def test_get_elapsed_ms(self):
         """Tracks elapsed time."""
-        from backend.agent.progress import AgentProgress
+        from backend.agent.state import AgentProgress
         
         progress = AgentProgress()
         time.sleep(0.05)  # 50ms
@@ -298,7 +298,7 @@ class TestAgentProgress:
     
     def test_to_list(self):
         """Converts steps to list of dicts."""
-        from backend.agent.progress import AgentProgress
+        from backend.agent.state import AgentProgress
         
         progress = AgentProgress()
         progress.add_step("s1", "Step 1", "done")

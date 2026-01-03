@@ -10,8 +10,6 @@ import pytest
 
 from backend.agent.state import AgentState, Message
 from backend.agent.memory import (
-    add_message,
-    get_conversation_history,
     clear_session,
     _memory_store,
 )
@@ -140,85 +138,23 @@ class TestFormatConversationHistorySection:
         assert "Question 6" not in result
 
 
-class TestConversationHistoryFlow:
-    """Integration tests for conversation history in the pipeline."""
+class TestClearSession:
+    """Tests for clear_session function."""
 
-    def test_session_persistence(self):
-        """Test that messages persist across calls for same session."""
-        session_id = "test_persistence"
-
-        # Simulate first turn
-        add_message(session_id, "user", "Tell me about Acme", None)
-        add_message(session_id, "assistant", "Acme is a manufacturing company", "ACME-MFG")
-
-        # Verify history is available for second turn
-        history = get_conversation_history(session_id)
-        assert len(history) == 2
-        assert history[0]["content"] == "Tell me about Acme"
-        assert history[1]["company_id"] == "ACME-MFG"
-
-        # Simulate second turn
-        add_message(session_id, "user", "What about their contacts?", None)
-        add_message(session_id, "assistant", "Here are the contacts...", "ACME-MFG")
-
-        # Full history should be available
-        history = get_conversation_history(session_id)
-        assert len(history) == 4
-
-    def test_session_isolation(self):
-        """Test that different sessions are isolated."""
-        add_message("session_a", "user", "About Acme", None)
-        add_message("session_a", "assistant", "Acme info", "ACME-MFG")
-
-        add_message("session_b", "user", "About Beta", None)
-        add_message("session_b", "assistant", "Beta info", "BETA-TECH")
-
-        history_a = get_conversation_history("session_a")
-        history_b = get_conversation_history("session_b")
-
-        assert len(history_a) == 2
-        assert len(history_b) == 2
-        assert history_a[1]["company_id"] == "ACME-MFG"
-        assert history_b[1]["company_id"] == "BETA-TECH"
-
-    def test_clear_session_between_eval_runs(self):
-        """Test that sessions can be cleared for fresh eval runs."""
-        session_id = "eval_session_1"
-
-        # Add some history
-        add_message(session_id, "user", "Old question", None)
-        add_message(session_id, "assistant", "Old answer", None)
-        assert len(get_conversation_history(session_id)) == 2
-
-        # Clear for fresh run
+    def test_clear_session(self):
+        """Test clearing a session removes stored data."""
+        session_id = "test_clear"
+        _memory_store[session_id] = [{"role": "user", "content": "test", "company_id": None}]
+        
         clear_session(session_id)
-        assert len(get_conversation_history(session_id)) == 0
+        
+        assert session_id not in _memory_store
 
-        # New history should start fresh
-        add_message(session_id, "user", "New question", None)
-        history = get_conversation_history(session_id)
-        assert len(history) == 1
-        assert history[0]["content"] == "New question"
+    def test_clear_nonexistent_session(self):
+        """Test clearing a non-existent session is safe."""
+        clear_session("nonexistent")  # Should not raise
 
-
-class TestPronounResolutionContext:
-    """Tests for pronoun resolution via conversation history."""
-
-    def test_company_context_for_pronoun_resolution(self):
-        """Test that company context is available for pronoun resolution."""
-        session_id = "pronoun_test"
-
-        # First turn establishes context
-        add_message(session_id, "user", "Tell me about Acme Manufacturing", None)
-        add_message(session_id, "assistant", "Acme Manufacturing is...", "ACME-MFG")
-
-        # Get history for pronoun resolution
-        history = get_conversation_history(session_id)
-        formatted = format_conversation_history_section(history)
-
-        # The formatted history should contain the company context
-        # which the router can use to resolve "their" in "What about their contacts?"
-        assert "Acme Manufacturing" in formatted
-        assert "User:" in formatted
-        assert "Assistant:" in formatted
+    def test_clear_none_session(self):
+        """Test clearing None session is safe."""
+        clear_session(None)  # Should not raise
 

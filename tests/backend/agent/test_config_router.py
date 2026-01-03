@@ -24,7 +24,7 @@ from backend.agent.config import (
     is_mock_mode,
 )
 from backend.agent.audit import AgentAuditLogger, AgentAuditEntry
-from backend.agent.progress import AgentProgress
+from backend.agent.state import AgentProgress
 
 
 # =============================================================================

@@ -104,7 +104,7 @@ class AgentAuditLogger:
 
         try:
             with open(self.log_file, "a", encoding="utf-8") as f:
-                f.write(json.dumps(entry.to_dict()) + "\n")
+                f.write(f"{json.dumps(entry.to_dict())}\n")
             logger.debug(f"Audit entry logged: mode={mode_used}, latency={latency_ms}ms")
         except Exception as e:
             logger.warning(f"Failed to write audit log: {e}")

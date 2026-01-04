@@ -61,7 +61,7 @@ def format_history_for_prompt(
         content = msg["content"]
         # Truncate long messages
         if len(content) > 200:
-            content = content[:200] + "..."
+            content = f"{content[:200]}..."
         lines.append(f"{role}: {content}")
 
     return "\n".join(lines)

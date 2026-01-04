@@ -102,7 +102,7 @@ def add_to_agent_history(
         "total_tests": summary.total_tests,
         "p95_slo_pass": p95_slo_pass,
         "avg_slo_pass": avg_slo_pass,
-        "all_slos_passed": len(failed_slos) == 0,
+        "all_slos_passed": not failed_slos,
         "failed_slos": failed_slos,
     }
 

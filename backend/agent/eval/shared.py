@@ -136,7 +136,7 @@ def finalize_eval_cli(
         save_baseline(baseline_data, baseline_path)
 
     failed_slos = get_failed_slos(slo_checks)
-    all_slos_passed = len(failed_slos) == 0
+    all_slos_passed = not failed_slos
     exit_code = determine_exit_code(all_slos_passed, is_regression)
 
     if extra_failure_check:

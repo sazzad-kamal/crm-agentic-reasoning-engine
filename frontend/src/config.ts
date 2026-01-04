@@ -44,16 +44,15 @@ export const endpoints = {
   chat: `${config.apiUrl}/api/chat`,
   chatStream: `${config.apiUrl}/api/chat/stream`,
   health: `${config.apiUrl}/api/health`,
-  starterQuestions: `${config.apiUrl}/api/starter-questions`,
+  starterQuestions: `${config.apiUrl}/api/data/starter-questions`,
 } as const;
 
 /**
- * Example prompts shown to new users
+ * Example prompts shown to new users (fallback if API unavailable).
+ * Should match the starters in backend/agent/data/question_tree.json
  */
 export const EXAMPLE_PROMPTS = [
-  "What's going on with Acme Manufacturing in the last 90 days?",
-  "Which opportunities are close to renewing this month?",
-  "Summarize recent activity for my largest accounts.",
-  "Show me the pipeline for TechCorp",
-  "What renewals are coming up in the next 30 days?",
+  "How's my pipeline?",
+  "Any renewals at risk?",
+  "How's the team doing?",
 ] as const;

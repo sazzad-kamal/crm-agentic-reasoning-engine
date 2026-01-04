@@ -40,9 +40,10 @@ export const StepPill = memo(function StepPill({ step, index = 0 }: StepPillProp
       className={`chip step-pill step-pill--${step.status}`}
       role="listitem"
       aria-label={`${step.label}: ${statusLabel}`}
+      data-status={step.status}
       style={{ animationDelay }}
     >
-      <span aria-hidden="true">{icon}</span> {step.label}
+      <span className="step-pill__icon" aria-hidden="true">{icon}</span> {step.label}
     </span>
   );
 });

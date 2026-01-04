@@ -41,7 +41,7 @@ export default function App() {
   );
 
   // Chat hook with streaming
-  const { messages, isLoading, isStreaming, error, currentStatus, sendMessage, clearError } = useChatStream(chatOptions);
+  const { messages, isLoading, isStreaming, error, currentStatus, currentSteps, sendMessage, clearError } = useChatStream(chatOptions);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -162,6 +162,7 @@ export default function App() {
             onSuggestionClick={handleSuggestionClick}
             onFollowUpClick={handleFollowUpClick}
             streamingStatus={isStreaming ? currentStatus : null}
+            streamingSteps={isStreaming ? currentSteps : []}
           />
 
           {/* Error Banner */}

@@ -56,12 +56,12 @@ describe("ChatArea", () => {
     render(<ChatArea {...defaultProps} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/What's going on with Acme Manufacturing/)).toBeInTheDocument();
+      expect(screen.getByText(/How's my pipeline/)).toBeInTheDocument();
     });
-    expect(screen.getByText(/Which opportunities are close to renewing/)).toBeInTheDocument();
+    expect(screen.getByText(/Any renewals at risk/)).toBeInTheDocument();
   });
 
-  it("renders all 5 example prompts", async () => {
+  it("renders all 3 example prompts", async () => {
     render(<ChatArea {...defaultProps} />);
 
     await waitFor(() => {
@@ -70,7 +70,7 @@ describe("ChatArea", () => {
       const suggestionButtons = buttons.filter((btn) =>
         btn.className.includes("suggestion-btn")
       );
-      expect(suggestionButtons.length).toBe(5);
+      expect(suggestionButtons.length).toBe(3);
     });
   });
 
@@ -79,11 +79,11 @@ describe("ChatArea", () => {
 
     render(<ChatArea {...defaultProps} onSuggestionClick={handleSuggestionClick} />);
 
-    const button = await waitFor(() => screen.getByText(/What's going on with Acme Manufacturing/));
+    const button = await waitFor(() => screen.getByText(/How's my pipeline/));
     fireEvent.click(button);
 
     expect(handleSuggestionClick).toHaveBeenCalledWith(
-      "What's going on with Acme Manufacturing in the last 90 days?"
+      "How's my pipeline?"
     );
   });
 
@@ -301,7 +301,7 @@ describe("ChatArea", () => {
     render(<ChatArea {...defaultProps} />);
 
     const firstPrompt = await waitFor(() => screen.getByLabelText(
-      /Ask: What's going on with Acme Manufacturing/
+      /Ask: How's my pipeline/
     ));
     expect(firstPrompt).toBeInTheDocument();
   });

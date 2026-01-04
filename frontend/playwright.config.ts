@@ -41,18 +41,14 @@ export default defineConfig({
     {
       command: 'npm run dev',
       url: 'http://localhost:5173',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true,
       timeout: 120000,
     },
     {
-      command: 'cd .. && .venv\\Scripts\\python.exe -m uvicorn backend.main:app --port 8000',
+      command: 'cd .. && set "PYTHONPATH=." && set "MOCK_LLM=1" && set "ACME_RATE_LIMIT_ENABLED=false" && python -m uvicorn backend.main:app --port 8000',
       url: 'http://localhost:8000/api/health',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true,
       timeout: 120000,
-      env: {
-        MOCK_LLM: '1',
-        ACME_RATE_LIMIT_ENABLED: 'false',
-      },
     },
   ],
 });

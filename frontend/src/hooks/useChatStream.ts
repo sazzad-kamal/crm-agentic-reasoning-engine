@@ -23,6 +23,7 @@ interface UseChatStreamReturn {
   isStreaming: boolean;
   error: string | null;
   currentStatus: string | null;
+  currentSteps: Step[];
   sendMessage: (question: string, options?: Partial<ChatRequest>) => Promise<void>;
   clearMessages: () => void;
   clearError: () => void;
@@ -75,6 +76,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentStatus, setCurrentStatus] = useState<string | null>(null);
+  const [currentSteps, setCurrentSteps] = useState<Step[]>([]);
   
   const abortControllerRef = useRef<AbortController | null>(null);
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
@@ -93,6 +95,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
     setIsStreaming(false);
     setIsLoading(false);
     setCurrentStatus(null);
+    setCurrentSteps([]);
   }, []);
 
   const sendMessage = useCallback(
@@ -109,6 +112,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
       setIsLoading(true);
       setIsStreaming(true);
       setCurrentStatus("Starting...");
+      setCurrentSteps([]);
 
       const messageId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
       
@@ -200,14 +204,24 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
                 options.onStatusUpdate?.(event.data.message as string);
                 break;
                 
-              case "step":
-                accumulatedSteps.push(event.data as unknown as Step);
+              case "step": {
+                const step = event.data as unknown as Step;
+                // Update existing step or add new one
+                const existingIndex = accumulatedSteps.findIndex(s => s.id === step.id);
+                if (existingIndex >= 0) {
+                  accumulatedSteps[existingIndex] = step;
+                } else {
+                  accumulatedSteps.push(step);
+                }
+                setCurrentSteps([...accumulatedSteps]);
                 updateMessageResponse();
                 break;
+              }
                 
               case "sources": {
                 const newSources = (event.data.sources as Source[]) || [];
                 accumulatedSources = [...accumulatedSources, ...newSources];
+                updateMessageResponse();
                 break;
               }
                 
@@ -274,6 +288,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
     setMessages([]);
     setError(null);
     setCurrentStatus(null);
+    setCurrentSteps([]);
   }, []);
 
   const clearError = useCallback(() => {
@@ -286,6 +301,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
     isStreaming,
     error,
     currentStatus,
+    currentSteps,
     sendMessage,
     clearMessages,
     clearError,

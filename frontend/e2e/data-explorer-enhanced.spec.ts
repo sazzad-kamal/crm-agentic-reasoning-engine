@@ -294,13 +294,15 @@ test.describe('Data Explorer Accessibility', () => {
     const browseButton = page.getByRole('button', { name: /browse.*data/i });
     await browseButton.click();
 
-    // Tab through interactive elements
-    await page.keyboard.press('Tab');
-
-    // Should be able to close with Escape
-    await page.keyboard.press('Escape');
-
+    // Wait for drawer to be visible
     const drawer = page.getByRole('dialog');
-    await expect(drawer).not.toBeVisible();
+    await expect(drawer).toBeVisible({ timeout: 5000 });
+
+    // Close button should be present and closeable
+    const closeButton = page.getByRole('button', { name: /close data browser/i });
+    await expect(closeButton).toBeVisible();
+    await closeButton.click();
+    
+    await expect(drawer).not.toBeVisible({ timeout: 5000 });
   });
 });

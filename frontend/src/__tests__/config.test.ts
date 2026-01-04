@@ -113,8 +113,8 @@ describe("config", () => {
     expect(Array.isArray(EXAMPLE_PROMPTS)).toBe(true);
   });
 
-  it("has 5 example prompts", () => {
-    expect(EXAMPLE_PROMPTS).toHaveLength(5);
+  it("has 3 example prompts", () => {
+    expect(EXAMPLE_PROMPTS).toHaveLength(3);
   });
 
   it("all example prompts are non-empty strings", () => {
@@ -125,15 +125,9 @@ describe("config", () => {
   });
 
   it("has expected example prompts", () => {
-    expect(EXAMPLE_PROMPTS).toContain(
-      "What's going on with Acme Manufacturing in the last 90 days?"
-    );
-    expect(EXAMPLE_PROMPTS).toContain(
-      "Which opportunities are close to renewing this month?"
-    );
-    expect(EXAMPLE_PROMPTS).toContain("Summarize recent activity for my largest accounts.");
-    expect(EXAMPLE_PROMPTS).toContain("Show me the pipeline for TechCorp");
-    expect(EXAMPLE_PROMPTS).toContain("What renewals are coming up in the next 30 days?");
+    expect(EXAMPLE_PROMPTS).toContain("How's my pipeline?");
+    expect(EXAMPLE_PROMPTS).toContain("Any renewals at risk?");
+    expect(EXAMPLE_PROMPTS).toContain("How's the team doing?");
   });
 
   it("all example prompts are unique", () => {

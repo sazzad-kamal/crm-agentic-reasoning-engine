@@ -442,7 +442,8 @@ body {
   box-shadow: -8px 0 32px rgba(0, 0, 0, 0.2);
   z-index: var(--z-modal);
   transform: translateX(100%);
-  transition: transform var(--transition-slow);
+  transition: transform var(--transition-slow), visibility 0s var(--transition-slow);
+  visibility: hidden;
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--color-border);
@@ -450,6 +451,8 @@ body {
 
 .drawer--open {
   transform: translateX(0);
+  visibility: visible;
+  transition: transform var(--transition-slow), visibility 0s 0s;
 }
 
 .drawer__header {

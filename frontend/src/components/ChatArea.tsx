@@ -1,7 +1,8 @@
 import type { Ref } from "react";
 import { useId, useState, useEffect } from "react";
-import type { ChatMessage } from "../types";
+import type { ChatMessage, Step } from "../types";
 import { MessageBlock } from "./MessageBlock";
+import { StepsRow } from "./StepPill";
 import { EXAMPLE_PROMPTS, endpoints } from "../config";
 
 interface ChatAreaProps {
@@ -9,6 +10,7 @@ interface ChatAreaProps {
   onSuggestionClick: (prompt: string) => void;
   onFollowUpClick: (question: string) => void;
   streamingStatus?: string | null;
+  streamingSteps?: Step[];
   /** Ref for scroll management (React 19 - ref as prop) */
   ref?: Ref<HTMLDivElement>;
 }
@@ -22,6 +24,7 @@ export function ChatArea({
   onSuggestionClick,
   onFollowUpClick,
   streamingStatus,
+  streamingSteps = [],
   ref,
 }: ChatAreaProps) {
   const isEmpty = messages.length === 0;
@@ -45,6 +48,10 @@ export function ChatArea({
               onFollowUpClick={onFollowUpClick}
             />
           ))}
+          {/* Step progress pills during streaming */}
+          {streamingSteps.length > 0 && (
+            <StepsRow steps={streamingSteps} />
+          )}
           {/* Streaming status indicator */}
           {streamingStatus && (
             <div className="streaming-status" role="status" aria-live="polite">
@@ -65,7 +72,7 @@ interface EmptyStateProps {
 /**
  * Empty state with illustration and example prompts.
  * Uses useId for unique, accessible label IDs.
- * Fetches dynamic starter questions from the backend.
+ * Fetches dynamic starter questions from the question tree.
  */
 function EmptyState({ onSuggestionClick }: EmptyStateProps) {
   const suggestionsLabelId = useId();
@@ -73,7 +80,7 @@ function EmptyState({ onSuggestionClick }: EmptyStateProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch dynamic starter questions from backend
+    // Fetch starter questions from question tree
     const fetchStarterQuestions = async () => {
       try {
         const response = await fetch(endpoints.starterQuestions);

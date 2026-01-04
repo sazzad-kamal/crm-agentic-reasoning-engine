@@ -30,7 +30,7 @@ app = typer.Typer()
 
 # Use absolute path for baseline
 _BACKEND_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
-BASELINE_PATH = _BACKEND_ROOT / "data" / "processed" / "flow_eval_baseline.json"
+BASELINE_PATH = _BACKEND_ROOT / "agent" / "eval" / "output" / "flow_eval_baseline.json"
 
 
 async def _run_eval_async(

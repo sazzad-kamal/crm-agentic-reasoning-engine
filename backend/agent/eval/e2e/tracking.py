@@ -28,7 +28,7 @@ from backend.agent.eval.base import console
 # Paths
 # =============================================================================
 
-DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "processed"
+DATA_DIR = Path(__file__).parent.parent / "output"
 PREVIOUS_RESULTS_PATH = DATA_DIR / "agent_eval_results_previous.json"
 
 

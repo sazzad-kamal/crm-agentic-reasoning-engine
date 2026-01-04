@@ -27,7 +27,7 @@ from backend.agent.eval.base import console
 # Configuration
 # =============================================================================
 
-DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "processed"
+DATA_DIR = Path(__file__).parent.parent / "output"
 HISTORY_FILE = DATA_DIR / "agent_eval_history.json"
 MAX_HISTORY_ENTRIES = 20
 

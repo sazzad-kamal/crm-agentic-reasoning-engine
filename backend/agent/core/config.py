@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # backend/agent/core/config.py -> core -> agent -> backend
 _BACKEND_ROOT = Path(__file__).parent.parent.parent.resolve()
 _DEFAULT_CSV_DIR = _BACKEND_ROOT / "data" / "csv"
-_DEFAULT_AUDIT_LOG = _BACKEND_ROOT / "data" / "logs" / "agent_audit.jsonl"
+_DEFAULT_AUDIT_LOG = _BACKEND_ROOT / "agent" / "eval" / "output" / "audit.jsonl"
 
 
 class AgentConfig(BaseSettings):

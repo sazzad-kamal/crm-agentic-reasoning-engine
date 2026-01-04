@@ -31,9 +31,8 @@ Thumbs.db
 # Generated data (can be recreated by running scripts)
 data/processed/
 data/qdrant/
-backend/data/processed/
 backend/data/qdrant/
-backend/data/logs/
+backend/agent/eval/output/
 
 # Test artifacts
 .pytest_cache/

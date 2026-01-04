@@ -27,7 +27,7 @@ app = typer.Typer()
 
 # Use absolute path for baseline
 _BACKEND_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
-BASELINE_PATH = _BACKEND_ROOT / "data" / "processed" / "e2e_eval_baseline.json"
+BASELINE_PATH = _BACKEND_ROOT / "agent" / "eval" / "output" / "e2e_eval_baseline.json"
 
 
 @app.command()

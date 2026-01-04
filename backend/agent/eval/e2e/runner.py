@@ -12,7 +12,7 @@ from backend.agent.eval.base import console, print_eval_header
 from backend.agent.eval.parallel import run_parallel_evaluation, calculate_p95_latency
 from backend.agent.eval.shared import run_llm_judge
 from backend.agent.eval.models import E2EEvalResult, E2EEvalSummary
-from backend.agent.eval.test_cases import E2E_TEST_CASES
+from backend.agent.eval.e2e.test_cases import E2E_TEST_CASES
 from backend.agent.eval.prompts import E2E_JUDGE_SYSTEM, E2E_JUDGE_PROMPT
 from backend.agent.session.memory import clear_session
 

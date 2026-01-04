@@ -28,7 +28,7 @@ from backend.agent.eval.base import console
 # Paths
 # =============================================================================
 
-DATA_DIR = Path(__file__).parent.parent.parent / "data" / "processed"
+DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "processed"
 PREVIOUS_RESULTS_PATH = DATA_DIR / "agent_eval_results_previous.json"
 
 
@@ -374,7 +374,7 @@ def print_e2e_tracking_report(
     print_e2e_budget_report(results)
 
     # 3. Add to history and show trends
-    from backend.agent.eval.history import add_to_agent_history, print_agent_trend_report
+    from backend.agent.eval.e2e.history import add_to_agent_history, print_agent_trend_report
 
     add_to_agent_history(summary)
     print_agent_trend_report(num_runs=5)

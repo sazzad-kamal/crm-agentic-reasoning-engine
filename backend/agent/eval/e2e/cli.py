@@ -19,7 +19,7 @@ from backend.agent.eval.models import (
     SLO_ANSWER_RELEVANCE,
     SLO_GROUNDEDNESS,
 )
-from backend.agent.eval.tracking import print_e2e_tracking_report
+from backend.agent.eval.e2e.tracking import print_e2e_tracking_report
 from backend.agent.eval.e2e.runner import run_e2e_eval
 from backend.agent.eval.e2e.output import print_e2e_eval_results
 

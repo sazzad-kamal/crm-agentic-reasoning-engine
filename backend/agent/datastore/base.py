@@ -1,5 +1,5 @@
 """
-CRM Data Store core functionality.
+CRM Data Store base functionality.
 
 Provides base class with DuckDB connection, table loading, and query helpers.
 """
@@ -55,9 +55,9 @@ def get_csv_base_path() -> Path:
 # =============================================================================
 
 
-class CRMDataStoreCore:
+class CRMDataStoreBase:
     """
-    DuckDB-based CRM data store core with lazy loading.
+    DuckDB-based CRM data store base with lazy loading.
 
     Provides connection management, table loading, and query helpers.
     Extended by domain-specific mixins.
@@ -70,7 +70,7 @@ class CRMDataStoreCore:
         self._company_names_cache: dict[str, str] | None = None
         self._company_ids_cache: set[str] | None = None
 
-    def __enter__(self) -> "CRMDataStoreCore":
+    def __enter__(self) -> "CRMDataStoreBase":
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> bool:

@@ -5,7 +5,7 @@ E2E latency profiler for agent queries.
 Runs sample queries and breaks down latency by step.
 
 Usage:
-    python -m backend.agent.eval.profile
+    python -m backend.agent.eval.e2e.profile
 """
 
 import os
@@ -15,12 +15,12 @@ import logging
 from pathlib import Path
 
 # Add parent to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 # Load .env from project root
 from dotenv import load_dotenv
 
-project_root = Path(__file__).parent.parent.parent
+project_root = Path(__file__).parent.parent.parent.parent
 load_dotenv(project_root / ".env")
 
 from backend.agent.graph import run_agent
@@ -133,7 +133,7 @@ def main():
             result = run_profiled_query(question, expected_mode)
             results.append(result)
         except Exception as e:
-            print(f"   ❌ ERROR: {e}")
+            print(f"   ERROR: {e}")
             results.append({"question": question, "error": str(e)})
 
     # Summary

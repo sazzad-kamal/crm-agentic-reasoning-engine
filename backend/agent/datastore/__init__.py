@@ -4,8 +4,8 @@ CRM Data Store package.
 Provides DuckDB-based CRM data access with lazy loading.
 """
 
-from backend.agent.datastore.core import (
-    CRMDataStoreCore,
+from backend.agent.datastore.base import (
+    CRMDataStoreBase,
     get_csv_base_path,
     _get_datastore_instance,
     CSV_TABLES,
@@ -24,7 +24,7 @@ class CRMDataStore(
     PipelineMixin,
     ActivityMixin,
     AnalyticsMixin,
-    CRMDataStoreCore,
+    CRMDataStoreBase,
 ):
     """
     DuckDB-based CRM data store with lazy loading.

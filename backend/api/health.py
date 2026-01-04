@@ -10,13 +10,11 @@ router = APIRouter()
 
 class HealthResponse(BaseModel):
     status: str
-    version: str
     services: dict[str, str] = {}
 
 
 class SystemInfo(BaseModel):
     app_name: str
-    version: str
     debug: bool
     cors_origins: list[str]
 
@@ -26,7 +24,6 @@ async def health_check(settings: Settings = Depends(get_settings)) -> HealthResp
     """Check if the API and dependent services are healthy."""
     return HealthResponse(
         status="ok",
-        version=settings.app_version,
         services={"api": "healthy", "agent": "healthy", "data": "healthy"},
     )
 
@@ -36,7 +33,6 @@ async def system_info(settings: Settings = Depends(get_settings)) -> SystemInfo:
     """Get information about the API configuration."""
     return SystemInfo(
         app_name=settings.app_name,
-        version=settings.app_version,
         debug=settings.debug,
-        cors_origins=settings.cors_origins_list,
+        cors_origins=settings.cors_origins,
     )

@@ -56,7 +56,7 @@ def _ensure_rag_collections() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    logger.info(f"Starting {settings.app_name} v{settings.app_version}")
+    logger.info(f"Starting {settings.app_name}")
     _ensure_rag_collections()
     yield
     logger.info("Shutting down...")
@@ -84,13 +84,12 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
         description="Talk to your CRM data using natural language.",
-        version=settings.app_version,
         lifespan=lifespan,
     )
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins_list,
+        allow_origins=settings.cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

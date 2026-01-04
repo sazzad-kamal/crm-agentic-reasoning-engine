@@ -43,11 +43,7 @@ from backend.core.config import get_settings
 from backend.api.chat import router as chat_router
 from backend.api.health import router as health_router
 from backend.api.data import router as data_router
-from backend.core.middleware import (
-    RequestLoggingMiddleware,
-    CacheControlMiddleware,
-    RateLimitMiddleware,
-)
+from backend.core.middleware import RequestLoggingMiddleware
 from backend.core.exceptions import APIError, ErrorResponse
 from backend.core.lifespan import setup_logging, lifespan
 
@@ -106,16 +102,9 @@ Talk to your CRM data using natural language.
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        expose_headers=[
-            "X-Request-ID",
-            "X-Response-Time",
-            "X-RateLimit-Limit",
-            "X-RateLimit-Remaining",
-        ],
+        expose_headers=["X-Request-ID", "X-Response-Time"],
     )
 
-    app.add_middleware(CacheControlMiddleware)
-    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
 
     # ==========================================================================

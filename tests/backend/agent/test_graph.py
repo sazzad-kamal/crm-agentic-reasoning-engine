@@ -14,7 +14,6 @@ os.environ["MOCK_LLM"] = "1"
 from backend.agent.graph import (
     build_agent_graph,
     run_agent,
-    answer_question,
     get_graph_mermaid,
 )
 from backend.agent.core.state import AgentState
@@ -147,46 +146,6 @@ class TestRunAgent:
 
         call_args = mock_graph.invoke.call_args[0][0]
         assert call_args["company_id"] == "ACME-MFG"
-
-
-class TestAnswerQuestionWrapper:
-    """Tests for answer_question backwards compatibility wrapper."""
-
-    @patch("backend.agent.graph.run_agent")
-    def test_answer_question_calls_run_agent(self, mock_run):
-        """Test that answer_question delegates to run_agent."""
-        mock_run.return_value = {"answer": "Test"}
-
-        result = answer_question("Test question", mode="docs")
-
-        mock_run.assert_called_once_with(
-            question="Test question",
-            mode="docs",
-            company_id=None,
-            session_id=None,
-            user_id=None,
-        )
-
-    @patch("backend.agent.graph.run_agent")
-    def test_answer_question_passes_all_params(self, mock_run):
-        """Test that answer_question passes all parameters."""
-        mock_run.return_value = {"answer": "Test"}
-
-        answer_question(
-            question="Test",
-            mode="data",
-            company_id="ACME-MFG",
-            session_id="sess-123",
-            user_id="user-456",
-        )
-
-        mock_run.assert_called_once_with(
-            question="Test",
-            mode="data",
-            company_id="ACME-MFG",
-            session_id="sess-123",
-            user_id="user-456",
-        )
 
 
 # =============================================================================

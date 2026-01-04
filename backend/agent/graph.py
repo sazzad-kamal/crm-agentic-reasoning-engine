@@ -235,28 +235,6 @@ def _build_error_response(error: str, start_time: float) -> dict[str, Any]:
     }
 
 
-# =============================================================================
-# Backwards Compatibility
-# =============================================================================
-
-
-def answer_question(
-    question: str,
-    mode: str = "auto",
-    company_id: str | None = None,
-    session_id: str | None = None,
-    user_id: str | None = None,
-) -> dict:
-    """Backwards-compatible wrapper for run_agent."""
-    return run_agent(
-        question=question,
-        mode=mode,
-        company_id=company_id,
-        session_id=session_id,
-        user_id=user_id,
-    )
-
-
 def get_graph_mermaid() -> str:
     """Get Mermaid diagram of the graph."""
     return """
@@ -277,7 +255,6 @@ graph TD
 __all__ = [
     "agent_graph",
     "run_agent",
-    "answer_question",
     "build_agent_graph",
     "get_graph_mermaid",
     # Re-export from conversation module

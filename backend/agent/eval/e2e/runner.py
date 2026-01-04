@@ -7,7 +7,7 @@ import time
 
 from rich.progress import track
 
-from backend.agent.graph import answer_question
+from backend.agent.graph import run_agent
 from backend.agent.eval.base import console, print_eval_header
 from backend.agent.eval.parallel import run_parallel_evaluation, calculate_p95_latency
 from backend.agent.eval.shared import run_llm_judge
@@ -116,9 +116,9 @@ def run_e2e_test(
         # Run the full agent pipeline
         if agent_lock:
             with agent_lock:
-                result = answer_question(question, session_id=session_id)
+                result = run_agent(question, session_id=session_id)
         else:
-            result = answer_question(question, session_id=session_id)
+            result = run_agent(question, session_id=session_id)
         latency = (time.time() - start_time) * 1000
 
         answer = result.get("answer", "")

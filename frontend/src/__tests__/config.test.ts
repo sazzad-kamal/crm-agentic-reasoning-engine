@@ -75,31 +75,26 @@ describe("config", () => {
   // =========================================================================
 
   it("has all endpoints defined", () => {
-    expect(endpoints.chat).toBeDefined();
     expect(endpoints.chatStream).toBeDefined();
     expect(endpoints.health).toBeDefined();
   });
 
   it("endpoints are strings", () => {
-    expect(typeof endpoints.chat).toBe("string");
     expect(typeof endpoints.chatStream).toBe("string");
     expect(typeof endpoints.health).toBe("string");
   });
 
   it("endpoints have correct paths", () => {
-    expect(endpoints.chat).toContain("/api/chat");
     expect(endpoints.chatStream).toContain("/api/chat/stream");
     expect(endpoints.health).toContain("/api/health");
   });
 
   it("endpoints use config.apiUrl as base", () => {
-    expect(endpoints.chat).toContain(config.apiUrl);
     expect(endpoints.chatStream).toContain(config.apiUrl);
     expect(endpoints.health).toContain(config.apiUrl);
   });
 
   it("endpoints are valid URL formats", () => {
-    expect(endpoints.chat).toMatch(/^https?:\/\/.+\/api\/chat$/);
     expect(endpoints.chatStream).toMatch(/^https?:\/\/.+\/api\/chat\/stream$/);
     expect(endpoints.health).toMatch(/^https?:\/\/.+\/api\/health$/);
   });
@@ -176,7 +171,6 @@ describe("config", () => {
 
   it("endpoints object has expected keys", () => {
     const endpointKeys = Object.keys(endpoints);
-    expect(endpointKeys).toContain("chat");
     expect(endpointKeys).toContain("chatStream");
     expect(endpointKeys).toContain("health");
   });
@@ -186,16 +180,13 @@ describe("config", () => {
   // =========================================================================
 
   it("all endpoints share same base URL", () => {
-    const chatBase = endpoints.chat.replace("/api/chat", "");
     const streamBase = endpoints.chatStream.replace("/api/chat/stream", "");
     const healthBase = endpoints.health.replace("/api/health", "");
 
-    expect(chatBase).toBe(streamBase);
     expect(streamBase).toBe(healthBase);
   });
 
   it("config is consistent with endpoints", () => {
-    expect(endpoints.chat).toContain(config.apiUrl);
     expect(endpoints.chatStream).toContain(config.apiUrl);
     expect(endpoints.health).toContain(config.apiUrl);
   });

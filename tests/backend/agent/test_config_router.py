@@ -254,45 +254,45 @@ class TestAgentIntegration:
     
     def test_agent_uses_progress_tracking(self):
         """Test that agent uses progress tracking."""
-        from backend.agent.graph import answer_question
-        
-        result = answer_question("Which accounts have renewals?")
-        
+        from backend.agent.graph import run_agent
+
+        result = run_agent("Which accounts have renewals?")
+
         # Should have steps array
         assert "steps" in result
         assert len(result["steps"]) > 0
-        
+
         # Steps should have expected structure
         step = result["steps"][0]
         assert "id" in step
         assert "label" in step
         assert "status" in step
-    
+
     def test_agent_returns_meta_info(self):
         """Test that agent returns metadata."""
-        from backend.agent.graph import answer_question
-        
-        result = answer_question("Show me pipeline")
-        
+        from backend.agent.graph import run_agent
+
+        result = run_agent("Show me pipeline")
+
         assert "meta" in result
         assert "mode_used" in result["meta"]
         assert "latency_ms" in result["meta"]
-    
+
     def test_agent_handles_company_query(self):
         """Test agent handles company-specific queries."""
-        from backend.agent.graph import answer_question
-        
-        result = answer_question("What's happening with Acme Manufacturing?")
-        
+        from backend.agent.graph import run_agent
+
+        result = run_agent("What's happening with Acme Manufacturing?")
+
         assert "answer" in result
         assert len(result["answer"]) > 0
-    
+
     def test_agent_handles_docs_query(self):
         """Test agent handles documentation queries."""
-        from backend.agent.graph import answer_question
-        
-        result = answer_question("How do I create an opportunity?", mode="docs")
-        
+        from backend.agent.graph import run_agent
+
+        result = run_agent("How do I create an opportunity?", mode="docs")
+
         assert "answer" in result
         assert result["meta"]["mode_used"] == "docs"
 

@@ -153,18 +153,21 @@ class TestGraphModule:
         graph = build_agent_graph()
         assert graph is not None
 
-    def test_answer_question_mock_mode(self):
-        """Test answer_question in mock mode."""
-        from backend.agent.graph import answer_question
+    def test_run_agent_mock_mode(self):
+        """Test run_agent in mock mode."""
+        from backend.agent.graph import run_agent
 
-        with patch("backend.agent.graph.run_agent") as mock_run:
-            mock_run.return_value = {
+        with patch("backend.agent.graph._execute_graph") as mock_exec:
+            mock_exec.return_value = {
                 "answer": "Test answer",
                 "sources": [],
-                "metadata": {},
+                "steps": [],
+                "raw_data": {},
+                "follow_up_suggestions": [],
+                "mode_used": "data",
             }
 
-            result = answer_question(
+            result = run_agent(
                 question="What is the pipeline?",
                 mode="data",
             )

@@ -25,7 +25,7 @@ from backend.agent.tools.pipeline import (
     tool_pipeline_by_owner,
 )
 from backend.agent.llm.router import route_question
-from backend.agent.graph import answer_question
+from backend.agent.graph import run_agent
 
 # datastore fixture is provided by conftest.py
 
@@ -274,13 +274,13 @@ class TestRouter:
 class TestAgent:
     """Tests for the agent with MOCK_LLM."""
     
-    def test_answer_question_company(self):
+    def test_run_agent_company(self):
         """Test answering a company question.
 
         Note: In mock mode, the router returns default values (general intent).
         Real company resolution is tested via e2e_eval with actual API calls.
         """
-        result = answer_question("What's going on with Acme Manufacturing in the last 90 days?")
+        result = run_agent("What's going on with Acme Manufacturing in the last 90 days?")
 
         # Check all required keys exist
         assert "answer" in result
@@ -301,25 +301,25 @@ class TestAgent:
         # Note: In mock mode, company resolution doesn't happen
         # Full routing behavior is tested in e2e_eval with real API calls
     
-    def test_answer_question_renewals(self):
+    def test_run_agent_renewals(self):
         """Test answering a renewals question."""
-        result = answer_question("Which accounts have upcoming renewals in the next 90 days?")
+        result = run_agent("Which accounts have upcoming renewals in the next 90 days?")
         
         assert "answer" in result
         assert "raw_data" in result
         assert "renewals" in result["raw_data"]
     
-    def test_answer_question_pipeline(self):
+    def test_run_agent_pipeline(self):
         """Test answering a pipeline question."""
-        result = answer_question("Show the open pipeline for Beta Tech Solutions")
+        result = run_agent("Show the open pipeline for Beta Tech Solutions")
         
         assert "answer" in result
         assert "raw_data" in result
         assert "opportunities" in result["raw_data"]
     
-    def test_answer_question_steps(self):
+    def test_run_agent_steps(self):
         """Test that steps are returned correctly."""
-        result = answer_question("What's going on with Acme Manufacturing?")
+        result = run_agent("What's going on with Acme Manufacturing?")
         
         steps = result["steps"]
         step_ids = [s["id"] for s in steps]
@@ -335,9 +335,9 @@ class TestAgent:
             assert "status" in step
             assert step["status"] in ["done", "error", "skipped"]
     
-    def test_answer_question_sources_non_empty(self):
+    def test_run_agent_sources_non_empty(self):
         """Test that sources are returned."""
-        result = answer_question("What's going on with Acme Manufacturing?")
+        result = run_agent("What's going on with Acme Manufacturing?")
         
         assert len(result["sources"]) > 0
         
@@ -346,9 +346,9 @@ class TestAgent:
             assert "id" in source
             assert "label" in source
     
-    def test_answer_question_company_not_found(self):
+    def test_run_agent_company_not_found(self):
         """Test handling of unknown company."""
-        result = answer_question("What's going on with NonExistent Corp XYZ?")
+        result = run_agent("What's going on with NonExistent Corp XYZ?")
         
         # Should still return valid response
         assert "answer" in result
@@ -361,47 +361,7 @@ class TestAgent:
 
 class TestAPIIntegration:
     """Tests for the FastAPI endpoint."""
-    
-    def test_chat_endpoint(self):
-        """Test the /api/chat endpoint."""
-        from fastapi.testclient import TestClient
-        from backend.main import app
-        
-        client = TestClient(app)
-        
-        response = client.post(
-            "/api/chat",
-            json={"question": "What's going on with Acme Manufacturing?"}
-        )
-        
-        assert response.status_code == 200
-        
-        data = response.json()
-        
-        # Check all required response keys
-        assert "answer" in data
-        assert "sources" in data
-        assert "steps" in data
-        assert "raw_data" in data
-        assert "meta" in data
-    
-    def test_chat_endpoint_with_mode(self):
-        """Test the /api/chat endpoint with explicit mode."""
-        from fastapi.testclient import TestClient
-        from backend.main import app
-        
-        client = TestClient(app)
-        
-        response = client.post(
-            "/api/chat",
-            json={"question": "How do I create an opportunity?", "mode": "docs"}
-        )
-        
-        assert response.status_code == 200
-        
-        data = response.json()
-        assert data["meta"]["mode_used"] == "docs"
-    
+
     def test_health_endpoint(self):
         """Test the health check endpoint."""
         from fastapi.testclient import TestClient

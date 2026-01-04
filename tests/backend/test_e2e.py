@@ -21,76 +21,6 @@ os.environ["MOCK_LLM"] = "1"
 class TestE2EApiFlow:
     """End-to-end tests for API request/response flow."""
 
-    def test_chat_complete_flow(self, client, chat_request_company):
-        """Test complete chat flow from request to response."""
-        with patch("backend.api.chat.answer_question") as mock_answer:
-            mock_answer.return_value = {
-                "answer": "Acme Manufacturing had 5 activities in the last 90 days.",
-                "sources": [
-                    {"type": "company", "id": "ACME-MFG", "label": "Acme Manufacturing"}
-                ],
-                "steps": [
-                    {"id": "route", "label": "Route", "status": "done"},
-                    {"id": "data", "label": "Fetch Data", "status": "done"},
-                    {"id": "answer", "label": "Answer", "status": "done"},
-                ],
-                "raw_data": {"company": {"company_id": "ACME-MFG"}},
-                "meta": {"mode_used": "data", "latency_ms": 200},
-                "follow_up_suggestions": ["Show me the pipeline"],
-            }
-
-            response = client.post("/api/chat", json=chat_request_company)
-
-            assert response.status_code == 200
-            data = response.json()
-
-            # Verify complete response structure
-            assert "answer" in data
-            assert "sources" in data
-            assert "steps" in data
-            assert "raw_data" in data
-            assert "meta" in data
-            assert "follow_up_suggestions" in data
-
-            # Verify answer content
-            assert "Acme Manufacturing" in data["answer"]
-
-            # Verify sources
-            assert len(data["sources"]) >= 1
-            assert data["sources"][0]["type"] == "company"
-
-            # Verify steps completed
-            step_ids = [s["id"] for s in data["steps"]]
-            assert "route" in step_ids
-            assert "answer" in step_ids
-
-    def test_chat_docs_mode_flow(self, client, chat_request_docs):
-        """Test chat flow in docs mode."""
-        with patch("backend.api.chat.answer_question") as mock_answer:
-            mock_answer.return_value = {
-                "answer": "To import contacts, go to Settings > Import.",
-                "sources": [
-                    {"type": "doc", "id": "doc-import-guide", "label": "Import Guide"}
-                ],
-                "steps": [
-                    {"id": "route", "label": "Route", "status": "done"},
-                    {"id": "docs", "label": "Docs RAG", "status": "done"},
-                    {"id": "answer", "label": "Answer", "status": "done"},
-                ],
-                "raw_data": {},
-                "meta": {"mode_used": "docs", "latency_ms": 300},
-                "follow_up_suggestions": [],
-            }
-
-            response = client.post("/api/chat", json=chat_request_docs)
-
-            assert response.status_code == 200
-            data = response.json()
-
-            assert data["meta"]["mode_used"] == "docs"
-            assert len(data["sources"]) >= 1
-            assert data["sources"][0]["type"] == "doc"
-
     def test_health_endpoint_returns_healthy(self, client):
         """Test that health endpoint returns healthy status."""
         response = client.get("/api/health")
@@ -341,53 +271,33 @@ class TestE2EStreaming:
 class TestE2EErrorHandling:
     """End-to-end tests for error handling."""
 
-    def test_invalid_json_returns_422(self, client):
+    def test_stream_invalid_json_returns_422(self, client):
         """Test that invalid JSON returns 422."""
         response = client.post(
-            "/api/chat",
+            "/api/chat/stream",
             content="not valid json",
             headers={"Content-Type": "application/json"}
         )
 
         assert response.status_code == 422
 
-    def test_missing_question_returns_422(self, client):
+    def test_stream_missing_question_returns_422(self, client):
         """Test that missing question returns 422."""
-        response = client.post("/api/chat", json={})
+        response = client.post("/api/chat/stream", json={})
 
         assert response.status_code == 422
 
-    def test_empty_question_returns_400(self, client):
+    def test_stream_empty_question_returns_400(self, client):
         """Test that empty question returns 400."""
-        response = client.post("/api/chat", json={"question": ""})
+        response = client.post("/api/chat/stream", json={"question": ""})
 
         assert response.status_code == 400
 
-    def test_question_too_long_returns_400(self, client):
+    def test_stream_question_too_long_returns_400(self, client):
         """Test that overly long question returns 400."""
         response = client.post(
-            "/api/chat",
+            "/api/chat/stream",
             json={"question": "x" * 2001}
         )
 
         assert response.status_code == 400
-
-    def test_invalid_mode_still_works(self, client):
-        """Test that invalid mode falls back gracefully."""
-        with patch("backend.api.chat.answer_question") as mock_answer:
-            mock_answer.return_value = {
-                "answer": "Test",
-                "sources": [],
-                "steps": [],
-                "raw_data": {},
-                "meta": {"mode_used": "auto", "latency_ms": 100},
-                "follow_up_suggestions": [],
-            }
-
-            response = client.post(
-                "/api/chat",
-                json={"question": "Test", "mode": "invalid_mode"}
-            )
-
-            # Should still process (mode validation is at agent level)
-            assert response.status_code == 200

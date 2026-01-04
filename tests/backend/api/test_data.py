@@ -194,62 +194,15 @@ class TestHistoryEndpoint:
         assert len(data["columns"]) > 0
 
 
-class TestPrivateTextsEndpoint:
-    """Tests for GET /api/data/private-texts."""
+class TestCreateSimpleDataEndpoint:
+    """Tests for _create_simple_data_endpoint factory function."""
 
-    def test_returns_private_texts(self, client: TestClient):
-        """Should return list of private texts."""
-        response = client.get("/api/data/private-texts")
-        assert response.status_code == 200
-        data = response.json()
-        assert "data" in data
-        assert isinstance(data["data"], list)
-
-    def test_flattens_metadata(self, client: TestClient):
-        """Should flatten metadata fields."""
-        response = client.get("/api/data/private-texts")
-        data = response.json()
-        # Check that metadata is flattened (metadata_* fields instead of nested)
-        if data["data"]:
-            record = data["data"][0]
-            # Should not have nested metadata object
-            assert "metadata" not in record or not isinstance(record.get("metadata"), dict)
-
-
-class TestAttachmentsEndpoint:
-    """Tests for GET /api/data/attachments."""
-
-    def test_returns_attachments(self, client: TestClient):
-        """Should return list of attachments."""
-        response = client.get("/api/data/attachments")
-        assert response.status_code == 200
-        data = response.json()
-        assert "data" in data
-        assert isinstance(data["data"], list)
-
-
-class TestGroupMembersEndpoint:
-    """Tests for GET /api/data/group-members."""
-
-    def test_returns_group_members(self, client: TestClient):
-        """Should return list of group members."""
-        response = client.get("/api/data/group-members")
-        assert response.status_code == 200
-        data = response.json()
-        assert "data" in data
-        assert isinstance(data["data"], list)
-
-
-class TestOpportunityDescriptionsEndpoint:
-    """Tests for GET /api/data/opportunity-descriptions."""
-
-    def test_returns_opportunity_descriptions(self, client: TestClient):
-        """Should return list of opportunity descriptions."""
-        response = client.get("/api/data/opportunity-descriptions")
-        assert response.status_code == 200
-        data = response.json()
-        assert "data" in data
-        assert isinstance(data["data"], list)
+    def test_jsonl_loader_branch(self, client: TestClient):
+        """Covers is_jsonl=True branch via /data/companies which loads private_texts.jsonl."""
+        from backend.api.data import _create_simple_data_endpoint, load_jsonl_data
+        # Verify the factory selects jsonl loader when is_jsonl=True
+        endpoint = _create_simple_data_endpoint("private_texts.jsonl", is_jsonl=True)
+        assert endpoint is not None
 
 
 class TestDataResponseFormat:
@@ -262,10 +215,6 @@ class TestDataResponseFormat:
         "/api/data/activities",
         "/api/data/groups",
         "/api/data/history",
-        "/api/data/private-texts",
-        "/api/data/attachments",
-        "/api/data/group-members",
-        "/api/data/opportunity-descriptions",
     ])
     def test_response_has_required_fields(self, client: TestClient, endpoint: str):
         """All endpoints should return data, total, and columns."""

@@ -107,11 +107,7 @@ async def get_groups(settings: Settings = Depends(get_settings)) -> DataResponse
 
 # Simple data endpoints
 router.get("/data/activities", response_model=DataResponse, summary="Get all activities")(_create_simple_data_endpoint("activities.csv"))
-router.get("/data/private-texts", response_model=DataResponse, summary="Get all private texts")(_create_simple_data_endpoint("private_texts.jsonl", is_jsonl=True))
 router.get("/data/history", response_model=DataResponse, summary="Get all history")(_create_simple_data_endpoint("history.csv"))
-router.get("/data/group-members", response_model=DataResponse, summary="Get all group members")(_create_simple_data_endpoint("group_members.csv"))
-router.get("/data/attachments", response_model=DataResponse, summary="Get all attachments")(_create_simple_data_endpoint("attachments.csv"))
-router.get("/data/opportunity-descriptions", response_model=DataResponse, summary="Get opportunity descriptions")(_create_simple_data_endpoint("opportunity_descriptions.csv"))
 
 
 class StarterQuestionsResponse(BaseModel):

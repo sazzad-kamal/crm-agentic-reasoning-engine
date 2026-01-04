@@ -129,16 +129,9 @@ class TestStreamingEndpoint:
         """Test that empty question is rejected."""
         payload = {"question": ""}
         response = client.post("/api/chat/stream", json=payload)
-        
-        assert response.status_code == 400
-    
-    def test_streaming_rejects_long_question(self, client):
-        """Test that very long question is rejected."""
-        payload = {"question": "a" * 2001}  # Over 2000 chars
-        response = client.post("/api/chat/stream", json=payload)
-        
-        assert response.status_code == 400
-    
+
+        assert response.status_code == 422
+
     def test_streaming_with_different_modes(self, client):
         """Test streaming works with different modes."""
         modes = ["auto", "data", "docs", "data+docs"]

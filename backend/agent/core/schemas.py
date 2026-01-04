@@ -77,7 +77,7 @@ class MetaInfo(BaseModel):
 class ChatRequest(BaseModel):
     """Incoming chat request from the frontend."""
 
-    question: str
+    question: str = Field(..., min_length=1)
     mode: str | None = "auto"  # "auto", "docs", "data", "data+docs"
     session_id: str | None = None
     user_id: str | None = None

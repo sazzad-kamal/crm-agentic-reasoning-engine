@@ -17,7 +17,6 @@ from pydantic import BaseModel
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 from backend.core.config import get_settings
-from backend.core.exceptions import APIError
 
 
 class ErrorResponse(BaseModel):
@@ -104,17 +103,6 @@ def create_app() -> FastAPI:
         allow_headers=["Content-Type"],
     )
     app.add_middleware(RequestLoggingMiddleware)
-
-    @app.exception_handler(APIError)
-    async def api_error_handler(request: Request, exc: APIError) -> JSONResponse:
-        return JSONResponse(
-            status_code=exc.status_code,
-            content=ErrorResponse(
-                status_code=exc.status_code,
-                message=exc.detail,
-                request_id=getattr(request.state, "request_id", None),
-            ).model_dump(),
-        )
 
     @app.exception_handler(Exception)
     async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:

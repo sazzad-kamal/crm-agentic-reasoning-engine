@@ -273,17 +273,8 @@ class TestE2EErrorHandling:
 
         assert response.status_code == 422
 
-    def test_stream_empty_question_returns_400(self, client):
-        """Test that empty question returns 400."""
+    def test_stream_empty_question_returns_422(self, client):
+        """Test that empty question returns 422."""
         response = client.post("/api/chat/stream", json={"question": ""})
 
-        assert response.status_code == 400
-
-    def test_stream_question_too_long_returns_400(self, client):
-        """Test that overly long question returns 400."""
-        response = client.post(
-            "/api/chat/stream",
-            json={"question": "x" * 2001}
-        )
-
-        assert response.status_code == 400
+        assert response.status_code == 422

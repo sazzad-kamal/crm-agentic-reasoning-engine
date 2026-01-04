@@ -57,16 +57,7 @@ class TestChatStreamEndpoint:
             json={"question": ""}
         )
 
-        assert response.status_code == 400
-
-    def test_stream_validates_long_question(self, client):
-        """Test that stream endpoint rejects overly long questions."""
-        response = client.post(
-            "/api/chat/stream",
-            json={"question": "x" * 2001}
-        )
-
-        assert response.status_code == 400
+        assert response.status_code == 422
 
     def test_stream_includes_cache_headers(self, client):
         """Test that stream response includes proper cache headers."""

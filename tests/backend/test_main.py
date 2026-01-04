@@ -75,17 +75,8 @@ class TestExceptionHandlers:
     def test_app(self):
         """Create test app with exception handlers."""
         from backend.main import create_app
-        from backend.core.exceptions import APIError, ValidationError
 
         app = create_app()
-
-        @app.get("/test/api-error")
-        async def raise_api_error():
-            raise APIError(status_code=400, message="Test API error")
-
-        @app.get("/test/validation-error")
-        async def raise_validation_error():
-            raise ValidationError(message="Test validation error", field="test_field")
 
         @app.get("/test/general-error")
         async def raise_general_error():
@@ -97,35 +88,6 @@ class TestExceptionHandlers:
     def test_client(self, test_app):
         """Create test client."""
         return TestClient(test_app, raise_server_exceptions=False)
-
-    def test_api_error_handler_returns_json(self, test_client):
-        """Test that APIError handler returns JSON response."""
-        response = test_client.get("/test/api-error")
-        assert response.status_code == 400
-        data = response.json()
-        assert "error" in data
-        assert data["error"] is True
-
-    def test_api_error_handler_includes_message(self, test_client):
-        """Test that APIError handler includes error message."""
-        response = test_client.get("/test/api-error")
-        data = response.json()
-        assert "message" in data
-        assert "Test API error" in data["message"]
-
-    def test_api_error_handler_includes_status_code(self, test_client):
-        """Test that APIError handler includes status code."""
-        response = test_client.get("/test/api-error")
-        data = response.json()
-        assert "status_code" in data
-        assert data["status_code"] == 400
-
-    def test_validation_error_handled(self, test_client):
-        """Test that ValidationError is handled correctly."""
-        response = test_client.get("/test/validation-error")
-        assert response.status_code == 400
-        data = response.json()
-        assert data["error"] is True
 
     def test_general_exception_handler_returns_500(self, test_client):
         """Test that general exceptions return 500."""

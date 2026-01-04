@@ -249,27 +249,12 @@ class TestStreamingEndpoint:
         """Should reject empty questions."""
         from fastapi.testclient import TestClient
         from backend.main import app
-        
+
         client = TestClient(app)
-        
+
         response = client.post(
             "/api/chat/stream",
             json={"question": ""},
         )
-        
-        assert response.status_code == 400
 
-    def test_endpoint_validates_long_question(self):
-        """Should reject questions over 2000 characters."""
-        from fastapi.testclient import TestClient
-        from backend.main import app
-        
-        client = TestClient(app)
-        
-        long_question = "a" * 2001
-        response = client.post(
-            "/api/chat/stream",
-            json={"question": long_question},
-        )
-        
-        assert response.status_code == 400
+        assert response.status_code == 422

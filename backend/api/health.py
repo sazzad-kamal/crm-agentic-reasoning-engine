@@ -1,11 +1,7 @@
-"""
-Health check and system info endpoints.
-
-Provides endpoints for monitoring and diagnostics.
-"""
+"""Health check and system info endpoints."""
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from backend.core.config import get_settings, Settings
 
@@ -13,65 +9,31 @@ router = APIRouter()
 
 
 class HealthResponse(BaseModel):
-    """Health check response."""
-
-    status: str = Field(description="Service status")
-    version: str = Field(description="API version")
-    services: dict[str, str] = Field(default_factory=dict, description="Service statuses")
+    status: str
+    version: str
+    services: dict[str, str] = {}
 
 
 class SystemInfo(BaseModel):
-    """System information for diagnostics."""
-
     app_name: str
     version: str
     debug: bool
     cors_origins: list[str]
 
 
-@router.get(
-    "/health",
-    response_model=HealthResponse,
-    summary="Health check",
-    description="Check if the API and dependent services are healthy.",
-)
-async def health_check(
-    settings: Settings = Depends(get_settings),
-) -> HealthResponse:
-    """
-    Health check endpoint for monitoring and load balancers.
-
-    Returns status of the API and its dependencies.
-    """
-    services = {
-        "api": "healthy",
-        "agent": "healthy",
-    }
-
-    # CSV data is always present in the project
-    services["data"] = "healthy"
-
+@router.get("/health", response_model=HealthResponse, summary="Health check")
+async def health_check(settings: Settings = Depends(get_settings)) -> HealthResponse:
+    """Check if the API and dependent services are healthy."""
     return HealthResponse(
         status="ok",
         version=settings.app_version,
-        services=services,
+        services={"api": "healthy", "agent": "healthy", "data": "healthy"},
     )
 
 
-@router.get(
-    "/info",
-    response_model=SystemInfo,
-    summary="System information",
-    description="Get information about the API configuration.",
-)
-async def system_info(
-    settings: Settings = Depends(get_settings),
-) -> SystemInfo:
-    """
-    Get system configuration information.
-
-    Useful for debugging and verifying deployment configuration.
-    """
+@router.get("/info", response_model=SystemInfo, summary="System information")
+async def system_info(settings: Settings = Depends(get_settings)) -> SystemInfo:
+    """Get information about the API configuration."""
     return SystemInfo(
         app_name=settings.app_name,
         version=settings.app_version,

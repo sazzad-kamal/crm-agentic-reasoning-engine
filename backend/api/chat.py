@@ -1,99 +1,41 @@
-"""
-Chat endpoint for CRM AI Companion.
-
-Main endpoint for answering natural language questions about CRM data.
-"""
+"""Chat endpoint for CRM AI Companion."""
 
 import logging
 
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import StreamingResponse
 
-from backend.agent.core.schemas import (
-    ChatRequest,
-    ChatResponse,
-    Source,
-    Step,
-    RawData,
-    MetaInfo,
-)
+from backend.agent.core.schemas import ChatRequest, ChatResponse, Source, Step, RawData, MetaInfo
 from backend.agent.graph import answer_question
 from backend.agent.output.streaming import stream_agent
 from backend.core.config import get_settings, Settings
 from backend.core.exceptions import AgentError, ValidationError
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter()
 
 
-@router.post(
-    "/chat",
-    response_model=ChatResponse,
-    summary="Ask a question about your CRM",
-    description="""
-    Main chat endpoint - answers questions using CRM data and/or documentation.
+def _validate_question(question: str) -> None:
+    """Validate question is present and within length limit."""
+    if not question or not question.strip():
+        raise ValidationError("Question cannot be empty", field="question")
+    if len(question) > 2000:
+        raise ValidationError("Question too long (max 2000 characters)", field="question")
 
-    The agent pipeline:
-    1. **Router** - Determines if the question needs CRM data, docs, or both
-    2. **Data Gathering** - Fetches relevant company, activity, pipeline data
-    3. **Docs RAG** - Retrieves relevant documentation if needed
-    4. **Answer Synthesis** - Generates a grounded answer using LLM
-    5. **Follow-up Suggestions** - Suggests relevant next questions
 
-    ## Example Questions
-    - "What's going on with Acme Manufacturing in the last 90 days?"
-    - "Which renewals are coming up this month?"
-    - "Show me the pipeline for TechCorp"
-    - "How do I import contacts?" (docs query)
-    """,
-    responses={
-        200: {"description": "Successful response with answer"},
-        400: {"description": "Invalid request"},
-        500: {"description": "Agent processing error"},
-        503: {"description": "LLM service unavailable"},
-    },
-)
+@router.post("/chat", response_model=ChatResponse, summary="Ask a question about your CRM")
 async def chat_endpoint(
     payload: ChatRequest,
     request: Request,
     settings: Settings = Depends(get_settings),
 ) -> ChatResponse:
-    """
-    Process a natural language question about CRM data.
-
-    Args:
-        payload: The chat request containing the question and optional parameters
-        request: FastAPI request object (for request ID)
-        settings: Application settings
-
-    Returns:
-        ChatResponse with answer, sources, steps, and follow-up suggestions
-    """
+    """Process a natural language question about CRM data."""
     request_id = getattr(request.state, "request_id", "unknown")
+    _validate_question(payload.question)
 
-    # Validate question
-    if not payload.question or not payload.question.strip():
-        raise ValidationError("Question cannot be empty", field="question")
-
-    if len(payload.question) > 2000:
-        raise ValidationError(
-            "Question too long (max 2000 characters)",
-            field="question",
-        )
-
-    logger.info(
-        f"[{request_id}] Processing question: {payload.question[:100]}...",
-        extra={
-            "request_id": request_id,
-            "question_length": len(payload.question),
-            "mode": payload.mode,
-            "company_id": payload.company_id,
-        },
-    )
+    logger.info(f"[{request_id}] Processing: {payload.question[:100]}...")
 
     try:
-        # Call the agent
         result = answer_question(
             question=payload.question,
             mode=payload.mode or "auto",
@@ -102,7 +44,6 @@ async def chat_endpoint(
             user_id=payload.user_id,
         )
 
-        # Build response
         response = ChatResponse(
             answer=result["answer"],
             sources=[Source(**s) for s in result["sources"]],
@@ -112,89 +53,25 @@ async def chat_endpoint(
             follow_up_suggestions=result.get("follow_up_suggestions", []),
         )
 
-        logger.info(
-            f"[{request_id}] Response generated: {len(response.answer)} chars, "
-            f"{len(response.sources)} sources, {len(response.follow_up_suggestions)} follow-ups",
-            extra={
-                "request_id": request_id,
-                "answer_length": len(response.answer),
-                "source_count": len(response.sources),
-                "mode_used": response.meta.mode_used,
-            },
-        )
-
+        logger.info(f"[{request_id}] Generated {len(response.answer)} chars, {len(response.sources)} sources")
         return response
 
     except Exception as e:
-        logger.error(
-            f"[{request_id}] Agent error: {e}",
-            extra={"request_id": request_id, "error": str(e)},
-            exc_info=True,
-        )
+        logger.error(f"[{request_id}] Agent error: {e}", exc_info=True)
         raise AgentError(f"Failed to process question: {str(e)}")
 
 
-@router.post(
-    "/chat/stream",
-    summary="Stream a chat response (SSE)",
-    description="""
-    Streaming version of the chat endpoint using Server-Sent Events (SSE).
-
-    Returns real-time progress updates as the agent processes the question:
-    - **status**: Progress messages (e.g., "Routing question...")
-    - **step**: Step completions with status
-    - **sources**: Sources discovered during data/docs fetch
-    - **answer_start**: Answer generation begins
-    - **answer_chunk**: Incremental answer text
-    - **answer_end**: Full answer available
-    - **followup**: Follow-up suggestions
-    - **done**: Final complete response
-    - **error**: Error occurred
-
-    ## Usage (JavaScript)
-    ```javascript
-    const eventSource = new EventSource('/api/chat/stream?question=...');
-    eventSource.addEventListener('status', (e) => console.log(JSON.parse(e.data)));
-    eventSource.addEventListener('answer_chunk', (e) => { /* append text */ });
-    eventSource.addEventListener('done', (e) => { /* final response */ });
-    ```
-    """,
-    responses={
-        200: {"description": "SSE stream of events"},
-        400: {"description": "Invalid request"},
-    },
-)
+@router.post("/chat/stream", summary="Stream a chat response (SSE)")
 async def chat_stream_endpoint(
     payload: ChatRequest,
     request: Request,
     settings: Settings = Depends(get_settings),
 ) -> StreamingResponse:
-    """
-    Stream chat response as Server-Sent Events.
-
-    Provides real-time feedback as the agent processes the question.
-    """
+    """Stream chat response as Server-Sent Events."""
     request_id = getattr(request.state, "request_id", "unknown")
+    _validate_question(payload.question)
 
-    # Validate question
-    if not payload.question or not payload.question.strip():
-        raise ValidationError("Question cannot be empty", field="question")
-
-    if len(payload.question) > 2000:
-        raise ValidationError(
-            "Question too long (max 2000 characters)",
-            field="question",
-        )
-
-    logger.info(
-        f"[{request_id}] Streaming question: {payload.question[:100]}...",
-        extra={
-            "request_id": request_id,
-            "question_length": len(payload.question),
-            "mode": payload.mode,
-            "streaming": True,
-        },
-    )
+    logger.info(f"[{request_id}] Streaming: {payload.question[:100]}...")
 
     return StreamingResponse(
         stream_agent(
@@ -205,9 +82,5 @@ async def chat_stream_endpoint(
             user_id=payload.user_id,
         ),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",  # Disable nginx buffering
-        },
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
     )

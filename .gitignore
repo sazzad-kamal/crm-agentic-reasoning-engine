@@ -42,6 +42,8 @@ test-results/
 frontend/playwright-report/
 frontend/test-results/
 frontend/coverage/
+frontend/e2e/*-snapshots/
+testresult.txt
 .coverage
 htmlcov/
 

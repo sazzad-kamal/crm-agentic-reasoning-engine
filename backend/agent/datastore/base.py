@@ -4,12 +4,36 @@ CRM Data Store base functionality.
 Provides base class with DuckDB connection, table loading, and query helpers.
 """
 
+from __future__ import annotations
+
 import threading
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Protocol, TYPE_CHECKING
 
 import duckdb
+
+if TYPE_CHECKING:
+    from duckdb import DuckDBPyConnection
+
+
+# =============================================================================
+# Protocol for Mixin Type Checking
+# =============================================================================
+
+
+class DataStoreMixinProtocol(Protocol):
+    """Protocol defining what mixins can access from the base class."""
+
+    @property
+    def conn(self) -> DuckDBPyConnection: ...
+    def _ensure_table(self, table_name: str) -> bool: ...
+    def _fetch_one_dict(self, query: str, params: list[Any] | None = None) -> dict[str, Any] | None: ...
+    def _fetch_all_dicts(self, query: str, params: list[Any] | None = None) -> list[dict[str, Any]]: ...
+    def _get_date_cutoff(self, days: int) -> str: ...
+    def _build_company_cache(self) -> None: ...
+    _company_names_cache: dict[str, str] | None
+    _company_ids_cache: set[str] | None
 
 
 # =============================================================================

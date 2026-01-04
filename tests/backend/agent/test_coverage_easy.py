@@ -29,7 +29,7 @@ class TestHandlersCommon:
     def test_apply_tool_result_non_list_data(self):
         """Test apply_tool_result when data value is not a list."""
         from backend.agent.handlers.common import apply_tool_result, IntentResult, empty_raw_data
-        from backend.agent.schemas import ToolResult, Source
+        from backend.agent.core.schemas import ToolResult, Source
 
         result = IntentResult(raw_data=empty_raw_data())
         tool_result = ToolResult(
@@ -59,7 +59,7 @@ class TestLlmHelpersMockSuggestions:
 
     def test_mock_suggestions_with_renewals(self):
         """Test mock suggestions include renewal question when renewals exist."""
-        from backend.agent.llm_helpers import _get_mock_suggestions
+        from backend.agent.llm.helpers import _get_mock_suggestions
 
         suggestions = _get_mock_suggestions(
             company_name="Acme Corp",
@@ -71,7 +71,7 @@ class TestLlmHelpersMockSuggestions:
 
     def test_format_available_data_with_pipeline_and_docs(self):
         """Test _format_available_data includes pipeline and docs."""
-        from backend.agent.llm_helpers import _format_available_data
+        from backend.agent.llm.helpers import _format_available_data
 
         result = _format_available_data(
             data={
@@ -88,7 +88,7 @@ class TestLlmHelpersMockSuggestions:
 
     def test_format_available_data_empty_after_filtering(self):
         """Test _format_available_data with all zero counts."""
-        from backend.agent.llm_helpers import _format_available_data
+        from backend.agent.llm.helpers import _format_available_data
 
         result = _format_available_data(
             data={"contacts": 0, "activities": 0},
@@ -326,9 +326,9 @@ class TestConversationMessageExtraction:
 
     def test_get_session_messages_with_messages(self):
         """Test get_session_messages returns messages from checkpoint state."""
-        from backend.agent.conversation import get_session_messages
+        from backend.agent.session.conversation import get_session_messages
 
-        with patch("backend.agent.conversation.get_session_state") as mock_get_state:
+        with patch("backend.agent.session.conversation.get_session_state") as mock_get_state:
             mock_get_state.return_value = {
                 "messages": [
                     {"role": "user", "content": "Hello"},
@@ -344,9 +344,9 @@ class TestConversationMessageExtraction:
 
     def test_get_session_messages_empty_messages_list(self):
         """Test get_session_messages with empty messages in state."""
-        from backend.agent.conversation import get_session_messages
+        from backend.agent.session.conversation import get_session_messages
 
-        with patch("backend.agent.conversation.get_session_state") as mock_get_state:
+        with patch("backend.agent.session.conversation.get_session_state") as mock_get_state:
             mock_get_state.return_value = {"messages": []}
 
             messages = get_session_messages("test-session-456")

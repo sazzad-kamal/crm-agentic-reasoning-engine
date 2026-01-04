@@ -4,8 +4,19 @@ Contact operations for CRM Data Store.
 Provides contact lookup and search functionality.
 """
 
+from __future__ import annotations
 
-class ContactMixin:
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from backend.agent.datastore.base import DataStoreMixinProtocol
+
+    _MixinBase = DataStoreMixinProtocol
+else:
+    _MixinBase = object
+
+
+class ContactMixin(_MixinBase):
     """Mixin providing contact-related operations."""
 
     def get_contacts_for_company(self, company_id: str, limit: int = 10) -> list[dict]:

@@ -4,10 +4,20 @@ Company operations for CRM Data Store.
 Provides company resolution, lookup, and search functionality.
 """
 
+from __future__ import annotations
+
 from difflib import get_close_matches
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from backend.agent.datastore.base import DataStoreMixinProtocol
+
+    _MixinBase = DataStoreMixinProtocol
+else:
+    _MixinBase = object
 
 
-class CompanyMixin:
+class CompanyMixin(_MixinBase):
     """Mixin providing company-related operations."""
 
     def resolve_company_id(self, name_or_id: str) -> str | None:

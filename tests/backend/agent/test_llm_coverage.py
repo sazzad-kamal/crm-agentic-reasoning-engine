@@ -215,7 +215,7 @@ class TestLlmHelpersCallFunctions:
     def test_call_docs_rag_real_mode_success(self):
         """Test call_docs_rag in real mode with success."""
         from backend.agent.llm.helpers import call_docs_rag
-        from backend.agent.schemas import Source
+        from backend.agent.core.schemas import Source
 
         with patch("backend.agent.llm.helpers.is_mock_mode", return_value=False), \
              patch("backend.agent.rag.tools.tool_docs_rag") as mock_tool:
@@ -360,7 +360,7 @@ class TestLlmRouter:
     def test_call_llm_router_direct(self):
         """Test _call_llm_router directly with mocked chain."""
         from backend.agent.llm.router import _call_llm_router, LLMRouterResponse
-        import backend.agent.llm_router as router_module
+        import backend.agent.llm.router as router_module
 
         router_module._router_chain = None
 
@@ -392,7 +392,7 @@ class TestLlmRouter:
     def test_call_llm_router_no_history(self):
         """Test _call_llm_router without conversation history."""
         from backend.agent.llm.router import _call_llm_router, LLMRouterResponse
-        import backend.agent.llm_router as router_module
+        import backend.agent.llm.router as router_module
 
         router_module._router_chain = None
 
@@ -448,7 +448,7 @@ class TestLlmRouter:
         from backend.agent.llm.router import llm_route_question, _router_chain
 
         # Reset chain cache
-        import backend.agent.llm_router as router_module
+        import backend.agent.llm.router as router_module
         router_module._router_chain = None
 
         with patch("backend.agent.llm.router.is_mock_mode", return_value=False), \
@@ -480,7 +480,7 @@ class TestLlmRouter:
 
     def test_get_router_chain_caching(self):
         """Test that _get_router_chain caches the chain."""
-        import backend.agent.llm_router as router_module
+        import backend.agent.llm.router as router_module
         from backend.agent.llm.router import _get_router_chain
 
         router_module._router_chain = None
@@ -518,7 +518,7 @@ class TestNodesFetching:
     def test_fetch_docs_success(self):
         """Test _fetch_docs successful fetch."""
         from backend.agent.nodes.fetching import _fetch_docs
-        from backend.agent.schemas import Source
+        from backend.agent.core.schemas import Source
 
         with patch("backend.agent.nodes.fetching.call_docs_rag") as mock_rag:
             mock_rag.return_value = ("Docs content", [Source(type="doc", id="doc1", label="Doc")])
@@ -542,7 +542,7 @@ class TestNodesFetching:
     def test_fetch_account_context_success(self):
         """Test _fetch_account_context successful fetch."""
         from backend.agent.nodes.fetching import _fetch_account_context
-        from backend.agent.schemas import Source
+        from backend.agent.core.schemas import Source
 
         with patch("backend.agent.nodes.fetching.call_account_rag") as mock_rag:
             mock_rag.return_value = ("Account notes", [Source(type="note", id="n1", label="Note")])
@@ -569,7 +569,7 @@ class TestDatastoreCore:
 
     def test_get_csv_base_path_preferred(self):
         """Test get_csv_base_path uses preferred path when exists."""
-        from backend.agent.datastore.core import get_csv_base_path
+        from backend.agent.datastore.base import get_csv_base_path
         from pathlib import Path
 
         with patch.object(Path, "exists") as mock_exists, \
@@ -584,25 +584,25 @@ class TestDatastoreCore:
 
     def test_get_csv_base_path_fallback(self):
         """Test get_csv_base_path fallback to csv directory."""
-        from backend.agent.datastore import core
+        from backend.agent.datastore import base
         from pathlib import Path
 
         # Get the actual preferred and fallback paths
-        backend_root = Path(core.__file__).parent.parent.parent
+        backend_root = Path(base.__file__).parent.parent.parent
 
         preferred = backend_root / "data" / "crm"
         fallback = backend_root / "data" / "csv"
 
         # If preferred exists, this test can't run properly
         # But we can test the function logic directly
-        result = core.get_csv_base_path()
+        result = base.get_csv_base_path()
         assert result is not None
 
     def test_crm_datastore_context_manager(self):
-        """Test CRMDataStoreCore context manager."""
-        from backend.agent.datastore.core import CRMDataStoreCore
+        """Test CRMDataStoreBase context manager."""
+        from backend.agent.datastore.base import CRMDataStoreBase
 
-        store = CRMDataStoreCore()
+        store = CRMDataStoreBase()
         store._conn = MagicMock()
 
         with store as s:
@@ -612,10 +612,10 @@ class TestDatastoreCore:
         store._conn = None
 
     def test_crm_datastore_close(self):
-        """Test CRMDataStoreCore close method."""
-        from backend.agent.datastore.core import CRMDataStoreCore
+        """Test CRMDataStoreBase close method."""
+        from backend.agent.datastore.base import CRMDataStoreBase
 
-        store = CRMDataStoreCore.__new__(CRMDataStoreCore)
+        store = CRMDataStoreBase.__new__(CRMDataStoreBase)
         store._conn = MagicMock()
         store._loaded_tables = {"test"}
         store._company_names_cache = {"a": "b"}

@@ -4,8 +4,19 @@ Activity and history operations for CRM Data Store.
 Provides activity queries, history lookup, and search functionality.
 """
 
+from __future__ import annotations
 
-class ActivityMixin:
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from backend.agent.datastore.base import DataStoreMixinProtocol
+
+    _MixinBase = DataStoreMixinProtocol
+else:
+    _MixinBase = object
+
+
+class ActivityMixin(_MixinBase):
     """Mixin providing activity and history operations."""
 
     def get_recent_activities(self, company_id: str, days: int = 90, limit: int = 20) -> list[dict]:

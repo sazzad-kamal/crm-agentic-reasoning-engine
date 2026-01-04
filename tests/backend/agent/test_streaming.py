@@ -187,7 +187,7 @@ class TestStreamAgentIntegration:
         async def run_test():
             # Set mock mode
             with patch.dict(os.environ, {"MOCK_LLM": "1"}):
-                from backend.agent.streaming import stream_agent
+                from backend.agent.output.streaming import stream_agent
                 
                 events = []
                 async for event in stream_agent("What is Acme CRM?"):
@@ -209,7 +209,7 @@ class TestStreamAgentIntegration:
         
         async def run_test():
             with patch.dict(os.environ, {"MOCK_LLM": "1"}):
-                from backend.agent.streaming import stream_agent
+                from backend.agent.output.streaming import stream_agent
                 
                 async for event in stream_agent("Test question"):
                     # Each event should have event: and data: lines

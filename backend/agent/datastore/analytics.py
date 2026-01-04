@@ -4,8 +4,19 @@ Analytics operations for CRM Data Store.
 Provides breakdowns, aggregations, groups, and attachments functionality.
 """
 
+from __future__ import annotations
 
-class AnalyticsMixin:
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from backend.agent.datastore.base import DataStoreMixinProtocol
+
+    _MixinBase = DataStoreMixinProtocol
+else:
+    _MixinBase = object
+
+
+class AnalyticsMixin(_MixinBase):
     """Mixin providing analytics, groups, and attachments operations."""
 
     # =========================================================================

@@ -285,7 +285,7 @@ class TestAgentTrackingModule:
 
     def test_compare_e2e_with_previous_no_previous(self):
         """Test comparison when no previous run exists."""
-        from backend.agent.eval.tracking import compare_e2e_with_previous
+        from backend.agent.eval.e2e.tracking import compare_e2e_with_previous
 
         current = E2EEvalSummary(
             total_tests=20,
@@ -306,7 +306,7 @@ class TestAgentTrackingModule:
 
     def test_compare_e2e_with_previous_detects_regression(self):
         """Test that comparison detects regressions."""
-        from backend.agent.eval.tracking import compare_e2e_with_previous
+        from backend.agent.eval.e2e.tracking import compare_e2e_with_previous
 
         previous = E2EEvalSummary(
             total_tests=20,
@@ -337,7 +337,7 @@ class TestAgentTrackingModule:
 
     def test_analyze_e2e_budget_violations_no_violations(self):
         """Test budget analysis with no violations."""
-        from backend.agent.eval.tracking import analyze_e2e_budget_violations
+        from backend.agent.eval.e2e.tracking import analyze_e2e_budget_violations
 
         results = [
             E2EEvalResult(
@@ -362,7 +362,7 @@ class TestAgentTrackingModule:
 
     def test_analyze_e2e_budget_violations_with_violations(self):
         """Test budget analysis with violations."""
-        from backend.agent.eval.tracking import analyze_e2e_budget_violations
+        from backend.agent.eval.e2e.tracking import analyze_e2e_budget_violations
 
         results = [
             E2EEvalResult(
@@ -396,7 +396,7 @@ class TestAgentHistoryModule:
 
     def test_compute_agent_trends_insufficient_data(self):
         """Test trend computation with insufficient data."""
-        from backend.agent.eval.history import compute_agent_trends
+        from backend.agent.eval.e2e.history import compute_agent_trends
 
         history = [{"metrics": {"answer_relevance": 0.8}}]
         result = compute_agent_trends(history, "answer_relevance")
@@ -405,7 +405,7 @@ class TestAgentHistoryModule:
 
     def test_compute_agent_trends_with_data(self):
         """Test trend computation with sufficient data."""
-        from backend.agent.eval.history import compute_agent_trends
+        from backend.agent.eval.e2e.history import compute_agent_trends
 
         history = [
             {"metrics": {"answer_relevance": 0.70}},
@@ -422,7 +422,7 @@ class TestAgentHistoryModule:
 
     def test_compute_agent_trends_direction(self):
         """Test trend direction computation."""
-        from backend.agent.eval.history import compute_agent_trends
+        from backend.agent.eval.e2e.history import compute_agent_trends
 
         # Upward trend
         history_up = [
@@ -442,7 +442,7 @@ class TestAgentHistoryModule:
 
     def test_compute_agent_trends_stable(self):
         """Test trend direction stable when values are close."""
-        from backend.agent.eval.history import compute_agent_trends
+        from backend.agent.eval.e2e.history import compute_agent_trends
 
         history = [
             {"metrics": {"score": 0.80}},
@@ -453,7 +453,7 @@ class TestAgentHistoryModule:
 
     def test_compute_agent_trends_six_or_more_runs(self):
         """Test trend computation with 6+ runs uses 3-run average."""
-        from backend.agent.eval.history import compute_agent_trends
+        from backend.agent.eval.e2e.history import compute_agent_trends
 
         history = [
             {"metrics": {"score": 0.60}},
@@ -963,7 +963,7 @@ class TestHistoryFileOperations:
 
     def test_load_agent_history_no_file(self, tmp_path, monkeypatch):
         """Test load_agent_history when file doesn't exist."""
-        from backend.agent.eval import history
+        from backend.agent.eval.e2e import history
 
         # Point to non-existent file
         monkeypatch.setattr(history, "HISTORY_FILE", tmp_path / "nonexistent.json")
@@ -973,7 +973,7 @@ class TestHistoryFileOperations:
 
     def test_load_agent_history_with_file(self, tmp_path, monkeypatch):
         """Test load_agent_history with existing file."""
-        from backend.agent.eval import history
+        from backend.agent.eval.e2e import history
         import json
 
         history_file = tmp_path / "history.json"
@@ -986,7 +986,7 @@ class TestHistoryFileOperations:
 
     def test_load_agent_history_invalid_json(self, tmp_path, monkeypatch):
         """Test load_agent_history with invalid JSON."""
-        from backend.agent.eval import history
+        from backend.agent.eval.e2e import history
 
         history_file = tmp_path / "history.json"
         history_file.write_text("not valid json")
@@ -997,7 +997,7 @@ class TestHistoryFileOperations:
 
     def test_save_agent_history(self, tmp_path, monkeypatch):
         """Test save_agent_history writes file."""
-        from backend.agent.eval import history
+        from backend.agent.eval.e2e import history
         import json
 
         data_dir = tmp_path / "data"
@@ -1014,7 +1014,7 @@ class TestHistoryFileOperations:
 
     def test_save_agent_history_limits_entries(self, tmp_path, monkeypatch):
         """Test save_agent_history limits to MAX_HISTORY_ENTRIES."""
-        from backend.agent.eval import history
+        from backend.agent.eval.e2e import history
         import json
 
         data_dir = tmp_path / "data"
@@ -1034,7 +1034,7 @@ class TestHistoryFileOperations:
 
     def test_add_to_agent_history(self, tmp_path, monkeypatch):
         """Test add_to_agent_history adds entry."""
-        from backend.agent.eval import history
+        from backend.agent.eval.e2e import history
         from backend.agent.eval.models import E2EEvalSummary
         import json
 
@@ -1064,7 +1064,7 @@ class TestHistoryFileOperations:
 
     def test_add_to_agent_history_tracks_slo_failures(self, tmp_path, monkeypatch):
         """Test add_to_agent_history tracks SLO failures."""
-        from backend.agent.eval import history
+        from backend.agent.eval.e2e import history
         from backend.agent.eval.models import E2EEvalSummary
         import json
 
@@ -1093,7 +1093,7 @@ class TestHistoryFileOperations:
 
     def test_print_agent_trend_report_no_history(self, tmp_path, monkeypatch, capsys):
         """Test print_agent_trend_report with no history."""
-        from backend.agent.eval import history
+        from backend.agent.eval.e2e import history
 
         monkeypatch.setattr(history, "HISTORY_FILE", tmp_path / "nonexistent.json")
 
@@ -1102,7 +1102,7 @@ class TestHistoryFileOperations:
 
     def test_print_agent_trend_report_with_history(self, tmp_path, monkeypatch, capsys):
         """Test print_agent_trend_report with history."""
-        from backend.agent.eval import history
+        from backend.agent.eval.e2e import history
         import json
         from datetime import datetime
 
@@ -1153,7 +1153,7 @@ class TestTrackingFileOperations:
 
     def test_load_previous_e2e_summary_no_file(self, tmp_path, monkeypatch):
         """Test load_previous_e2e_summary when file doesn't exist."""
-        from backend.agent.eval import tracking
+        from backend.agent.eval.e2e import tracking
 
         monkeypatch.setattr(
             tracking, "PREVIOUS_RESULTS_PATH", tmp_path / "nonexistent.json"
@@ -1164,7 +1164,7 @@ class TestTrackingFileOperations:
 
     def test_load_previous_e2e_summary_with_file(self, tmp_path, monkeypatch):
         """Test load_previous_e2e_summary with existing file."""
-        from backend.agent.eval import tracking
+        from backend.agent.eval.e2e import tracking
         import json
 
         results_file = tmp_path / "previous.json"
@@ -1189,7 +1189,7 @@ class TestTrackingFileOperations:
 
     def test_load_previous_e2e_summary_invalid_json(self, tmp_path, monkeypatch):
         """Test load_previous_e2e_summary with invalid JSON."""
-        from backend.agent.eval import tracking
+        from backend.agent.eval.e2e import tracking
 
         results_file = tmp_path / "previous.json"
         results_file.write_text("not valid json")
@@ -1200,7 +1200,7 @@ class TestTrackingFileOperations:
 
     def test_save_e2e_as_previous(self, tmp_path, monkeypatch):
         """Test save_e2e_as_previous writes file."""
-        from backend.agent.eval import tracking
+        from backend.agent.eval.e2e import tracking
         from backend.agent.eval.models import E2EEvalResult, E2EEvalSummary
         import json
 
@@ -1245,7 +1245,7 @@ class TestTrackingComparison:
 
     def test_compare_e2e_with_previous_improvement(self):
         """Test compare_e2e_with_previous detects improvement."""
-        from backend.agent.eval.tracking import compare_e2e_with_previous
+        from backend.agent.eval.e2e.tracking import compare_e2e_with_previous
         from backend.agent.eval.models import E2EEvalSummary
 
         previous = E2EEvalSummary(
@@ -1273,7 +1273,7 @@ class TestTrackingComparison:
 
     def test_compare_e2e_with_previous_latency_regression(self):
         """Test compare_e2e_with_previous detects latency regression."""
-        from backend.agent.eval.tracking import compare_e2e_with_previous
+        from backend.agent.eval.e2e.tracking import compare_e2e_with_previous
         from backend.agent.eval.models import E2EEvalSummary
 
         previous = E2EEvalSummary(
@@ -1304,7 +1304,7 @@ class TestTrackingComparison:
 
     def test_print_e2e_regression_report_no_previous(self, capsys):
         """Test print_e2e_regression_report with no previous."""
-        from backend.agent.eval.tracking import print_e2e_regression_report
+        from backend.agent.eval.e2e.tracking import print_e2e_regression_report
 
         comparison = {"has_previous": False, "regressions": [], "improvements": []}
 
@@ -1313,7 +1313,7 @@ class TestTrackingComparison:
 
     def test_print_e2e_regression_report_with_comparison(self, capsys):
         """Test print_e2e_regression_report with comparison."""
-        from backend.agent.eval.tracking import print_e2e_regression_report
+        from backend.agent.eval.e2e.tracking import print_e2e_regression_report
         from backend.agent.eval.models import E2EEvalSummary
 
         previous = E2EEvalSummary(
@@ -1351,7 +1351,7 @@ class TestTrackingBudget:
 
     def test_analyze_e2e_budget_violations_category_stats(self):
         """Test analyze_e2e_budget_violations computes category stats."""
-        from backend.agent.eval.tracking import analyze_e2e_budget_violations
+        from backend.agent.eval.e2e.tracking import analyze_e2e_budget_violations
         from backend.agent.eval.models import E2EEvalResult
 
         results = [
@@ -1399,7 +1399,7 @@ class TestTrackingBudget:
 
     def test_print_e2e_budget_report_no_violations(self, capsys):
         """Test print_e2e_budget_report with no violations."""
-        from backend.agent.eval.tracking import print_e2e_budget_report
+        from backend.agent.eval.e2e.tracking import print_e2e_budget_report
         from backend.agent.eval.models import E2EEvalResult
 
         results = [
@@ -1421,7 +1421,7 @@ class TestTrackingBudget:
 
     def test_print_e2e_budget_report_with_violations(self, capsys):
         """Test print_e2e_budget_report with violations."""
-        from backend.agent.eval.tracking import print_e2e_budget_report
+        from backend.agent.eval.e2e.tracking import print_e2e_budget_report
         from backend.agent.eval.models import E2EEvalResult
 
         results = [
@@ -1447,7 +1447,7 @@ class TestTrackingConstants:
 
     def test_agent_latency_budgets_defined(self):
         """Test AGENT_LATENCY_BUDGETS has expected keys."""
-        from backend.agent.eval.tracking import AGENT_LATENCY_BUDGETS
+        from backend.agent.eval.e2e.tracking import AGENT_LATENCY_BUDGETS
 
         assert "router" in AGENT_LATENCY_BUDGETS
         assert "synthesis" in AGENT_LATENCY_BUDGETS
@@ -1455,7 +1455,7 @@ class TestTrackingConstants:
 
     def test_agent_total_latency_budget(self):
         """Test AGENT_TOTAL_LATENCY_BUDGET_MS is set."""
-        from backend.agent.eval.tracking import AGENT_TOTAL_LATENCY_BUDGET_MS
+        from backend.agent.eval.e2e.tracking import AGENT_TOTAL_LATENCY_BUDGET_MS
 
         assert AGENT_TOTAL_LATENCY_BUDGET_MS > 0
 
@@ -1613,7 +1613,7 @@ class TestTrackingPrintRegressionWithRegression:
 
     def test_print_e2e_regression_report_with_regressions(self, capsys):
         """Test print_e2e_regression_report with actual regressions."""
-        from backend.agent.eval.tracking import print_e2e_regression_report
+        from backend.agent.eval.e2e.tracking import print_e2e_regression_report
         from backend.agent.eval.models import E2EEvalSummary
 
         previous = E2EEvalSummary(
@@ -1654,7 +1654,7 @@ class TestHistoryTrendReportEdgeCases:
 
     def test_print_agent_trend_report_invalid_timestamp(self, tmp_path, monkeypatch, capsys):
         """Test print_agent_trend_report with invalid timestamp."""
-        from backend.agent.eval import history
+        from backend.agent.eval.e2e import history
         import json
 
         history_file = tmp_path / "history.json"
@@ -1682,7 +1682,7 @@ class TestHistoryTrendReportEdgeCases:
 
     def test_print_agent_trend_report_stable_trends(self, tmp_path, monkeypatch, capsys):
         """Test print_agent_trend_report with stable (unchanged) metrics."""
-        from backend.agent.eval import history
+        from backend.agent.eval.e2e import history
         import json
         from datetime import datetime
 
@@ -1726,7 +1726,7 @@ class TestHistoryTrendReportEdgeCases:
 
     def test_print_agent_trend_report_latency_only(self, tmp_path, monkeypatch, capsys):
         """Test print_agent_trend_report with latency-only metrics (lower is better)."""
-        from backend.agent.eval import history
+        from backend.agent.eval.e2e import history
         import json
         from datetime import datetime
 
@@ -1774,7 +1774,7 @@ class TestHistoryWithLatencySLOViolation:
 
     def test_add_to_agent_history_latency_slo_failure(self, tmp_path, monkeypatch):
         """Test add_to_agent_history tracks latency SLO failures."""
-        from backend.agent.eval import history
+        from backend.agent.eval.e2e import history
         from backend.agent.eval.models import E2EEvalSummary
         import json
 
@@ -1808,7 +1808,7 @@ class TestTrackingFullReport:
 
     def test_print_e2e_tracking_report(self, tmp_path, monkeypatch, capsys):
         """Test print_e2e_tracking_report integration."""
-        from backend.agent.eval import tracking, history
+        from backend.agent.eval.e2e import tracking, history
         from backend.agent.eval.models import E2EEvalResult, E2EEvalSummary
 
         # Set up temp paths

@@ -12,11 +12,23 @@ from fastapi import FastAPI, Request, Response, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from pydantic import BaseModel
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 from backend.core.config import get_settings
-from backend.core.exceptions import APIError, ErrorResponse
+from backend.core.exceptions import APIError
+
+
+class ErrorResponse(BaseModel):
+    """Standardized error response."""
+
+    error: bool = True
+    status_code: int
+    message: str
+    request_id: str | None = None
+
+
 from backend.api.chat import router as chat_router
 from backend.api.health import router as health_router
 from backend.api.data import router as data_router

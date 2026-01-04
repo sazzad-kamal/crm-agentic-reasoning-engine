@@ -4,10 +4,20 @@ Pipeline and opportunity operations for CRM Data Store.
 Provides opportunity queries, pipeline summaries, forecasts, and deals at risk.
 """
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from backend.agent.datastore.base import DataStoreMixinProtocol
+
+    _MixinBase = DataStoreMixinProtocol
+else:
+    _MixinBase = object
 
 
-class PipelineMixin:
+class PipelineMixin(_MixinBase):
     """Mixin providing pipeline and opportunity operations."""
 
     def get_open_opportunities(self, company_id: str, limit: int = 20) -> list[dict]:

@@ -1,18 +1,6 @@
 """Custom exceptions for the API."""
 
-from typing import Any
-
 from fastapi import HTTPException, status
-from pydantic import BaseModel
-
-
-class ErrorResponse(BaseModel):
-    """Standardized error response."""
-
-    error: bool = True
-    status_code: int
-    message: str
-    request_id: str | None = None
 
 
 class APIError(HTTPException):
@@ -37,4 +25,4 @@ class AgentError(APIError):
         super().__init__(status.HTTP_500_INTERNAL_SERVER_ERROR, message)
 
 
-__all__ = ["ErrorResponse", "APIError", "ValidationError", "AgentError"]
+__all__ = ["APIError", "ValidationError", "AgentError"]

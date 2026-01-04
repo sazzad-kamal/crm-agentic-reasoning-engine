@@ -151,13 +151,13 @@ class TestLLMHelpersCleanup:
 
     def test_call_llm_removed_from_exports(self):
         """Verify call_llm was removed from llm_helpers exports."""
-        from backend.agent.llm_helpers import __all__
+        from backend.agent.llm.helpers import __all__
 
         assert "call_llm" not in __all__, "call_llm should be removed from exports"
 
     def test_essential_functions_still_exported(self):
         """Verify essential LLM helper functions are still exported."""
-        from backend.agent.llm_helpers import __all__
+        from backend.agent.llm.helpers import __all__
 
         required_exports = {
             "call_docs_rag",

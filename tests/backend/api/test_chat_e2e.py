@@ -26,29 +26,6 @@ def client():
 
 
 # =============================================================================
-# Health Check Tests
-# =============================================================================
-
-class TestHealthEndpoints:
-    """Tests for health check endpoints."""
-    
-    def test_health_endpoint_returns_ok(self, client):
-        """Test that health endpoint returns OK status."""
-        response = client.get("/api/health")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "ok"
-        assert "services" in data
-    
-    def test_health_endpoint_includes_services(self, client):
-        """Test that health endpoint includes service statuses."""
-        response = client.get("/api/health")
-        data = response.json()
-        assert "services" in data
-        assert isinstance(data["services"], dict)
-
-
-# =============================================================================
 # Streaming Endpoint Tests
 # =============================================================================
 

@@ -18,20 +18,6 @@ os.environ["MOCK_LLM"] = "1"
 # E2E API Tests
 # =============================================================================
 
-class TestE2EApiFlow:
-    """End-to-end tests for API request/response flow."""
-
-    def test_health_endpoint_returns_healthy(self, client):
-        """Test that health endpoint returns healthy status."""
-        response = client.get("/api/health")
-
-        assert response.status_code == 200
-        data = response.json()
-
-        assert data["status"] == "ok"
-        assert "services" in data
-
-
 # =============================================================================
 # E2E Agent Pipeline Tests
 # =============================================================================

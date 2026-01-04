@@ -356,27 +356,6 @@ class TestAgent:
 
 
 # =============================================================================
-# Integration Tests (API)
-# =============================================================================
-
-class TestAPIIntegration:
-    """Tests for the FastAPI endpoint."""
-
-    def test_health_endpoint(self):
-        """Test the health check endpoint."""
-        from fastapi.testclient import TestClient
-        from backend.main import app
-        
-        client = TestClient(app)
-        
-        response = client.get("/api/health")
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "ok"
-
-
-# =============================================================================
 # Run tests
 # =============================================================================
 

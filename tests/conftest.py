@@ -37,7 +37,7 @@ def client():
     
     Usage:
         def test_endpoint(client):
-            response = client.get("/api/health")
+            response = client.get("/api/data/companies")
             assert response.status_code == 200
     """
     # Clear settings cache to ensure rate limit disabled setting is used

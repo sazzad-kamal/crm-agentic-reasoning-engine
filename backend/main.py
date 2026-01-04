@@ -30,7 +30,6 @@ class ErrorResponse(BaseModel):
 
 
 from backend.api.chat import router as chat_router
-from backend.api.health import router as health_router
 from backend.api.data import router as data_router
 
 # Logging setup
@@ -132,7 +131,6 @@ def create_app() -> FastAPI:
 
     router = APIRouter(prefix="/api")
     router.include_router(chat_router, tags=["chat"])
-    router.include_router(health_router, tags=["health"])
     router.include_router(data_router, tags=["data"])
     app.include_router(router)
 

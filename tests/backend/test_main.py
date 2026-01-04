@@ -182,14 +182,6 @@ class TestAppInstance:
 
         assert isinstance(app, FastAPI)
 
-    def test_app_has_health_endpoint(self):
-        """Test that app has health endpoint."""
-        from backend.main import app
-
-        client = TestClient(app)
-        response = client.get("/api/health")
-        assert response.status_code == 200
-
 
 # =============================================================================
 # Middleware Configuration Tests
@@ -204,7 +196,7 @@ class TestMiddlewareConfiguration:
         from backend.main import app
 
         client = TestClient(app)
-        response = client.get("/api/health")
+        response = client.get("/api/data/companies")
 
         assert "x-request-id" in response.headers
 
@@ -213,6 +205,6 @@ class TestMiddlewareConfiguration:
         from backend.main import app
 
         client = TestClient(app)
-        response = client.get("/api/health")
+        response = client.get("/api/data/companies")
 
         assert "x-response-time" in response.headers

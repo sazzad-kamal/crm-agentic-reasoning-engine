@@ -13,13 +13,11 @@ from backend.core.exceptions import ValidationError
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-
 def _validate_question(question: str) -> None:
     if not question or not question.strip():
         raise ValidationError("Question cannot be empty", field="question")
     if len(question) > 2000:
         raise ValidationError("Question too long (max 2000 characters)", field="question")
-
 
 @router.post("/chat/stream", summary="Stream a chat response (SSE)")
 async def chat_stream_endpoint(

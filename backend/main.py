@@ -89,10 +89,8 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-        expose_headers=["X-Request-ID", "X-Response-Time"],
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type"],
     )
     app.add_middleware(RequestLoggingMiddleware)
 
@@ -110,7 +108,7 @@ def create_app() -> FastAPI:
     @app.exception_handler(Exception)
     async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         request_id = getattr(request.state, "request_id", None)
-        logger.error(f"Unhandled exception: {exc}", exc_info=True)
+        logger.error(f"[{request_id}] Unhandled exception: {exc}", exc_info=True)
         return JSONResponse(
             status_code=500,
             content=ErrorResponse(

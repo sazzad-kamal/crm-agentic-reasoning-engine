@@ -11,21 +11,21 @@ class TestConversationCheckpointer:
 
     def test_get_checkpointer_returns_saver(self):
         """Test get_checkpointer returns MemorySaver."""
-        from backend.agent.conversation import get_checkpointer
+        from backend.agent.session.conversation import get_checkpointer
 
         checkpointer = get_checkpointer()
         assert checkpointer is not None
 
     def test_get_session_state_not_found(self):
         """Test get_session_state returns None when not found."""
-        from backend.agent.conversation import get_session_state
+        from backend.agent.session.conversation import get_session_state
 
         result = get_session_state("nonexistent-session-id")
         assert result is None
 
     def test_get_session_state_exception(self):
         """Test get_session_state handles exceptions."""
-        from backend.agent import conversation
+        from backend.agent.session import conversation
 
         original_checkpointer = conversation._checkpointer
 
@@ -39,14 +39,14 @@ class TestConversationCheckpointer:
 
     def test_get_session_messages_not_found(self):
         """Test get_session_messages returns empty list when not found."""
-        from backend.agent.conversation import get_session_messages
+        from backend.agent.session.conversation import get_session_messages
 
         result = get_session_messages("nonexistent-session-id")
         assert result == []
 
     def test_get_session_messages_exception(self):
         """Test get_session_messages handles exceptions."""
-        from backend.agent import conversation
+        from backend.agent.session import conversation
 
         original_checkpointer = conversation._checkpointer
 
@@ -60,7 +60,7 @@ class TestConversationCheckpointer:
 
     def test_build_thread_config_with_session(self):
         """Test build_thread_config with session ID."""
-        from backend.agent.conversation import build_thread_config
+        from backend.agent.session.conversation import build_thread_config
 
         config = build_thread_config("my-session")
 
@@ -69,7 +69,7 @@ class TestConversationCheckpointer:
 
     def test_build_thread_config_without_session(self):
         """Test build_thread_config without session ID generates UUID."""
-        from backend.agent.conversation import build_thread_config
+        from backend.agent.session.conversation import build_thread_config
 
         config = build_thread_config(None)
 
@@ -127,7 +127,7 @@ class TestConfigEdgeCases:
 
     def test_get_config_returns_config(self):
         """Test get_config returns a Config object."""
-        from backend.agent.config import get_config
+        from backend.agent.core.config import get_config
 
         config = get_config()
         assert config is not None
@@ -135,7 +135,7 @@ class TestConfigEdgeCases:
 
     def test_config_has_expected_attributes(self):
         """Test config has expected attributes."""
-        from backend.agent.config import get_config
+        from backend.agent.core.config import get_config
 
         config = get_config()
         assert hasattr(config, "llm_temperature")
@@ -177,7 +177,7 @@ class TestStreamingModule:
 
     def test_serialize_for_json_basic(self):
         """Test serialize_for_json with basic types."""
-        from backend.agent.streaming import serialize_for_json
+        from backend.agent.output.streaming import serialize_for_json
 
         result = serialize_for_json({"key": "value", "num": 42})
         assert result["key"] == "value"
@@ -185,7 +185,7 @@ class TestStreamingModule:
 
     def test_serialize_for_json_datetime(self):
         """Test serialize_for_json with datetime."""
-        from backend.agent.streaming import serialize_for_json
+        from backend.agent.output.streaming import serialize_for_json
         from datetime import datetime
 
         dt = datetime(2024, 1, 15, 12, 30, 0)
@@ -195,7 +195,7 @@ class TestStreamingModule:
 
     def test_format_sse(self):
         """Test format_sse creates proper SSE format."""
-        from backend.agent.streaming import format_sse
+        from backend.agent.output.streaming import format_sse
 
         result = format_sse("progress", {"step": "fetching"})
 

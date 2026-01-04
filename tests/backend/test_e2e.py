@@ -99,7 +99,6 @@ class TestE2EApiFlow:
         data = response.json()
 
         assert data["status"] == "ok"
-        assert "version" in data
         assert "services" in data
 
 

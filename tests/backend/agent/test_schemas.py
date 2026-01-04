@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend.agent.schemas import (
+from backend.agent.core.schemas import (
     Source,
     Step,
     RawData,

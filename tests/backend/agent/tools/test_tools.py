@@ -13,7 +13,7 @@ from backend.agent.tools.pipeline import (
     tool_pipeline,
     tool_upcoming_renewals,
 )
-from backend.agent.schemas import Source, ToolResult
+from backend.agent.core.schemas import Source, ToolResult
 
 
 class TestMakeSources:

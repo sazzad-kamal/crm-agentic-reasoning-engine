@@ -43,15 +43,14 @@ class TestHealthResponse:
 
     def test_health_response_creation(self):
         """Test HealthResponse with required fields."""
-        response = HealthResponse(status="ok", version="2.0.0")
+        response = HealthResponse(status="ok")
         assert response.status == "ok"
-        assert response.version == "2.0.0"
         assert response.services == {}
 
     def test_health_response_with_services(self):
         """Test HealthResponse with services dict."""
         services = {"api": "healthy", "data": "healthy"}
-        response = HealthResponse(status="ok", version="2.0.0", services=services)
+        response = HealthResponse(status="ok", services=services)
         assert response.services["api"] == "healthy"
 
 
@@ -62,12 +61,10 @@ class TestSystemInfo:
         """Test SystemInfo with all fields."""
         info = SystemInfo(
             app_name="Test App",
-            version="1.0.0",
             debug=False,
             cors_origins=["http://localhost:3000"],
         )
         assert info.app_name == "Test App"
-        assert info.version == "1.0.0"
         assert info.debug is False
         assert len(info.cors_origins) == 1
 
@@ -160,13 +157,6 @@ class TestHealthEndpoint:
         assert "status" in data
         assert data["status"] == "ok"
 
-    def test_health_returns_version(self, client):
-        """Test health endpoint returns version."""
-        response = client.get("/api/health")
-        data = response.json()
-        assert "version" in data
-        assert isinstance(data["version"], str)
-
     def test_health_returns_services(self, client):
         """Test health endpoint returns services dict."""
         response = client.get("/api/health")
@@ -194,11 +184,12 @@ class TestInfoEndpoint:
         assert "app_name" in data
         assert isinstance(data["app_name"], str)
 
-    def test_info_returns_version(self, client):
-        """Test info endpoint returns version."""
+    def test_info_returns_debug(self, client):
+        """Test info endpoint returns debug flag."""
         response = client.get("/api/info")
         data = response.json()
-        assert "version" in data
+        assert "debug" in data
+        assert isinstance(data["debug"], bool)
 
     def test_info_returns_cors_origins(self, client):
         """Test info endpoint returns cors_origins."""

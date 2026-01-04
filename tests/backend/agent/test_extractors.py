@@ -4,7 +4,7 @@ Tests for backend/agent/extractors.py - extraction helpers for parsing user ques
 
 import pytest
 
-from backend.agent.extractors import (
+from backend.agent.output.extractors import (
     extract_role_from_question,
     extract_company_criteria,
     extract_group_id,

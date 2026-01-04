@@ -38,7 +38,7 @@ class TestHealthEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
-        assert "version" in data
+        assert "services" in data
     
     def test_health_endpoint_includes_services(self, client):
         """Test that health endpoint includes service statuses."""
@@ -53,7 +53,7 @@ class TestHealthEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert "app_name" in data
-        assert "version" in data
+        assert "debug" in data
 
 
 # =============================================================================

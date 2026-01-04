@@ -13,7 +13,7 @@ import json
 from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, date
 
-from backend.agent.streaming import (
+from backend.agent.output.streaming import (
     format_sse,
     serialize_for_json,
     StreamEvent,

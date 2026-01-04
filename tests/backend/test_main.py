@@ -1,7 +1,7 @@
 """
 Tests for backend/main.py.
 
-Tests the application factory, lifespan, exception handlers, and other main.py functionality.
+Tests the application factory, exception handlers, and other main.py functionality.
 
 Run with:
     pytest tests/backend/test_main.py -v
@@ -9,215 +9,11 @@ Run with:
 
 import os
 import pytest
-import logging
-from unittest.mock import patch, MagicMock
 
 os.environ["MOCK_LLM"] = "1"
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
-
-# =============================================================================
-# Setup Logging Tests
-# =============================================================================
-
-
-class TestSetupLogging:
-    """Tests for setup_logging function."""
-
-    def test_setup_logging_configures_root_logger(self):
-        """Test that setup_logging configures logging."""
-        from backend.core.lifespan import setup_logging
-
-        setup_logging()
-
-        root_logger = logging.getLogger()
-        assert root_logger.level != logging.NOTSET or len(root_logger.handlers) > 0
-
-    def test_setup_logging_reduces_third_party_noise(self):
-        """Test that third-party loggers are quieted."""
-        from backend.core.lifespan import setup_logging
-
-        setup_logging()
-
-        httpx_logger = logging.getLogger("httpx")
-        assert httpx_logger.level >= logging.WARNING
-
-        httpcore_logger = logging.getLogger("httpcore")
-        assert httpcore_logger.level >= logging.WARNING
-
-
-# =============================================================================
-# Ensure RAG Collections Tests
-# =============================================================================
-
-
-class TestEnsureRagCollections:
-    """Tests for ensure_rag_collections_exist function."""
-
-    @patch("qdrant_client.QdrantClient")
-    @patch("backend.agent.rag.ingest.ingest_docs")
-    @patch("backend.agent.rag.ingest.ingest_private_texts")
-    def test_creates_docs_collection_when_missing(
-        self, mock_ingest_private, mock_ingest_docs, mock_qdrant_class
-    ):
-        """Test that docs collection is created when missing."""
-        from backend.core.lifespan import ensure_rag_collections_exist
-
-        mock_client = MagicMock()
-        mock_qdrant_class.return_value = mock_client
-
-        mock_client.collection_exists.side_effect = [False, True]
-        mock_info = MagicMock()
-        mock_info.points_count = 10
-        mock_client.get_collection.return_value = mock_info
-
-        ensure_rag_collections_exist()
-
-        mock_ingest_docs.assert_called_once()
-
-    @patch("qdrant_client.QdrantClient")
-    @patch("backend.agent.rag.ingest.ingest_docs")
-    @patch("backend.agent.rag.ingest.ingest_private_texts")
-    def test_creates_private_collection_when_missing(
-        self, mock_ingest_private, mock_ingest_docs, mock_qdrant_class
-    ):
-        """Test that private collection is created when missing."""
-        from backend.core.lifespan import ensure_rag_collections_exist
-
-        mock_client = MagicMock()
-        mock_qdrant_class.return_value = mock_client
-
-        mock_client.collection_exists.side_effect = [True, False]
-        mock_info = MagicMock()
-        mock_info.points_count = 10
-        mock_client.get_collection.return_value = mock_info
-
-        ensure_rag_collections_exist()
-
-        mock_ingest_private.assert_called_once()
-
-    @patch("qdrant_client.QdrantClient")
-    @patch("backend.agent.rag.ingest.ingest_docs")
-    @patch("backend.agent.rag.ingest.ingest_private_texts")
-    def test_ingests_when_docs_collection_empty(
-        self, mock_ingest_private, mock_ingest_docs, mock_qdrant_class
-    ):
-        """Test that docs are ingested when collection is empty."""
-        from backend.core.lifespan import ensure_rag_collections_exist
-
-        mock_client = MagicMock()
-        mock_qdrant_class.return_value = mock_client
-
-        mock_client.collection_exists.return_value = True
-
-        def get_collection_side_effect(name):
-            info = MagicMock()
-            if name == "acme_crm_docs":
-                info.points_count = 0
-            else:
-                info.points_count = 10
-            return info
-
-        mock_client.get_collection.side_effect = get_collection_side_effect
-
-        ensure_rag_collections_exist()
-
-        mock_ingest_docs.assert_called_once()
-
-    @patch("qdrant_client.QdrantClient")
-    @patch("backend.agent.rag.ingest.ingest_docs")
-    @patch("backend.agent.rag.ingest.ingest_private_texts")
-    def test_ingests_when_private_collection_empty(
-        self, mock_ingest_private, mock_ingest_docs, mock_qdrant_class
-    ):
-        """Test that private texts are ingested when collection is empty."""
-        from backend.core.lifespan import ensure_rag_collections_exist
-
-        mock_client = MagicMock()
-        mock_qdrant_class.return_value = mock_client
-
-        mock_client.collection_exists.return_value = True
-
-        def get_collection_side_effect(name):
-            info = MagicMock()
-            if "private" in name.lower():
-                info.points_count = 0
-            else:
-                info.points_count = 10
-            return info
-
-        mock_client.get_collection.side_effect = get_collection_side_effect
-
-        ensure_rag_collections_exist()
-
-        mock_ingest_private.assert_called_once()
-
-    @patch("qdrant_client.QdrantClient")
-    @patch("backend.agent.rag.ingest.ingest_docs")
-    @patch("backend.agent.rag.ingest.ingest_private_texts")
-    def test_skips_ingestion_when_collections_have_data(
-        self, mock_ingest_private, mock_ingest_docs, mock_qdrant_class
-    ):
-        """Test that ingestion is skipped when collections have data."""
-        from backend.core.lifespan import ensure_rag_collections_exist
-
-        mock_client = MagicMock()
-        mock_qdrant_class.return_value = mock_client
-
-        mock_client.collection_exists.return_value = True
-        mock_info = MagicMock()
-        mock_info.points_count = 100
-        mock_client.get_collection.return_value = mock_info
-
-        ensure_rag_collections_exist()
-
-        mock_ingest_docs.assert_not_called()
-        mock_ingest_private.assert_not_called()
-
-    @patch("qdrant_client.QdrantClient")
-    def test_raises_on_error(self, mock_qdrant_class):
-        """Test that errors are propagated."""
-        from backend.core.lifespan import ensure_rag_collections_exist
-
-        mock_client = MagicMock()
-        mock_qdrant_class.return_value = mock_client
-        mock_client.collection_exists.side_effect = Exception("Connection failed")
-
-        with pytest.raises(Exception, match="Connection failed"):
-            ensure_rag_collections_exist()
-
-    @patch("qdrant_client.QdrantClient")
-    def test_closes_client_on_success(self, mock_qdrant_class):
-        """Test that Qdrant client is closed on success."""
-        from backend.core.lifespan import ensure_rag_collections_exist
-
-        mock_client = MagicMock()
-        mock_qdrant_class.return_value = mock_client
-
-        mock_client.collection_exists.return_value = True
-        mock_info = MagicMock()
-        mock_info.points_count = 10
-        mock_client.get_collection.return_value = mock_info
-
-        ensure_rag_collections_exist()
-
-        mock_client.close.assert_called()
-
-    @patch("qdrant_client.QdrantClient")
-    def test_closes_client_on_error(self, mock_qdrant_class):
-        """Test that Qdrant client is closed even on error."""
-        from backend.core.lifespan import ensure_rag_collections_exist
-
-        mock_client = MagicMock()
-        mock_qdrant_class.return_value = mock_client
-        mock_client.collection_exists.side_effect = Exception("Error")
-
-        with pytest.raises(Exception):
-            ensure_rag_collections_exist()
-
-        mock_client.close.assert_called()
 
 
 # =============================================================================
@@ -404,69 +200,6 @@ class TestAppInstance:
 
 
 # =============================================================================
-# Lifespan Tests
-# =============================================================================
-
-
-class TestLifespan:
-    """Tests for lifespan context manager."""
-
-    def test_lifespan_logs_startup(self):
-        """Test that lifespan logs startup message."""
-        import anyio
-        from backend.core.lifespan import lifespan
-
-        with patch("backend.core.lifespan.ensure_rag_collections_exist"):
-            with patch("backend.core.lifespan.logger") as mock_logger:
-                app = FastAPI()
-
-                async def run():
-                    async with lifespan(app):
-                        pass
-
-                anyio.run(run)
-
-                assert mock_logger.info.called
-
-    def test_lifespan_calls_ensure_rag(self):
-        """Test that lifespan calls ensure_rag_collections_exist."""
-        import anyio
-        from backend.core.lifespan import lifespan
-
-        with patch("backend.core.lifespan.ensure_rag_collections_exist") as mock_ensure_rag:
-            with patch("backend.core.lifespan.logger"):
-                app = FastAPI()
-
-                async def run():
-                    async with lifespan(app):
-                        pass
-
-                anyio.run(run)
-
-                mock_ensure_rag.assert_called_once()
-
-    def test_lifespan_logs_shutdown(self):
-        """Test that lifespan logs shutdown message."""
-        import anyio
-        from backend.core.lifespan import lifespan
-
-        with patch("backend.core.lifespan.ensure_rag_collections_exist"):
-            with patch("backend.core.lifespan.logger") as mock_logger:
-                app = FastAPI()
-
-                async def run():
-                    async with lifespan(app):
-                        pass
-
-                anyio.run(run)
-
-                shutdown_logged = any(
-                    "Shutting down" in str(call) for call in mock_logger.info.call_args_list
-                )
-                assert shutdown_logged
-
-
-# =============================================================================
 # Middleware Configuration Tests
 # =============================================================================
 
@@ -491,13 +224,3 @@ class TestMiddlewareConfiguration:
         response = client.get("/api/health")
 
         assert "x-response-time" in response.headers
-
-    def test_api_routes_have_cache_control(self):
-        """Test that API routes have cache control headers."""
-        from backend.main import app
-
-        client = TestClient(app)
-        response = client.get("/api/health")
-
-        assert "cache-control" in response.headers
-        assert "no-store" in response.headers["cache-control"]

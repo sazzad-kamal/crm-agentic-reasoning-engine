@@ -14,12 +14,12 @@ class TestLlmHelpersChains:
 
     def test_create_chain_with_structured_output(self):
         """Test _create_chain with structured output."""
-        from backend.agent.llm_helpers import _create_chain, _chains_cache, FollowUpSuggestions
+        from backend.agent.llm.helpers import _create_chain, _chains_cache, FollowUpSuggestions
 
         _chains_cache.clear()
 
-        with patch("backend.agent.llm_helpers.ChatOpenAI") as mock_chat, \
-             patch("backend.agent.llm_helpers.get_config") as mock_config, \
+        with patch("backend.agent.llm.helpers.ChatOpenAI") as mock_chat, \
+             patch("backend.agent.llm.helpers.get_config") as mock_config, \
              patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
 
             mock_cfg = MagicMock()
@@ -34,7 +34,7 @@ class TestLlmHelpersChains:
             mock_llm.with_structured_output.return_value = mock_structured
             mock_chat.return_value = mock_llm
 
-            from backend.agent.prompts import FOLLOW_UP_PROMPT_TEMPLATE
+            from backend.agent.llm.prompts import FOLLOW_UP_PROMPT_TEMPLATE
 
             chain = _create_chain(
                 FOLLOW_UP_PROMPT_TEMPLATE,
@@ -49,13 +49,13 @@ class TestLlmHelpersChains:
 
     def test_create_chain_without_structured_output(self):
         """Test _create_chain without structured output returns string parser chain."""
-        from backend.agent.llm_helpers import _create_chain, _chains_cache
+        from backend.agent.llm.helpers import _create_chain, _chains_cache
 
         _chains_cache.clear()
 
-        with patch("backend.agent.llm_helpers.ChatOpenAI") as mock_chat, \
-             patch("backend.agent.llm_helpers.get_config") as mock_config, \
-             patch("backend.agent.llm_helpers.StrOutputParser") as mock_parser, \
+        with patch("backend.agent.llm.helpers.ChatOpenAI") as mock_chat, \
+             patch("backend.agent.llm.helpers.get_config") as mock_config, \
+             patch("backend.agent.llm.helpers.StrOutputParser") as mock_parser, \
              patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
 
             mock_cfg = MagicMock()
@@ -67,7 +67,7 @@ class TestLlmHelpersChains:
             mock_llm = MagicMock()
             mock_chat.return_value = mock_llm
 
-            from backend.agent.prompts import DATA_ANSWER_TEMPLATE
+            from backend.agent.llm.prompts import DATA_ANSWER_TEMPLATE
 
             chain = _create_chain(DATA_ANSWER_TEMPLATE, model_key="main")
 
@@ -78,11 +78,11 @@ class TestLlmHelpersChains:
 
     def test_get_chain_caching(self):
         """Test that _get_chain caches chains."""
-        from backend.agent.llm_helpers import _get_chain, _chains_cache
+        from backend.agent.llm.helpers import _get_chain, _chains_cache
 
         _chains_cache.clear()
 
-        with patch("backend.agent.llm_helpers._create_chain") as mock_create:
+        with patch("backend.agent.llm.helpers._create_chain") as mock_create:
             mock_chain = MagicMock()
             mock_create.return_value = mock_chain
 
@@ -101,7 +101,7 @@ class TestLlmHelpersChains:
 
     def test_get_chain_unknown_type_raises(self):
         """Test _get_chain raises for unknown chain type."""
-        from backend.agent.llm_helpers import _get_chain, _chains_cache
+        from backend.agent.llm.helpers import _get_chain, _chains_cache
 
         _chains_cache.clear()
 
@@ -116,9 +116,9 @@ class TestLlmHelpersCallFunctions:
 
     def test_call_answer_chain_mock_mode(self):
         """Test call_answer_chain in mock mode."""
-        from backend.agent.llm_helpers import call_answer_chain
+        from backend.agent.llm.helpers import call_answer_chain
 
-        with patch("backend.agent.llm_helpers.is_mock_mode", return_value=True):
+        with patch("backend.agent.llm.helpers.is_mock_mode", return_value=True):
             answer, latency = call_answer_chain(
                 question="What is the pipeline?",
                 conversation_history_section="",
@@ -135,12 +135,12 @@ class TestLlmHelpersCallFunctions:
 
     def test_call_answer_chain_real_mode(self):
         """Test call_answer_chain in real mode."""
-        from backend.agent.llm_helpers import call_answer_chain, _chains_cache
+        from backend.agent.llm.helpers import call_answer_chain, _chains_cache
 
         _chains_cache.clear()
 
-        with patch("backend.agent.llm_helpers.is_mock_mode", return_value=False), \
-             patch("backend.agent.llm_helpers._get_chain") as mock_get_chain:
+        with patch("backend.agent.llm.helpers.is_mock_mode", return_value=False), \
+             patch("backend.agent.llm.helpers._get_chain") as mock_get_chain:
 
             mock_chain = MagicMock()
             mock_chain.invoke.return_value = "Generated answer"
@@ -165,9 +165,9 @@ class TestLlmHelpersCallFunctions:
 
     def test_call_not_found_chain_mock_mode(self):
         """Test call_not_found_chain in mock mode."""
-        from backend.agent.llm_helpers import call_not_found_chain
+        from backend.agent.llm.helpers import call_not_found_chain
 
-        with patch("backend.agent.llm_helpers.is_mock_mode", return_value=True):
+        with patch("backend.agent.llm.helpers.is_mock_mode", return_value=True):
             answer, latency = call_not_found_chain(
                 question="Tell me about Acme",
                 query="Acme",
@@ -179,12 +179,12 @@ class TestLlmHelpersCallFunctions:
 
     def test_call_not_found_chain_real_mode(self):
         """Test call_not_found_chain in real mode."""
-        from backend.agent.llm_helpers import call_not_found_chain, _chains_cache
+        from backend.agent.llm.helpers import call_not_found_chain, _chains_cache
 
         _chains_cache.clear()
 
-        with patch("backend.agent.llm_helpers.is_mock_mode", return_value=False), \
-             patch("backend.agent.llm_helpers._get_chain") as mock_get_chain:
+        with patch("backend.agent.llm.helpers.is_mock_mode", return_value=False), \
+             patch("backend.agent.llm.helpers._get_chain") as mock_get_chain:
 
             mock_chain = MagicMock()
             mock_chain.invoke.return_value = "I couldn't find that company"
@@ -203,9 +203,9 @@ class TestLlmHelpersCallFunctions:
 
     def test_call_docs_rag_mock_mode(self):
         """Test call_docs_rag in mock mode."""
-        from backend.agent.llm_helpers import call_docs_rag
+        from backend.agent.llm.helpers import call_docs_rag
 
-        with patch("backend.agent.llm_helpers.is_mock_mode", return_value=True):
+        with patch("backend.agent.llm.helpers.is_mock_mode", return_value=True):
             context, sources = call_docs_rag("How do I create a contact?")
 
             assert "documentation" in context.lower() or "settings" in context.lower()
@@ -214,10 +214,10 @@ class TestLlmHelpersCallFunctions:
 
     def test_call_docs_rag_real_mode_success(self):
         """Test call_docs_rag in real mode with success."""
-        from backend.agent.llm_helpers import call_docs_rag
+        from backend.agent.llm.helpers import call_docs_rag
         from backend.agent.schemas import Source
 
-        with patch("backend.agent.llm_helpers.is_mock_mode", return_value=False), \
+        with patch("backend.agent.llm.helpers.is_mock_mode", return_value=False), \
              patch("backend.agent.rag.tools.tool_docs_rag") as mock_tool:
 
             mock_tool.return_value = ("Docs context", [Source(type="doc", id="doc1", label="Doc 1")])
@@ -229,9 +229,9 @@ class TestLlmHelpersCallFunctions:
 
     def test_call_docs_rag_real_mode_exception(self):
         """Test call_docs_rag handles exceptions gracefully."""
-        from backend.agent.llm_helpers import call_docs_rag
+        from backend.agent.llm.helpers import call_docs_rag
 
-        with patch("backend.agent.llm_helpers.is_mock_mode", return_value=False), \
+        with patch("backend.agent.llm.helpers.is_mock_mode", return_value=False), \
              patch("backend.agent.rag.tools.tool_docs_rag", side_effect=Exception("RAG error")):
 
             context, sources = call_docs_rag("How do I create a contact?")
@@ -241,9 +241,9 @@ class TestLlmHelpersCallFunctions:
 
     def test_call_account_rag_mock_mode(self):
         """Test call_account_rag in mock mode."""
-        from backend.agent.llm_helpers import call_account_rag
+        from backend.agent.llm.helpers import call_account_rag
 
-        with patch("backend.agent.llm_helpers.is_mock_mode", return_value=True):
+        with patch("backend.agent.llm.helpers.is_mock_mode", return_value=True):
             context, sources = call_account_rag("What are the notes?", "COMP001")
 
             assert "account" in context.lower() or "notes" in context.lower()
@@ -251,9 +251,9 @@ class TestLlmHelpersCallFunctions:
 
     def test_call_account_rag_real_mode_exception(self):
         """Test call_account_rag handles exceptions gracefully."""
-        from backend.agent.llm_helpers import call_account_rag
+        from backend.agent.llm.helpers import call_account_rag
 
-        with patch("backend.agent.llm_helpers.is_mock_mode", return_value=False), \
+        with patch("backend.agent.llm.helpers.is_mock_mode", return_value=False), \
              patch("backend.agent.rag.tools.tool_account_rag", side_effect=Exception("RAG error")):
 
             context, sources = call_account_rag("What are the notes?", "COMP001")
@@ -267,9 +267,9 @@ class TestLlmHelpersFollowUp:
 
     def test_generate_follow_up_disabled(self):
         """Test generate_follow_up_suggestions when disabled in config."""
-        from backend.agent.llm_helpers import generate_follow_up_suggestions
+        from backend.agent.llm.helpers import generate_follow_up_suggestions
 
-        with patch("backend.agent.llm_helpers.get_config") as mock_config:
+        with patch("backend.agent.llm.helpers.get_config") as mock_config:
             mock_cfg = MagicMock()
             mock_cfg.enable_follow_up_suggestions = False
             mock_config.return_value = mock_cfg
@@ -283,9 +283,9 @@ class TestLlmHelpersFollowUp:
 
     def test_generate_follow_up_hardcoded_tree(self):
         """Test generate_follow_up_suggestions uses hardcoded tree."""
-        from backend.agent.llm_helpers import generate_follow_up_suggestions
+        from backend.agent.llm.helpers import generate_follow_up_suggestions
 
-        with patch("backend.agent.llm_helpers.get_config") as mock_config, \
+        with patch("backend.agent.llm.helpers.get_config") as mock_config, \
              patch("backend.agent.question_tree.get_follow_ups") as mock_get_followups:
 
             mock_cfg = MagicMock()
@@ -304,10 +304,10 @@ class TestLlmHelpersFollowUp:
 
     def test_generate_follow_up_mock_mode(self):
         """Test generate_follow_up_suggestions in mock mode."""
-        from backend.agent.llm_helpers import generate_follow_up_suggestions
+        from backend.agent.llm.helpers import generate_follow_up_suggestions
 
-        with patch("backend.agent.llm_helpers.get_config") as mock_config, \
-             patch("backend.agent.llm_helpers.is_mock_mode", return_value=True), \
+        with patch("backend.agent.llm.helpers.get_config") as mock_config, \
+             patch("backend.agent.llm.helpers.is_mock_mode", return_value=True), \
              patch("backend.agent.question_tree.get_follow_ups", return_value=[]):
 
             mock_cfg = MagicMock()
@@ -326,14 +326,14 @@ class TestLlmHelpersFollowUp:
 
     def test_generate_follow_up_llm_failure(self):
         """Test generate_follow_up_suggestions handles LLM failures."""
-        from backend.agent.llm_helpers import generate_follow_up_suggestions, _chains_cache
+        from backend.agent.llm.helpers import generate_follow_up_suggestions, _chains_cache
 
         _chains_cache.clear()
 
-        with patch("backend.agent.llm_helpers.get_config") as mock_config, \
-             patch("backend.agent.llm_helpers.is_mock_mode", return_value=False), \
+        with patch("backend.agent.llm.helpers.get_config") as mock_config, \
+             patch("backend.agent.llm.helpers.is_mock_mode", return_value=False), \
              patch("backend.agent.question_tree.get_follow_ups", return_value=[]), \
-             patch("backend.agent.llm_helpers._get_chain") as mock_get_chain:
+             patch("backend.agent.llm.helpers._get_chain") as mock_get_chain:
 
             mock_cfg = MagicMock()
             mock_cfg.enable_follow_up_suggestions = True
@@ -359,12 +359,12 @@ class TestLlmRouter:
 
     def test_call_llm_router_direct(self):
         """Test _call_llm_router directly with mocked chain."""
-        from backend.agent.llm_router import _call_llm_router, LLMRouterResponse
+        from backend.agent.llm.router import _call_llm_router, LLMRouterResponse
         import backend.agent.llm_router as router_module
 
         router_module._router_chain = None
 
-        with patch("backend.agent.llm_router._get_router_chain") as mock_get_chain:
+        with patch("backend.agent.llm.router._get_router_chain") as mock_get_chain:
             mock_chain = MagicMock()
             mock_response = LLMRouterResponse(
                 mode="data",
@@ -391,12 +391,12 @@ class TestLlmRouter:
 
     def test_call_llm_router_no_history(self):
         """Test _call_llm_router without conversation history."""
-        from backend.agent.llm_router import _call_llm_router, LLMRouterResponse
+        from backend.agent.llm.router import _call_llm_router, LLMRouterResponse
         import backend.agent.llm_router as router_module
 
         router_module._router_chain = None
 
-        with patch("backend.agent.llm_router._get_router_chain") as mock_get_chain:
+        with patch("backend.agent.llm.router._get_router_chain") as mock_get_chain:
             mock_chain = MagicMock()
             mock_response = LLMRouterResponse(
                 mode="docs",
@@ -420,7 +420,7 @@ class TestLlmRouter:
 
     def test_llm_route_explicit_mode(self):
         """Test llm_route_question with explicit mode."""
-        from backend.agent.llm_router import llm_route_question
+        from backend.agent.llm.router import llm_route_question
 
         result = llm_route_question(
             question="Tell me about Acme",
@@ -433,9 +433,9 @@ class TestLlmRouter:
 
     def test_llm_route_mock_mode(self):
         """Test llm_route_question in mock mode."""
-        from backend.agent.llm_router import llm_route_question
+        from backend.agent.llm.router import llm_route_question
 
-        with patch("backend.agent.llm_router.is_mock_mode", return_value=True):
+        with patch("backend.agent.llm.router.is_mock_mode", return_value=True):
             result = llm_route_question(
                 question="Tell me about Acme",
                 mode="auto",
@@ -445,14 +445,14 @@ class TestLlmRouter:
 
     def test_llm_route_with_llm(self):
         """Test llm_route_question with actual LLM call."""
-        from backend.agent.llm_router import llm_route_question, _router_chain
+        from backend.agent.llm.router import llm_route_question, _router_chain
 
         # Reset chain cache
         import backend.agent.llm_router as router_module
         router_module._router_chain = None
 
-        with patch("backend.agent.llm_router.is_mock_mode", return_value=False), \
-             patch("backend.agent.llm_router._call_llm_router") as mock_call:
+        with patch("backend.agent.llm.router.is_mock_mode", return_value=False), \
+             patch("backend.agent.llm.router._call_llm_router") as mock_call:
 
             mock_call.return_value = {
                 "mode": "data",
@@ -481,12 +481,12 @@ class TestLlmRouter:
     def test_get_router_chain_caching(self):
         """Test that _get_router_chain caches the chain."""
         import backend.agent.llm_router as router_module
-        from backend.agent.llm_router import _get_router_chain
+        from backend.agent.llm.router import _get_router_chain
 
         router_module._router_chain = None
 
-        with patch("backend.agent.llm_router.ChatOpenAI") as mock_chat, \
-             patch("backend.agent.llm_router.get_config") as mock_config, \
+        with patch("backend.agent.llm.router.ChatOpenAI") as mock_chat, \
+             patch("backend.agent.llm.router.get_config") as mock_config, \
              patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
 
             mock_cfg = MagicMock()

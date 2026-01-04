@@ -15,7 +15,7 @@ import pytest
 # Set mock mode
 os.environ["MOCK_LLM"] = "1"
 
-from backend.agent.audit import (
+from backend.agent.output.audit import (
     AgentAuditEntry,
     AgentAuditLogger,
     get_audit_logger,

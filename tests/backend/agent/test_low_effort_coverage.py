@@ -12,21 +12,21 @@ class TestFormattersEdgeCases:
 
     def test_format_section_unknown_type(self):
         """Test format_section raises on unknown type."""
-        from backend.agent.formatters import format_section
+        from backend.agent.output.formatters import format_section
 
         with pytest.raises(ValueError, match="Unknown section type"):
             format_section("nonexistent_section_type", {})
 
     def test_format_conversation_history_section_empty(self):
         """Test format_conversation_history_section with empty list."""
-        from backend.agent.formatters import format_conversation_history_section
+        from backend.agent.output.formatters import format_conversation_history_section
 
         result = format_conversation_history_section([])
         assert result == ""
 
     def test_format_conversation_history_section_none(self):
         """Test format_conversation_history_section with None."""
-        from backend.agent.formatters import format_conversation_history_section
+        from backend.agent.output.formatters import format_conversation_history_section
 
         result = format_conversation_history_section(None)
         assert result == ""
@@ -37,7 +37,7 @@ class TestMemoryEdgeCases:
 
     def test_format_history_for_prompt_empty(self):
         """Test format_history_for_prompt with empty messages."""
-        from backend.agent.memory import format_history_for_prompt
+        from backend.agent.session.memory import format_history_for_prompt
 
         result = format_history_for_prompt([])
         assert result == ""
@@ -48,7 +48,7 @@ class TestCacheEviction:
 
     def test_set_cached_result_eviction(self):
         """Test that cache evicts oldest entry when full."""
-        from backend.agent import cache
+        from backend.agent.session import cache
 
         # Clear and set small max size
         cache.clear_query_cache()
@@ -77,7 +77,7 @@ class TestAuditLoggerEdgeCases:
 
     def test_log_query_write_failure(self):
         """Test log_query handles write failures gracefully."""
-        from backend.agent.audit import AgentAuditLogger
+        from backend.agent.output.audit import AgentAuditLogger
         import tempfile
         import os
         from pathlib import Path

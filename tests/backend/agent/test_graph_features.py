@@ -6,7 +6,7 @@ import pytest
 import time
 from unittest.mock import patch, MagicMock
 
-from backend.agent.cache import (
+from backend.agent.session.cache import (
     make_cache_key,
     get_cached_result,
     set_cached_result,
@@ -81,7 +81,7 @@ class TestQueryCache:
         set_cached_result("expire-key", test_result)
 
         # Manually expire the entry
-        from backend.agent import cache
+        from backend.agent.session import cache
         cache._query_cache["expire-key"] = (test_result, time.time() - _CACHE_TTL_SECONDS - 1)
 
         assert get_cached_result("expire-key") is None
@@ -92,7 +92,7 @@ class TestMetaLatencies:
 
     def test_meta_schema_has_latency_fields(self):
         """MetaInfo schema should have per-node latency fields."""
-        from backend.agent.schemas import MetaInfo
+        from backend.agent.core.schemas import MetaInfo
 
         # Create a MetaInfo with all latencies
         meta = MetaInfo(
@@ -111,7 +111,7 @@ class TestMetaLatencies:
 
     def test_meta_latencies_optional(self):
         """Per-node latency fields should be optional."""
-        from backend.agent.schemas import MetaInfo
+        from backend.agent.core.schemas import MetaInfo
 
         # Create MetaInfo without latencies (should work)
         meta = MetaInfo(mode_used="docs", latency_ms=500)

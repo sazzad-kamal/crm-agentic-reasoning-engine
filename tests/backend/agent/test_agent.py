@@ -24,7 +24,7 @@ from backend.agent.tools.pipeline import (
     tool_forecast,
     tool_pipeline_by_owner,
 )
-from backend.agent.llm_router import route_question
+from backend.agent.llm.router import route_question
 from backend.agent.graph import answer_question
 
 # datastore fixture is provided by conftest.py

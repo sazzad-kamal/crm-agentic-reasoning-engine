@@ -131,10 +131,7 @@ async def chat_endpoint(
             extra={"request_id": request_id, "error": str(e)},
             exc_info=True,
         )
-        raise AgentError(
-            message=f"Failed to process question: {str(e)}",
-            details={"original_error": str(e)},
-        )
+        raise AgentError(f"Failed to process question: {str(e)}")
 
 
 @router.post(

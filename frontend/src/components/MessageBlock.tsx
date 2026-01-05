@@ -1,7 +1,6 @@
 import { memo } from "react";
 import type { ChatMessage } from "../types";
 import { config } from "../config";
-import { SourcesRow } from "./SourceChip";
 import { DataTables } from "./DataTables";
 import { FollowUpSuggestions } from "./FollowUpSuggestions";
 import { Avatar } from "./Avatar";
@@ -72,14 +71,7 @@ export const MessageBlock = memo(function MessageBlock({
                 <CopyButton text={response.answer} className="message__copy" />
               </div>
 
-              {/* Latency indicator */}
-              {response.meta?.latency_ms && (
-                <div className="message__time">
-                  {(response.meta.latency_ms / 1000).toFixed(1)}s
-                </div>
-              )}
-
-              {/* Follow-up Suggestions - right after answer for easy action */}
+              {/* Follow-up Suggestions */}
               {config.features.showFollowUpSuggestions &&
                 response.follow_up_suggestions &&
                 response.follow_up_suggestions.length > 0 &&
@@ -89,11 +81,6 @@ export const MessageBlock = memo(function MessageBlock({
                     onSuggestionClick={onFollowUpClick}
                   />
                 )}
-
-              {/* Sources (collapsed) */}
-              {config.features.showSources && response.sources && response.sources.length > 0 && (
-                <SourcesRow sources={response.sources} />
-              )}
 
               {/* Data Tables (collapsed) */}
               {config.features.showDataTables && response.raw_data && (

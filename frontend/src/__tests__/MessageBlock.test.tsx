@@ -4,12 +4,6 @@ import { MessageBlock } from "../components/MessageBlock";
 import type { ChatMessage } from "../types";
 
 // Mock child components to isolate MessageBlock testing
-vi.mock("../components/SourceChip", () => ({
-  SourcesRow: ({ sources }: { sources: Array<{ id: string }> }) => (
-    <div data-testid="sources-row">{sources.length} sources</div>
-  ),
-}));
-
 vi.mock("../components/DataTables", () => ({
   DataTables: () => <div data-testid="data-tables">Data tables</div>,
 }));
@@ -143,68 +137,6 @@ describe("MessageBlock", () => {
   });
 
   // =========================================================================
-  // Latency Display
-  // =========================================================================
-
-  it("displays latency when available in meta", () => {
-    const message: ChatMessage = {
-      id: "msg1",
-      question: "Test question",
-      response: {
-        answer: "Test answer",
-        meta: {
-          latency_ms: 1234,
-        },
-      },
-      timestamp: new Date(),
-    };
-
-    render(<MessageBlock message={message} />);
-
-    expect(screen.getByText("1.2s")).toBeInTheDocument();
-  });
-
-  it("does not display latency when not in meta", () => {
-    const message: ChatMessage = {
-      id: "msg1",
-      question: "Test question",
-      response: {
-        answer: "Test answer",
-        meta: {},
-      },
-      timestamp: new Date(),
-    };
-
-    render(<MessageBlock message={message} />);
-
-    expect(screen.queryByText(/s$/)).not.toBeInTheDocument();
-  });
-
-  it("formats latency correctly", () => {
-    const testCases = [
-      { latency_ms: 500, expected: "0.5s" },
-      { latency_ms: 1000, expected: "1.0s" },
-      { latency_ms: 1500, expected: "1.5s" },
-      { latency_ms: 12345, expected: "12.3s" },
-    ];
-
-    testCases.forEach(({ latency_ms, expected }) => {
-      const message: ChatMessage = {
-        id: `msg-${latency_ms}`,
-        question: "Test",
-        response: {
-          answer: "Test",
-          meta: { latency_ms },
-        },
-        timestamp: new Date(),
-      };
-
-      const { container } = render(<MessageBlock message={message} />);
-      expect(container).toHaveTextContent(expected);
-    });
-  });
-
-  // =========================================================================
   // Follow-up Suggestions
   // =========================================================================
 
@@ -257,61 +189,6 @@ describe("MessageBlock", () => {
     render(<MessageBlock message={message} onFollowUpClick={handleFollowUp} />);
 
     expect(screen.queryByTestId("follow-up-suggestions")).not.toBeInTheDocument();
-  });
-
-  // =========================================================================
-  // Sources
-  // =========================================================================
-
-  it("renders sources when available", () => {
-    const message: ChatMessage = {
-      id: "msg1",
-      question: "Test question",
-      response: {
-        answer: "Test answer",
-        sources: [
-          { id: "src1", type: "company", label: "Acme Corp" },
-          { id: "src2", type: "doc", label: "User Guide" },
-        ],
-      },
-      timestamp: new Date(),
-    };
-
-    render(<MessageBlock message={message} />);
-
-    expect(screen.getByTestId("sources-row")).toBeInTheDocument();
-    expect(screen.getByText("2 sources")).toBeInTheDocument();
-  });
-
-  it("does not render sources when empty", () => {
-    const message: ChatMessage = {
-      id: "msg1",
-      question: "Test question",
-      response: {
-        answer: "Test answer",
-        sources: [],
-      },
-      timestamp: new Date(),
-    };
-
-    render(<MessageBlock message={message} />);
-
-    expect(screen.queryByTestId("sources-row")).not.toBeInTheDocument();
-  });
-
-  it("does not render sources when not provided", () => {
-    const message: ChatMessage = {
-      id: "msg1",
-      question: "Test question",
-      response: {
-        answer: "Test answer",
-      },
-      timestamp: new Date(),
-    };
-
-    render(<MessageBlock message={message} />);
-
-    expect(screen.queryByTestId("sources-row")).not.toBeInTheDocument();
   });
 
   // =========================================================================
@@ -484,14 +361,9 @@ describe("MessageBlock", () => {
       question: "Complete test",
       response: {
         answer: "Complete answer",
-        sources: [{ id: "src1", type: "company", label: "Acme" }],
         follow_up_suggestions: ["Follow-up 1"],
         raw_data: {
           companies: [{ company_id: "1", name: "Test", plan: "Pro", renewal_date: "2024-12-31" }],
-        },
-        meta: {
-          latency_ms: 1500,
-          mode_used: "data",
         },
       },
       timestamp: new Date(),
@@ -501,9 +373,7 @@ describe("MessageBlock", () => {
     render(<MessageBlock message={message} onFollowUpClick={handleFollowUp} />);
 
     expect(screen.getByText("Complete answer")).toBeInTheDocument();
-    expect(screen.getByText("1.5s")).toBeInTheDocument();
     expect(screen.getByTestId("follow-up-suggestions")).toBeInTheDocument();
-    expect(screen.getByTestId("sources-row")).toBeInTheDocument();
     expect(screen.getByTestId("data-tables")).toBeInTheDocument();
   });
 

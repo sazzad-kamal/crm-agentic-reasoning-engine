@@ -144,6 +144,8 @@ async def stream_agent(
     # Track accumulated state for final response
     final_state = initial_state.copy()
     seen_steps = set()
+    answer_started = False
+    accumulated_answer = ""
 
     # Build config with thread_id for LangGraph checkpointing
     thread_id = session_id or str(uuid.uuid4())
@@ -165,6 +167,26 @@ async def stream_agent(
                         "message": NODE_MESSAGES[event_name],
                     },
                 )
+
+            # LLM token streaming - emit tokens as they arrive
+            elif event_type == "on_llm_stream":
+                chunk = event_data.get("chunk")
+                if chunk:
+                    # Extract token content from AIMessageChunk
+                    token = ""
+                    if hasattr(chunk, "content"):
+                        token = chunk.content
+                    elif isinstance(chunk, dict):
+                        token = chunk.get("content", "")
+
+                    if token:
+                        # Emit answer_start on first token
+                        if not answer_started:
+                            answer_started = True
+                            yield format_sse(StreamEvent.ANSWER_START, {})
+
+                        accumulated_answer += token
+                        yield format_sse(StreamEvent.ANSWER_CHUNK, {"chunk": token})
 
             # Node completed - extract output
             elif event_type == "on_chain_end" and event_name in NODE_MESSAGES:
@@ -206,12 +228,17 @@ async def stream_agent(
 
                 # Special handling for answer node
                 if event_name == "answer":
-                    answer = output.get("answer", "")
+                    # Use accumulated_answer if we streamed tokens, otherwise use output
+                    answer = accumulated_answer if accumulated_answer else output.get("answer", "")
                     if answer:
-                        yield format_sse(StreamEvent.ANSWER_START, {})
-                        # For now, emit full answer (LLM streaming can be added later)
-                        yield format_sse(StreamEvent.ANSWER_CHUNK, {"chunk": answer})
+                        # If we didn't stream (mock mode), emit the full answer
+                        if not answer_started:
+                            yield format_sse(StreamEvent.ANSWER_START, {})
+                            yield format_sse(StreamEvent.ANSWER_CHUNK, {"chunk": answer})
+                        # Always emit answer_end with the complete answer
                         yield format_sse(StreamEvent.ANSWER_END, {"answer": answer})
+                        # Update final_state with the answer
+                        final_state["answer"] = answer
 
                 # Follow-up suggestions
                 if event_name == "followup":

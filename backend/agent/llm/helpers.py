@@ -118,6 +118,7 @@ def _create_chain(
         temperature=temp,
         max_tokens=tokens,
         api_key=os.environ.get("OPENAI_API_KEY"),
+        streaming=True,  # Enable token-by-token streaming
     )
 
     if structured_output:

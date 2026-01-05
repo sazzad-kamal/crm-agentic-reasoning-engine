@@ -13,15 +13,12 @@ from backend.agent.question_tree import get_starters
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-
 class StarterQuestionsResponse(BaseModel):
     questions: list[str]
-
 
 @router.get("/chat/starter-questions", response_model=StarterQuestionsResponse, summary="Get starter questions")
 async def get_starter_questions() -> StarterQuestionsResponse:
     return StarterQuestionsResponse(questions=get_starters())
-
 
 @router.post("/chat/stream", summary="Stream a chat response (SSE)")
 async def chat_stream_endpoint(payload: ChatRequest, request: Request) -> StreamingResponse:

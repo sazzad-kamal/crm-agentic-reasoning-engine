@@ -31,10 +31,16 @@ CLI:
     python -m backend.agent.question_tree paths --role sales [--limit N]
 """
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import networkx as nx
+
+if TYPE_CHECKING:
+    from rich.tree import Tree
 
 __all__ = [
     "get_starters",
@@ -223,7 +229,7 @@ def validate_tree(role: str | None = None) -> list[str]:
     return issues
 
 
-def print_tree(role: str | None = None, max_depth: int | None = None) -> "Tree":
+def print_tree(role: str | None = None, max_depth: int | None = None) -> Tree:
     """
     Generate a Rich Tree representation of the question tree.
 

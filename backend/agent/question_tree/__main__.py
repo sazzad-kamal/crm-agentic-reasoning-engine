@@ -8,12 +8,14 @@ Usage:
     python -m backend.agent.question_tree paths --role sales
 """
 
+from collections import defaultdict
+from typing import Callable, Optional, TypeVar
+
 import typer
 from rich import print as rprint
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from typing import Optional
 
 from . import get_paths_for_role, get_tree_stats, print_tree, validate_tree
 
@@ -26,6 +28,17 @@ ROLE_LABELS = {
     "manager": "MANAGER",
 }
 
+T = TypeVar("T")
+
+
+def _call_with_role(func: Callable[..., T], role: str | None, **kwargs) -> T:
+    """Call a function with role, handling ValueError consistently."""
+    try:
+        return func(role=role, **kwargs)
+    except ValueError as e:
+        rprint(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+
 
 @app.command()
 def validate(
@@ -33,11 +46,7 @@ def validate(
 ) -> None:
     """Validate the question tree for consistency."""
     role_label = role.upper() if role else "ALL"
-    try:
-        issues = validate_tree(role=role)
-    except ValueError as e:
-        rprint(f"[red]{e}[/red]")
-        raise typer.Exit(1)
+    issues = _call_with_role(validate_tree, role)
 
     if issues:
         rprint(f"[red]Validation failed for {role_label}![/red]")
@@ -63,12 +72,7 @@ def stats(
     role: Optional[str] = typer.Option(None, "--role", "-r", help="Filter by role: sales, csm, or manager"),
 ) -> None:
     """Show statistics about the question tree."""
-    try:
-        s = get_tree_stats(role=role)
-    except ValueError as e:
-        rprint(f"[red]{e}[/red]")
-        raise typer.Exit(1)
-
+    s = _call_with_role(get_tree_stats, role)
     role_label = s["role"].upper()
     table = Table(title=f"Question Tree Statistics ({role_label})")
     table.add_column("Metric", style="cyan")
@@ -91,21 +95,13 @@ def paths(
     limit: Optional[int] = typer.Option(None, "--limit", "-l", help="Limit number of paths shown"),
 ) -> None:
     """List all conversation paths for auditing workflows."""
-    try:
-        all_paths = get_paths_for_role(role=role)
-    except ValueError as e:
-        rprint(f"[red]{e}[/red]")
-        raise typer.Exit(1)
-
+    all_paths = _call_with_role(get_paths_for_role, role)
     role_label = ROLE_LABELS.get(role, "ALL ROLES") if role else "ALL ROLES"
 
     # Group paths by depth
-    paths_by_depth: dict[int, list[list[str]]] = {}
+    paths_by_depth: dict[int, list] = defaultdict(list)
     for path in all_paths:
-        depth = len(path)
-        if depth not in paths_by_depth:
-            paths_by_depth[depth] = []
-        paths_by_depth[depth].append(path)
+        paths_by_depth[len(path)].append(path)
 
     console.print(f"\n[bold]{role_label}[/bold] - {len(all_paths)} paths\n")
 

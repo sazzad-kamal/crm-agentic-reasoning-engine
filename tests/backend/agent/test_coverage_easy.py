@@ -99,19 +99,19 @@ class TestLlmHelpersMockSuggestions:
 
 
 # =============================================================================
-# question_tree.py - generate_all_paths behavior
+# question_tree.py - get_paths_for_role behavior
 # =============================================================================
 
 
 class TestQuestionTreeBehavior:
     """Tests for question_tree public API behavior."""
 
-    def test_generate_all_paths_terminal_node(self):
-        """Test generate_all_paths handles terminal nodes correctly."""
-        from backend.agent.question_tree import generate_all_paths
+    def test_get_paths_for_role_terminal_node(self):
+        """Test get_paths_for_role handles terminal nodes correctly."""
+        from backend.agent.question_tree import get_paths_for_role
 
         # This naturally exercises terminal node handling
-        paths = generate_all_paths()
+        paths = get_paths_for_role()
 
         # All paths should end (not infinite)
         assert len(paths) > 0

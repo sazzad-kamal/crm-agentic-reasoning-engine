@@ -5,7 +5,7 @@ Tests for backend/agent/question_tree.py - hardcoded question tree for demos.
 from backend.agent.question_tree import (
     get_starters,
     get_follow_ups,
-    generate_all_paths,
+    get_paths_for_role,
     get_tree_stats,
     validate_tree,
 )
@@ -92,63 +92,59 @@ class TestGetFollowUps:
 
 
 # =============================================================================
-# generate_all_paths Tests
+# get_paths_for_role Tests
 # =============================================================================
 
-class TestGenerateAllPaths:
-    """Tests for generate_all_paths function."""
+class TestGetPathsForRole:
+    """Tests for get_paths_for_role function."""
 
     def test_returns_list(self):
         """Returns a list of paths."""
-        paths = generate_all_paths()
+        paths = get_paths_for_role()
         assert isinstance(paths, list)
 
     def test_paths_are_lists(self):
         """Each path is a list of questions."""
-        paths = generate_all_paths()
+        paths = get_paths_for_role()
         for path in paths:
             assert isinstance(path, list)
 
     def test_paths_contain_strings(self):
         """Each path contains string questions."""
-        paths = generate_all_paths()
+        paths = get_paths_for_role()
         for path in paths:
             for question in path:
                 assert isinstance(question, str)
 
     def test_all_paths_start_with_starter(self):
         """All paths start with a starter question."""
-        paths = generate_all_paths()
+        paths = get_paths_for_role()
         starters = set(get_starters())
         for path in paths:
             assert path[0] in starters
 
-    def test_generates_expected_path_count(self):
-        """Generates expected number of paths (3 starters * 3^3 = 81 if fully expanded)."""
-        paths = generate_all_paths()
-        # With 3 starters and varying depths, we should have multiple paths
+    def test_generates_paths(self):
+        """Generates multiple paths."""
+        paths = get_paths_for_role()
         assert len(paths) > 0
 
-    def test_default_max_depth(self):
-        """Default max depth is 4."""
-        paths = generate_all_paths()
+    def test_role_filter_sales(self):
+        """Filters paths by sales role."""
+        paths = get_paths_for_role("sales")
         for path in paths:
-            assert len(path) <= 4
+            assert path[0] == "How's my pipeline?"
 
-    def test_custom_max_depth(self):
-        """Respects custom max depth."""
-        paths = generate_all_paths(max_depth=2)
+    def test_role_filter_csm(self):
+        """Filters paths by csm role."""
+        paths = get_paths_for_role("csm")
         for path in paths:
-            assert len(path) <= 2
+            assert path[0] == "Any renewals at risk?"
 
-    def test_depth_1_returns_starters(self):
-        """Depth 1 returns just starter questions."""
-        paths = generate_all_paths(max_depth=1)
-        starters = get_starters()
-        assert len(paths) == len(starters)
+    def test_role_filter_manager(self):
+        """Filters paths by manager role."""
+        paths = get_paths_for_role("manager")
         for path in paths:
-            assert len(path) == 1
-            assert path[0] in starters
+            assert path[0] == "How's the team doing?"
 
 
 # =============================================================================

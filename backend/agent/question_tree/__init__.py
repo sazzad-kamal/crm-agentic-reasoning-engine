@@ -13,7 +13,7 @@ Structure:
 - Run `python -m backend.agent.question_tree stats` for current metrics
 
 Usage:
-    from backend.agent.question_tree import get_follow_ups, get_starters, generate_all_paths
+    from backend.agent.question_tree import get_follow_ups, get_starters, get_paths_for_role
 
     # Get starter questions
     starters = get_starters()
@@ -21,8 +21,8 @@ Usage:
     # Get follow-ups for a question
     follow_ups = get_follow_ups("How's my pipeline?")
 
-    # Generate all paths for testing
-    paths = generate_all_paths()
+    # Get all paths for a role (or all roles if None)
+    paths = get_paths_for_role("sales")
 
 CLI:
     python -m backend.agent.question_tree validate [--role sales|csm|manager]
@@ -39,7 +39,6 @@ import networkx as nx
 __all__ = [
     "get_starters",
     "get_follow_ups",
-    "generate_all_paths",
     "get_paths_for_role",
     "get_tree_stats",
     "validate_tree",
@@ -52,30 +51,28 @@ __all__ = [
 
 _DATA_PATH = Path(__file__).parent / "data.json"
 with open(_DATA_PATH) as f:
-    _raw_data = json.load(f)
+    _raw_data: dict[str, list[str]] = json.load(f)
 
-# Extract metadata
-_META = _raw_data.pop("_meta", {})
-_STARTERS: list[str] = _META.get("starters", [])
-
-# Build directed graph
-_G = nx.DiGraph()
-
-for question, node in _raw_data.items():
-    _G.add_node(question)
-    for follow_up in node["follow_ups"]:
-        _G.add_edge(question, follow_up)
-
-
-# =============================================================================
-# Role Mapping
-# =============================================================================
-
+# Role mapping - starters are derived from this
 _ROLE_MAP = {
     "sales": "How's my pipeline?",
     "csm": "Any renewals at risk?",
     "manager": "How's the team doing?",
 }
+_STARTERS: list[str] = list(_ROLE_MAP.values())
+
+# Build directed graph
+_G = nx.DiGraph()
+
+for question, follow_ups in _raw_data.items():
+    _G.add_node(question)
+    for follow_up in follow_ups:
+        _G.add_edge(question, follow_up)
+
+
+# =============================================================================
+# Internal Helpers
+# =============================================================================
 
 
 def _get_starters_for_role(role: str | None) -> list[str]:
@@ -86,6 +83,45 @@ def _get_starters_for_role(role: str | None) -> list[str]:
     if role_lower not in _ROLE_MAP:
         raise ValueError(f"Unknown role: {role}. Use: sales, csm, or manager")
     return [_ROLE_MAP[role_lower]]
+
+
+def _get_subgraph(role: str | None) -> tuple[list[str], nx.DiGraph]:
+    """Get starters and subgraph for a role. None means all roles."""
+    starters = _get_starters_for_role(role)
+    role_nodes: set[str] = set()
+    for starter in starters:
+        if starter in _G:
+            role_nodes.add(starter)
+            role_nodes |= nx.descendants(_G, starter)
+    return starters, _G.subgraph(role_nodes)
+
+
+def _compute_max_depth(starters: list[str]) -> int:
+    """Compute the maximum depth from any starter to any descendant."""
+    max_depth = 0
+    for starter in starters:
+        if starter in _G:
+            for node in nx.descendants(_G, starter):
+                try:
+                    path_len = nx.shortest_path_length(_G, starter, node) + 1
+                    max_depth = max(max_depth, path_len)
+                except nx.NetworkXNoPath:
+                    pass
+    return max_depth
+
+
+def _find_paths(starters: list[str], subgraph: nx.DiGraph, max_depth: int) -> list[list[str]]:
+    """Find all paths from starters to leaf nodes."""
+    leaves = [n for n in subgraph.nodes() if subgraph.out_degree(n) == 0]
+    paths: list[list[str]] = []
+    for starter in starters:
+        for leaf in leaves:
+            try:
+                for path in nx.all_simple_paths(_G, starter, leaf, cutoff=max_depth - 1):
+                    paths.append(path)
+            except nx.NetworkXNoPath:
+                continue
+    return paths
 
 
 # =============================================================================
@@ -110,40 +146,6 @@ def get_follow_ups(question: str) -> list[str]:
     return []
 
 
-def generate_all_paths(max_depth: int = 4) -> list[list[str]]:
-    """
-    Generate all possible conversation paths through the tree.
-
-    Args:
-        max_depth: Maximum number of questions in a path (default 4)
-
-    Returns:
-        List of paths, where each path is a list of questions.
-        With 3 starters and 3 follow-ups at each level:
-        - depth=2: 9 paths (3 * 3)
-        - depth=3: 27 paths (3 * 3 * 3)
-        - depth=4: 81 paths (3 * 3 * 3 * 3)
-    """
-    # Edge case: depth 1 means just the starters
-    if max_depth == 1:
-        return [[s] for s in _STARTERS]
-
-    # Find leaf nodes (questions with no follow-ups)
-    leaves = [n for n in _G.nodes() if _G.out_degree(n) == 0]
-
-    paths: list[list[str]] = []
-    for starter in _STARTERS:
-        for leaf in leaves:
-            try:
-                for path in nx.all_simple_paths(_G, starter, leaf, cutoff=max_depth - 1):
-                    if len(path) <= max_depth:
-                        paths.append(path)
-            except nx.NetworkXNoPath:
-                continue
-
-    return paths
-
-
 def get_paths_for_role(role: str | None = None) -> list[list[str]]:
     """
     Get all conversation paths for a specific role.
@@ -154,40 +156,9 @@ def get_paths_for_role(role: str | None = None) -> list[list[str]]:
     Returns:
         List of paths, where each path is a list of questions from starter to terminal.
     """
-    starters = _get_starters_for_role(role)
-
-    # Build subgraph for this role's tree(s)
-    role_nodes: set[str] = set()
-    for starter in starters:
-        if starter in _G:
-            role_nodes.add(starter)
-            role_nodes |= nx.descendants(_G, starter)
-
-    subgraph = _G.subgraph(role_nodes)
-
-    # Compute actual max depth
-    max_depth = 0
-    for starter in starters:
-        if starter in _G:
-            for node in nx.descendants(_G, starter):
-                try:
-                    path_len = nx.shortest_path_length(_G, starter, node) + 1
-                    max_depth = max(max_depth, path_len)
-                except nx.NetworkXNoPath:
-                    pass
-
-    # Find all paths from starters to leaves
-    leaves = [n for n in subgraph.nodes() if subgraph.out_degree(n) == 0]
-    paths: list[list[str]] = []
-    for starter in starters:
-        for leaf in leaves:
-            try:
-                for path in nx.all_simple_paths(_G, starter, leaf, cutoff=max_depth - 1):
-                    paths.append(path)
-            except nx.NetworkXNoPath:
-                continue
-
-    return paths
+    starters, subgraph = _get_subgraph(role)
+    max_depth = _compute_max_depth(starters)
+    return _find_paths(starters, subgraph, max_depth)
 
 
 def get_tree_stats(role: str | None = None) -> dict:
@@ -197,39 +168,9 @@ def get_tree_stats(role: str | None = None) -> dict:
     Args:
         role: Filter by role - "sales", "csm", or "manager". If None, shows all.
     """
-    starters = _get_starters_for_role(role)
-
-    # Build subgraph for this role's tree(s)
-    role_nodes: set[str] = set()
-    for starter in starters:
-        if starter in _G:
-            role_nodes.add(starter)
-            role_nodes |= nx.descendants(_G, starter)
-
-    subgraph = _G.subgraph(role_nodes)
-
-    # Compute actual max depth from graph
-    max_depth = 0
-    for starter in starters:
-        if starter in _G:
-            for node in nx.descendants(_G, starter):
-                try:
-                    path_len = nx.shortest_path_length(_G, starter, node) + 1
-                    max_depth = max(max_depth, path_len)
-                except nx.NetworkXNoPath:
-                    pass
-
-    # Generate paths for this role
-    leaves = [n for n in subgraph.nodes() if subgraph.out_degree(n) == 0]
-    paths: list[list[str]] = []
-    for starter in starters:
-        for leaf in leaves:
-            try:
-                for path in nx.all_simple_paths(_G, starter, leaf, cutoff=max_depth - 1):
-                    if len(path) <= max_depth:
-                        paths.append(path)
-            except nx.NetworkXNoPath:
-                continue
+    starters, subgraph = _get_subgraph(role)
+    max_depth = _compute_max_depth(starters)
+    paths = _find_paths(starters, subgraph, max_depth)
 
     return {
         "role": role or "all",
@@ -254,20 +195,14 @@ def validate_tree(role: str | None = None) -> list[str]:
 
     Returns list of any issues found.
     """
-    starters = _get_starters_for_role(role)
+    starters, subgraph = _get_subgraph(role)
+    reachable = set(subgraph.nodes())
     issues = []
 
     # Check all starters are in tree
     for starter in starters:
         if starter not in _G:
             issues.append(f"Starter not in tree: {starter}")
-
-    # Check for orphaned questions (not reachable from starters)
-    reachable: set[str] = set()
-    for starter in starters:
-        if starter in _G:
-            reachable.add(starter)
-            reachable |= nx.descendants(_G, starter)
 
     # Only check orphans when validating all roles
     if role is None:
@@ -276,9 +211,8 @@ def validate_tree(role: str | None = None) -> list[str]:
                 issues.append(f"Orphaned question (not reachable): {question}")
 
     # Check subgraph is a valid DAG (no cycles)
-    subgraph = _G.subgraph(reachable)
     if not nx.is_directed_acyclic_graph(subgraph):
-        issues.append(f"Tree contains cycles!")
+        issues.append("Tree contains cycles!")
 
     # Check each node has exactly 0 or 3 follow-ups (valid tree structure)
     for node in reachable:

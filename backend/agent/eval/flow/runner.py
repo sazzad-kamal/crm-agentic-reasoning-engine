@@ -8,7 +8,7 @@ import time
 
 from rich.table import Table
 
-from backend.agent.question_tree import generate_all_paths
+from backend.agent.question_tree import get_paths_for_role
 from backend.agent.eval.base import console, print_eval_header
 from backend.agent.eval.parallel import calculate_p95_latency
 from backend.agent.eval.shared import run_llm_judge
@@ -193,7 +193,7 @@ async def run_flow_eval(
     eval_start_time = time.time()
 
     # Generate all paths
-    all_paths = generate_all_paths()
+    all_paths = get_paths_for_role()
     paths_to_test = all_paths[:max_paths] if max_paths else all_paths
 
     # Print header

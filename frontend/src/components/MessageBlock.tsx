@@ -71,6 +71,11 @@ export const MessageBlock = memo(function MessageBlock({
                 <CopyButton text={response.answer} className="message__copy" />
               </div>
 
+              {/* Data Tables (collapsed) */}
+              {config.features.showDataTables && response.raw_data && (
+                <DataTables rawData={response.raw_data} />
+              )}
+
               {/* Follow-up Suggestions */}
               {config.features.showFollowUpSuggestions &&
                 response.follow_up_suggestions &&
@@ -81,11 +86,6 @@ export const MessageBlock = memo(function MessageBlock({
                     onSuggestionClick={onFollowUpClick}
                   />
                 )}
-
-              {/* Data Tables (collapsed) */}
-              {config.features.showDataTables && response.raw_data && (
-                <DataTables rawData={response.raw_data} />
-              )}
             </div>
           ) : (
             <ThinkingIndicator />

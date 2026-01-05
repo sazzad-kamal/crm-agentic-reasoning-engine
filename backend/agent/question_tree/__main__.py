@@ -2,48 +2,75 @@
 CLI for question tree utilities.
 
 Usage:
-    python -m backend.agent.question_tree validate
-    python -m backend.agent.question_tree mermaid
-    python -m backend.agent.question_tree stats
+    python -m backend.agent.question_tree validate [--role sales|csm|manager]
+    python -m backend.agent.question_tree tree [--role sales|csm|manager] [--depth N]
+    python -m backend.agent.question_tree stats [--role sales|csm|manager]
+    python -m backend.agent.question_tree paths --role sales
 """
 
 import typer
 from rich import print as rprint
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
+from typing import Optional
 
-from . import get_tree_stats, to_mermaid, validate_tree
+from . import get_paths_for_role, get_tree_stats, print_tree, validate_tree
 
 app = typer.Typer(help="Question tree utilities for demo reliability.")
 console = Console()
 
+ROLE_LABELS = {
+    "sales": "SALES REP (jsmith)",
+    "csm": "CSM (amartin)",
+    "manager": "MANAGER",
+}
+
 
 @app.command()
-def validate() -> None:
+def validate(
+    role: Optional[str] = typer.Option(None, "--role", "-r", help="Filter by role: sales, csm, or manager"),
+) -> None:
     """Validate the question tree for consistency."""
-    issues = validate_tree()
+    role_label = role.upper() if role else "ALL"
+    try:
+        issues = validate_tree(role=role)
+    except ValueError as e:
+        rprint(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+
     if issues:
-        rprint("[red]Validation failed![/red]")
+        rprint(f"[red]Validation failed for {role_label}![/red]")
         for issue in issues:
             rprint(f"  [red]x[/red] {issue}")
         raise typer.Exit(1)
     else:
-        rprint("[green]OK[/green] Tree is valid")
+        rprint(f"[green]OK[/green] {role_label} tree is valid")
 
 
 @app.command()
-def mermaid(max_label: int = 40) -> None:
-    """Generate a Mermaid diagram of the tree."""
-    diagram = to_mermaid(max_label_length=max_label)
-    print(diagram)
+def tree(
+    role: Optional[str] = typer.Option(None, "--role", "-r", help="Filter by role: sales, csm, or manager"),
+    depth: Optional[int] = typer.Option(None, "--depth", "-d", help="Max depth to display"),
+) -> None:
+    """Print the question tree in a top-down format."""
+    tree_output = print_tree(role=role, max_depth=depth)
+    console.print(tree_output)
 
 
 @app.command()
-def stats() -> None:
+def stats(
+    role: Optional[str] = typer.Option(None, "--role", "-r", help="Filter by role: sales, csm, or manager"),
+) -> None:
     """Show statistics about the question tree."""
-    s = get_tree_stats()
+    try:
+        s = get_tree_stats(role=role)
+    except ValueError as e:
+        rprint(f"[red]{e}[/red]")
+        raise typer.Exit(1)
 
-    table = Table(title="Question Tree Statistics")
+    role_label = s["role"].upper()
+    table = Table(title=f"Question Tree Statistics ({role_label})")
     table.add_column("Metric", style="cyan")
     table.add_column("Value", style="green")
 
@@ -56,6 +83,51 @@ def stats() -> None:
     table.add_row("Max path length", str(s["path_lengths"]["max"]))
 
     console.print(table)
+
+
+@app.command()
+def paths(
+    role: Optional[str] = typer.Option(None, "--role", "-r", help="Filter by role: sales, csm, or manager"),
+    limit: Optional[int] = typer.Option(None, "--limit", "-l", help="Limit number of paths shown"),
+) -> None:
+    """List all conversation paths for auditing workflows."""
+    try:
+        all_paths = get_paths_for_role(role=role)
+    except ValueError as e:
+        rprint(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+
+    role_label = ROLE_LABELS.get(role, "ALL ROLES") if role else "ALL ROLES"
+
+    # Group paths by depth
+    paths_by_depth: dict[int, list[list[str]]] = {}
+    for path in all_paths:
+        depth = len(path)
+        if depth not in paths_by_depth:
+            paths_by_depth[depth] = []
+        paths_by_depth[depth].append(path)
+
+    console.print(f"\n[bold]{role_label}[/bold] - {len(all_paths)} paths\n")
+
+    path_num = 0
+    for depth in sorted(paths_by_depth.keys()):
+        console.print(f"[dim]-- Depth {depth} ({len(paths_by_depth[depth])} paths) --[/dim]\n")
+
+        for path in paths_by_depth[depth]:
+            path_num += 1
+            if limit and path_num > limit:
+                remaining = len(all_paths) - limit
+                console.print(f"\n[dim]... and {remaining} more paths (use --limit to see more)[/dim]")
+                return
+
+            # Format path as numbered steps
+            steps = []
+            for i, question in enumerate(path, 1):
+                steps.append(f"[cyan]{i}.[/cyan] {question}")
+
+            path_content = "\n".join(steps)
+            console.print(Panel(path_content, title=f"Path {path_num}", border_style="dim"))
+            console.print()
 
 
 if __name__ == "__main__":

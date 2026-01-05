@@ -6,8 +6,8 @@ ensuring 100% reliability for demos - no LLM generation variability.
 
 Structure:
 - 3 role-based starter questions:
-  * Sales Rep: "How's my pipeline?" - Pipeline focus
-  * CSM: "Any renewals at risk?" - Retention focus
+  * Sales Rep (jsmith): "How's my pipeline?" - Pipeline focus
+  * CSM (amartin): "Any renewals at risk?" - Retention focus
   * Manager: "How's the team doing?" - Aggregate view
 - Each question has 3 follow-ups, with varying depths (4-6 levels)
 - Run `python -m backend.agent.question_tree stats` for current metrics
@@ -25,9 +25,10 @@ Usage:
     paths = generate_all_paths()
 
 CLI:
-    python -m backend.agent.question_tree validate
-    python -m backend.agent.question_tree mermaid
-    python -m backend.agent.question_tree stats
+    python -m backend.agent.question_tree validate [--role sales|csm|manager]
+    python -m backend.agent.question_tree tree [--role sales|csm|manager] [--depth N]
+    python -m backend.agent.question_tree stats [--role sales|csm|manager]
+    python -m backend.agent.question_tree paths --role sales [--limit N]
 """
 
 import json
@@ -39,9 +40,10 @@ __all__ = [
     "get_starters",
     "get_follow_ups",
     "generate_all_paths",
+    "get_paths_for_role",
     "get_tree_stats",
     "validate_tree",
-    "to_mermaid",
+    "print_tree",
 ]
 
 # =============================================================================
@@ -63,6 +65,27 @@ for question, node in _raw_data.items():
     _G.add_node(question)
     for follow_up in node["follow_ups"]:
         _G.add_edge(question, follow_up)
+
+
+# =============================================================================
+# Role Mapping
+# =============================================================================
+
+_ROLE_MAP = {
+    "sales": "How's my pipeline?",
+    "csm": "Any renewals at risk?",
+    "manager": "How's the team doing?",
+}
+
+
+def _get_starters_for_role(role: str | None) -> list[str]:
+    """Get starter questions for a role. None means all roles."""
+    if role is None:
+        return _STARTERS.copy()
+    role_lower = role.lower()
+    if role_lower not in _ROLE_MAP:
+        raise ValueError(f"Unknown role: {role}. Use: sales, csm, or manager")
+    return [_ROLE_MAP[role_lower]]
 
 
 # =============================================================================
@@ -121,11 +144,30 @@ def generate_all_paths(max_depth: int = 4) -> list[list[str]]:
     return paths
 
 
-def get_tree_stats() -> dict:
-    """Get statistics about the question tree."""
-    # Compute actual max depth from graph
+def get_paths_for_role(role: str | None = None) -> list[list[str]]:
+    """
+    Get all conversation paths for a specific role.
+
+    Args:
+        role: Filter by role - "sales", "csm", or "manager". If None, returns all paths.
+
+    Returns:
+        List of paths, where each path is a list of questions from starter to terminal.
+    """
+    starters = _get_starters_for_role(role)
+
+    # Build subgraph for this role's tree(s)
+    role_nodes: set[str] = set()
+    for starter in starters:
+        if starter in _G:
+            role_nodes.add(starter)
+            role_nodes |= nx.descendants(_G, starter)
+
+    subgraph = _G.subgraph(role_nodes)
+
+    # Compute actual max depth
     max_depth = 0
-    for starter in _STARTERS:
+    for starter in starters:
         if starter in _G:
             for node in nx.descendants(_G, starter):
                 try:
@@ -134,12 +176,66 @@ def get_tree_stats() -> dict:
                 except nx.NetworkXNoPath:
                     pass
 
-    # Generate all paths using actual max depth
-    paths = generate_all_paths(max_depth=max_depth) if max_depth > 0 else []
+    # Find all paths from starters to leaves
+    leaves = [n for n in subgraph.nodes() if subgraph.out_degree(n) == 0]
+    paths: list[list[str]] = []
+    for starter in starters:
+        for leaf in leaves:
+            try:
+                for path in nx.all_simple_paths(_G, starter, leaf, cutoff=max_depth - 1):
+                    paths.append(path)
+            except nx.NetworkXNoPath:
+                continue
+
+    return paths
+
+
+def get_tree_stats(role: str | None = None) -> dict:
+    """
+    Get statistics about the question tree.
+
+    Args:
+        role: Filter by role - "sales", "csm", or "manager". If None, shows all.
+    """
+    starters = _get_starters_for_role(role)
+
+    # Build subgraph for this role's tree(s)
+    role_nodes: set[str] = set()
+    for starter in starters:
+        if starter in _G:
+            role_nodes.add(starter)
+            role_nodes |= nx.descendants(_G, starter)
+
+    subgraph = _G.subgraph(role_nodes)
+
+    # Compute actual max depth from graph
+    max_depth = 0
+    for starter in starters:
+        if starter in _G:
+            for node in nx.descendants(_G, starter):
+                try:
+                    path_len = nx.shortest_path_length(_G, starter, node) + 1
+                    max_depth = max(max_depth, path_len)
+                except nx.NetworkXNoPath:
+                    pass
+
+    # Generate paths for this role
+    leaves = [n for n in subgraph.nodes() if subgraph.out_degree(n) == 0]
+    paths: list[list[str]] = []
+    for starter in starters:
+        for leaf in leaves:
+            try:
+                for path in nx.all_simple_paths(_G, starter, leaf, cutoff=max_depth - 1):
+                    if len(path) <= max_depth:
+                        paths.append(path)
+            except nx.NetworkXNoPath:
+                continue
+
     return {
-        "num_starters": len(_STARTERS),
-        "num_questions": _G.number_of_nodes(),
-        "num_edges": _G.number_of_edges(),
+        "role": role or "all",
+        "num_starters": len(starters),
+        "num_questions": subgraph.number_of_nodes(),
+        "num_edges": subgraph.number_of_edges(),
         "num_paths": len(paths),
         "max_depth": max_depth,
         "path_lengths": {
@@ -149,76 +245,106 @@ def get_tree_stats() -> dict:
     }
 
 
-def validate_tree() -> list[str]:
+def validate_tree(role: str | None = None) -> list[str]:
     """
     Validate the question tree for consistency.
 
+    Args:
+        role: Filter by role - "sales", "csm", or "manager". If None, validates all.
+
     Returns list of any issues found.
     """
+    starters = _get_starters_for_role(role)
     issues = []
 
     # Check all starters are in tree
-    for starter in _STARTERS:
+    for starter in starters:
         if starter not in _G:
             issues.append(f"Starter not in tree: {starter}")
 
     # Check for orphaned questions (not reachable from starters)
     reachable: set[str] = set()
-    for starter in _STARTERS:
+    for starter in starters:
         if starter in _G:
             reachable.add(starter)
             reachable |= nx.descendants(_G, starter)
 
-    for question in _G.nodes():
-        if question not in reachable:
-            issues.append(f"Orphaned question (not reachable): {question}")
+    # Only check orphans when validating all roles
+    if role is None:
+        for question in _G.nodes():
+            if question not in reachable:
+                issues.append(f"Orphaned question (not reachable): {question}")
 
-    # Check it's a valid DAG (no cycles)
-    if not nx.is_directed_acyclic_graph(_G):
-        issues.append("Tree contains cycles!")
+    # Check subgraph is a valid DAG (no cycles)
+    subgraph = _G.subgraph(reachable)
+    if not nx.is_directed_acyclic_graph(subgraph):
+        issues.append(f"Tree contains cycles!")
+
+    # Check each node has exactly 0 or 3 follow-ups (valid tree structure)
+    for node in reachable:
+        out_degree = _G.out_degree(node)
+        if out_degree not in (0, 3):
+            issues.append(f"Node has {out_degree} follow-ups (expected 0 or 3): {node[:50]}...")
 
     return issues
 
 
-def to_mermaid(max_label_length: int = 40) -> str:
+def print_tree(role: str | None = None, max_depth: int | None = None) -> "Tree":
     """
-    Generate a Mermaid diagram of the question tree.
+    Generate a Rich Tree representation of the question tree.
 
     Args:
-        max_label_length: Truncate labels longer than this (default 40)
+        role: Filter by role - "sales", "csm", or "manager". If None, shows all.
+        max_depth: Maximum depth to display (default: show all levels)
 
     Returns:
-        Mermaid diagram string that can be rendered in markdown.
+        Rich Tree object (print with rich.print or console.print).
 
     Usage:
-        print(to_mermaid())
-        # Paste output into GitHub markdown or https://mermaid.live
+        from rich import print
+        print(print_tree())              # All trees
+        print(print_tree("sales"))       # Sales Rep tree only
+        print(print_tree("csm", max_depth=3))  # CSM tree, 3 levels deep
     """
-    lines = ["graph TD"]
+    from rich.tree import Tree
 
-    # Create node ID mapping (Mermaid doesn't like special chars in IDs)
-    node_ids: dict[str, str] = {}
-    for i, node in enumerate(_G.nodes()):
-        node_ids[node] = f"Q{i}"
+    try:
+        starters = _get_starters_for_role(role)
+    except ValueError as e:
+        # Return a tree with error message
+        return Tree(f"[red]{e}[/red]")
 
-    # Add edges with labels
-    for src, dst in _G.edges():
-        src_id = node_ids[src]
-        dst_id = node_ids[dst]
+    # Role labels
+    role_labels = {
+        "How's my pipeline?": "[bold cyan]SALES REP (jsmith)[/bold cyan]",
+        "Any renewals at risk?": "[bold green]CSM (amartin)[/bold green]",
+        "How's the team doing?": "[bold yellow]MANAGER[/bold yellow]",
+    }
 
-        # Truncate labels if too long
-        src_label = src[:max_label_length] + "..." if len(src) > max_label_length else src
-        dst_label = dst[:max_label_length] + "..." if len(dst) > max_label_length else dst
+    def add_children(parent_branch: Tree, node: str, depth: int) -> None:
+        """Recursively add children to tree."""
+        if max_depth is not None and depth >= max_depth:
+            return
 
-        # Escape quotes for Mermaid
-        src_label = src_label.replace('"', "'")
-        dst_label = dst_label.replace('"', "'")
+        children = list(_G.successors(node)) if node in _G else []
+        for child in children:
+            child_branch = parent_branch.add(child)
+            add_children(child_branch, child, depth + 1)
 
-        lines.append(f'    {src_id}["{src_label}"] --> {dst_id}["{dst_label}"]')
+    # Create root tree
+    if len(starters) == 1:
+        # Single role - use role label as root
+        label = role_labels.get(starters[0], starters[0])
+        root = Tree(label)
+        starter_branch = root.add(f"[bold]{starters[0]}[/bold]")
+        add_children(starter_branch, starters[0], 1)
+    else:
+        # All roles - create a root with children for each role
+        root = Tree("[bold]Question Tree[/bold]")
+        for starter in starters:
+            label = role_labels.get(starter, starter)
+            role_branch = root.add(label)
+            starter_branch = role_branch.add(f"[bold]{starter}[/bold]")
+            add_children(starter_branch, starter, 1)
 
-    # Style starter nodes
-    for starter in _STARTERS:
-        if starter in node_ids:
-            lines.append(f"    style {node_ids[starter]} fill:#e1f5fe")
-
-    return "\n".join(lines)
+    return root

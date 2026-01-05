@@ -111,36 +111,32 @@ class TestQuestionTreeValidation:
         from backend.agent import question_tree
 
         # Temporarily add invalid starter
-        original_starters = question_tree.STARTER_QUESTIONS.copy()
-        question_tree.STARTER_QUESTIONS.append("Invalid question not in tree")
+        original_starters = question_tree.STARTERS.copy()
+        question_tree.STARTERS.append("Invalid question not in tree")
 
         try:
             issues = question_tree.validate_tree()
             assert any("Starter not in tree" in issue for issue in issues)
         finally:
-            question_tree.STARTER_QUESTIONS.clear()
-            question_tree.STARTER_QUESTIONS.extend(original_starters)
+            question_tree.STARTERS.clear()
+            question_tree.STARTERS.extend(original_starters)
 
     def test_validate_tree_orphaned_question(self):
         """Test validation detects orphaned questions."""
         from backend.agent import question_tree
 
-        # Temporarily add orphaned question to tree
-        original_tree = question_tree.QUESTION_TREE.copy()
-        question_tree.QUESTION_TREE["Orphaned question nobody references"] = {
-            "follow_ups": []
-        }
+        # Temporarily add orphaned node to graph
+        question_tree.G.add_node("Orphaned question nobody references", company_id=None)
 
         try:
             issues = question_tree.validate_tree()
-            assert any("Orphaned question" in issue for issue in issues)
+            assert any("Orphaned" in issue for issue in issues)
         finally:
-            question_tree.QUESTION_TREE.clear()
-            question_tree.QUESTION_TREE.update(original_tree)
+            question_tree.G.remove_node("Orphaned question nobody references")
 
     def test_generate_all_paths_terminal_node(self):
         """Test generate_all_paths handles terminal nodes correctly."""
-        from backend.agent.question_tree import generate_all_paths, TERMINAL_FOLLOW_UPS
+        from backend.agent.question_tree import generate_all_paths
 
         # This naturally exercises terminal node handling
         paths = generate_all_paths()

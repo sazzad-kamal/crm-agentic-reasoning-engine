@@ -171,8 +171,9 @@ def validate_tree() -> list[str]:
     # Check for orphaned questions (not reachable from starters)
     reachable: set[str] = set()
     for starter in STARTERS:
-        reachable.add(starter)
-        reachable |= nx.descendants(G, starter)
+        if starter in G:  # Only traverse starters that exist in graph
+            reachable.add(starter)
+            reachable |= nx.descendants(G, starter)
 
     for question in G.nodes():
         if question not in reachable:

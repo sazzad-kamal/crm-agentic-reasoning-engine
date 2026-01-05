@@ -95,13 +95,3 @@ async def get_activities() -> DataResponse:
 async def get_history() -> DataResponse:
     data, columns = load_csv("history.csv")
     return DataResponse(data=data, total=len(data), columns=columns)
-
-
-class StarterQuestionsResponse(BaseModel):
-    questions: list[str]
-
-
-@router.get("/data/starter-questions", response_model=StarterQuestionsResponse, summary="Get starter questions")
-async def get_starter_questions() -> StarterQuestionsResponse:
-    from backend.agent.question_tree import get_starters
-    return StarterQuestionsResponse(questions=get_starters())

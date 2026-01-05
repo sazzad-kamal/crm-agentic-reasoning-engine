@@ -26,8 +26,10 @@ Usage:
     # Generate all paths for testing
     paths = generate_all_paths()
 
-    # Visualize the tree as Mermaid
-    print(to_mermaid())
+CLI:
+    python -m backend.agent.question_tree validate
+    python -m backend.agent.question_tree mermaid
+    python -m backend.agent.question_tree stats
 """
 
 import json
@@ -38,7 +40,6 @@ import networkx as nx
 __all__ = [
     "get_starters",
     "get_follow_ups",
-    "get_company_id",
     "generate_all_paths",
     "get_tree_stats",
     "validate_tree",
@@ -49,27 +50,21 @@ __all__ = [
 # Load JSON and Build Graph
 # =============================================================================
 
-_DATA_PATH = Path(__file__).parent / "data" / "question_tree.json"
+_DATA_PATH = Path(__file__).parent / "data.json"
 with open(_DATA_PATH) as f:
     _raw_data = json.load(f)
 
 # Extract metadata
 _META = _raw_data.pop("_meta", {})
-STARTERS: list[str] = _META.get("starters", [])
+_STARTERS: list[str] = _META.get("starters", [])
 
 # Build directed graph
-G = nx.DiGraph()
+_G = nx.DiGraph()
 
 for question, node in _raw_data.items():
-    G.add_node(question, company_id=node.get("company_id"))
+    _G.add_node(question)
     for follow_up in node["follow_ups"]:
-        G.add_edge(question, follow_up)
-
-# Ensure all nodes have company_id attribute (edges may create nodes without it)
-for node in G.nodes():
-    if "company_id" not in G.nodes[node]:
-        G.nodes[node]["company_id"] = None
-
+        _G.add_edge(question, follow_up)
 
 
 # =============================================================================
@@ -79,7 +74,7 @@ for node in G.nodes():
 
 def get_starters() -> list[str]:
     """Get the starter questions."""
-    return STARTERS.copy()
+    return _STARTERS.copy()
 
 
 def get_follow_ups(question: str) -> list[str]:
@@ -89,16 +84,9 @@ def get_follow_ups(question: str) -> list[str]:
     Returns hardcoded follow-ups from the tree, or empty list
     if the question isn't in the tree.
     """
-    if question in G:
-        return list(G.successors(question))
+    if question in _G:
+        return list(_G.successors(question))
     return []
-
-
-def get_company_id(question: str) -> str | None:
-    """Get the company_id context for a question."""
-    if question in G:
-        return G.nodes[question].get("company_id")
-    return None
 
 
 def generate_all_paths(max_depth: int = 4) -> list[list[str]]:
@@ -117,16 +105,16 @@ def generate_all_paths(max_depth: int = 4) -> list[list[str]]:
     """
     # Edge case: depth 1 means just the starters
     if max_depth == 1:
-        return [[s] for s in STARTERS]
+        return [[s] for s in _STARTERS]
 
     # Find leaf nodes (questions with no follow-ups)
-    leaves = [n for n in G.nodes() if G.out_degree(n) == 0]
+    leaves = [n for n in _G.nodes() if _G.out_degree(n) == 0]
 
     paths: list[list[str]] = []
-    for starter in STARTERS:
+    for starter in _STARTERS:
         for leaf in leaves:
             try:
-                for path in nx.all_simple_paths(G, starter, leaf, cutoff=max_depth - 1):
+                for path in nx.all_simple_paths(_G, starter, leaf, cutoff=max_depth - 1):
                     if len(path) <= max_depth:
                         paths.append(path)
             except nx.NetworkXNoPath:
@@ -139,9 +127,9 @@ def get_tree_stats() -> dict:
     """Get statistics about the question tree."""
     paths = generate_all_paths()
     return {
-        "num_starters": len(STARTERS),
-        "num_questions": G.number_of_nodes(),
-        "num_edges": G.number_of_edges(),
+        "num_starters": len(_STARTERS),
+        "num_questions": _G.number_of_nodes(),
+        "num_edges": _G.number_of_edges(),
         "num_paths": len(paths),
         "path_lengths": {
             "min": min(len(p) for p in paths) if paths else 0,
@@ -159,23 +147,23 @@ def validate_tree() -> list[str]:
     issues = []
 
     # Check all starters are in tree
-    for starter in STARTERS:
-        if starter not in G:
+    for starter in _STARTERS:
+        if starter not in _G:
             issues.append(f"Starter not in tree: {starter}")
 
     # Check for orphaned questions (not reachable from starters)
     reachable: set[str] = set()
-    for starter in STARTERS:
-        if starter in G:  # Only traverse starters that exist in graph
+    for starter in _STARTERS:
+        if starter in _G:
             reachable.add(starter)
-            reachable |= nx.descendants(G, starter)
+            reachable |= nx.descendants(_G, starter)
 
-    for question in G.nodes():
+    for question in _G.nodes():
         if question not in reachable:
             issues.append(f"Orphaned question (not reachable): {question}")
 
     # Check it's a valid DAG (no cycles)
-    if not nx.is_directed_acyclic_graph(G):
+    if not nx.is_directed_acyclic_graph(_G):
         issues.append("Tree contains cycles!")
 
     return issues
@@ -199,11 +187,11 @@ def to_mermaid(max_label_length: int = 40) -> str:
 
     # Create node ID mapping (Mermaid doesn't like special chars in IDs)
     node_ids: dict[str, str] = {}
-    for i, node in enumerate(G.nodes()):
+    for i, node in enumerate(_G.nodes()):
         node_ids[node] = f"Q{i}"
 
     # Add edges with labels
-    for src, dst in G.edges():
+    for src, dst in _G.edges():
         src_id = node_ids[src]
         dst_id = node_ids[dst]
 
@@ -218,7 +206,7 @@ def to_mermaid(max_label_length: int = 40) -> str:
         lines.append(f'    {src_id}["{src_label}"] --> {dst_id}["{dst_label}"]')
 
     # Style starter nodes
-    for starter in STARTERS:
+    for starter in _STARTERS:
         if starter in node_ids:
             lines.append(f"    style {node_ids[starter]} fill:#e1f5fe")
 

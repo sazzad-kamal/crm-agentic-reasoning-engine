@@ -5,7 +5,6 @@ Tests for backend/agent/question_tree.py - hardcoded question tree for demos.
 from backend.agent.question_tree import (
     get_starters,
     get_follow_ups,
-    get_company_id,
     generate_all_paths,
     get_tree_stats,
     validate_tree,
@@ -90,34 +89,6 @@ class TestGetFollowUps:
         """Layer 3 questions have follow-ups."""
         follow_ups = get_follow_ups("What stage is the upgrade deal in?")
         assert len(follow_ups) == 3
-
-
-# =============================================================================
-# get_company_id Tests
-# =============================================================================
-
-class TestGetCompanyId:
-    """Tests for get_company_id function."""
-
-    def test_returns_company_id_for_acme_question(self):
-        """Returns company ID for Acme question."""
-        company_id = get_company_id("What's going on with Acme Manufacturing?")
-        assert company_id == "ACME-MFG"
-
-    def test_returns_company_id_for_beta_question(self):
-        """Returns company ID for Beta Tech question."""
-        company_id = get_company_id("Tell me about the Beta Tech negotiation deal")
-        assert company_id == "BETA-TECH"
-
-    def test_returns_none_for_general_question(self):
-        """Returns None for general (non-company-specific) question."""
-        company_id = get_company_id("How's my pipeline?")
-        assert company_id is None
-
-    def test_returns_none_for_unknown_question(self):
-        """Returns None for unknown question."""
-        company_id = get_company_id("Unknown question")
-        assert company_id is None
 
 
 # =============================================================================

@@ -162,7 +162,7 @@ def mock_llm():
     This fixture automatically patches LLM API calls so tests don't require
     a real API key or make actual network requests.
     """
-    from backend.agent.core.schemas import Source, RouterResult
+    from backend.agent.core import Source, RouterResult
 
     def mock_call_answer_chain(*args, **kwargs) -> tuple[str, int]:
         question = kwargs.get("question", args[0] if args else "")

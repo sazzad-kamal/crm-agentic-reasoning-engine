@@ -1,28 +1,6 @@
-"""
-Pydantic schemas for the agentic layer.
-
-Defines request/response models that match the frontend contract.
-"""
+"""Schemas for the route module."""
 
 from pydantic import BaseModel, Field
-
-
-# =============================================================================
-# Source Models
-# =============================================================================
-
-
-class Source(BaseModel):
-    """A source reference for citations."""
-
-    type: str  # "company", "doc", "activity", "opportunity", "history"
-    id: str
-    label: str
-
-
-# =============================================================================
-# Router Models
-# =============================================================================
 
 
 class RouterResult(BaseModel):
@@ -42,7 +20,4 @@ class RouterResult(BaseModel):
     action_type: str | None = None  # "retrieve", "summarize", "compare", "analyze"
 
 
-__all__ = [
-    "Source",
-    "RouterResult",
-]
+__all__ = ["RouterResult"]

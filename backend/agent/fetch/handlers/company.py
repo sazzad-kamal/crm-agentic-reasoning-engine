@@ -231,9 +231,7 @@ def handle_company_status(ctx: IntentContext) -> IntentResult:
 
     result = IntentResult(raw_data=empty_raw_data())
 
-    query = ctx.resolved_company_id
-    if not query and ctx.router_result:
-        query = getattr(ctx.router_result, "company_name_query", None)
+    query = ctx.resolved_company_id or ctx.company_name_query
 
     logger.debug(f"[Data] Looking up company: {query}")
     if not lookup_company(result, query or ""):

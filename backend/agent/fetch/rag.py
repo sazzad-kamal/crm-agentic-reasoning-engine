@@ -6,7 +6,7 @@ Thin wrappers around RAG tools for error handling.
 
 import logging
 
-from backend.agent.core.schemas import Source
+from backend.agent.core.state import Source
 
 
 logger = logging.getLogger(__name__)

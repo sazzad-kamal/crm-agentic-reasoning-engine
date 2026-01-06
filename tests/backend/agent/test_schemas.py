@@ -5,12 +5,9 @@ from pydantic import ValidationError
 
 from backend.agent.core.schemas import (
     Source,
-    RawData,
-    MetaInfo,
-    ChatResponse,
     RouterResult,
-    ToolResult,
 )
+from backend.agent.fetch.handlers.schemas import ToolResult
 from backend.api.chat import ChatRequest
 
 
@@ -36,60 +33,6 @@ class TestSource:
             Source(type="company", id="123")  # missing label
 
 
-class TestRawData:
-    """Tests for RawData model."""
-
-    def test_raw_data_defaults(self):
-        """Test RawData has empty list defaults."""
-        raw = RawData()
-        assert raw.companies == []
-        assert raw.activities == []
-        assert raw.opportunities == []
-        assert raw.history == []
-        assert raw.renewals == []
-        assert raw.pipeline_summary is None
-
-    def test_raw_data_with_data(self):
-        """Test RawData with populated fields."""
-        raw = RawData(
-            companies=[{"id": "C001", "name": "Acme"}],
-            activities=[{"id": "A001", "type": "call"}],
-            pipeline_summary={"total": 5},
-        )
-        assert len(raw.companies) == 1
-        assert len(raw.activities) == 1
-        assert raw.pipeline_summary["total"] == 5
-
-
-class TestMetaInfo:
-    """Tests for MetaInfo model."""
-
-    def test_meta_info_required_fields(self):
-        """Test MetaInfo with required fields."""
-        meta = MetaInfo(mode_used="docs", latency_ms=150)
-        assert meta.mode_used == "docs"
-        assert meta.latency_ms == 150
-        assert meta.company_id is None
-        assert meta.days is None
-
-    def test_meta_info_with_optional_fields(self):
-        """Test MetaInfo with all fields."""
-        meta = MetaInfo(
-            mode_used="data",
-            latency_ms=200,
-            company_id="C001",
-            days=30,
-        )
-        assert meta.company_id == "C001"
-        assert meta.days == 30
-
-    def test_meta_info_mode_values(self):
-        """Test MetaInfo with different mode values."""
-        for mode in ["docs", "data", "data+docs"]:
-            meta = MetaInfo(mode_used=mode, latency_ms=100)
-            assert meta.mode_used == mode
-
-
 class TestChatRequest:
     """Tests for ChatRequest model."""
 
@@ -107,28 +50,6 @@ class TestChatRequest:
         )
         assert req.question == "Tell me about Acme"
         assert req.session_id == "sess-123"
-
-
-class TestChatResponse:
-    """Tests for ChatResponse model."""
-
-    def test_chat_response_creation(self):
-        """Test ChatResponse with required fields."""
-        response = ChatResponse(
-            answer="Acme is a company.",
-            raw_data=RawData(),
-        )
-        assert response.answer == "Acme is a company."
-        assert response.follow_up_suggestions == []  # default
-
-    def test_chat_response_with_suggestions(self):
-        """Test ChatResponse with follow-up suggestions."""
-        response = ChatResponse(
-            answer="Test answer",
-            raw_data=RawData(),
-            follow_up_suggestions=["What else?", "Tell me more"],
-        )
-        assert len(response.follow_up_suggestions) == 2
 
 
 class TestRouterResult:

@@ -7,9 +7,8 @@ Handles question routing and parameter extraction.
 import logging
 import time
 
-from backend.agent.core.state import AgentState
+from backend.agent.core.state import AgentState, format_history_for_prompt
 from backend.agent.core.config import get_config
-from backend.agent.core.memory import format_history_for_prompt
 from backend.agent.route.router import route_question
 
 
@@ -45,11 +44,13 @@ def route_node(state: AgentState) -> AgentState:
         )
 
         return {
-            "router_result": router_result,
             "mode_used": router_result.mode_used,
             "resolved_company_id": router_result.company_id,
+            "company_name_query": router_result.company_name_query,
             "days": router_result.days or config.default_days,
             "intent": router_result.intent or "general",
+            "owner": router_result.owner,
+            "conversation_history": conversation_history,  # Formatted once, reused by other nodes
             "router_latency_ms": latency_ms,
             "steps": [
                 {

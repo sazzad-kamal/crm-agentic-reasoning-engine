@@ -13,7 +13,8 @@ from functools import lru_cache, wraps
 from pathlib import Path
 from typing import Callable, Any
 
-from backend.agent.core.schemas import Source, ToolResult
+from backend.agent.core.state import Source
+from backend.agent.fetch.handlers.schemas import ToolResult
 from backend.agent.datastore import CRMDataStore, get_datastore
 
 
@@ -53,7 +54,7 @@ class IntentContext:
     question: str
     resolved_company_id: str | None
     days: int
-    router_result: object | None = None
+    company_name_query: str | None = None  # For resolving company names
     owner: str | None = None  # Role-based owner filter (jsmith, amartin, or None for all)
 
 

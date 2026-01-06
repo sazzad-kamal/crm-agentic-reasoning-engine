@@ -5,7 +5,6 @@ import time
 
 from backend.agent.core.state import AgentState
 from backend.agent.core.config import get_config
-from backend.agent.core.memory import format_history_for_prompt
 from backend.agent.followup.llm import generate_follow_up_suggestions
 
 
@@ -22,9 +21,8 @@ def followup_node(state: AgentState) -> AgentState:
 
     logger.info("[Followup] Generating suggestions...")
 
-    # Format conversation history for follow-up context
-    messages = state.get("messages", [])
-    conversation_history = format_history_for_prompt(messages) if messages else ""
+    # Use pre-formatted conversation_history from route_node
+    conversation_history = state.get("conversation_history", "")
 
     # Extract company name from company_data
     company_data = state.get("company_data", {})

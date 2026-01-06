@@ -63,7 +63,8 @@ class TestGraphIntegration:
     @patch("backend.agent.fetch.handlers.company.tool_company_lookup")
     def test_graph_execution_data_mode(self, mock_company, mock_route, mock_answer_chain):
         """Test graph execution in data mode."""
-        from backend.agent.core.schemas import RouterResult, ToolResult, Source
+        from backend.agent.core.schemas import RouterResult, Source
+        from backend.agent.fetch.handlers.schemas import ToolResult
 
         mock_route.return_value = RouterResult(
             mode_used="data",

@@ -16,7 +16,6 @@ from backend.agent.answer.formatters import (
     format_attachments_section,
     format_docs_section,
     format_account_context_section,
-    format_conversation_history_section,
 )
 from backend.agent.answer.llm import (
     call_answer_chain,
@@ -54,8 +53,10 @@ def answer_node(state: AgentState) -> AgentState:
 
         else:
             # Build context sections
-            conversation_history_section = format_conversation_history_section(
-                state.get("messages", [])
+            # Use pre-formatted conversation_history from route_node, add header for answer context
+            conv_history = state.get("conversation_history", "")
+            conversation_history_section = (
+                f"=== RECENT CONVERSATION ===\n{conv_history}" if conv_history else ""
             )
             company_section = format_company_section(company_data)
             contacts_section = format_contacts_section(state.get("contacts_data"))

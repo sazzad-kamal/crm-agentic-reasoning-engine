@@ -7,8 +7,7 @@ import time
 
 from rich.progress import track
 
-from backend.agent.graph import agent_graph, build_thread_config
-from backend.agent.core.memory import clear_session
+from backend.agent.graph import agent_graph, build_thread_config, clear_thread
 from backend.eval.base import console, print_eval_header
 from backend.eval.parallel import run_parallel_evaluation, calculate_p95_latency
 from backend.eval.shared import run_llm_judge
@@ -19,7 +18,7 @@ from backend.eval.prompts import E2E_JUDGE_SYSTEM, E2E_JUDGE_PROMPT
 
 def _invoke_agent(question: str, session_id: str | None = None) -> dict:
     """Invoke the agent graph and return state for eval."""
-    state = {"question": question, "session_id": session_id, "sources": []}
+    state = {"question": question, "sources": []}
     config = build_thread_config(session_id)
     return agent_graph.invoke(state, config=config)
 
@@ -250,7 +249,7 @@ def run_e2e_eval(
     # Clear any existing sessions
     session_ids = set(t.get("session_id") for t in multi_turn_tests if t.get("session_id"))
     for sid in session_ids:
-        clear_session(sid)
+        clear_thread(sid)
 
     if parallel and regular_tests:
         def evaluate_fn(test_case: dict, lock: threading.Lock | None) -> E2EEvalResult:

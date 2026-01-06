@@ -355,23 +355,6 @@ def format_account_context_section(account_context: str) -> str:
     return f"=== ACCOUNT CONTEXT (Notes & Attachments) ===\n{account_context}" if account_context else ""
 
 
-def format_conversation_history_section(messages: list[dict] | None, max_messages: int = 4) -> str:
-    """Format conversation history for the prompt."""
-    if not messages:
-        return ""
-
-    recent = messages[-max_messages:]
-    lines = ["=== RECENT CONVERSATION ==="]
-    for msg in recent:
-        role = "User" if msg.get("role") == "user" else "Assistant"
-        content = msg.get("content", "")
-        if len(content) > 150:
-            content = f"{content[:150]}..."
-        lines.append(f"{role}: {content}")
-
-    return "\n".join(lines)
-
-
 __all__ = [
     "SectionFormatter",
     "FORMATTERS",
@@ -386,5 +369,4 @@ __all__ = [
     "format_attachments_section",
     "format_docs_section",
     "format_account_context_section",
-    "format_conversation_history_section",
 ]

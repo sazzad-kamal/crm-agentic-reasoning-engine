@@ -10,7 +10,7 @@ import logging
 
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 
-from backend.agent.core.schemas import Source
+from backend.agent.core.state import Source
 from backend.agent.rag.config import PRIVATE_COLLECTION, EMBEDDING_MODEL
 from backend.agent.rag.client import get_qdrant_client, get_docs_index
 

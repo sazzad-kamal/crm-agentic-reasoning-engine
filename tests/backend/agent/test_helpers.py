@@ -844,54 +844,6 @@ class TestFormatAccountContextSection:
         assert "Important notes" in result
 
 
-class TestFormatConversationHistorySection:
-    """Tests for format_conversation_history_section."""
-
-    def test_returns_empty_for_none(self):
-        """Returns empty string for None."""
-        from backend.agent.answer.formatters import format_conversation_history_section
-        assert format_conversation_history_section(None) == ""
-
-    def test_returns_empty_for_empty_list(self):
-        """Returns empty string for empty list."""
-        from backend.agent.answer.formatters import format_conversation_history_section
-        assert format_conversation_history_section([]) == ""
-
-    def test_formats_conversation_history(self):
-        """Formats conversation messages."""
-        from backend.agent.answer.formatters import format_conversation_history_section
-        messages = [
-            {"role": "user", "content": "What's happening with Acme?"},
-            {"role": "assistant", "content": "Acme Corp is doing well..."},
-        ]
-        result = format_conversation_history_section(messages)
-        assert "RECENT CONVERSATION" in result
-        assert "User:" in result
-        assert "Assistant:" in result
-        assert "Acme" in result
-
-    def test_truncates_long_messages(self):
-        """Truncates messages longer than 150 chars."""
-        from backend.agent.answer.formatters import format_conversation_history_section
-        long_message = "x" * 200
-        messages = [{"role": "user", "content": long_message}]
-        result = format_conversation_history_section(messages)
-        assert "..." in result
-        assert len(result) < 200 + 50  # Header + truncated content
-
-    def test_respects_max_messages(self):
-        """Respects max_messages parameter."""
-        from backend.agent.answer.formatters import format_conversation_history_section
-        messages = [
-            {"role": "user", "content": f"Message {i}"}
-            for i in range(10)
-        ]
-        result = format_conversation_history_section(messages, max_messages=2)
-        assert "Message 8" in result
-        assert "Message 9" in result
-        assert "Message 0" not in result
-
-
 class TestFormatPipelineSectionOpportunities:
     """Additional tests for format_pipeline_section with opportunities."""
 

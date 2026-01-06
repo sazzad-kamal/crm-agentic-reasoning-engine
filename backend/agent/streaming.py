@@ -42,9 +42,9 @@ async def stream_agent(question: str, session_id: str | None = None) -> AsyncGen
     start = time.time()
     config = build_thread_config(session_id)
 
+    # Don't pass messages - LangGraph checkpointer provides them from previous runs
     state: AgentState = {
         "question": question,
-        "session_id": session_id,
         "sources": [], "steps": [], "raw_data": {}, "follow_up_suggestions": [],
     }
 
@@ -80,6 +80,9 @@ async def stream_agent(question: str, session_id: str | None = None) -> AsyncGen
             source_count=len(final.get("sources", [])),
             session_id=session_id,
         )
+
+        # Messages are persisted automatically by LangGraph checkpointer
+        # (answer_node updates state.messages, checkpointer saves it)
 
         yield _format_sse(StreamEvent.DONE, {
             "answer": final.get("answer", ""),

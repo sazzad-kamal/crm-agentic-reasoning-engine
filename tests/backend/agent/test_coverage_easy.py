@@ -29,7 +29,8 @@ class TestHandlersCommon:
     def test_apply_tool_result_non_list_data(self):
         """Test apply_tool_result when data value is not a list."""
         from backend.agent.fetch.handlers.common import apply_tool_result, IntentResult, empty_raw_data
-        from backend.agent.core.schemas import ToolResult, Source
+        from backend.agent.core.schemas import Source
+        from backend.agent.fetch.handlers.schemas import ToolResult
 
         result = IntentResult(raw_data=empty_raw_data())
         tool_result = ToolResult(

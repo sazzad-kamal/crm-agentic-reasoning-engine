@@ -23,6 +23,16 @@ def build_thread_config(session_id: str | None) -> dict:
     return {"configurable": {"thread_id": session_id or str(uuid.uuid4())}}
 
 
+def clear_thread(session_id: str | None) -> None:
+    """Clear conversation history for a session by deleting checkpoint."""
+    if not session_id:
+        return
+    # MemorySaver stores checkpoints keyed by (thread_id, checkpoint_ns, checkpoint_id)
+    keys_to_delete = [k for k in _checkpointer.storage.keys() if k[0] == session_id]
+    for key in keys_to_delete:
+        del _checkpointer.storage[key]
+
+
 def _build_graph():
     """Build the LangGraph workflow."""
     graph = StateGraph(AgentState)
@@ -40,4 +50,4 @@ def _build_graph():
 
 agent_graph = _build_graph()
 
-__all__ = ["agent_graph", "build_thread_config"]
+__all__ = ["agent_graph", "build_thread_config", "clear_thread"]

@@ -97,9 +97,7 @@ def dispatch_intent(intent: str, ctx: IntentContext) -> IntentResult:
     Simple dict lookup with one override: company-specific queries get full context.
     """
     # If there's a company and intent isn't a global aggregate, fetch full company context
-    has_company = ctx.resolved_company_id or (
-        ctx.router_result and getattr(ctx.router_result, "company_name_query", None)
-    )
+    has_company = ctx.resolved_company_id or ctx.company_name_query
     if has_company and intent not in _GLOBAL_INTENTS:
         return handle_company_status(ctx)
 

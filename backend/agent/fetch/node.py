@@ -38,7 +38,7 @@ def _fetch_crm_data(
     intent: str,
     resolved_company_id: str | None,
     days: int,
-    router_result: object | None,
+    company_name_query: str | None = None,
     owner: str | None = None,
 ) -> dict:
     try:
@@ -46,7 +46,7 @@ def _fetch_crm_data(
             question=question.lower(),
             resolved_company_id=resolved_company_id,
             days=days,
-            router_result=router_result,
+            company_name_query=company_name_query,
             owner=owner,
         )
         result = dispatch_intent(intent, ctx)
@@ -120,11 +120,9 @@ def fetch_node(state: AgentState) -> AgentState:
     # Get state values for fetch functions
     question = state.get("question", "")
     days = state.get("days", config.default_days)
-    router_result = state.get("router_result")
+    company_name_query = state.get("company_name_query")
+    owner = state.get("owner")
     timeout = config.fetch_timeout_seconds
-
-    # Get owner for role-based filtering (from router result)
-    owner = getattr(router_result, "owner", None) if router_result else None
 
     # Execute in parallel using ThreadPoolExecutor
     max_workers = 3 if should_fetch_account_context else 2
@@ -137,7 +135,7 @@ def fetch_node(state: AgentState) -> AgentState:
             intent=intent,
             resolved_company_id=company_id,
             days=days,
-            router_result=router_result,
+            company_name_query=company_name_query,
             owner=owner,
         )
         futures["docs"] = executor.submit(_fetch_docs, question=question)

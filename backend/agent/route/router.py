@@ -23,7 +23,7 @@ from tenacity import (
 from langchain_openai import ChatOpenAI
 
 from backend.agent.core.config import get_config
-from backend.agent.core.schemas import RouterResult
+from backend.agent.route.schemas import RouterResult
 from backend.agent.datastore import get_datastore, CRMDataStore
 from backend.agent.route.prompts import ROUTER_EXAMPLES, ROUTER_PROMPT_TEMPLATE
 

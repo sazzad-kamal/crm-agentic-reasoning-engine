@@ -21,18 +21,11 @@ from backend.agent.llm.helpers import (
     call_not_found_chain,
     FollowUpSuggestions,
 )
-from backend.agent.llm.prompts import (
-    AGENT_SYSTEM_PROMPT,
-    COMPANY_NOT_FOUND_TEMPLATE,
-    DATA_ANSWER_TEMPLATE,
-    FOLLOW_UP_PROMPT_TEMPLATE,
-)
-# Re-export router prompts for backward compatibility
-from backend.agent.route.prompts import (
-    ROUTER_SYSTEM_PROMPT,
-    ROUTER_EXAMPLES,
-    ROUTER_PROMPT_TEMPLATE,
-)
+from backend.agent.llm.prompts import AGENT_SYSTEM_PROMPT
+# Re-export node-specific prompts for backward compatibility
+from backend.agent.answer.prompts import COMPANY_NOT_FOUND_TEMPLATE, DATA_ANSWER_TEMPLATE
+from backend.agent.followup.prompts import FOLLOW_UP_PROMPT_TEMPLATE
+from backend.agent.route.prompts import ROUTER_SYSTEM_PROMPT, ROUTER_EXAMPLES, ROUTER_PROMPT_TEMPLATE
 
 __all__ = [
     # Router (re-exported from route/)

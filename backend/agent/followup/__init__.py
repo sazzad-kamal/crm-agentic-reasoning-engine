@@ -1,11 +1,11 @@
 """
 Followup node - generates follow-up question suggestions.
 
-Exports:
-    followup_node: LangGraph node for follow-up suggestions
+Components:
+    node: LangGraph node for follow-up suggestions
+    prompts: Followup-specific prompt templates
     tree: Hardcoded question tree for demo reliability
+
+Note: Import directly from submodules to avoid circular imports.
+Example: from backend.agent.followup.node import followup_node
 """
-
-from backend.agent.followup.node import followup_node
-
-__all__ = ["followup_node"]

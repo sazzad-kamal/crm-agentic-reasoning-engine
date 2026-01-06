@@ -34,7 +34,7 @@ class TestLlmHelpersChains:
             mock_llm.with_structured_output.return_value = mock_structured
             mock_chat.return_value = mock_llm
 
-            from backend.agent.llm.prompts import FOLLOW_UP_PROMPT_TEMPLATE
+            from backend.agent.followup.prompts import FOLLOW_UP_PROMPT_TEMPLATE
 
             chain = _create_chain(
                 FOLLOW_UP_PROMPT_TEMPLATE,
@@ -67,7 +67,7 @@ class TestLlmHelpersChains:
             mock_llm = MagicMock()
             mock_chat.return_value = mock_llm
 
-            from backend.agent.llm.prompts import DATA_ANSWER_TEMPLATE
+            from backend.agent.answer.prompts import DATA_ANSWER_TEMPLATE
 
             chain = _create_chain(DATA_ANSWER_TEMPLATE, model_key="main")
 

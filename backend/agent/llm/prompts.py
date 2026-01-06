@@ -1,23 +1,13 @@
 """
-Prompt templates for the agent LLM calls using LangChain.
+Shared prompt templates for the agent.
 
-This module contains all ChatPromptTemplates used by the agent orchestrator.
-Using LangChain templates provides:
-- Automatic validation of input variables
-- Better LangSmith tracing
-- Consistent formatting
+Contains the base system prompt used across multiple nodes.
+Node-specific prompts have moved to their respective modules:
+- answer/prompts.py: DATA_ANSWER_TEMPLATE, COMPANY_NOT_FOUND_TEMPLATE
+- followup/prompts.py: FOLLOW_UP_PROMPT_TEMPLATE
+- route/prompts.py: ROUTER_* templates
 """
 
-from langchain_core.prompts import (
-    ChatPromptTemplate,
-    SystemMessagePromptTemplate,
-    HumanMessagePromptTemplate,
-)
-
-
-# =============================================================================
-# System Prompts
-# =============================================================================
 
 AGENT_SYSTEM_PROMPT = """You are a helpful CRM assistant for Acme CRM Suite.
 Your job is to answer questions using ONLY the provided context, which may include:
@@ -53,99 +43,6 @@ FORMATTING:
 - If company not found, list close matches"""
 
 
-# =============================================================================
-# Agent Prompt Templates
-# =============================================================================
-
-COMPANY_NOT_FOUND_TEMPLATE = ChatPromptTemplate.from_messages(
-    [
-        SystemMessagePromptTemplate.from_template(AGENT_SYSTEM_PROMPT),
-        HumanMessagePromptTemplate.from_template("""The user asked about a company but we couldn't find an exact match.
-
-User's question: {question}
-Search query: {query}
-
-Close matches found:
-{matches}
-
-Please respond with:
-1. Acknowledge we couldn't find an exact match
-2. Ask a clarifying question
-3. List the close matches so they can clarify"""),
-    ]
-)
-
-DATA_ANSWER_TEMPLATE = ChatPromptTemplate.from_messages(
-    [
-        SystemMessagePromptTemplate.from_template(AGENT_SYSTEM_PROMPT),
-        HumanMessagePromptTemplate.from_template("""Answer the user's question using ONLY the provided context below.
-
-User's question: {question}
-
-{conversation_history_section}
-
-{company_section}
-
-{contacts_section}
-
-{activities_section}
-
-{history_section}
-
-{pipeline_section}
-
-{renewals_section}
-
-{groups_section}
-
-{attachments_section}
-
-{account_context_section}
-
-{docs_section}
-
-Please provide a helpful, grounded response following the rules in your system prompt."""),
-    ]
-)
-
-
-# =============================================================================
-# Follow-up Suggestions Prompt
-# =============================================================================
-
-FOLLOW_UP_PROMPT_TEMPLATE = ChatPromptTemplate.from_messages(
-    [
-        ("system", "You are a helpful CRM assistant. Generate 3 follow-up question suggestions."),
-        (
-            "human",
-            """Suggest 3 follow-up questions for the user.
-
-User's question: {question}
-Current company: {company}
-
-=== AVAILABLE DATA FOR THIS COMPANY ===
-{available_data}
-
-{conversation_history_section}
-
-GENERATE 3 QUESTIONS:
-1. First question: Drill deeper into current company's available data (use company name)
-2. Second question: Another angle on current company's data (use company name)
-3. Third question: Let user explore something NEW - different company, general CRM question, or documentation topic
-
-RULES:
-- Questions 1-2: ONLY ask about data types listed as available above
-- Question 3: Can be general (renewals, pipeline summary) or about CRM features
-- Always use company name, not "they" or "their"
-- Keep questions SHORT""",
-        ),
-    ]
-)
-
-
 __all__ = [
     "AGENT_SYSTEM_PROMPT",
-    "COMPANY_NOT_FOUND_TEMPLATE",
-    "DATA_ANSWER_TEMPLATE",
-    "FOLLOW_UP_PROMPT_TEMPLATE",
 ]

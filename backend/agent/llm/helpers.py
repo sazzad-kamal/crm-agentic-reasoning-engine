@@ -16,11 +16,8 @@ from langchain_core.output_parsers import StrOutputParser
 
 from backend.agent.core.config import get_config
 from backend.agent.core.schemas import Source
-from backend.agent.llm.prompts import (
-    FOLLOW_UP_PROMPT_TEMPLATE,
-    DATA_ANSWER_TEMPLATE,
-    COMPANY_NOT_FOUND_TEMPLATE,
-)
+from backend.agent.answer.prompts import DATA_ANSWER_TEMPLATE, COMPANY_NOT_FOUND_TEMPLATE
+from backend.agent.followup.prompts import FOLLOW_UP_PROMPT_TEMPLATE
 
 
 logger = logging.getLogger(__name__)

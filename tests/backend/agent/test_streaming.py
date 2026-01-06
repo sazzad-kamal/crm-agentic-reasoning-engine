@@ -14,87 +14,10 @@ from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, date
 
 from backend.agent.nodes.support.streaming import (
-    format_sse,
-    serialize_for_json,
+    _format_sse as format_sse,
     StreamEvent,
     NODE_MESSAGES,
 )
-
-
-class TestSerializeForJson:
-    """Tests for the JSON serialization helper."""
-
-    def test_serialize_primitives(self):
-        """Should pass through primitive types unchanged."""
-        assert serialize_for_json(None) is None
-        assert serialize_for_json("hello") == "hello"
-        assert serialize_for_json(42) == 42
-        assert serialize_for_json(3.14) == 3.14
-        assert serialize_for_json(True) is True
-
-    def test_serialize_datetime(self):
-        """Should convert datetime to ISO format string."""
-        dt = datetime(2025, 12, 24, 10, 30, 0)
-        result = serialize_for_json(dt)
-        assert result == "2025-12-24T10:30:00"
-
-    def test_serialize_date(self):
-        """Should convert date to ISO format string."""
-        d = date(2025, 12, 24)
-        result = serialize_for_json(d)
-        assert result == "2025-12-24"
-
-    def test_serialize_dict(self):
-        """Should recursively serialize dict values."""
-        data = {
-            "name": "Test",
-            "date": date(2025, 1, 1),
-            "nested": {"value": 42},
-        }
-        result = serialize_for_json(data)
-        assert result == {
-            "name": "Test",
-            "date": "2025-01-01",
-            "nested": {"value": 42},
-        }
-
-    def test_serialize_list(self):
-        """Should recursively serialize list items."""
-        data = [1, "two", date(2025, 1, 1), {"key": "value"}]
-        result = serialize_for_json(data)
-        assert result == [1, "two", "2025-01-01", {"key": "value"}]
-
-    def test_serialize_pydantic_model(self):
-        """Should call model_dump() on Pydantic v2 models."""
-        mock_model = MagicMock()
-        mock_model.model_dump.return_value = {"id": "123", "name": "Test"}
-        
-        result = serialize_for_json(mock_model)
-        
-        mock_model.model_dump.assert_called_once()
-        assert result == {"id": "123", "name": "Test"}
-
-    def test_serialize_pydantic_v1_model(self):
-        """Should call dict() on Pydantic v1 models."""
-        mock_model = MagicMock(spec=[])  # No model_dump
-        mock_model.dict = MagicMock(return_value={"id": "456"})
-        
-        # Remove model_dump to simulate v1 model
-        del mock_model.model_dump
-        
-        result = serialize_for_json(mock_model)
-        
-        mock_model.dict.assert_called_once()
-        assert result == {"id": "456"}
-
-    def test_serialize_unknown_type(self):
-        """Should convert unknown types to string."""
-        class CustomClass:
-            def __str__(self):
-                return "custom_value"
-        
-        result = serialize_for_json(CustomClass())
-        assert result == "custom_value"
 
 
 class TestFormatSse:

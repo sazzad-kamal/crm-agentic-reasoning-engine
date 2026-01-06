@@ -55,7 +55,7 @@ describe("DataTables", () => {
     expect(screen.queryByText("Acme")).not.toBeInTheDocument();
   });
 
-  it("shows correct table count for single table", () => {
+  it("shows data types as icons for single table", () => {
     const rawData: RawData = {
       companies: [
         { company_id: "1", name: "Test", plan: "Basic", renewal_date: "2024-12-31" },
@@ -64,10 +64,11 @@ describe("DataTables", () => {
 
     render(<DataTables rawData={rawData} />);
 
-    expect(screen.getByText("Data used (1 table)")).toBeInTheDocument();
+    expect(screen.getByText("Data used")).toBeInTheDocument();
+    expect(screen.getByTitle("companies (1)")).toBeInTheDocument();
   });
 
-  it("shows correct table count for multiple tables", () => {
+  it("shows data types as icons for multiple tables", () => {
     const rawData: RawData = {
       companies: [
         { company_id: "1", name: "Test", plan: "Pro", renewal_date: "2024-12-31" },
@@ -84,7 +85,9 @@ describe("DataTables", () => {
 
     render(<DataTables rawData={rawData} />);
 
-    expect(screen.getByText("Data used (2 tables)")).toBeInTheDocument();
+    expect(screen.getByText("Data used")).toBeInTheDocument();
+    expect(screen.getByTitle("companies (1)")).toBeInTheDocument();
+    expect(screen.getByTitle("activities (1)")).toBeInTheDocument();
   });
 
   it("shows expand arrow when collapsed", () => {
@@ -489,7 +492,7 @@ describe("DataTables", () => {
     const { rerender } = render(<DataTables rawData={rawData} />);
 
     rerender(<DataTables rawData={rawData} />);
-    expect(screen.getByText("Data used (1 table)")).toBeInTheDocument();
+    expect(screen.getByText("Data used")).toBeInTheDocument();
   });
 
   // =========================================================================

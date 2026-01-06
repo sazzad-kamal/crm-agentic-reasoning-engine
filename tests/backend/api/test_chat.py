@@ -86,7 +86,7 @@ class TestStreamingModule:
 
     def test_format_sse_returns_valid_format(self):
         """Test that format_sse returns valid SSE format."""
-        from backend.agent.nodes.support.streaming import format_sse
+        from backend.agent.nodes.support.streaming import _format_sse as format_sse
 
         result = format_sse("status", {"message": "Testing"})
 
@@ -96,7 +96,7 @@ class TestStreamingModule:
 
     def test_format_sse_serializes_json(self):
         """Test that format_sse properly serializes JSON."""
-        from backend.agent.nodes.support.streaming import format_sse
+        from backend.agent.nodes.support.streaming import _format_sse as format_sse
 
         result = format_sse("test", {"key": "value", "num": 42})
 
@@ -107,52 +107,6 @@ class TestStreamingModule:
 
         assert parsed["key"] == "value"
         assert parsed["num"] == 42
-
-    def test_serialize_for_json_handles_primitives(self):
-        """Test that serialize_for_json handles primitive types."""
-        from backend.agent.nodes.support.streaming import serialize_for_json
-
-        assert serialize_for_json("test") == "test"
-        assert serialize_for_json(42) == 42
-        assert serialize_for_json(3.14) == 3.14
-        assert serialize_for_json(True) is True
-        assert serialize_for_json(None) is None
-
-    def test_serialize_for_json_handles_lists(self):
-        """Test that serialize_for_json handles lists."""
-        from backend.agent.nodes.support.streaming import serialize_for_json
-
-        result = serialize_for_json([1, "two", 3.0])
-        assert result == [1, "two", 3.0]
-
-    def test_serialize_for_json_handles_dicts(self):
-        """Test that serialize_for_json handles dicts."""
-        from backend.agent.nodes.support.streaming import serialize_for_json
-
-        result = serialize_for_json({"a": 1, "b": "two"})
-        assert result == {"a": 1, "b": "two"}
-
-    def test_serialize_for_json_handles_datetime(self):
-        """Test that serialize_for_json handles datetime objects."""
-        from backend.agent.nodes.support.streaming import serialize_for_json
-        from datetime import datetime
-
-        dt = datetime(2024, 1, 15, 10, 30, 0)
-        result = serialize_for_json(dt)
-
-        assert result == "2024-01-15T10:30:00"
-
-    def test_serialize_for_json_handles_pydantic_models(self):
-        """Test that serialize_for_json handles Pydantic models."""
-        from backend.agent.nodes.support.streaming import serialize_for_json
-        from backend.agent.core.schemas import Source
-
-        source = Source(type="company", id="ACME", label="Acme Corp")
-        result = serialize_for_json(source)
-
-        assert result["type"] == "company"
-        assert result["id"] == "ACME"
-        assert result["label"] == "Acme Corp"
 
     def test_stream_event_types_defined(self):
         """Test that all expected stream event types are defined."""
@@ -187,30 +141,28 @@ class TestStarterQuestionsEndpoint:
         """Should return list of starter questions."""
         response = client.get("/api/chat/starter-questions")
         assert response.status_code == 200
-        data = response.json()
-        assert "questions" in data
-        assert isinstance(data["questions"], list)
+        questions = response.json()
+        assert isinstance(questions, list)
 
     def test_returns_expected_count(self, client: TestClient):
         """Should return expected number of starter questions."""
         response = client.get("/api/chat/starter-questions")
-        data = response.json()
+        questions = response.json()
         # Should have at least 3 starter questions
-        assert len(data["questions"]) >= 3
+        assert len(questions) >= 3
 
     def test_questions_are_strings(self, client: TestClient):
         """All questions should be strings."""
         response = client.get("/api/chat/starter-questions")
-        data = response.json()
-        for question in data["questions"]:
+        questions = response.json()
+        for question in questions:
             assert isinstance(question, str)
             assert len(question) > 0
 
     def test_contains_expected_starters(self, client: TestClient):
         """Should contain expected starter questions."""
         response = client.get("/api/chat/starter-questions")
-        data = response.json()
-        questions = data["questions"]
+        questions = response.json()
         # Should have at least one company-specific and one general question
         has_acme = any("Acme" in q for q in questions)
         has_beta = any("Beta" in q for q in questions)

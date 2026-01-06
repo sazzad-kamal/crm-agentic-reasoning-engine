@@ -7,11 +7,11 @@ from backend.agent.core.schemas import (
     Source,
     RawData,
     MetaInfo,
-    ChatRequest,
     ChatResponse,
     RouterResult,
     ToolResult,
 )
+from backend.api.chat import ChatRequest
 
 
 class TestSource:
@@ -97,30 +97,16 @@ class TestChatRequest:
         """Test ChatRequest with only question."""
         req = ChatRequest(question="What is Acme?")
         assert req.question == "What is Acme?"
-        assert req.mode == "auto"  # default
         assert req.session_id is None
-        assert req.user_id is None
-        assert req.company_id is None
 
     def test_chat_request_full(self):
         """Test ChatRequest with all fields."""
         req = ChatRequest(
             question="Tell me about Acme",
-            mode="data",
             session_id="sess-123",
-            user_id="user-456",
-            company_id="C001",
         )
-        assert req.mode == "data"
+        assert req.question == "Tell me about Acme"
         assert req.session_id == "sess-123"
-        assert req.user_id == "user-456"
-        assert req.company_id == "C001"
-
-    def test_chat_request_mode_options(self):
-        """Test ChatRequest with different modes."""
-        for mode in ["auto", "docs", "data", "data+docs"]:
-            req = ChatRequest(question="Test", mode=mode)
-            assert req.mode == mode
 
 
 class TestChatResponse:

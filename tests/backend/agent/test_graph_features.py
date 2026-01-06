@@ -26,32 +26,26 @@ class TestQueryCache:
 
     def test_make_cache_key_consistency(self):
         """Same inputs should produce same cache key."""
-        key1 = make_cache_key("What is Acme?", "auto", "ACME-123")
-        key2 = make_cache_key("What is Acme?", "auto", "ACME-123")
+        key1 = make_cache_key("What is Acme?")
+        key2 = make_cache_key("What is Acme?")
         assert key1 == key2
 
     def test_make_cache_key_case_insensitive(self):
         """Cache key should be case-insensitive for question."""
-        key1 = make_cache_key("What is Acme?", "auto", None)
-        key2 = make_cache_key("WHAT IS ACME?", "auto", None)
+        key1 = make_cache_key("What is Acme?")
+        key2 = make_cache_key("WHAT IS ACME?")
         assert key1 == key2
 
     def test_make_cache_key_strips_whitespace(self):
         """Cache key should strip leading/trailing whitespace."""
-        key1 = make_cache_key("What is Acme?", "auto", None)
-        key2 = make_cache_key("  What is Acme?  ", "auto", None)
+        key1 = make_cache_key("What is Acme?")
+        key2 = make_cache_key("  What is Acme?  ")
         assert key1 == key2
 
-    def test_make_cache_key_different_modes(self):
-        """Different modes should produce different cache keys."""
-        key1 = make_cache_key("What is Acme?", "auto", None)
-        key2 = make_cache_key("What is Acme?", "docs", None)
-        assert key1 != key2
-
-    def test_make_cache_key_different_companies(self):
-        """Different company IDs should produce different cache keys."""
-        key1 = make_cache_key("What is Acme?", "auto", "ACME-123")
-        key2 = make_cache_key("What is Acme?", "auto", "BETA-456")
+    def test_make_cache_key_different_questions(self):
+        """Different questions should produce different cache keys."""
+        key1 = make_cache_key("What is Acme?")
+        key2 = make_cache_key("Who is Acme?")
         assert key1 != key2
 
     def test_cache_miss_returns_none(self):
@@ -124,11 +118,20 @@ class TestMetaLatencies:
         assert meta.followup_latency_ms is None
 
 
-class TestGraphExports:
-    """Tests for graph module exports."""
+class TestSessionExports:
+    """Tests for session module exports."""
 
     def test_exports_include_cache_functions(self):
-        """Graph exports should include cache functions."""
-        from backend.agent.nodes.graph import __all__
+        """Session exports should include cache functions."""
+        from backend.agent.nodes.support.session import (
+            make_cache_key,
+            get_cached_result,
+            set_cached_result,
+            clear_query_cache,
+        )
 
-        assert "clear_query_cache" in __all__
+        # Verify functions are callable
+        assert callable(make_cache_key)
+        assert callable(get_cached_result)
+        assert callable(set_cached_result)
+        assert callable(clear_query_cache)

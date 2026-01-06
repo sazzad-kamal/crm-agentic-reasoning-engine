@@ -7,7 +7,7 @@ Handles question routing and parameter extraction.
 import logging
 import time
 
-from backend.agent.nodes.state import AgentState, Message
+from backend.agent.nodes.state import AgentState
 from backend.agent.core.config import get_config
 from backend.agent.llm.router import route_question
 from backend.agent.nodes.support.memory import format_history_for_prompt
@@ -16,41 +16,19 @@ from backend.agent.nodes.support.memory import format_history_for_prompt
 logger = logging.getLogger(__name__)
 
 
-def _extract_company_from_history(messages: list[Message]) -> str | None:
-    """Extract the most recent company_id from conversation history.
-
-    Looks at messages in reverse order to find the last discussed company.
-    This provides continuity for follow-up questions that don't mention
-    the company name explicitly.
-    """
-    for msg in reversed(messages):
-        if msg.get("company_id"):
-            return msg["company_id"]
-    return None
-
-
 def route_node(state: AgentState) -> AgentState:
     config = get_config()
     start_time = time.time()
 
     logger.info(f"[Route] Processing: {state['question'][:50]}...")
 
-    # Format conversation history for the router
+    # Format conversation history for the router (session memory handles company context)
     messages = state.get("messages", [])
     conversation_history = format_history_for_prompt(messages) if messages else ""
-
-    # Get company_id from state, or fall back to last discussed company in history
-    company_id = state.get("company_id")
-    if not company_id and messages:
-        company_id = _extract_company_from_history(messages)
-        if company_id:
-            logger.debug(f"[Route] Using company from history: {company_id}")
 
     try:
         router_result = route_question(
             state["question"],
-            mode=state.get("mode", "auto"),
-            company_id=company_id,
             conversation_history=conversation_history,
         )
 

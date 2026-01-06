@@ -249,14 +249,6 @@ class TestRouter:
         result = route_question("What happened in the last 90 days?")
         assert result.days == 30  # Mock mode ignores timeframe in question
 
-    def test_route_explicit_mode_overrides(self):
-        """Test explicit mode override works in mock mode."""
-        result = route_question("Tell me about Acme", mode="docs")
-        assert result.mode_used == "docs"
-
-        result = route_question("Tell me about Acme", mode="data")
-        assert result.mode_used == "data"
-
     def test_route_detects_owner_from_starter(self):
         """Test that owner detection works in mock mode."""
         result = route_question("How's my pipeline?")

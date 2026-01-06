@@ -77,9 +77,7 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
     [toggleExpanded]
   );
 
-  if (!hasData) return null;
-
-  // Build list of present data types with icons
+  // Build list of present data types with icons (must be before early return for hooks rules)
   const presentDataTypes = useMemo(() => {
     const types: { key: string; icon: string; count: number }[] = [];
     if (rawData.companies?.length) types.push({ key: "companies", icon: "🏢", count: rawData.companies.length });
@@ -91,7 +89,7 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
     return types;
   }, [rawData]);
 
-  const tableCount = presentDataTypes.length;
+  if (!hasData) return null;
 
   return (
     <section
@@ -106,7 +104,7 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
         aria-expanded={expanded}
         aria-controls="data-tables-content"
       >
-        <span className="data-section__arrow" aria-hidden="true">▶</span>
+        <span className="data-section__arrow" aria-hidden="true">{expanded ? "▼" : "▶"}</span>
         <span className="data-section__label">Data used</span>
         <span className="data-section__preview" aria-label={`Contains ${presentDataTypes.map(t => t.key).join(", ")}`}>
           {presentDataTypes.map((type) => (

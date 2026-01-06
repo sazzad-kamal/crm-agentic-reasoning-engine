@@ -92,9 +92,9 @@ _CACHE_TTL_SECONDS = 300  # 5 minutes
 _query_cache: dict[str, tuple[dict, float]] = {}
 
 
-def make_cache_key(question: str, mode: str, company_id: str | None) -> str:
-    """Generate cache key from query parameters."""
-    key_data = f"{question.lower().strip()}|{mode}|{company_id or ''}"
+def make_cache_key(question: str) -> str:
+    """Generate cache key from question."""
+    key_data = question.lower().strip()
     return hashlib.sha256(key_data.encode()).hexdigest()[:16]
 
 

@@ -14,7 +14,6 @@ os.environ["MOCK_LLM"] = "1"
 from backend.agent.nodes.graph import (
     build_agent_graph,
     run_agent,
-    get_graph_mermaid,
 )
 from backend.agent.nodes.state import AgentState
 
@@ -39,19 +38,6 @@ class TestGraphConstruction:
         # but we can verify the graph runs
         graph = build_agent_graph()
         assert graph is not None
-
-
-class TestGraphMermaid:
-    """Tests for graph visualization."""
-
-    def test_get_graph_mermaid_returns_string(self):
-        """Test that get_graph_mermaid returns a valid mermaid diagram."""
-        mermaid = get_graph_mermaid()
-        assert isinstance(mermaid, str)
-        assert "graph TD" in mermaid
-        assert "route" in mermaid
-        assert "answer" in mermaid
-        assert "followup" in mermaid
 
 
 # =============================================================================
@@ -111,40 +97,6 @@ class TestRunAgent:
         assert "error" in result["answer"].lower() or "sorry" in result["answer"].lower()
         assert result["meta"]["mode_used"] == "error"
 
-    @patch("backend.agent.nodes.graph.agent_graph")
-    def test_run_agent_passes_mode_to_initial_state(self, mock_graph):
-        """Test that mode is passed correctly to initial state."""
-        mock_graph.invoke.return_value = {
-            "answer": "Test",
-            "sources": [],
-            "steps": [],
-            "raw_data": {},
-            "follow_up_suggestions": [],
-            "mode_used": "data",
-        }
-
-        run_agent("Test question", mode="data")
-
-        call_args = mock_graph.invoke.call_args[0][0]
-        assert call_args["mode"] == "data"
-
-    @patch("backend.agent.nodes.graph.agent_graph")
-    def test_run_agent_passes_company_id(self, mock_graph):
-        """Test that company_id is passed correctly."""
-        mock_graph.invoke.return_value = {
-            "answer": "Test",
-            "sources": [],
-            "steps": [],
-            "raw_data": {},
-            "follow_up_suggestions": [],
-            "mode_used": "data",
-            "resolved_company_id": "ACME-MFG",
-        }
-
-        run_agent("Test question", company_id="ACME-MFG")
-
-        call_args = mock_graph.invoke.call_args[0][0]
-        assert call_args["company_id"] == "ACME-MFG"
 
 
 # =============================================================================
@@ -170,9 +122,10 @@ class TestGraphIntegration:
         # call_answer_chain returns (answer, latency_ms)
         mock_answer_chain.return_value = ("This is a test answer about documentation.", 100)
 
-        result = run_agent("How do I create a contact?", mode="docs")
+        result = run_agent("How do I create a contact?")
 
-        assert result["meta"]["mode_used"] == "docs"
+        # Mode is auto-detected, just verify answer was generated
+        assert "mode_used" in result["meta"]
         assert isinstance(result["answer"], str)
 
     @pytest.mark.integration
@@ -196,6 +149,7 @@ class TestGraphIntegration:
         # call_answer_chain returns (answer, latency_ms)
         mock_answer_chain.return_value = ("Acme Manufacturing is doing well.", 100)
 
-        result = run_agent("What's the status of Acme?", mode="data")
+        result = run_agent("What's the status of Acme?")
 
-        assert result["meta"]["mode_used"] == "data"
+        # Mode is auto-detected, just verify answer was generated
+        assert "mode_used" in result["meta"]

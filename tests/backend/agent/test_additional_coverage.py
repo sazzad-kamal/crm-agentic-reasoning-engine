@@ -290,29 +290,6 @@ class TestQuestionTreeEdgeCases:
 class TestLlmRouterAutoMode:
     """Tests for LLM router auto mode."""
 
-    def test_llm_route_question_explicit_mode(self):
-        """Test llm_route_question with explicit mode bypasses LLM."""
-        from backend.agent.llm.router import llm_route_question
-
-        # Explicit mode should not call LLM but mock detects intent from keywords
-        result = llm_route_question("What's Acme's pipeline?", mode="data")
-
-        assert result.mode_used == "data"
-        # Mock now detects company_status intent from "acme" keyword
-        assert result.intent == "company_status"
-
-    def test_llm_route_question_with_company_id(self):
-        """Test llm_route_question passes company_id through."""
-        from backend.agent.llm.router import llm_route_question
-
-        result = llm_route_question(
-            "What's the pipeline?",
-            mode="data",
-            company_id="ACME-001",
-        )
-
-        assert result.company_id == "ACME-001"
-
     def test_detect_owner_from_starter_sales(self):
         """Test detect_owner_from_starter detects sales rep."""
         from backend.agent.llm.router import detect_owner_from_starter
@@ -340,60 +317,6 @@ class TestLlmRouterAutoMode:
 
         owner = detect_owner_from_starter("Random question")
         assert owner is None
-
-
-# =============================================================================
-# output/streaming.py - serialize_for_json edge cases
-# =============================================================================
-
-
-class TestSerializeForJson:
-    """Tests for serialize_for_json edge cases."""
-
-    def test_serialize_pydantic_v1_model(self):
-        """Test serialize_for_json handles Pydantic v1 models."""
-        from backend.agent.nodes.support.streaming import serialize_for_json
-
-        class MockPydanticV1:
-            def dict(self):
-                return {"key": "value"}
-
-        obj = MockPydanticV1()
-        result = serialize_for_json(obj)
-
-        assert result == {"key": "value"}
-
-    def test_serialize_unknown_type(self):
-        """Test serialize_for_json converts unknown types to string."""
-        from backend.agent.nodes.support.streaming import serialize_for_json
-
-        class CustomClass:
-            def __str__(self):
-                return "custom_string"
-
-        obj = CustomClass()
-        result = serialize_for_json(obj)
-
-        assert result == "custom_string"
-
-    def test_serialize_nested_structures(self):
-        """Test serialize_for_json handles nested lists and dicts."""
-        from backend.agent.nodes.support.streaming import serialize_for_json
-        from datetime import datetime
-
-        data = {
-            "items": [
-                {"timestamp": datetime(2024, 1, 15)},
-                {"values": [1, 2, 3]},
-            ],
-            "nested": {"deep": {"value": True}},
-        }
-
-        result = serialize_for_json(data)
-
-        assert result["items"][0]["timestamp"] == "2024-01-15T00:00:00"
-        assert result["items"][1]["values"] == [1, 2, 3]
-        assert result["nested"]["deep"]["value"] is True
 
 
 # =============================================================================

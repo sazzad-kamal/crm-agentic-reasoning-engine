@@ -40,7 +40,7 @@ interface UseChatStreamReturn {
   isStreaming: boolean;
   error: string | null;
   currentStatus: string | null;
-  sendMessage: (question: string, options?: Partial<ChatRequest>) => Promise<void>;
+  sendMessage: (question: string) => Promise<void>;
   clearMessages: () => void;
   clearError: () => void;
   abortStream: () => void;
@@ -83,6 +83,11 @@ function parseSSE(text: string): StreamEvent[] {
 // Hook
 // =============================================================================
 
+// Generate a unique session ID (persists for the browser tab lifetime)
+function generateSessionId(): string {
+  return `session-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
 /**
  * Custom hook for streaming chat with real-time updates
  */
@@ -92,9 +97,12 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentStatus, setCurrentStatus] = useState<string | null>(null);
-  
+
   const abortControllerRef = useRef<AbortController | null>(null);
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
+
+  // Session ID persists across the hook's lifetime (one per browser tab)
+  const sessionIdRef = useRef<string>(generateSessionId());
 
   // Cleanup on unmount
   useEffect(() => {
@@ -113,7 +121,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
   }, []);
 
   const sendMessage = useCallback(
-    async (question: string, requestOptions?: Partial<ChatRequest>) => {
+    async (question: string) => {
       const trimmedQuestion = question.trim();
       if (!trimmedQuestion || isLoading) return;
 
@@ -158,10 +166,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
       try {
         const requestBody: ChatRequest = {
           question: trimmedQuestion,
-          mode: requestOptions?.mode || "auto",
-          company_id: requestOptions?.company_id,
-          session_id: requestOptions?.session_id,
-          user_id: requestOptions?.user_id,
+          session_id: sessionIdRef.current,
         };
 
         const response = await fetch(`${config.apiUrl}/api/chat/stream`, {

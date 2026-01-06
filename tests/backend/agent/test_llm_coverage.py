@@ -278,30 +278,14 @@ class TestLlmRouter:
 
         router_module._router_chain = None
 
-    def test_llm_route_explicit_mode(self):
-        """Test llm_route_question with explicit mode."""
-        from backend.agent.llm.router import llm_route_question
-
-        result = llm_route_question(
-            question="Tell me about Acme",
-            mode="data",
-            company_id="COMP001",
-        )
-
-        assert result.mode_used == "data"
-        assert result.company_id == "COMP001"
-
     def test_llm_route_auto_mode(self):
-        """Test llm_route_question with auto mode (uses mocked fixture)."""
+        """Test llm_route_question (uses mocked fixture)."""
         from backend.agent.llm.router import llm_route_question
 
-        result = llm_route_question(
-            question="What is Acme's pipeline?",
-            mode="auto",
-        )
+        result = llm_route_question(question="What is Acme's pipeline?")
 
-        # Mock fixture returns data+docs for auto mode
-        assert result.mode_used in ("data", "data+docs")
+        # Mock fixture returns data+docs mode
+        assert result.mode_used == "data+docs"
         assert result.intent is not None
 
     def test_get_router_chain_caching(self):

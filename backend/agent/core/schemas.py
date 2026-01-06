@@ -57,18 +57,8 @@ class MetaInfo(BaseModel):
 
 
 # =============================================================================
-# Request/Response
+# Response
 # =============================================================================
-
-
-class ChatRequest(BaseModel):
-    """Incoming chat request from the frontend."""
-
-    question: str = Field(..., min_length=1)
-    mode: str | None = "auto"  # "auto", "docs", "data", "data+docs"
-    session_id: str | None = None
-    user_id: str | None = None
-    company_id: str | None = None
 
 
 class ChatResponse(BaseModel):
@@ -118,7 +108,6 @@ __all__ = [
     "Source",
     "RawData",
     "MetaInfo",
-    "ChatRequest",
     "ChatResponse",
     "RouterResult",
     "ToolResult",

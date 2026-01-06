@@ -196,23 +196,10 @@ def _call_llm_router(question: str, conversation_history: str = "") -> dict:
 
 def llm_route_question(
     question: str,
-    mode: str = "auto",
-    company_id: str | None = None,
     datastore: CRMDataStore | None = None,
     conversation_history: str = "",
 ) -> RouterResult:
     ds = datastore or get_datastore()
-
-    # If mode is explicitly set, return minimal routing
-    if mode and mode != "auto":
-        logger.debug(f"Mode explicitly set to '{mode}'")
-        return RouterResult(
-            mode_used=mode,
-            company_id=company_id,
-            days=30,
-            intent="general",
-            owner=detect_owner_from_starter(question),
-        )
 
     # LLM routing
     llm_result = _call_llm_router(question, conversation_history)
@@ -224,8 +211,8 @@ def llm_route_question(
     )
 
     # Resolve company ID if LLM found a company name
-    resolved_company = company_id
-    if not resolved_company and llm_result.get("company_name"):
+    resolved_company = None
+    if llm_result.get("company_name"):
         resolved_company = ds.resolve_company_id(llm_result["company_name"])
         if resolved_company:
             logger.debug(
@@ -255,12 +242,10 @@ def llm_route_question(
 
 def route_question(
     question: str,
-    mode: str = "auto",
-    company_id: str | None = None,
     datastore: CRMDataStore | None = None,
     conversation_history: str = "",
 ) -> RouterResult:
-    result = llm_route_question(question, mode, company_id, datastore, conversation_history)
+    result = llm_route_question(question, datastore, conversation_history)
 
     # Ensure owner is detected for role-based starters
     if result.owner is None:

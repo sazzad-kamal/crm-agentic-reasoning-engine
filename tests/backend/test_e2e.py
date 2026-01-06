@@ -72,7 +72,7 @@ class TestE2EAgentPipeline:
             "mode_used": "docs",
         }
 
-        result = run_agent("How do I import contacts?", mode="docs")
+        result = run_agent("How do I import contacts?")
 
         assert result["meta"]["mode_used"] == "docs"
 

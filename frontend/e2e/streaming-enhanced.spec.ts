@@ -39,7 +39,7 @@ test.describe('Streaming Chat - Enhanced', () => {
     await sendButton.click();
 
     // Thinking indicator should appear while processing
-    const thinkingIndicator = page.locator('.message__thinking');
+    const thinkingIndicator = page.locator('.message-skeleton');
     await expect(thinkingIndicator).toBeVisible({ timeout: 5000 });
 
     // Wait for answer to appear
@@ -50,20 +50,20 @@ test.describe('Streaming Chat - Enhanced', () => {
     expect(answer).toBeTruthy();
   });
 
-  test('thinking indicator has animated dots', async ({ page }) => {
+  test('thinking indicator has animated skeleton lines', async ({ page }) => {
     const input = page.getByRole('textbox', { name: /ask a question/i });
     const sendButton = page.getByRole('button', { name: /send/i });
 
     await input.fill('How do I create an opportunity?');
     await sendButton.click();
 
-    // Thinking indicator with dots should be visible
-    const thinkingIndicator = page.locator('.message__thinking');
+    // Thinking indicator (skeleton) should be visible
+    const thinkingIndicator = page.locator('.message-skeleton');
     await expect(thinkingIndicator).toBeVisible({ timeout: 5000 });
 
-    // Should have animated dots
-    const dots = thinkingIndicator.locator('.message__thinking-dot');
-    await expect(dots).toHaveCount(3);
+    // Should have animated skeleton lines
+    const lines = thinkingIndicator.locator('.message-skeleton__line');
+    await expect(lines).toHaveCount(3);
   });
 
   test('streaming preserves answer formatting', async ({ page }) => {
@@ -143,13 +143,13 @@ test.describe('Streaming Progress Tracking', () => {
     await sendButton.click();
 
     // Thinking indicator should appear first
-    await expect(page.locator('.message__thinking')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.message-skeleton')).toBeVisible({ timeout: 5000 });
 
     // Wait for answer to appear
     await expect(page.locator('.message__answer')).toBeVisible({ timeout: 30000 });
 
     // Thinking indicator should be gone
-    await expect(page.locator('.message__thinking')).not.toBeVisible();
+    await expect(page.locator('.message-skeleton')).not.toBeVisible();
 
     // Verify answer content
     const answer = await page.locator('.message__answer').textContent();
@@ -273,7 +273,7 @@ test.describe('Streaming Performance - Enhanced', () => {
     await sendButton.click();
 
     // Wait for thinking indicator to appear
-    await expect(page.locator('.message__thinking')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.message-skeleton')).toBeVisible({ timeout: 5000 });
 
     const elapsed = Date.now() - startTime;
     console.log(`Time to thinking indicator: ${elapsed}ms`);
@@ -292,7 +292,7 @@ test.describe('Streaming Performance - Enhanced', () => {
     await sendButton.click();
 
     // Thinking indicator should appear within 1 second
-    await expect(page.locator('.message__thinking')).toBeVisible({ timeout: 1000 });
+    await expect(page.locator('.message-skeleton')).toBeVisible({ timeout: 1000 });
 
     const elapsed = Date.now() - startTime;
     expect(elapsed).toBeLessThan(1500);
@@ -331,7 +331,7 @@ test.describe('Streaming Visual States', () => {
     await sendButton.click();
 
     // Thinking indicator should be visible with proper styling
-    const thinkingIndicator = page.locator('.message__thinking');
+    const thinkingIndicator = page.locator('.message-skeleton');
     await expect(thinkingIndicator).toBeVisible({ timeout: 5000 });
 
     // Wait for answer to appear

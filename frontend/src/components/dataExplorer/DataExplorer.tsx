@@ -74,13 +74,6 @@ export function DataExplorer({ onAskAbout }: DataExplorerProps) {
     fetchAllCounts();
   }, []);
 
-  // Update count when data is fetched for a tab (in case it changed)
-  useEffect(() => {
-    if (data?.total !== undefined && !loading) {
-      setTabCounts((prev) => ({ ...prev, [activeTab]: data.total }));
-    }
-  }, [data?.total, activeTab, loading]);
-
   // Extract data array for cleaner memoization
   const dataArray = data?.data;
 

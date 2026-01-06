@@ -157,8 +157,8 @@ class TestGraphModule:
         """Test run_agent in mock mode."""
         from backend.agent.nodes.graph import run_agent
 
-        with patch("backend.agent.nodes.graph._execute_graph") as mock_exec:
-            mock_exec.return_value = {
+        with patch("backend.agent.nodes.graph.agent_graph") as mock_graph:
+            mock_graph.invoke.return_value = {
                 "answer": "Test answer",
                 "sources": [],
                 "steps": [],
@@ -167,10 +167,7 @@ class TestGraphModule:
                 "mode_used": "data",
             }
 
-            result = run_agent(
-                question="What is the pipeline?",
-                mode="data",
-            )
+            result = run_agent(question="What is the pipeline?", use_cache=False)
 
             assert "answer" in result
 
@@ -178,27 +175,9 @@ class TestGraphModule:
 class TestStreamingModule:
     """Tests for streaming module edge cases."""
 
-    def test_serialize_for_json_basic(self):
-        """Test serialize_for_json with basic types."""
-        from backend.agent.nodes.support.streaming import serialize_for_json
-
-        result = serialize_for_json({"key": "value", "num": 42})
-        assert result["key"] == "value"
-        assert result["num"] == 42
-
-    def test_serialize_for_json_datetime(self):
-        """Test serialize_for_json with datetime."""
-        from backend.agent.nodes.support.streaming import serialize_for_json
-        from datetime import datetime
-
-        dt = datetime(2024, 1, 15, 12, 30, 0)
-        result = serialize_for_json({"timestamp": dt})
-
-        assert isinstance(result["timestamp"], str)
-
     def test_format_sse(self):
         """Test format_sse creates proper SSE format."""
-        from backend.agent.nodes.support.streaming import format_sse
+        from backend.agent.nodes.support.streaming import _format_sse as format_sse
 
         result = format_sse("progress", {"step": "fetching"})
 

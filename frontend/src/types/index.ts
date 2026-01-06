@@ -99,8 +99,5 @@ export interface ChatMessage {
 
 export interface ChatRequest {
   question: string;
-  mode?: "auto" | "docs" | "data" | "data+docs";
-  company_id?: string;
   session_id?: string;
-  user_id?: string;
 }

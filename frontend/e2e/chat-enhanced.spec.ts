@@ -120,7 +120,7 @@ test.describe('Chat Interaction - Enhanced', () => {
     await sendButton.click();
 
     // Should show thinking indicator or message block (processing may complete quickly)
-    const thinkingOrMessage = page.locator('.message__thinking, .message-block');
+    const thinkingOrMessage = page.locator('.message-skeleton, .message-block');
     await expect(thinkingOrMessage.first()).toBeVisible({ timeout: 15000 });
   });
 

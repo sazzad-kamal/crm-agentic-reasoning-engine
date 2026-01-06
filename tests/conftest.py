@@ -208,8 +208,6 @@ def mock_llm():
 
     def mock_llm_route_question(
         question: str,
-        mode: str = "auto",
-        company_id: str | None = None,
         datastore=None,
         conversation_history: str = "",
     ) -> RouterResult:
@@ -228,18 +226,18 @@ def mock_llm():
             intent = "deals_at_risk"
         elif "renewal" in q:
             intent = "renewals"
-        elif "pipeline" in q and company_id:
+        elif "pipeline" in q:
             intent = "pipeline"
         elif any(kw in q for kw in ["contact", "who"]):
-            intent = "contact_search" if not company_id else "contact_lookup"
+            intent = "contact_search"
         elif any(kw in q for kw in ["activit", "recent"]):
-            intent = "activities" if not company_id else "history"
-        elif company_id or any(name in q for name in ["acme", "beta", "crown", "delta", "echo"]):
+            intent = "activities"
+        elif any(name in q for name in ["acme", "beta", "crown", "delta", "echo"]):
             intent = "company_status"
 
         return RouterResult(
-            mode_used="data+docs" if mode == "auto" else mode,
-            company_id=company_id,
+            mode_used="data+docs",
+            company_id=None,
             days=30,
             intent=intent,
             owner=detect_owner_from_starter(question),

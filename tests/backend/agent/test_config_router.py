@@ -174,15 +174,7 @@ class TestLLMRouter:
 
         # Mock mode returns default 30 days
         assert result.days == 30
-    
-    def test_router_respects_explicit_mode(self):
-        """Test that explicit mode is respected."""
-        from backend.agent.llm.router import route_question
-        
-        result = route_question("Tell me about Acme", mode="docs")
-        
-        assert result.mode_used == "docs"
-    
+
     def test_router_result_schema(self):
         """Test that RouterResult has all expected fields."""
         from backend.agent.llm.router import route_question
@@ -231,10 +223,11 @@ class TestAgentIntegration:
         """Test agent handles documentation queries."""
         from backend.agent.nodes.graph import run_agent
 
-        result = run_agent("How do I create an opportunity?", mode="docs")
+        result = run_agent("How do I create an opportunity?")
 
         assert "answer" in result
-        assert result["meta"]["mode_used"] == "docs"
+        # Mode is auto-detected by LLM router
+        assert "mode_used" in result["meta"]
 
 
 # =============================================================================
@@ -422,18 +415,6 @@ class TestLLMRouterExtended:
         """Reset config between tests."""
         reset_config()
 
-    def test_route_question_with_company_id(self):
-        """Tests route_question with pre-specified company_id."""
-        from backend.agent.llm.router import route_question
-
-        result = route_question(
-            "What's happening?",
-            company_id="ACME-001",
-        )
-
-        # Company ID should be passed through
-        assert result.company_id == "ACME-001"
-
     def test_route_question_passes_owner_from_starter(self):
         """Tests that owner is detected from starter pattern."""
         from backend.agent.llm.router import route_question
@@ -441,18 +422,6 @@ class TestLLMRouterExtended:
         result = route_question("how's my pipeline?")
 
         assert result.owner == "jsmith"
-
-    def test_route_question_explicit_mode_returns_minimal_routing(self):
-        """Explicit mode returns minimal routing without LLM."""
-        from backend.agent.llm.router import route_question
-
-        result = route_question(
-            "Tell me about documents",
-            mode="docs",
-        )
-
-        assert result.mode_used == "docs"
-        assert result.intent == "general"
 
     def test_llm_route_question_mock_mode_returns_defaults(self):
         """In mock mode, returns default data+docs routing."""

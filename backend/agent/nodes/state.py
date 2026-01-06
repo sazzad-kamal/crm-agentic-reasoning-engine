@@ -19,7 +19,6 @@ class Message(TypedDict):
 
     role: str  # "user" or "assistant"
     content: str
-    company_id: str | None  # Company context for this message
 
 
 class AgentState(TypedDict, total=False):
@@ -31,10 +30,7 @@ class AgentState(TypedDict, total=False):
 
     # Input
     question: str
-    mode: str  # "auto", "docs", "data", "data+docs"
-    company_id: str | None
     session_id: str | None
-    user_id: str | None
 
     # Conversation history (loaded from memory at start)
     messages: list[Message]
@@ -76,6 +72,13 @@ class AgentState(TypedDict, total=False):
 
     # Error handling
     error: str | None
+
+    # Progress/latency tracking
+    steps: list[dict[str, Any]]
+    router_latency_ms: int
+    answer_latency_ms: int
+    llm_latency_ms: int
+    followup_latency_ms: int
 
 
 __all__ = ["AgentState", "Message"]

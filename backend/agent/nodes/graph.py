@@ -26,11 +26,6 @@ Implements a minimal 4-node graph workflow for answering CRM questions:
                      ┌───────┐
                      │  END  │
                      └───────┘
-
-Usage:
-    from backend.agent.nodes.graph import agent_graph, run_agent
-
-    result = run_agent("What's going on with Acme Manufacturing?")
 """
 
 import logging
@@ -48,20 +43,13 @@ from backend.agent.nodes.support.session import (
     make_cache_key,
     get_cached_result,
     set_cached_result,
-    clear_query_cache,
     get_checkpointer,
-    get_session_state,
     get_session_messages,
     build_thread_config,
 )
 
 
 logger = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Graph Construction
-# =============================================================================
 
 
 def build_agent_graph(checkpointer: Any = None) -> Any:
@@ -101,22 +89,9 @@ def build_agent_graph(checkpointer: Any = None) -> Any:
 agent_graph = build_agent_graph()
 
 
-def _execute_graph(initial_state: AgentState, config: dict) -> dict:
-    """Execute the graph."""
-    return agent_graph.invoke(initial_state, config=config)
-
-
-# =============================================================================
-# Runner Function
-# =============================================================================
-
-
 def run_agent(
     question: str,
-    mode: str = "auto",
-    company_id: str | None = None,
     session_id: str | None = None,
-    user_id: str | None = None,
     use_cache: bool = True,
 ) -> dict:
     """
@@ -124,10 +99,7 @@ def run_agent(
 
     Args:
         question: The user's question
-        mode: Mode override ("auto", "docs", "data", "data+docs")
-        company_id: Pre-specified company ID
         session_id: Optional session ID (used as thread_id for checkpointing)
-        user_id: Optional user ID
         use_cache: Whether to use query cache (default True)
 
     Returns:
@@ -138,15 +110,18 @@ def run_agent(
     # Check query cache first (only for non-session queries)
     cache_key = None
     if use_cache and not session_id:
-        cache_key = make_cache_key(question, mode, company_id)
+        cache_key = make_cache_key(question)
         cached = get_cached_result(cache_key)
         if cached:
             logger.info("[Agent] Cache hit, returning cached result")
-            cached_copy = cached.copy()
-            cached_copy["meta"] = cached["meta"].copy()
-            cached_copy["meta"]["latency_ms"] = int((time.time() - start_time) * 1000)
-            cached_copy["meta"]["cached"] = True
-            return cached_copy
+            return {
+                **cached,
+                "meta": {
+                    **cached["meta"],
+                    "latency_ms": int((time.time() - start_time) * 1000),
+                    "cached": True,
+                },
+            }
 
     # Load conversation history from checkpoint
     messages: list[Message] = get_session_messages(session_id) if session_id else []
@@ -154,10 +129,7 @@ def run_agent(
     # Initialize state
     initial_state: AgentState = {
         "question": question,
-        "mode": mode,
-        "company_id": company_id,
         "session_id": session_id,
-        "user_id": user_id,
         "messages": messages,
         "sources": [],
         "steps": [],
@@ -165,16 +137,11 @@ def run_agent(
         "follow_up_suggestions": [],
     }
 
-    # Build config with thread_id
     config = build_thread_config(session_id)
-    if session_id:
-        logger.debug(f"[Agent] Using LangGraph checkpointing with thread_id={session_id}")
-
-    # Run the graph
     logger.info(f"[Agent] Starting graph execution for: {question[:50]}...")
 
     try:
-        final_state = _execute_graph(initial_state, config)
+        final_state = agent_graph.invoke(initial_state, config=config)
     except Exception as e:
         logger.error(f"[Agent] Graph execution failed: {e}")
         return _build_error_response(str(e), start_time)
@@ -188,7 +155,6 @@ def run_agent(
         company_id=final_state.get("resolved_company_id"),
         latency_ms=latency_ms,
         source_count=len(final_state.get("sources", [])),
-        user_id=user_id,
         session_id=session_id,
     )
 
@@ -201,6 +167,7 @@ def run_agent(
             s.model_dump() if hasattr(s, "model_dump") else s
             for s in final_state.get("sources", [])
         ],
+        "steps": final_state.get("steps", []),
         "raw_data": final_state.get("raw_data", {}),
         "follow_up_suggestions": final_state.get("follow_up_suggestions", []),
         "meta": {
@@ -242,31 +209,7 @@ def _build_error_response(error: str, start_time: float) -> dict[str, Any]:
     }
 
 
-def get_graph_mermaid() -> str:
-    """Get Mermaid diagram of the graph."""
-    return """
-graph TD
-    START((Start)) --> route[Route]
-    route --> fetch[Fetch<br/>CRM + Docs + Account]
-    fetch --> answer[Synthesize Answer]
-    answer --> followup[Generate Follow-ups]
-    followup --> END((End))
-
-    style route fill:#e1f5fe
-    style fetch fill:#fff3e0
-    style answer fill:#e8f5e9
-    style followup fill:#fce4ec
-"""
-
-
 __all__ = [
-    "agent_graph",
     "run_agent",
     "build_agent_graph",
-    "get_graph_mermaid",
-    # Re-export from conversation module
-    "get_checkpointer",
-    "get_session_state",
-    # Re-export from cache module
-    "clear_query_cache",
 ]

@@ -200,7 +200,7 @@ def mock_llm():
     ) -> list[str]:
         # Still try hardcoded tree first
         if use_hardcoded_tree:
-            from backend.agent.question_tree import get_follow_ups
+            from backend.agent.followup.tree import get_follow_ups
             follow_ups = get_follow_ups(question)
             if follow_ups:
                 return follow_ups[:3]

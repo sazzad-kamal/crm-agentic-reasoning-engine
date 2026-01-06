@@ -28,7 +28,7 @@ class TestHandlersCommon:
 
     def test_apply_tool_result_non_list_data(self):
         """Test apply_tool_result when data value is not a list."""
-        from backend.agent.handlers.common import apply_tool_result, IntentResult, empty_raw_data
+        from backend.agent.fetch.handlers.common import apply_tool_result, IntentResult, empty_raw_data
         from backend.agent.core.schemas import ToolResult, Source
 
         result = IntentResult(raw_data=empty_raw_data())
@@ -96,7 +96,7 @@ class TestQuestionTreeBehavior:
 
     def test_get_paths_for_role_terminal_node(self):
         """Test get_paths_for_role handles terminal nodes correctly."""
-        from backend.agent.question_tree import get_paths_for_role
+        from backend.agent.followup.tree import get_paths_for_role
 
         # This naturally exercises terminal node handling
         paths = get_paths_for_role()
@@ -118,7 +118,7 @@ class TestToolsActivityEdgeCases:
 
     def test_search_activities_with_company_id(self):
         """Test search_activities includes company in search description."""
-        from backend.agent.handlers import tool_search_activities
+        from backend.agent.fetch.handlers import tool_search_activities
 
         # Use real datastore - this exercises the company_id filter path
         result = tool_search_activities(company_id="ACME-MFG")
@@ -128,7 +128,7 @@ class TestToolsActivityEdgeCases:
 
     def test_analytics_activity_count_with_activity_type(self):
         """Test activity_count metric with activity_type filter."""
-        from backend.agent.handlers import tool_analytics
+        from backend.agent.fetch.handlers import tool_analytics
 
         mock_ds = MagicMock()
         mock_ds.resolve_company_id.return_value = None
@@ -147,7 +147,7 @@ class TestToolsActivityEdgeCases:
 
     def test_analytics_unknown_metric(self):
         """Test analytics returns error for unknown metric."""
-        from backend.agent.handlers import tool_analytics
+        from backend.agent.fetch.handlers import tool_analytics
 
         mock_ds = MagicMock()
         mock_ds.resolve_company_id.return_value = None
@@ -172,7 +172,7 @@ class TestToolsCompanyEdgeCases:
 
     def test_search_companies_with_industry_filter(self):
         """Test search_companies includes industry in filters."""
-        from backend.agent.handlers import tool_search_companies
+        from backend.agent.fetch.handlers import tool_search_companies
 
         # Use real datastore - this exercises the industry filter path
         result = tool_search_companies(industry="Technology")
@@ -182,7 +182,7 @@ class TestToolsCompanyEdgeCases:
 
     def test_search_contacts_with_job_title_filter(self):
         """Test search_contacts includes job_title in filters."""
-        from backend.agent.handlers import tool_search_contacts
+        from backend.agent.fetch.handlers import tool_search_contacts
 
         # Use real datastore - this exercises the job_title filter path
         result = tool_search_contacts(job_title="Engineer")
@@ -201,7 +201,7 @@ class TestEvalModelsProperties:
 
     def test_flow_step_result_passed_property(self):
         """Test FlowStepResult.passed property."""
-        from backend.agent.eval.models import FlowStepResult
+        from backend.eval.models import FlowStepResult
 
         # Passing case: has_answer=True, both scores=1
         passing = FlowStepResult(
@@ -241,7 +241,7 @@ class TestEvalModelsProperties:
 
     def test_flow_eval_results_path_pass_rate_zero_division(self):
         """Test path_pass_rate handles zero paths tested."""
-        from backend.agent.eval.models import FlowEvalResults
+        from backend.eval.models import FlowEvalResults
 
         # Zero paths tested - should return 0.0, not raise
         results = FlowEvalResults(
@@ -257,7 +257,7 @@ class TestEvalModelsProperties:
 
     def test_flow_eval_results_question_pass_rate_zero_division(self):
         """Test question_pass_rate handles zero questions."""
-        from backend.agent.eval.models import FlowEvalResults
+        from backend.eval.models import FlowEvalResults
 
         # Zero questions - should return 0.0, not raise
         results = FlowEvalResults(
@@ -322,7 +322,7 @@ class TestActivityTypeLabel:
 
     def test_analytics_activity_count_label_includes_type(self):
         """Test that activity_count with activity_type includes it in source label."""
-        from backend.agent.handlers import tool_analytics
+        from backend.agent.fetch.handlers import tool_analytics
 
         # Use real datastore to hit the actual code path
         result = tool_analytics(
@@ -337,7 +337,7 @@ class TestActivityTypeLabel:
 
     def test_analytics_activity_count_with_company_name(self):
         """Test that activity_count with company includes company name in label (line 160)."""
-        from backend.agent.handlers import tool_analytics
+        from backend.agent.fetch.handlers import tool_analytics
 
         # Use real company that exists in the datastore
         result = tool_analytics(
@@ -362,7 +362,7 @@ class TestCompanyIndustryLabel:
 
     def test_search_companies_label_includes_industry(self):
         """Test that search_companies with industry includes it in source label."""
-        from backend.agent.handlers import tool_search_companies
+        from backend.agent.fetch.handlers import tool_search_companies
 
         # Use real datastore to hit the actual code path
         result = tool_search_companies(industry="Manufacturing")

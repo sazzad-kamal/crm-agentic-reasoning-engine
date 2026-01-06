@@ -13,7 +13,7 @@ import json
 from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, date
 
-from backend.agent.nodes.support.streaming import (
+from backend.agent.streaming import (
     _format_sse as format_sse,
     StreamEvent,
     NODE_MESSAGES,
@@ -164,7 +164,7 @@ class TestStreamAgentIntegration:
         async def run_test():
             # Set mock mode
             with patch.dict(os.environ, {"MOCK_LLM": "1"}):
-                from backend.agent.nodes.support.streaming import stream_agent
+                from backend.agent.streaming import stream_agent
 
                 events = []
                 async for event in stream_agent("What is Acme CRM?"):
@@ -186,7 +186,7 @@ class TestStreamAgentIntegration:
 
         async def run_test():
             with patch.dict(os.environ, {"MOCK_LLM": "1"}):
-                from backend.agent.nodes.support.streaming import stream_agent
+                from backend.agent.streaming import stream_agent
                 
                 async for event in stream_agent("Test question"):
                     # Each event should have event: and data: lines

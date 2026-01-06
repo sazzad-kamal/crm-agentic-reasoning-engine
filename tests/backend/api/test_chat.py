@@ -86,7 +86,7 @@ class TestStreamingModule:
 
     def test_format_sse_returns_valid_format(self):
         """Test that format_sse returns valid SSE format."""
-        from backend.agent.nodes.support.streaming import _format_sse as format_sse
+        from backend.agent.streaming import _format_sse as format_sse
 
         result = format_sse("status", {"message": "Testing"})
 
@@ -96,7 +96,7 @@ class TestStreamingModule:
 
     def test_format_sse_serializes_json(self):
         """Test that format_sse properly serializes JSON."""
-        from backend.agent.nodes.support.streaming import _format_sse as format_sse
+        from backend.agent.streaming import _format_sse as format_sse
 
         result = format_sse("test", {"key": "value", "num": 42})
 
@@ -110,7 +110,7 @@ class TestStreamingModule:
 
     def test_stream_event_types_defined(self):
         """Test that all expected stream event types are defined."""
-        from backend.agent.nodes.support.streaming import StreamEvent
+        from backend.agent.streaming import StreamEvent
 
         assert hasattr(StreamEvent, "STATUS")
         assert hasattr(StreamEvent, "ANSWER_START")
@@ -122,7 +122,7 @@ class TestStreamingModule:
 
     def test_node_messages_defined(self):
         """Test that node messages are defined for expected nodes."""
-        from backend.agent.nodes.support.streaming import NODE_MESSAGES
+        from backend.agent.streaming import NODE_MESSAGES
 
         assert "route" in NODE_MESSAGES
         assert "fetch" in NODE_MESSAGES

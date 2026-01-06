@@ -28,7 +28,7 @@ class TestE2EAgentPipeline:
     @pytest.mark.integration
     def test_agent_handles_data_query(self):
         """Test agent handles data query end-to-end."""
-        from backend.agent.nodes.graph import agent_graph, build_thread_config
+        from backend.agent.graph import agent_graph, build_thread_config
 
         state = {"question": "What is the pipeline for Acme Manufacturing?", "sources": []}
         config = build_thread_config(None)
@@ -41,7 +41,7 @@ class TestE2EAgentPipeline:
     @pytest.mark.integration
     def test_agent_handles_docs_query(self):
         """Test agent handles docs query end-to-end."""
-        from backend.agent.nodes.graph import agent_graph, build_thread_config
+        from backend.agent.graph import agent_graph, build_thread_config
 
         state = {"question": "How do I import contacts?", "sources": []}
         config = build_thread_config(None)

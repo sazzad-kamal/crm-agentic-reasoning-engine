@@ -4,8 +4,8 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from backend.agent.nodes.support.streaming import stream_agent
-from backend.agent.question_tree import get_starters
+from backend.agent.streaming import stream_agent
+from backend.agent.followup.tree import get_starters
 
 router = APIRouter()
 

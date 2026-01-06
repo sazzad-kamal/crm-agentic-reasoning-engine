@@ -2,7 +2,7 @@
 Tests for backend/agent/question_tree.py - hardcoded question tree for demos.
 """
 
-from backend.agent.question_tree import (
+from backend.agent.followup.tree import (
     get_starters,
     get_follow_ups,
     get_paths_for_role,

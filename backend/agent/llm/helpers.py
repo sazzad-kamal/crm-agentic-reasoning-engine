@@ -278,7 +278,7 @@ def generate_follow_up_suggestions(
 
     # Try hardcoded tree first (100% reliable for demos)
     if use_hardcoded_tree:
-        from backend.agent.question_tree import get_follow_ups
+        from backend.agent.followup.tree import get_follow_ups
         follow_ups = get_follow_ups(question)
         if follow_ups:  # Empty list means terminal/leaf node
             logger.debug(f"Using hardcoded follow-ups for: {question[:50]}...")

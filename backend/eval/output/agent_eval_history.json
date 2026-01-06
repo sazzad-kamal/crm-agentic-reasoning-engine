@@ -1,0 +1,378 @@
+[
+  {
+    "run_id": "2025-12-27T22:52:15.195327",
+    "timestamp": "2025-12-27T22:52:15.195354",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 0.0,
+      "groundedness": 0.0,
+      "tool_selection": 0.3,
+      "p95_latency_ms": 176854.46786880493,
+      "avg_latency_ms": 117498.61052036285
+    },
+    "total_tests": 10,
+    "latency_slo_pass": false
+  },
+  {
+    "run_id": "2025-12-27T22:58:05.445507",
+    "timestamp": "2025-12-27T22:58:05.445521",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 1.0,
+      "groundedness": 0.9,
+      "tool_selection": 0.3,
+      "p95_latency_ms": 60693.262815475464,
+      "avg_latency_ms": 40230.60266971588
+    },
+    "total_tests": 10,
+    "latency_slo_pass": false
+  },
+  {
+    "run_id": "2025-12-27T23:03:21.468575",
+    "timestamp": "2025-12-27T23:03:21.468582",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 1.0,
+      "groundedness": 0.8,
+      "tool_selection": 0.0,
+      "p95_latency_ms": 34213.44017982483,
+      "avg_latency_ms": 24486.12880706787
+    },
+    "total_tests": 5,
+    "latency_slo_pass": false
+  },
+  {
+    "run_id": "2025-12-27T23:13:10.234915",
+    "timestamp": "2025-12-27T23:13:10.234923",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 0.9882352941176471,
+      "groundedness": 0.5058823529411764,
+      "tool_selection": 0.29411764705882354,
+      "p95_latency_ms": 40190.54675102234,
+      "avg_latency_ms": 22675.99798931795
+    },
+    "total_tests": 85,
+    "latency_slo_pass": false
+  },
+  {
+    "run_id": "2025-12-27T23:32:45.611887",
+    "timestamp": "2025-12-27T23:32:45.611901",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 0.8235294117647058,
+      "groundedness": 0.4470588235294118,
+      "tool_selection": 0.29411764705882354,
+      "mode_accuracy": 0.7764705882352941,
+      "p95_latency_ms": 43404.26540374756,
+      "avg_latency_ms": 24091.941682030174
+    },
+    "total_tests": 85,
+    "p95_slo_pass": false,
+    "avg_slo_pass": false,
+    "all_slos_passed": false,
+    "failed_slos": [
+      "P95 latency 43404ms > 10000ms",
+      "Avg latency 24092ms > 6000ms",
+      "Groundedness 44.7% < 80%",
+      "Mode accuracy 77.6% < 90%"
+    ]
+  },
+  {
+    "run_id": "2025-12-28T00:02:56.962950",
+    "timestamp": "2025-12-28T00:02:56.962958",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 0.8,
+      "groundedness": 0.3764705882352941,
+      "tool_selection": 0.29411764705882354,
+      "mode_accuracy": 0.8823529411764706,
+      "p95_latency_ms": 49959.81025695801,
+      "avg_latency_ms": 20487.91239962858
+    },
+    "total_tests": 85,
+    "p95_slo_pass": false,
+    "avg_slo_pass": false,
+    "all_slos_passed": false,
+    "failed_slos": [
+      "P95 latency 49960ms > 10000ms",
+      "Avg latency 20488ms > 6000ms",
+      "Groundedness 37.6% < 80%",
+      "Mode accuracy 88.2% < 90%"
+    ]
+  },
+  {
+    "run_id": "2025-12-28T00:15:02.733847",
+    "timestamp": "2025-12-28T00:15:02.733856",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 0.7294117647058823,
+      "groundedness": 0.38823529411764707,
+      "tool_selection": 0.29411764705882354,
+      "mode_accuracy": 0.8470588235294118,
+      "p95_latency_ms": 29892.072916030884,
+      "avg_latency_ms": 16729.408163182874
+    },
+    "total_tests": 85,
+    "p95_slo_pass": false,
+    "avg_slo_pass": false,
+    "all_slos_passed": false,
+    "failed_slos": [
+      "P95 latency 29892ms > 10000ms",
+      "Avg latency 16729ms > 6000ms",
+      "Answer relevance 72.9% < 80%",
+      "Groundedness 38.8% < 80%",
+      "Mode accuracy 84.7% < 90%"
+    ]
+  },
+  {
+    "run_id": "2025-12-28T00:24:00.828499",
+    "timestamp": "2025-12-28T00:24:00.828513",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 0.8,
+      "groundedness": 0.8,
+      "tool_selection": 0.0,
+      "mode_accuracy": 1.0,
+      "p95_latency_ms": 6497.7312088012695,
+      "avg_latency_ms": 3843.3130741119385
+    },
+    "total_tests": 5,
+    "p95_slo_pass": true,
+    "avg_slo_pass": true,
+    "all_slos_passed": true,
+    "failed_slos": []
+  },
+  {
+    "run_id": "2025-12-28T01:19:37.281285",
+    "timestamp": "2025-12-28T01:19:37.281295",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 1.0,
+      "groundedness": 0.5,
+      "tool_selection": 0.0,
+      "mode_accuracy": 1.0,
+      "p95_latency_ms": 5527.898550033569,
+      "avg_latency_ms": 4467.77617931366
+    },
+    "total_tests": 2,
+    "p95_slo_pass": true,
+    "avg_slo_pass": true,
+    "all_slos_passed": false,
+    "failed_slos": [
+      "Groundedness 50.0% < 80%"
+    ]
+  },
+  {
+    "run_id": "2025-12-28T01:20:51.092787",
+    "timestamp": "2025-12-28T01:20:51.092794",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 1.0,
+      "groundedness": 0.5,
+      "tool_selection": 0.0,
+      "mode_accuracy": 1.0,
+      "p95_latency_ms": 5549.190521240234,
+      "avg_latency_ms": 4421.466112136841
+    },
+    "total_tests": 2,
+    "p95_slo_pass": true,
+    "avg_slo_pass": true,
+    "all_slos_passed": false,
+    "failed_slos": [
+      "Groundedness 50.0% < 80%"
+    ]
+  },
+  {
+    "run_id": "2025-12-28T05:59:43.491726",
+    "timestamp": "2025-12-28T05:59:43.491739",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 0.8526315789473684,
+      "groundedness": 0.7157894736842105,
+      "tool_selection": 0.2631578947368421,
+      "mode_accuracy": 0.8842105263157894,
+      "p95_latency_ms": 45927.067279815674,
+      "avg_latency_ms": 27010.742940400774
+    },
+    "total_tests": 95,
+    "p95_slo_pass": false,
+    "avg_slo_pass": false,
+    "all_slos_passed": false,
+    "failed_slos": [
+      "P95 latency 45927ms > 10000ms",
+      "Avg latency 27011ms > 6000ms",
+      "Groundedness 71.6% < 80%",
+      "Mode accuracy 88.4% < 90%"
+    ]
+  },
+  {
+    "run_id": "2025-12-28T06:48:25.875511",
+    "timestamp": "2025-12-28T06:48:25.875524",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 0.8631578947368421,
+      "groundedness": 0.8210526315789474,
+      "tool_selection": 0.2631578947368421,
+      "mode_accuracy": 0.8736842105263158,
+      "p95_latency_ms": 65327.375411987305,
+      "avg_latency_ms": 42189.27695625707
+    },
+    "total_tests": 95,
+    "p95_slo_pass": false,
+    "avg_slo_pass": false,
+    "all_slos_passed": false,
+    "failed_slos": [
+      "P95 latency 65327ms > 10000ms",
+      "Avg latency 42189ms > 6000ms",
+      "Mode accuracy 87.4% < 90%"
+    ]
+  },
+  {
+    "run_id": "2025-12-28T08:38:10.876302",
+    "timestamp": "2025-12-28T08:38:10.876313",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 0.8526315789473684,
+      "groundedness": 0.8421052631578947,
+      "company_extraction": 0.7692307692307693,
+      "intent_accuracy": 0.8620689655172413,
+      "p95_latency_ms": 52475.6543636322,
+      "avg_latency_ms": 34889.078830417835
+    },
+    "total_tests": 95,
+    "p95_slo_pass": false,
+    "avg_slo_pass": false,
+    "all_slos_passed": false,
+    "failed_slos": [
+      "P95 latency 52476ms > 10000ms",
+      "Avg latency 34889ms > 6000ms"
+    ]
+  },
+  {
+    "run_id": "2025-12-28T09:13:12.358943",
+    "timestamp": "2025-12-28T09:13:12.358951",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 0.8526315789473684,
+      "groundedness": 0.8631578947368421,
+      "company_extraction": 0.7692307692307693,
+      "intent_accuracy": 0.8620689655172413,
+      "p95_latency_ms": 49363.10601234436,
+      "avg_latency_ms": 34227.91985210619
+    },
+    "total_tests": 95,
+    "p95_slo_pass": false,
+    "avg_slo_pass": false,
+    "all_slos_passed": false,
+    "failed_slos": [
+      "P95 latency 49363ms > 10000ms",
+      "Avg latency 34228ms > 6000ms"
+    ]
+  },
+  {
+    "run_id": "2025-12-28T09:30:44.054506",
+    "timestamp": "2025-12-28T09:30:44.054515",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 0.8736842105263158,
+      "groundedness": 0.8421052631578947,
+      "company_extraction": 0.7692307692307693,
+      "intent_accuracy": 0.9080459770114943,
+      "p95_latency_ms": 47154.26850318909,
+      "avg_latency_ms": 34435.2019033934
+    },
+    "total_tests": 95,
+    "p95_slo_pass": false,
+    "avg_slo_pass": false,
+    "all_slos_passed": false,
+    "failed_slos": [
+      "P95 latency 47154ms > 10000ms",
+      "Avg latency 34435ms > 6000ms"
+    ]
+  },
+  {
+    "run_id": "2025-12-29T00:36:35.103571",
+    "timestamp": "2025-12-29T00:36:35.103581",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 1.0,
+      "groundedness": 1.0,
+      "company_extraction": 0.0,
+      "intent_accuracy": 1.0,
+      "p95_latency_ms": 13592.659711837769,
+      "avg_latency_ms": 9589.912494023642
+    },
+    "total_tests": 3,
+    "p95_slo_pass": false,
+    "avg_slo_pass": false,
+    "all_slos_passed": false,
+    "failed_slos": [
+      "P95 latency 13593ms > 10000ms",
+      "Avg latency 9590ms > 6000ms"
+    ]
+  },
+  {
+    "run_id": "2025-12-29T00:44:38.319889",
+    "timestamp": "2025-12-29T00:44:38.319896",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 0.9428571428571428,
+      "groundedness": 0.9428571428571428,
+      "company_extraction": 0.8,
+      "intent_accuracy": 0.9230769230769231,
+      "p95_latency_ms": 78915.63320159912,
+      "avg_latency_ms": 45932.068933759416
+    },
+    "total_tests": 35,
+    "p95_slo_pass": false,
+    "avg_slo_pass": false,
+    "all_slos_passed": false,
+    "failed_slos": [
+      "P95 latency 78916ms > 10000ms",
+      "Avg latency 45932ms > 6000ms"
+    ]
+  },
+  {
+    "run_id": "2025-12-29T00:53:22.052130",
+    "timestamp": "2025-12-29T00:53:22.052138",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 1.0,
+      "groundedness": 1.0,
+      "company_extraction": 0.5,
+      "intent_accuracy": 1.0,
+      "p95_latency_ms": 25463.21415901184,
+      "avg_latency_ms": 14499.1379737854
+    },
+    "total_tests": 5,
+    "p95_slo_pass": false,
+    "avg_slo_pass": false,
+    "all_slos_passed": false,
+    "failed_slos": [
+      "P95 latency 25463ms > 10000ms",
+      "Avg latency 14499ms > 6000ms"
+    ]
+  },
+  {
+    "run_id": "2025-12-29T19:31:33.283980",
+    "timestamp": "2025-12-29T19:31:33.283980",
+    "tags": [],
+    "metrics": {
+      "answer_relevance": 0.95,
+      "groundedness": 0.95,
+      "company_extraction": 0.8666666666666667,
+      "intent_accuracy": 0.9032258064516129,
+      "p95_latency_ms": 124526.33452415466,
+      "avg_latency_ms": 81831.17064833641
+    },
+    "total_tests": 40,
+    "p95_slo_pass": false,
+    "avg_slo_pass": false,
+    "all_slos_passed": false,
+    "failed_slos": [
+      "P95 latency 124526ms > 10000ms",
+      "Avg latency 81831ms > 6000ms"
+    ]
+  }
+]

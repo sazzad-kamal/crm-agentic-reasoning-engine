@@ -184,11 +184,11 @@ class TestRagIngest:
 
 
 class TestEvalLlmClient:
-    """Tests for backend.agent.eval.llm_client module."""
+    """Tests for backend.eval.llm_client module."""
 
     def test_requires_max_completion_tokens_o1(self):
         """Test that o1 models require max_completion_tokens."""
-        from backend.agent.eval.llm_client import _requires_max_completion_tokens
+        from backend.eval.llm_client import _requires_max_completion_tokens
 
         assert _requires_max_completion_tokens("o1-preview") is True
         assert _requires_max_completion_tokens("o1-mini") is True
@@ -196,7 +196,7 @@ class TestEvalLlmClient:
 
     def test_requires_max_completion_tokens_gpt4(self):
         """Test that gpt-4 models don't require max_completion_tokens."""
-        from backend.agent.eval.llm_client import _requires_max_completion_tokens
+        from backend.eval.llm_client import _requires_max_completion_tokens
 
         assert _requires_max_completion_tokens("gpt-4o") is False
         assert _requires_max_completion_tokens("gpt-4o-mini") is False
@@ -204,7 +204,7 @@ class TestEvalLlmClient:
 
     def test_get_chat_model_no_api_key(self):
         """Test _get_chat_model raises when no API key."""
-        from backend.agent.eval.llm_client import _get_chat_model
+        from backend.eval.llm_client import _get_chat_model
 
         # Clear cache
         _get_chat_model.cache_clear()
@@ -215,13 +215,13 @@ class TestEvalLlmClient:
 
     def test_get_chat_model_with_api_key(self):
         """Test _get_chat_model creates ChatOpenAI with API key."""
-        from backend.agent.eval.llm_client import _get_chat_model
+        from backend.eval.llm_client import _get_chat_model
 
         # Clear cache
         _get_chat_model.cache_clear()
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}), \
-             patch("backend.agent.eval.llm_client.ChatOpenAI") as mock_chat:
+             patch("backend.eval.llm_client.ChatOpenAI") as mock_chat:
 
             mock_instance = MagicMock()
             mock_chat.return_value = mock_instance
@@ -240,12 +240,12 @@ class TestEvalLlmClient:
 
     def test_get_chat_model_o1_uses_max_completion_tokens(self):
         """Test that o1 models use max_completion_tokens parameter."""
-        from backend.agent.eval.llm_client import _get_chat_model
+        from backend.eval.llm_client import _get_chat_model
 
         _get_chat_model.cache_clear()
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}), \
-             patch("backend.agent.eval.llm_client.ChatOpenAI") as mock_chat:
+             patch("backend.eval.llm_client.ChatOpenAI") as mock_chat:
 
             mock_instance = MagicMock()
             mock_chat.return_value = mock_instance
@@ -262,12 +262,12 @@ class TestEvalLlmClient:
 
     def test_call_llm_with_system_prompt(self):
         """Test call_llm with system prompt."""
-        from backend.agent.eval.llm_client import call_llm, _get_chat_model
+        from backend.eval.llm_client import call_llm, _get_chat_model
 
         _get_chat_model.cache_clear()
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}), \
-             patch("backend.agent.eval.llm_client.ChatOpenAI") as mock_chat:
+             patch("backend.eval.llm_client.ChatOpenAI") as mock_chat:
 
             mock_response = MagicMock()
             mock_response.content = "Test response"
@@ -286,12 +286,12 @@ class TestEvalLlmClient:
 
     def test_call_llm_without_system_prompt(self):
         """Test call_llm without system prompt."""
-        from backend.agent.eval.llm_client import call_llm, _get_chat_model
+        from backend.eval.llm_client import call_llm, _get_chat_model
 
         _get_chat_model.cache_clear()
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}), \
-             patch("backend.agent.eval.llm_client.ChatOpenAI") as mock_chat:
+             patch("backend.eval.llm_client.ChatOpenAI") as mock_chat:
 
             mock_response = MagicMock()
             mock_response.content = "Test response"
@@ -310,13 +310,13 @@ class TestEvalLlmClient:
 
 
 class TestEvalShared:
-    """Tests for backend.agent.eval.shared module - LLM judge functions."""
+    """Tests for backend.eval.shared module - LLM judge functions."""
 
     def test_run_llm_judge_success(self):
         """Test run_llm_judge with successful response."""
-        from backend.agent.eval.shared import run_llm_judge
+        from backend.eval.shared import run_llm_judge
 
-        with patch("backend.agent.eval.llm_client.call_llm") as mock_call:
+        with patch("backend.eval.llm_client.call_llm") as mock_call:
             mock_call.return_value = '{"answer_relevance": 5, "explanation": "Good answer"}'
 
             result = run_llm_judge("test prompt", "system prompt")
@@ -326,9 +326,9 @@ class TestEvalShared:
 
     def test_run_llm_judge_empty_response(self):
         """Test run_llm_judge with empty response."""
-        from backend.agent.eval.shared import run_llm_judge
+        from backend.eval.shared import run_llm_judge
 
-        with patch("backend.agent.eval.llm_client.call_llm") as mock_call:
+        with patch("backend.eval.llm_client.call_llm") as mock_call:
             mock_call.return_value = ""
 
             result = run_llm_judge("test prompt", "system prompt")
@@ -338,9 +338,9 @@ class TestEvalShared:
 
     def test_run_llm_judge_exception(self):
         """Test run_llm_judge handles exceptions."""
-        from backend.agent.eval.shared import run_llm_judge
+        from backend.eval.shared import run_llm_judge
 
-        with patch("backend.agent.eval.llm_client.call_llm") as mock_call:
+        with patch("backend.eval.llm_client.call_llm") as mock_call:
             mock_call.side_effect = Exception("API error")
 
             result = run_llm_judge("test prompt", "system prompt")
@@ -350,7 +350,7 @@ class TestEvalShared:
 
     def test_finalize_eval_cli_all_pass(self):
         """Test finalize_eval_cli when all checks pass."""
-        from backend.agent.eval.shared import finalize_eval_cli
+        from backend.eval.shared import finalize_eval_cli
         from pathlib import Path
         import tempfile
 
@@ -373,7 +373,7 @@ class TestEvalShared:
 
     def test_finalize_eval_cli_slo_failure(self):
         """Test finalize_eval_cli when SLO fails."""
-        from backend.agent.eval.shared import finalize_eval_cli
+        from backend.eval.shared import finalize_eval_cli
         from pathlib import Path
         import tempfile
 
@@ -396,7 +396,7 @@ class TestEvalShared:
 
     def test_finalize_eval_cli_with_baseline_save(self):
         """Test finalize_eval_cli saves baseline when requested."""
-        from backend.agent.eval.shared import finalize_eval_cli
+        from backend.eval.shared import finalize_eval_cli
         from pathlib import Path
         import tempfile
 
@@ -418,7 +418,7 @@ class TestEvalShared:
 
     def test_save_eval_results(self):
         """Test save_eval_results writes JSON file."""
-        from backend.agent.eval.shared import save_eval_results
+        from backend.eval.shared import save_eval_results
         import tempfile
         import os
 
@@ -449,7 +449,7 @@ class TestEvalFormatting:
 
     def test_build_eval_table(self):
         """Test build_eval_table creates table with sections."""
-        from backend.agent.eval.formatting import build_eval_table
+        from backend.eval.formatting import build_eval_table
 
         sections = [
             ("Section1", [

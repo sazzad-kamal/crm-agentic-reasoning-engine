@@ -1,5 +1,5 @@
 """
-Tests for backend.agent.eval module.
+Tests for backend.eval module.
 
 Tests the agent evaluation models, tracking, and history functions.
 """
@@ -11,7 +11,7 @@ import pytest
 # Set mock mode
 os.environ["MOCK_LLM"] = "1"
 
-from backend.agent.eval.models import (
+from backend.eval.models import (
     ToolEvalResult,
     RouterEvalResult,
     E2EEvalResult,
@@ -285,7 +285,7 @@ class TestAgentTrackingModule:
 
     def test_compare_e2e_with_previous_no_previous(self):
         """Test comparison when no previous run exists."""
-        from backend.agent.eval.e2e.tracking import compare_e2e_with_previous
+        from backend.eval.e2e.tracking import compare_e2e_with_previous
 
         current = E2EEvalSummary(
             total_tests=20,
@@ -306,7 +306,7 @@ class TestAgentTrackingModule:
 
     def test_compare_e2e_with_previous_detects_regression(self):
         """Test that comparison detects regressions."""
-        from backend.agent.eval.e2e.tracking import compare_e2e_with_previous
+        from backend.eval.e2e.tracking import compare_e2e_with_previous
 
         previous = E2EEvalSummary(
             total_tests=20,
@@ -337,7 +337,7 @@ class TestAgentTrackingModule:
 
     def test_analyze_e2e_budget_violations_no_violations(self):
         """Test budget analysis with no violations."""
-        from backend.agent.eval.e2e.tracking import analyze_e2e_budget_violations
+        from backend.eval.e2e.tracking import analyze_e2e_budget_violations
 
         results = [
             E2EEvalResult(
@@ -362,7 +362,7 @@ class TestAgentTrackingModule:
 
     def test_analyze_e2e_budget_violations_with_violations(self):
         """Test budget analysis with violations."""
-        from backend.agent.eval.e2e.tracking import analyze_e2e_budget_violations
+        from backend.eval.e2e.tracking import analyze_e2e_budget_violations
 
         results = [
             E2EEvalResult(
@@ -396,7 +396,7 @@ class TestAgentHistoryModule:
 
     def test_compute_agent_trends_insufficient_data(self):
         """Test trend computation with insufficient data."""
-        from backend.agent.eval.e2e.history import compute_agent_trends
+        from backend.eval.e2e.history import compute_agent_trends
 
         history = [{"metrics": {"answer_relevance": 0.8}}]
         result = compute_agent_trends(history, "answer_relevance")
@@ -405,7 +405,7 @@ class TestAgentHistoryModule:
 
     def test_compute_agent_trends_with_data(self):
         """Test trend computation with sufficient data."""
-        from backend.agent.eval.e2e.history import compute_agent_trends
+        from backend.eval.e2e.history import compute_agent_trends
 
         history = [
             {"metrics": {"answer_relevance": 0.70}},
@@ -422,7 +422,7 @@ class TestAgentHistoryModule:
 
     def test_compute_agent_trends_direction(self):
         """Test trend direction computation."""
-        from backend.agent.eval.e2e.history import compute_agent_trends
+        from backend.eval.e2e.history import compute_agent_trends
 
         # Upward trend
         history_up = [
@@ -442,7 +442,7 @@ class TestAgentHistoryModule:
 
     def test_compute_agent_trends_stable(self):
         """Test trend direction stable when values are close."""
-        from backend.agent.eval.e2e.history import compute_agent_trends
+        from backend.eval.e2e.history import compute_agent_trends
 
         history = [
             {"metrics": {"score": 0.80}},
@@ -453,7 +453,7 @@ class TestAgentHistoryModule:
 
     def test_compute_agent_trends_six_or_more_runs(self):
         """Test trend computation with 6+ runs uses 3-run average."""
-        from backend.agent.eval.e2e.history import compute_agent_trends
+        from backend.eval.e2e.history import compute_agent_trends
 
         history = [
             {"metrics": {"score": 0.60}},
@@ -481,21 +481,21 @@ class TestSharedFormatters:
 
     def test_format_check_mark_true(self):
         """Test format_check_mark with True."""
-        from backend.agent.eval.formatting import format_check_mark
+        from backend.eval.formatting import format_check_mark
 
         result = format_check_mark(True)
         assert "[green]Y[/green]" in result
 
     def test_format_check_mark_false(self):
         """Test format_check_mark with False."""
-        from backend.agent.eval.formatting import format_check_mark
+        from backend.eval.formatting import format_check_mark
 
         result = format_check_mark(False)
         assert "[red]X[/red]" in result
 
     def test_format_percentage_high(self):
         """Test format_percentage with high value (green)."""
-        from backend.agent.eval.formatting import format_percentage
+        from backend.eval.formatting import format_percentage
 
         result = format_percentage(0.95)
         assert "[green]" in result
@@ -503,7 +503,7 @@ class TestSharedFormatters:
 
     def test_format_percentage_medium(self):
         """Test format_percentage with medium value (yellow)."""
-        from backend.agent.eval.formatting import format_percentage
+        from backend.eval.formatting import format_percentage
 
         result = format_percentage(0.75)
         assert "[yellow]" in result
@@ -511,7 +511,7 @@ class TestSharedFormatters:
 
     def test_format_percentage_low(self):
         """Test format_percentage with low value (red)."""
-        from backend.agent.eval.formatting import format_percentage
+        from backend.eval.formatting import format_percentage
 
         result = format_percentage(0.50)
         assert "[red]" in result
@@ -519,7 +519,7 @@ class TestSharedFormatters:
 
     def test_format_percentage_custom_thresholds(self):
         """Test format_percentage with custom thresholds."""
-        from backend.agent.eval.formatting import format_percentage
+        from backend.eval.formatting import format_percentage
 
         # With custom thresholds (0.8, 0.6), 0.75 should be yellow
         result = format_percentage(0.75, thresholds=(0.8, 0.6))
@@ -531,7 +531,7 @@ class TestSharedTables:
 
     def test_create_summary_table(self):
         """Test create_summary_table creates valid table."""
-        from backend.agent.eval.formatting import create_summary_table
+        from backend.eval.formatting import create_summary_table
 
         table = create_summary_table("Test Summary")
         assert table.title == "Test Summary"
@@ -539,7 +539,7 @@ class TestSharedTables:
 
     def test_create_slo_table(self):
         """Test create_slo_table creates valid table."""
-        from backend.agent.eval.slo import create_slo_table
+        from backend.eval.slo import create_slo_table
 
         slo_checks = [
             ("P95 Latency", True, "4.5s", "5.0s"),
@@ -557,7 +557,7 @@ class TestSharedSLOFunctions:
 
     def test_get_failed_slos_none_failed(self):
         """Test get_failed_slos with all passing."""
-        from backend.agent.eval.slo import get_failed_slos
+        from backend.eval.slo import get_failed_slos
 
         slo_checks = [
             ("P95 Latency", True, "4.5s", "5.0s"),
@@ -569,7 +569,7 @@ class TestSharedSLOFunctions:
 
     def test_get_failed_slos_some_failed(self):
         """Test get_failed_slos with failures."""
-        from backend.agent.eval.slo import get_failed_slos
+        from backend.eval.slo import get_failed_slos
 
         slo_checks = [
             ("P95 Latency", True, "4.5s", "5.0s"),
@@ -584,19 +584,19 @@ class TestSharedSLOFunctions:
 
     def test_determine_exit_code_all_pass(self):
         """Test determine_exit_code with all passing."""
-        from backend.agent.eval.slo import determine_exit_code
+        from backend.eval.slo import determine_exit_code
 
         assert determine_exit_code(all_slos_passed=True, is_regression=False) == 0
 
     def test_determine_exit_code_slo_fail(self):
         """Test determine_exit_code with SLO failure."""
-        from backend.agent.eval.slo import determine_exit_code
+        from backend.eval.slo import determine_exit_code
 
         assert determine_exit_code(all_slos_passed=False, is_regression=False) == 1
 
     def test_determine_exit_code_regression(self):
         """Test determine_exit_code with regression."""
-        from backend.agent.eval.slo import determine_exit_code
+        from backend.eval.slo import determine_exit_code
 
         assert determine_exit_code(all_slos_passed=True, is_regression=True) == 1
 
@@ -606,19 +606,19 @@ class TestSharedLatency:
 
     def test_calculate_p95_latency_empty_list(self):
         """Test calculate_p95_latency with empty list."""
-        from backend.agent.eval.parallel import calculate_p95_latency
+        from backend.eval.parallel import calculate_p95_latency
 
         assert calculate_p95_latency([]) == 0.0
 
     def test_calculate_p95_latency_single_value(self):
         """Test calculate_p95_latency with single value."""
-        from backend.agent.eval.parallel import calculate_p95_latency
+        from backend.eval.parallel import calculate_p95_latency
 
         assert calculate_p95_latency([1000]) == 1000.0
 
     def test_calculate_p95_latency_multiple_values(self):
         """Test calculate_p95_latency with multiple values."""
-        from backend.agent.eval.parallel import calculate_p95_latency
+        from backend.eval.parallel import calculate_p95_latency
 
         latencies = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
         p95 = calculate_p95_latency(latencies)
@@ -627,7 +627,7 @@ class TestSharedLatency:
 
     def test_calculate_p95_latency_with_outliers(self):
         """Test calculate_p95_latency with outliers."""
-        from backend.agent.eval.parallel import calculate_p95_latency
+        from backend.eval.parallel import calculate_p95_latency
 
         # 95 values at 100ms, 5 values at 10000ms
         latencies = [100] * 95 + [10000] * 5
@@ -641,7 +641,7 @@ class TestSharedJSONParsing:
 
     def test_parse_json_response_plain_json(self):
         """Test parse_json_response with plain JSON."""
-        from backend.agent.eval.shared import parse_json_response
+        from backend.eval.shared import parse_json_response
 
         result = parse_json_response('{"score": 1, "reason": "Good answer"}')
         assert result["score"] == 1
@@ -649,7 +649,7 @@ class TestSharedJSONParsing:
 
     def test_parse_json_response_with_markdown_block(self):
         """Test parse_json_response with markdown code block."""
-        from backend.agent.eval.shared import parse_json_response
+        from backend.eval.shared import parse_json_response
 
         text = """Here's the analysis:
 ```json
@@ -661,7 +661,7 @@ class TestSharedJSONParsing:
 
     def test_parse_json_response_with_plain_code_block(self):
         """Test parse_json_response with plain code block."""
-        from backend.agent.eval.shared import parse_json_response
+        from backend.eval.shared import parse_json_response
 
         text = """
 ```
@@ -673,7 +673,7 @@ class TestSharedJSONParsing:
 
     def test_parse_json_response_invalid_json(self):
         """Test parse_json_response with invalid JSON."""
-        from backend.agent.eval.shared import parse_json_response
+        from backend.eval.shared import parse_json_response
         import json
 
         with pytest.raises(json.JSONDecodeError):
@@ -685,7 +685,7 @@ class TestSharedBaseline:
 
     def test_compare_to_baseline_no_file(self, tmp_path):
         """Test compare_to_baseline when file doesn't exist."""
-        from backend.agent.eval.baseline import compare_to_baseline
+        from backend.eval.baseline import compare_to_baseline
 
         baseline_path = tmp_path / "nonexistent.json"
         is_regression, baseline_score = compare_to_baseline(0.85, baseline_path)
@@ -695,7 +695,7 @@ class TestSharedBaseline:
 
     def test_compare_to_baseline_with_file(self, tmp_path):
         """Test compare_to_baseline with existing baseline."""
-        from backend.agent.eval.baseline import compare_to_baseline
+        from backend.eval.baseline import compare_to_baseline
         import json
 
         baseline_path = tmp_path / "baseline.json"
@@ -708,7 +708,7 @@ class TestSharedBaseline:
 
     def test_compare_to_baseline_regression_detected(self, tmp_path):
         """Test compare_to_baseline detects regression."""
-        from backend.agent.eval.baseline import compare_to_baseline, REGRESSION_THRESHOLD
+        from backend.eval.baseline import compare_to_baseline, REGRESSION_THRESHOLD
         import json
 
         baseline_path = tmp_path / "baseline.json"
@@ -722,7 +722,7 @@ class TestSharedBaseline:
 
     def test_compare_to_baseline_with_summary_structure(self, tmp_path):
         """Test compare_to_baseline with nested summary structure."""
-        from backend.agent.eval.baseline import compare_to_baseline
+        from backend.eval.baseline import compare_to_baseline
         import json
 
         baseline_path = tmp_path / "baseline.json"
@@ -734,7 +734,7 @@ class TestSharedBaseline:
 
     def test_compare_to_baseline_invalid_json(self, tmp_path):
         """Test compare_to_baseline with invalid JSON."""
-        from backend.agent.eval.baseline import compare_to_baseline
+        from backend.eval.baseline import compare_to_baseline
 
         baseline_path = tmp_path / "baseline.json"
         baseline_path.write_text("not valid json")
@@ -746,7 +746,7 @@ class TestSharedBaseline:
 
     def test_save_baseline(self, tmp_path):
         """Test save_baseline writes correct file."""
-        from backend.agent.eval.baseline import save_baseline
+        from backend.eval.baseline import save_baseline
         import json
 
         baseline_path = tmp_path / "subdir" / "baseline.json"
@@ -764,35 +764,35 @@ class TestSharedPrintFunctions:
 
     def test_print_eval_header(self, capsys):
         """Test print_eval_header runs without error."""
-        from backend.agent.eval.formatting import print_eval_header
+        from backend.eval.formatting import print_eval_header
 
         # Should not raise
         print_eval_header("Test Header", "Test Subtitle")
 
     def test_print_baseline_comparison_no_baseline(self, capsys):
         """Test print_baseline_comparison with no baseline."""
-        from backend.agent.eval.baseline import print_baseline_comparison
+        from backend.eval.baseline import print_baseline_comparison
 
         # Should not raise
         print_baseline_comparison(0.85, None, False)
 
     def test_print_baseline_comparison_with_baseline(self, capsys):
         """Test print_baseline_comparison with baseline."""
-        from backend.agent.eval.baseline import print_baseline_comparison
+        from backend.eval.baseline import print_baseline_comparison
 
         # Should not raise
         print_baseline_comparison(0.85, 0.80, False)
 
     def test_print_baseline_comparison_regression(self, capsys):
         """Test print_baseline_comparison with regression."""
-        from backend.agent.eval.baseline import print_baseline_comparison
+        from backend.eval.baseline import print_baseline_comparison
 
         # Should not raise
         print_baseline_comparison(0.70, 0.80, True)
 
     def test_print_slo_result_all_pass(self, capsys):
         """Test print_slo_result with all passing."""
-        from backend.agent.eval.slo import print_slo_result
+        from backend.eval.slo import print_slo_result
 
         slo_checks = [
             ("P95 Latency", True, "4.5s", "5.0s"),
@@ -804,7 +804,7 @@ class TestSharedPrintFunctions:
 
     def test_print_slo_result_some_fail(self, capsys):
         """Test print_slo_result with failures."""
-        from backend.agent.eval.slo import print_slo_result
+        from backend.eval.slo import print_slo_result
 
         slo_checks = [
             ("P95 Latency", True, "4.5s", "5.0s"),
@@ -816,28 +816,28 @@ class TestSharedPrintFunctions:
 
     def test_print_overall_result_panel_pass(self, capsys):
         """Test print_overall_result_panel with pass."""
-        from backend.agent.eval.formatting import print_overall_result_panel
+        from backend.eval.formatting import print_overall_result_panel
 
         # Should not raise
         print_overall_result_panel(True, [], "All tests passed!")
 
     def test_print_overall_result_panel_fail(self, capsys):
         """Test print_overall_result_panel with failure."""
-        from backend.agent.eval.formatting import print_overall_result_panel
+        from backend.eval.formatting import print_overall_result_panel
 
         # Should not raise
         print_overall_result_panel(False, ["SLO failed", "Regression detected"], "")
 
     def test_print_debug_failures_empty(self, capsys):
         """Test print_debug_failures with empty list."""
-        from backend.agent.eval.formatting import print_debug_failures
+        from backend.eval.formatting import print_debug_failures
 
         # Should not raise, should print nothing
         print_debug_failures([], "No Failures")
 
     def test_print_debug_failures_with_items(self, capsys):
         """Test print_debug_failures with items."""
-        from backend.agent.eval.formatting import print_debug_failures
+        from backend.eval.formatting import print_debug_failures
 
         failures = [
             {"id": "t1", "error": "Test error 1"},
@@ -849,7 +849,7 @@ class TestSharedPrintFunctions:
 
     def test_print_debug_failures_with_custom_formatter(self, capsys):
         """Test print_debug_failures with custom formatter."""
-        from backend.agent.eval.formatting import print_debug_failures, console
+        from backend.eval.formatting import print_debug_failures, console
 
         failures = [{"id": "t1", "score": 0.5}]
 
@@ -865,7 +865,7 @@ class TestSharedParallelRunner:
 
     def test_run_parallel_evaluation_basic(self):
         """Test run_parallel_evaluation with simple function."""
-        from backend.agent.eval.parallel import run_parallel_evaluation
+        from backend.eval.parallel import run_parallel_evaluation
 
         items = [
             {"id": "1", "value": 10},
@@ -888,7 +888,7 @@ class TestSharedParallelRunner:
 
     def test_run_parallel_evaluation_no_lock(self):
         """Test run_parallel_evaluation without lock."""
-        from backend.agent.eval.parallel import run_parallel_evaluation
+        from backend.eval.parallel import run_parallel_evaluation
 
         items = [{"id": "1", "value": 5}]
 
@@ -908,7 +908,7 @@ class TestSharedParallelRunner:
 
     def test_run_parallel_evaluation_custom_id_field(self):
         """Test run_parallel_evaluation with custom ID field."""
-        from backend.agent.eval.parallel import run_parallel_evaluation
+        from backend.eval.parallel import run_parallel_evaluation
 
         items = [
             {"test_id": "a", "value": 1},
@@ -930,7 +930,7 @@ class TestSharedParallelRunner:
 
     def test_run_parallel_evaluation_handles_errors(self, capsys):
         """Test run_parallel_evaluation handles errors gracefully."""
-        from backend.agent.eval.parallel import run_parallel_evaluation
+        from backend.eval.parallel import run_parallel_evaluation
 
         items = [
             {"id": "good", "value": 10},
@@ -963,7 +963,7 @@ class TestHistoryFileOperations:
 
     def test_load_agent_history_no_file(self, tmp_path, monkeypatch):
         """Test load_agent_history when file doesn't exist."""
-        from backend.agent.eval.e2e import history
+        from backend.eval.e2e import history
 
         # Point to non-existent file
         monkeypatch.setattr(history, "HISTORY_FILE", tmp_path / "nonexistent.json")
@@ -973,7 +973,7 @@ class TestHistoryFileOperations:
 
     def test_load_agent_history_with_file(self, tmp_path, monkeypatch):
         """Test load_agent_history with existing file."""
-        from backend.agent.eval.e2e import history
+        from backend.eval.e2e import history
         import json
 
         history_file = tmp_path / "history.json"
@@ -986,7 +986,7 @@ class TestHistoryFileOperations:
 
     def test_load_agent_history_invalid_json(self, tmp_path, monkeypatch):
         """Test load_agent_history with invalid JSON."""
-        from backend.agent.eval.e2e import history
+        from backend.eval.e2e import history
 
         history_file = tmp_path / "history.json"
         history_file.write_text("not valid json")
@@ -997,7 +997,7 @@ class TestHistoryFileOperations:
 
     def test_save_agent_history(self, tmp_path, monkeypatch):
         """Test save_agent_history writes file."""
-        from backend.agent.eval.e2e import history
+        from backend.eval.e2e import history
         import json
 
         data_dir = tmp_path / "data"
@@ -1014,7 +1014,7 @@ class TestHistoryFileOperations:
 
     def test_save_agent_history_limits_entries(self, tmp_path, monkeypatch):
         """Test save_agent_history limits to MAX_HISTORY_ENTRIES."""
-        from backend.agent.eval.e2e import history
+        from backend.eval.e2e import history
         import json
 
         data_dir = tmp_path / "data"
@@ -1034,8 +1034,8 @@ class TestHistoryFileOperations:
 
     def test_add_to_agent_history(self, tmp_path, monkeypatch):
         """Test add_to_agent_history adds entry."""
-        from backend.agent.eval.e2e import history
-        from backend.agent.eval.models import E2EEvalSummary
+        from backend.eval.e2e import history
+        from backend.eval.models import E2EEvalSummary
         import json
 
         data_dir = tmp_path / "data"
@@ -1064,8 +1064,8 @@ class TestHistoryFileOperations:
 
     def test_add_to_agent_history_tracks_slo_failures(self, tmp_path, monkeypatch):
         """Test add_to_agent_history tracks SLO failures."""
-        from backend.agent.eval.e2e import history
-        from backend.agent.eval.models import E2EEvalSummary
+        from backend.eval.e2e import history
+        from backend.eval.models import E2EEvalSummary
         import json
 
         data_dir = tmp_path / "data"
@@ -1093,7 +1093,7 @@ class TestHistoryFileOperations:
 
     def test_print_agent_trend_report_no_history(self, tmp_path, monkeypatch, capsys):
         """Test print_agent_trend_report with no history."""
-        from backend.agent.eval.e2e import history
+        from backend.eval.e2e import history
 
         monkeypatch.setattr(history, "HISTORY_FILE", tmp_path / "nonexistent.json")
 
@@ -1102,7 +1102,7 @@ class TestHistoryFileOperations:
 
     def test_print_agent_trend_report_with_history(self, tmp_path, monkeypatch, capsys):
         """Test print_agent_trend_report with history."""
-        from backend.agent.eval.e2e import history
+        from backend.eval.e2e import history
         import json
         from datetime import datetime
 
@@ -1153,7 +1153,7 @@ class TestTrackingFileOperations:
 
     def test_load_previous_e2e_summary_no_file(self, tmp_path, monkeypatch):
         """Test load_previous_e2e_summary when file doesn't exist."""
-        from backend.agent.eval.e2e import tracking
+        from backend.eval.e2e import tracking
 
         monkeypatch.setattr(
             tracking, "PREVIOUS_RESULTS_PATH", tmp_path / "nonexistent.json"
@@ -1164,7 +1164,7 @@ class TestTrackingFileOperations:
 
     def test_load_previous_e2e_summary_with_file(self, tmp_path, monkeypatch):
         """Test load_previous_e2e_summary with existing file."""
-        from backend.agent.eval.e2e import tracking
+        from backend.eval.e2e import tracking
         import json
 
         results_file = tmp_path / "previous.json"
@@ -1189,7 +1189,7 @@ class TestTrackingFileOperations:
 
     def test_load_previous_e2e_summary_invalid_json(self, tmp_path, monkeypatch):
         """Test load_previous_e2e_summary with invalid JSON."""
-        from backend.agent.eval.e2e import tracking
+        from backend.eval.e2e import tracking
 
         results_file = tmp_path / "previous.json"
         results_file.write_text("not valid json")
@@ -1200,8 +1200,8 @@ class TestTrackingFileOperations:
 
     def test_save_e2e_as_previous(self, tmp_path, monkeypatch):
         """Test save_e2e_as_previous writes file."""
-        from backend.agent.eval.e2e import tracking
-        from backend.agent.eval.models import E2EEvalResult, E2EEvalSummary
+        from backend.eval.e2e import tracking
+        from backend.eval.models import E2EEvalResult, E2EEvalSummary
         import json
 
         data_dir = tmp_path / "data"
@@ -1245,8 +1245,8 @@ class TestTrackingComparison:
 
     def test_compare_e2e_with_previous_improvement(self):
         """Test compare_e2e_with_previous detects improvement."""
-        from backend.agent.eval.e2e.tracking import compare_e2e_with_previous
-        from backend.agent.eval.models import E2EEvalSummary
+        from backend.eval.e2e.tracking import compare_e2e_with_previous
+        from backend.eval.models import E2EEvalSummary
 
         previous = E2EEvalSummary(
             total_tests=10,
@@ -1273,8 +1273,8 @@ class TestTrackingComparison:
 
     def test_compare_e2e_with_previous_latency_regression(self):
         """Test compare_e2e_with_previous detects latency regression."""
-        from backend.agent.eval.e2e.tracking import compare_e2e_with_previous
-        from backend.agent.eval.models import E2EEvalSummary
+        from backend.eval.e2e.tracking import compare_e2e_with_previous
+        from backend.eval.models import E2EEvalSummary
 
         previous = E2EEvalSummary(
             total_tests=10,
@@ -1304,7 +1304,7 @@ class TestTrackingComparison:
 
     def test_print_e2e_regression_report_no_previous(self, capsys):
         """Test print_e2e_regression_report with no previous."""
-        from backend.agent.eval.e2e.tracking import print_e2e_regression_report
+        from backend.eval.e2e.tracking import print_e2e_regression_report
 
         comparison = {"has_previous": False, "regressions": [], "improvements": []}
 
@@ -1313,8 +1313,8 @@ class TestTrackingComparison:
 
     def test_print_e2e_regression_report_with_comparison(self, capsys):
         """Test print_e2e_regression_report with comparison."""
-        from backend.agent.eval.e2e.tracking import print_e2e_regression_report
-        from backend.agent.eval.models import E2EEvalSummary
+        from backend.eval.e2e.tracking import print_e2e_regression_report
+        from backend.eval.models import E2EEvalSummary
 
         previous = E2EEvalSummary(
             total_tests=10,
@@ -1351,8 +1351,8 @@ class TestTrackingBudget:
 
     def test_analyze_e2e_budget_violations_category_stats(self):
         """Test analyze_e2e_budget_violations computes category stats."""
-        from backend.agent.eval.e2e.tracking import analyze_e2e_budget_violations
-        from backend.agent.eval.models import E2EEvalResult
+        from backend.eval.e2e.tracking import analyze_e2e_budget_violations
+        from backend.eval.models import E2EEvalResult
 
         results = [
             E2EEvalResult(
@@ -1399,8 +1399,8 @@ class TestTrackingBudget:
 
     def test_print_e2e_budget_report_no_violations(self, capsys):
         """Test print_e2e_budget_report with no violations."""
-        from backend.agent.eval.e2e.tracking import print_e2e_budget_report
-        from backend.agent.eval.models import E2EEvalResult
+        from backend.eval.e2e.tracking import print_e2e_budget_report
+        from backend.eval.models import E2EEvalResult
 
         results = [
             E2EEvalResult(
@@ -1421,8 +1421,8 @@ class TestTrackingBudget:
 
     def test_print_e2e_budget_report_with_violations(self, capsys):
         """Test print_e2e_budget_report with violations."""
-        from backend.agent.eval.e2e.tracking import print_e2e_budget_report
-        from backend.agent.eval.models import E2EEvalResult
+        from backend.eval.e2e.tracking import print_e2e_budget_report
+        from backend.eval.models import E2EEvalResult
 
         results = [
             E2EEvalResult(
@@ -1447,7 +1447,7 @@ class TestTrackingConstants:
 
     def test_agent_latency_budgets_defined(self):
         """Test AGENT_LATENCY_BUDGETS has expected keys."""
-        from backend.agent.eval.e2e.tracking import AGENT_LATENCY_BUDGETS
+        from backend.eval.e2e.tracking import AGENT_LATENCY_BUDGETS
 
         assert "router" in AGENT_LATENCY_BUDGETS
         assert "synthesis" in AGENT_LATENCY_BUDGETS
@@ -1455,7 +1455,7 @@ class TestTrackingConstants:
 
     def test_agent_total_latency_budget(self):
         """Test AGENT_TOTAL_LATENCY_BUDGET_MS is set."""
-        from backend.agent.eval.e2e.tracking import AGENT_TOTAL_LATENCY_BUDGET_MS
+        from backend.eval.e2e.tracking import AGENT_TOTAL_LATENCY_BUDGET_MS
 
         assert AGENT_TOTAL_LATENCY_BUDGET_MS > 0
 
@@ -1469,7 +1469,7 @@ class TestBaseModule:
 
     def test_base_re_exports_shared_utilities(self):
         """Test base.py re-exports shared utilities."""
-        from backend.agent.eval.base import (
+        from backend.eval.base import (
             console,
             create_summary_table,
             format_check_mark,
@@ -1494,7 +1494,7 @@ class TestBaseModule:
 
     def test_ensure_qdrant_collections_importable(self):
         """Test ensure_qdrant_collections is importable."""
-        from backend.agent.eval.base import ensure_qdrant_collections
+        from backend.eval.base import ensure_qdrant_collections
 
         assert callable(ensure_qdrant_collections)
 
@@ -1513,11 +1513,11 @@ class TestSharedLLMJudge:
             return '{"score": 1, "reason": "Good"}'
 
         monkeypatch.setattr(
-            "backend.agent.eval.llm_client.call_llm",
+            "backend.eval.llm_client.call_llm",
             mock_call_llm,
         )
 
-        from backend.agent.eval.shared import run_llm_judge
+        from backend.eval.shared import run_llm_judge
 
         result = run_llm_judge("Test prompt", "System prompt")
         assert result["score"] == 1
@@ -1528,11 +1528,11 @@ class TestSharedLLMJudge:
             return ""
 
         monkeypatch.setattr(
-            "backend.agent.eval.llm_client.call_llm",
+            "backend.eval.llm_client.call_llm",
             mock_call_llm,
         )
 
-        from backend.agent.eval.shared import run_llm_judge
+        from backend.eval.shared import run_llm_judge
 
         result = run_llm_judge("Test prompt", "System prompt")
         assert "error" in result
@@ -1543,11 +1543,11 @@ class TestSharedLLMJudge:
             raise ValueError("LLM error")
 
         monkeypatch.setattr(
-            "backend.agent.eval.llm_client.call_llm",
+            "backend.eval.llm_client.call_llm",
             mock_call_llm,
         )
 
-        from backend.agent.eval.shared import run_llm_judge
+        from backend.eval.shared import run_llm_judge
 
         result = run_llm_judge("Test prompt", "System prompt")
         assert "error" in result
@@ -1572,7 +1572,7 @@ class TestBaseEnsureQdrant:
         import backend.agent.rag.client
         monkeypatch.setattr(backend.agent.rag.client, "get_qdrant_client", mock_get_client)
 
-        from backend.agent.eval.base import ensure_qdrant_collections
+        from backend.eval.base import ensure_qdrant_collections
 
         # This should complete without calling ingest
         ensure_qdrant_collections()
@@ -1602,7 +1602,7 @@ class TestBaseEnsureQdrant:
         monkeypatch.setattr(backend.agent.rag.ingest, "ingest_private_texts", mock_ingest_private)
         monkeypatch.setattr(backend.agent.rag.config, "QDRANT_PATH", tmp_path / "qdrant")
 
-        from backend.agent.eval.base import ensure_qdrant_collections
+        from backend.eval.base import ensure_qdrant_collections
 
         # This should run ingest functions
         ensure_qdrant_collections()
@@ -1613,8 +1613,8 @@ class TestTrackingPrintRegressionWithRegression:
 
     def test_print_e2e_regression_report_with_regressions(self, capsys):
         """Test print_e2e_regression_report with actual regressions."""
-        from backend.agent.eval.e2e.tracking import print_e2e_regression_report
-        from backend.agent.eval.models import E2EEvalSummary
+        from backend.eval.e2e.tracking import print_e2e_regression_report
+        from backend.eval.models import E2EEvalSummary
 
         previous = E2EEvalSummary(
             total_tests=10,
@@ -1654,7 +1654,7 @@ class TestHistoryTrendReportEdgeCases:
 
     def test_print_agent_trend_report_invalid_timestamp(self, tmp_path, monkeypatch, capsys):
         """Test print_agent_trend_report with invalid timestamp."""
-        from backend.agent.eval.e2e import history
+        from backend.eval.e2e import history
         import json
 
         history_file = tmp_path / "history.json"
@@ -1682,7 +1682,7 @@ class TestHistoryTrendReportEdgeCases:
 
     def test_print_agent_trend_report_stable_trends(self, tmp_path, monkeypatch, capsys):
         """Test print_agent_trend_report with stable (unchanged) metrics."""
-        from backend.agent.eval.e2e import history
+        from backend.eval.e2e import history
         import json
         from datetime import datetime
 
@@ -1726,7 +1726,7 @@ class TestHistoryTrendReportEdgeCases:
 
     def test_print_agent_trend_report_latency_only(self, tmp_path, monkeypatch, capsys):
         """Test print_agent_trend_report with latency-only metrics (lower is better)."""
-        from backend.agent.eval.e2e import history
+        from backend.eval.e2e import history
         import json
         from datetime import datetime
 
@@ -1774,8 +1774,8 @@ class TestHistoryWithLatencySLOViolation:
 
     def test_add_to_agent_history_latency_slo_failure(self, tmp_path, monkeypatch):
         """Test add_to_agent_history tracks latency SLO failures."""
-        from backend.agent.eval.e2e import history
-        from backend.agent.eval.models import E2EEvalSummary
+        from backend.eval.e2e import history
+        from backend.eval.models import E2EEvalSummary
         import json
 
         data_dir = tmp_path / "data"
@@ -1808,8 +1808,8 @@ class TestTrackingFullReport:
 
     def test_print_e2e_tracking_report(self, tmp_path, monkeypatch, capsys):
         """Test print_e2e_tracking_report integration."""
-        from backend.agent.eval.e2e import tracking, history
-        from backend.agent.eval.models import E2EEvalResult, E2EEvalSummary
+        from backend.eval.e2e import tracking, history
+        from backend.eval.models import E2EEvalResult, E2EEvalSummary
 
         # Set up temp paths
         data_dir = tmp_path / "data"

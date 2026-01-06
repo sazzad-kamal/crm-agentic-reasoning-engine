@@ -22,7 +22,7 @@ from backend.agent.core.config import (
     reset_config,
     is_mock_mode,
 )
-from backend.agent.nodes.support.audit import AgentAuditLogger, AgentAuditEntry
+from backend.agent.audit import AgentAuditLogger, AgentAuditEntry
 
 
 # =============================================================================
@@ -202,7 +202,7 @@ class TestAgentIntegration:
 
     def test_agent_returns_mode_info(self):
         """Test that agent returns mode metadata."""
-        from backend.agent.nodes.graph import agent_graph, build_thread_config
+        from backend.agent.graph import agent_graph, build_thread_config
 
         state = {"question": "Show me pipeline", "sources": []}
         config = build_thread_config(None)
@@ -212,7 +212,7 @@ class TestAgentIntegration:
 
     def test_agent_handles_company_query(self):
         """Test agent handles company-specific queries."""
-        from backend.agent.nodes.graph import agent_graph, build_thread_config
+        from backend.agent.graph import agent_graph, build_thread_config
 
         state = {"question": "What's happening with Acme Manufacturing?", "sources": []}
         config = build_thread_config(None)
@@ -223,7 +223,7 @@ class TestAgentIntegration:
 
     def test_agent_handles_docs_query(self):
         """Test agent handles documentation queries."""
-        from backend.agent.nodes.graph import agent_graph, build_thread_config
+        from backend.agent.graph import agent_graph, build_thread_config
 
         state = {"question": "How do I create an opportunity?", "sources": []}
         config = build_thread_config(None)

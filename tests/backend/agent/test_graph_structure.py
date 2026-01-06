@@ -15,7 +15,7 @@ class TestGraphStructure:
 
     def test_graph_has_four_nodes(self):
         """Verify the graph was simplified to 4 nodes."""
-        from backend.agent.nodes.graph import agent_graph
+        from backend.agent.graph import agent_graph
 
         # Get node names from the graph
         node_names = set(agent_graph.nodes.keys())
@@ -31,31 +31,30 @@ class TestGraphStructure:
         )
 
     def test_old_nodes_removed(self):
-        """Verify data, docs, data_and_docs nodes were consolidated."""
-        from backend.agent import nodes
+        """Verify old nodes module was removed and consolidated into vertical slices."""
+        import backend.agent as agent_module
 
-        # These should NOT exist anymore (consolidated into fetch_node)
-        assert not hasattr(nodes, "data_node"), "data_node should be removed"
-        assert not hasattr(nodes, "docs_node"), "docs_node should be removed"
-        assert not hasattr(nodes, "data_and_docs_parallel_node"), (
-            "data_and_docs_parallel_node should be removed"
-        )
-        assert not hasattr(nodes, "route_by_mode"), "route_by_mode should be removed"
-        assert not hasattr(nodes, "skip_data_node"), "skip_data_node should be removed"
-        assert not hasattr(nodes, "skip_docs_node"), "skip_docs_node should be removed"
+        # The old nodes module should NOT exist anymore
+        assert not hasattr(agent_module, "nodes"), "nodes module should be removed"
+
+        # The new structure should exist
+        assert hasattr(agent_module, "route"), "route module should exist"
+        assert hasattr(agent_module, "fetch"), "fetch module should exist"
+        assert hasattr(agent_module, "answer"), "answer module should exist"
+        assert hasattr(agent_module, "followup"), "followup module should exist"
 
     def test_nodes_modules_exist(self):
         """Verify nodes submodules export the correct functions."""
-        from backend.agent.nodes.routing import route_node
-        from backend.agent.nodes.fetching import (
+        from backend.agent.route.node import route_node
+        from backend.agent.fetch.node import (
             fetch_node,
             ACCOUNT_RAG_INTENTS,
             _fetch_crm_data,
             _fetch_docs,
             _fetch_account_context,
         )
-        from backend.agent.nodes.answer import answer_node
-        from backend.agent.nodes.followup import followup_node
+        from backend.agent.answer.node import answer_node
+        from backend.agent.followup.node import followup_node
 
         # Verify all functions are callable
         assert callable(route_node)
@@ -73,7 +72,7 @@ class TestIntentHandlers:
 
     def test_all_router_intents_mapped(self):
         """Verify all possible router intents have explicit handlers."""
-        from backend.agent.handlers import INTENT_HANDLERS
+        from backend.agent.fetch.handlers import INTENT_HANDLERS
 
         # All intents that the router can return (from llm_router.py)
         router_intents = {
@@ -94,7 +93,7 @@ class TestIntentHandlers:
 
     def test_account_context_intent_mapped(self):
         """Verify account_context intent is explicitly mapped."""
-        from backend.agent.handlers import INTENT_HANDLERS
+        from backend.agent.fetch.handlers import INTENT_HANDLERS
 
         assert "account_context" in INTENT_HANDLERS
         # It should map to handle_company_status
@@ -103,7 +102,7 @@ class TestIntentHandlers:
 
     def test_history_intent_mapped(self):
         """Verify history intent is explicitly mapped (was implicit fallthrough)."""
-        from backend.agent.handlers import INTENT_HANDLERS
+        from backend.agent.fetch.handlers import INTENT_HANDLERS
 
         assert "history" in INTENT_HANDLERS
         handler = INTENT_HANDLERS["history"]
@@ -111,7 +110,7 @@ class TestIntentHandlers:
 
     def test_general_intent_mapped(self):
         """Verify general intent is explicitly mapped."""
-        from backend.agent.handlers import INTENT_HANDLERS
+        from backend.agent.fetch.handlers import INTENT_HANDLERS
 
         assert "general" in INTENT_HANDLERS
 
@@ -121,7 +120,7 @@ class TestAccountRAGTrigger:
 
     def test_account_rag_trigger_intents(self):
         """Verify Account RAG triggers for the correct intents using the constant."""
-        from backend.agent.nodes.fetching import ACCOUNT_RAG_INTENTS
+        from backend.agent.fetch.node import ACCOUNT_RAG_INTENTS
 
         # Expected intents that should trigger Account RAG
         expected_intents = {"account_context", "company_status", "history", "pipeline"}
@@ -132,7 +131,7 @@ class TestAccountRAGTrigger:
 
     def test_account_rag_not_trigger_for_aggregate_intents(self):
         """Verify Account RAG does NOT trigger for aggregate intents."""
-        from backend.agent.nodes.fetching import ACCOUNT_RAG_INTENTS
+        from backend.agent.fetch.node import ACCOUNT_RAG_INTENTS
 
         # Aggregate intents that don't need Account RAG
         aggregate_intents = {"renewals", "pipeline_summary", "activities", "groups"}

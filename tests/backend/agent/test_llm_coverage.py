@@ -191,7 +191,7 @@ class TestLlmHelpersFollowUp:
         """Test generate_follow_up_suggestions uses hardcoded tree."""
         from backend.agent.llm.helpers import generate_follow_up_suggestions
 
-        with patch("backend.agent.question_tree.get_follow_ups") as mock_get_followups:
+        with patch("backend.agent.followup.tree.get_follow_ups") as mock_get_followups:
             mock_get_followups.return_value = ["Follow-up 1", "Follow-up 2"]
 
             result = generate_follow_up_suggestions(
@@ -327,10 +327,10 @@ class TestNodesFetching:
 
     def test_fetch_docs_success(self):
         """Test _fetch_docs successful fetch."""
-        from backend.agent.nodes.fetching import _fetch_docs
+        from backend.agent.fetch.node import _fetch_docs
         from backend.agent.core.schemas import Source
 
-        with patch("backend.agent.nodes.fetching.call_docs_rag") as mock_rag:
+        with patch("backend.agent.fetch.node.call_docs_rag") as mock_rag:
             mock_rag.return_value = ("Docs content", [Source(type="doc", id="doc1", label="Doc")])
 
             result = _fetch_docs("How to create contact?")
@@ -340,9 +340,9 @@ class TestNodesFetching:
 
     def test_fetch_docs_exception(self):
         """Test _fetch_docs handles exceptions."""
-        from backend.agent.nodes.fetching import _fetch_docs
+        from backend.agent.fetch.node import _fetch_docs
 
-        with patch("backend.agent.nodes.fetching.call_docs_rag", side_effect=Exception("RAG error")):
+        with patch("backend.agent.fetch.node.call_docs_rag", side_effect=Exception("RAG error")):
             result = _fetch_docs("How to create contact?")
 
             assert result["docs_answer"] == ""
@@ -351,10 +351,10 @@ class TestNodesFetching:
 
     def test_fetch_account_context_success(self):
         """Test _fetch_account_context successful fetch."""
-        from backend.agent.nodes.fetching import _fetch_account_context
+        from backend.agent.fetch.node import _fetch_account_context
         from backend.agent.core.schemas import Source
 
-        with patch("backend.agent.nodes.fetching.call_account_rag") as mock_rag:
+        with patch("backend.agent.fetch.node.call_account_rag") as mock_rag:
             mock_rag.return_value = ("Account notes", [Source(type="note", id="n1", label="Note")])
 
             result = _fetch_account_context("What are the notes?", "COMP001")
@@ -364,9 +364,9 @@ class TestNodesFetching:
 
     def test_fetch_account_context_exception(self):
         """Test _fetch_account_context handles exceptions."""
-        from backend.agent.nodes.fetching import _fetch_account_context
+        from backend.agent.fetch.node import _fetch_account_context
 
-        with patch("backend.agent.nodes.fetching.call_account_rag", side_effect=Exception("RAG error")):
+        with patch("backend.agent.fetch.node.call_account_rag", side_effect=Exception("RAG error")):
             result = _fetch_account_context("What are the notes?", "COMP001")
 
             assert result["account_context_answer"] == ""

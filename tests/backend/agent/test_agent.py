@@ -12,7 +12,7 @@ import pytest
 os.environ["MOCK_LLM"] = "1"
 
 from backend.agent.datastore import CRMDataStore, get_csv_base_path
-from backend.agent.handlers import (
+from backend.agent.fetch.handlers import (
     tool_company_lookup,
     tool_recent_activity,
     tool_recent_history,
@@ -23,7 +23,7 @@ from backend.agent.handlers import (
     tool_pipeline_by_owner,
 )
 from backend.agent.llm.router import route_question
-from backend.agent.nodes.graph import agent_graph, build_thread_config
+from backend.agent.graph import agent_graph, build_thread_config
 
 
 def _invoke_agent(question: str, session_id: str | None = None) -> dict:

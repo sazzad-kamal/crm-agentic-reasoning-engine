@@ -11,7 +11,7 @@ from unittest.mock import patch
 # Set mock mode
 os.environ["MOCK_LLM"] = "1"
 
-from backend.agent.nodes.graph import agent_graph, build_thread_config
+from backend.agent.graph import agent_graph, build_thread_config
 
 
 def _invoke_agent(question: str, session_id: str | None = None) -> dict:
@@ -60,7 +60,7 @@ class TestGraphIntegration:
     @pytest.mark.integration
     @patch("backend.agent.llm.helpers.call_answer_chain")
     @patch("backend.agent.llm.router.route_question")
-    @patch("backend.agent.handlers.company.tool_company_lookup")
+    @patch("backend.agent.fetch.handlers.company.tool_company_lookup")
     def test_graph_execution_data_mode(self, mock_company, mock_route, mock_answer_chain):
         """Test graph execution in data mode."""
         from backend.agent.core.schemas import RouterResult, ToolResult, Source

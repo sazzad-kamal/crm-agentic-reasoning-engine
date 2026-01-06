@@ -21,7 +21,7 @@ import pytest
 pytestmark = pytest.mark.integration
 
 from backend.agent.datastore import get_datastore
-from backend.agent.handlers import (
+from backend.agent.fetch.handlers import (
     tool_company_lookup,
     tool_search_attachments,
     tool_search_companies,

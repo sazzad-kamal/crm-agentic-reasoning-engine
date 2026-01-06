@@ -20,10 +20,10 @@ os.environ["MOCK_LLM"] = "1"
 class TestAnswerNode:
     """Tests for answer_node function."""
 
-    @patch('backend.agent.nodes.answer.call_answer_chain')
+    @patch('backend.agent.answer.node.call_answer_chain')
     def test_answer_node_synthesizes_response(self, mock_chain):
         """Synthesizes response from state data."""
-        from backend.agent.nodes.answer import answer_node
+        from backend.agent.answer.node import answer_node
 
         mock_chain.return_value = ("This is the answer.", 150)
 
@@ -38,10 +38,10 @@ class TestAnswerNode:
         assert result["answer"] == "This is the answer."
         mock_chain.assert_called_once()
 
-    @patch('backend.agent.nodes.answer.call_answer_chain')
+    @patch('backend.agent.answer.node.call_answer_chain')
     def test_answer_node_updates_messages(self, mock_chain):
         """Updates messages with user question and assistant answer."""
-        from backend.agent.nodes.answer import answer_node
+        from backend.agent.answer.node import answer_node
 
         mock_chain.return_value = ("Response text.", 100)
 
@@ -60,10 +60,10 @@ class TestAnswerNode:
         assert result["messages"][-1]["role"] == "assistant"
         assert result["messages"][-1]["content"] == "Response text."
 
-    @patch('backend.agent.nodes.answer.call_not_found_chain')
+    @patch('backend.agent.answer.node.call_not_found_chain')
     def test_answer_node_handles_company_not_found(self, mock_chain):
         """Uses not-found chain when company not found."""
-        from backend.agent.nodes.answer import answer_node
+        from backend.agent.answer.node import answer_node
 
         mock_chain.return_value = ("I couldn't find that company.", 80)
 
@@ -82,10 +82,10 @@ class TestAnswerNode:
         mock_chain.assert_called_once()
         assert "company" in result["answer"].lower() or len(result["answer"]) > 0
 
-    @patch('backend.agent.nodes.answer.call_answer_chain')
+    @patch('backend.agent.answer.node.call_answer_chain')
     def test_answer_node_handles_empty_answer(self, mock_chain):
         """Uses fallback when LLM returns empty answer."""
-        from backend.agent.nodes.answer import answer_node
+        from backend.agent.answer.node import answer_node
 
         mock_chain.return_value = ("", 100)
 
@@ -99,10 +99,10 @@ class TestAnswerNode:
 
         assert "apologize" in result["answer"].lower() or "rephrasing" in result["answer"].lower()
 
-    @patch('backend.agent.nodes.answer.call_answer_chain')
+    @patch('backend.agent.answer.node.call_answer_chain')
     def test_answer_node_handles_exception(self, mock_chain):
         """Handles exceptions gracefully."""
-        from backend.agent.nodes.answer import answer_node
+        from backend.agent.answer.node import answer_node
 
         mock_chain.side_effect = Exception("LLM error")
 
@@ -118,10 +118,10 @@ class TestAnswerNode:
         assert result["error"] == "LLM error"
         assert "error" in result["answer"].lower()
 
-    @patch('backend.agent.nodes.answer.call_answer_chain')
+    @patch('backend.agent.answer.node.call_answer_chain')
     def test_answer_node_records_latency(self, mock_chain):
         """Records answer latency."""
-        from backend.agent.nodes.answer import answer_node
+        from backend.agent.answer.node import answer_node
 
         mock_chain.return_value = ("Answer text", 200)
 
@@ -136,10 +136,10 @@ class TestAnswerNode:
         assert "answer_latency_ms" in result
         assert result["llm_latency_ms"] == 200
 
-    @patch('backend.agent.nodes.answer.call_answer_chain')
+    @patch('backend.agent.answer.node.call_answer_chain')
     def test_answer_node_returns_steps(self, mock_chain):
         """Returns steps for progress tracking."""
-        from backend.agent.nodes.answer import answer_node
+        from backend.agent.answer.node import answer_node
 
         mock_chain.return_value = ("Answer", 100)
 
@@ -156,10 +156,10 @@ class TestAnswerNode:
         assert result["steps"][0]["id"] == "answer"
         assert result["steps"][0]["status"] == "done"
 
-    @patch('backend.agent.nodes.answer.call_answer_chain')
+    @patch('backend.agent.answer.node.call_answer_chain')
     def test_answer_node_formats_all_sections(self, mock_chain):
         """Formats all data sections for context."""
-        from backend.agent.nodes.answer import answer_node
+        from backend.agent.answer.node import answer_node
 
         mock_chain.return_value = ("Full answer", 100)
 
@@ -194,11 +194,11 @@ class TestAnswerNode:
 class TestFollowupNode:
     """Tests for followup_node function."""
 
-    @patch('backend.agent.nodes.followup.generate_follow_up_suggestions')
-    @patch('backend.agent.nodes.followup.get_config')
+    @patch('backend.agent.followup.node.generate_follow_up_suggestions')
+    @patch('backend.agent.followup.node.get_config')
     def test_followup_node_generates_suggestions(self, mock_config, mock_generate):
         """Generates follow-up suggestions."""
-        from backend.agent.nodes.followup import followup_node
+        from backend.agent.followup.node import followup_node
 
         mock_config.return_value.enable_follow_up_suggestions = True
         mock_config.return_value.max_followup_suggestions = 3
@@ -220,10 +220,10 @@ class TestFollowupNode:
         assert "follow_up_suggestions" in result
         assert len(result["follow_up_suggestions"]) == 2
 
-    @patch('backend.agent.nodes.followup.get_config')
+    @patch('backend.agent.followup.node.get_config')
     def test_followup_node_respects_disabled_setting(self, mock_config):
         """Returns empty when suggestions disabled."""
-        from backend.agent.nodes.followup import followup_node
+        from backend.agent.followup.node import followup_node
 
         mock_config.return_value.enable_follow_up_suggestions = False
 
@@ -236,11 +236,11 @@ class TestFollowupNode:
 
         assert result["follow_up_suggestions"] == []
 
-    @patch('backend.agent.nodes.followup.generate_follow_up_suggestions')
-    @patch('backend.agent.nodes.followup.get_config')
+    @patch('backend.agent.followup.node.generate_follow_up_suggestions')
+    @patch('backend.agent.followup.node.get_config')
     def test_followup_node_limits_suggestions(self, mock_config, mock_generate):
         """Limits suggestions to max_followup_suggestions."""
-        from backend.agent.nodes.followup import followup_node
+        from backend.agent.followup.node import followup_node
 
         mock_config.return_value.enable_follow_up_suggestions = True
         mock_config.return_value.max_followup_suggestions = 2
@@ -263,11 +263,11 @@ class TestFollowupNode:
 
         assert len(result["follow_up_suggestions"]) == 2
 
-    @patch('backend.agent.nodes.followup.generate_follow_up_suggestions')
-    @patch('backend.agent.nodes.followup.get_config')
+    @patch('backend.agent.followup.node.generate_follow_up_suggestions')
+    @patch('backend.agent.followup.node.get_config')
     def test_followup_node_filters_empty_suggestions(self, mock_config, mock_generate):
         """Filters out empty suggestions."""
-        from backend.agent.nodes.followup import followup_node
+        from backend.agent.followup.node import followup_node
 
         mock_config.return_value.enable_follow_up_suggestions = True
         mock_config.return_value.max_followup_suggestions = 5
@@ -291,11 +291,11 @@ class TestFollowupNode:
         # Only non-empty suggestions
         assert len(result["follow_up_suggestions"]) == 2
 
-    @patch('backend.agent.nodes.followup.generate_follow_up_suggestions')
-    @patch('backend.agent.nodes.followup.get_config')
+    @patch('backend.agent.followup.node.generate_follow_up_suggestions')
+    @patch('backend.agent.followup.node.get_config')
     def test_followup_node_handles_exception(self, mock_config, mock_generate):
         """Handles exceptions gracefully."""
-        from backend.agent.nodes.followup import followup_node
+        from backend.agent.followup.node import followup_node
 
         mock_config.return_value.enable_follow_up_suggestions = True
         mock_generate.side_effect = Exception("Generation failed")
@@ -313,11 +313,11 @@ class TestFollowupNode:
         assert result["follow_up_suggestions"] == []
         assert result["steps"][0]["status"] == "error"
 
-    @patch('backend.agent.nodes.followup.generate_follow_up_suggestions')
-    @patch('backend.agent.nodes.followup.get_config')
+    @patch('backend.agent.followup.node.generate_follow_up_suggestions')
+    @patch('backend.agent.followup.node.get_config')
     def test_followup_node_records_latency(self, mock_config, mock_generate):
         """Records follow-up generation latency."""
-        from backend.agent.nodes.followup import followup_node
+        from backend.agent.followup.node import followup_node
 
         mock_config.return_value.enable_follow_up_suggestions = True
         mock_config.return_value.max_followup_suggestions = 3
@@ -336,11 +336,11 @@ class TestFollowupNode:
         assert "followup_latency_ms" in result
         assert result["followup_latency_ms"] >= 0
 
-    @patch('backend.agent.nodes.followup.generate_follow_up_suggestions')
-    @patch('backend.agent.nodes.followup.get_config')
+    @patch('backend.agent.followup.node.generate_follow_up_suggestions')
+    @patch('backend.agent.followup.node.get_config')
     def test_followup_node_extracts_company_name(self, mock_config, mock_generate):
         """Extracts company name from company_data."""
-        from backend.agent.nodes.followup import followup_node
+        from backend.agent.followup.node import followup_node
 
         mock_config.return_value.enable_follow_up_suggestions = True
         mock_config.return_value.max_followup_suggestions = 3
@@ -362,11 +362,11 @@ class TestFollowupNode:
         call_kwargs = mock_generate.call_args[1]
         assert call_kwargs["company_name"] == "Acme Manufacturing"
 
-    @patch('backend.agent.nodes.followup.generate_follow_up_suggestions')
-    @patch('backend.agent.nodes.followup.get_config')
+    @patch('backend.agent.followup.node.generate_follow_up_suggestions')
+    @patch('backend.agent.followup.node.get_config')
     def test_followup_node_builds_available_data(self, mock_config, mock_generate):
         """Builds available_data counts from raw_data."""
-        from backend.agent.nodes.followup import followup_node
+        from backend.agent.followup.node import followup_node
 
         mock_config.return_value.enable_follow_up_suggestions = True
         mock_config.return_value.max_followup_suggestions = 3
@@ -394,11 +394,11 @@ class TestFollowupNode:
         assert call_kwargs["available_data"]["activities"] == 1
         assert call_kwargs["available_data"]["docs"] == 1
 
-    @patch('backend.agent.nodes.followup.generate_follow_up_suggestions')
-    @patch('backend.agent.nodes.followup.get_config')
+    @patch('backend.agent.followup.node.generate_follow_up_suggestions')
+    @patch('backend.agent.followup.node.get_config')
     def test_followup_node_returns_steps(self, mock_config, mock_generate):
         """Returns steps for progress tracking."""
-        from backend.agent.nodes.followup import followup_node
+        from backend.agent.followup.node import followup_node
 
         mock_config.return_value.enable_follow_up_suggestions = True
         mock_config.return_value.max_followup_suggestions = 3

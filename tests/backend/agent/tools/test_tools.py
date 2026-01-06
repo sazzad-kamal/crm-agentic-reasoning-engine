@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from backend.agent.handlers import (
+from backend.agent.fetch.handlers import (
     make_sources,
     tool_company_lookup,
     tool_recent_activity,

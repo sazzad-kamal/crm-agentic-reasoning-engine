@@ -8,12 +8,12 @@ Run with: pytest backend/agent/tests/test_conversation_history.py -v
 
 import pytest
 
-from backend.agent.nodes.state import AgentState, Message
-from backend.agent.nodes.support.memory import (
+from backend.agent.core.state import AgentState, Message
+from backend.agent.core.memory import (
     clear_session,
     _memory_store,
 )
-from backend.agent.nodes.support.formatters import format_conversation_history_section
+from backend.agent.answer.formatters import format_conversation_history_section
 
 
 @pytest.fixture(autouse=True)

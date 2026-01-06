@@ -26,92 +26,29 @@ class TestE2EAgentPipeline:
     """End-to-end tests for agent pipeline."""
 
     @pytest.mark.integration
-    @patch("backend.agent.nodes.graph.agent_graph")
-    def test_agent_handles_data_query(self, mock_graph):
+    def test_agent_handles_data_query(self):
         """Test agent handles data query end-to-end."""
-        from backend.agent.nodes.graph import run_agent
+        from backend.agent.nodes.graph import agent_graph, build_thread_config
 
-        mock_graph.invoke.return_value = {
-            "answer": "Acme Manufacturing has $500K in pipeline.",
-            "sources": [{"type": "company", "id": "ACME-MFG", "label": "Acme Manufacturing"}],
-            "steps": [
-                {"id": "route", "label": "Route", "status": "done"},
-                {"id": "data", "label": "Data", "status": "done"},
-                {"id": "answer", "label": "Answer", "status": "done"},
-            ],
-            "raw_data": {"pipeline": []},
-            "follow_up_suggestions": [],
-            "mode_used": "data",
-            "resolved_company_id": "ACME-MFG",
-            "days": 90,
-        }
-
-        result = run_agent("What is the pipeline for Acme Manufacturing?")
+        state = {"question": "What is the pipeline for Acme Manufacturing?", "sources": []}
+        config = build_thread_config(None)
+        result = agent_graph.invoke(state, config=config)
 
         assert "answer" in result
         assert "sources" in result
-        assert "meta" in result
-        assert result["meta"]["mode_used"] == "data"
+        assert "mode_used" in result
 
     @pytest.mark.integration
-    @patch("backend.agent.nodes.graph.agent_graph")
-    def test_agent_handles_docs_query(self, mock_graph):
+    def test_agent_handles_docs_query(self):
         """Test agent handles docs query end-to-end."""
-        from backend.agent.nodes.graph import run_agent
+        from backend.agent.nodes.graph import agent_graph, build_thread_config
 
-        mock_graph.invoke.return_value = {
-            "answer": "To import contacts, use the Import wizard.",
-            "sources": [{"type": "doc", "id": "doc-1", "label": "User Guide"}],
-            "steps": [
-                {"id": "route", "label": "Route", "status": "done"},
-                {"id": "docs", "label": "Docs", "status": "done"},
-                {"id": "answer", "label": "Answer", "status": "done"},
-            ],
-            "raw_data": {},
-            "follow_up_suggestions": [],
-            "mode_used": "docs",
-        }
+        state = {"question": "How do I import contacts?", "sources": []}
+        config = build_thread_config(None)
+        result = agent_graph.invoke(state, config=config)
 
-        result = run_agent("How do I import contacts?")
-
-        assert result["meta"]["mode_used"] == "docs"
-
-    @pytest.mark.integration
-    @patch("backend.agent.nodes.graph.agent_graph")
-    def test_agent_includes_latency_metric(self, mock_graph):
-        """Test agent response includes latency metric."""
-        from backend.agent.nodes.graph import run_agent
-
-        mock_graph.invoke.return_value = {
-            "answer": "Test answer",
-            "sources": [],
-            "steps": [],
-            "raw_data": {},
-            "follow_up_suggestions": [],
-            "mode_used": "data",
-        }
-
-        result = run_agent("Test question")
-
-        assert "meta" in result
-        assert "latency_ms" in result["meta"]
-        assert isinstance(result["meta"]["latency_ms"], int)
-
-    @pytest.mark.integration
-    @patch("backend.agent.nodes.graph.agent_graph")
-    def test_agent_handles_error_gracefully(self, mock_graph):
-        """Test agent handles errors gracefully."""
-        from backend.agent.nodes.graph import run_agent
-
-        mock_graph.invoke.side_effect = Exception("Test error")
-
-        # use_cache=False to avoid hitting cached results from previous tests
-        result = run_agent("Test question for e2e error handling", use_cache=False)
-
-        # Should still return a valid response structure
+        assert "mode_used" in result
         assert "answer" in result
-        assert "meta" in result
-        assert result["meta"]["mode_used"] == "error"
 
 
 # =============================================================================

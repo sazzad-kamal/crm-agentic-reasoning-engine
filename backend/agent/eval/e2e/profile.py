@@ -23,8 +23,15 @@ from dotenv import load_dotenv
 project_root = Path(__file__).parent.parent.parent.parent
 load_dotenv(project_root / ".env")
 
-from backend.agent.nodes.graph import run_agent
+from backend.agent.nodes.graph import agent_graph, build_thread_config
 from backend.agent.rag.tools import tool_docs_rag
+
+
+def _invoke_agent(question: str, session_id: str | None = None) -> dict:
+    """Invoke the agent graph and return state."""
+    state = {"question": question, "session_id": session_id, "sources": []}
+    config = build_thread_config(session_id)
+    return agent_graph.invoke(state, config=config)
 
 # Configure logging to show timing
 logging.basicConfig(
@@ -82,16 +89,14 @@ def run_profiled_query(question: str, expected_mode: str):
     print()
 
     start = time.time()
-    result = run_agent(question, session_id=f"profile-{int(time.time())}")
+    result = _invoke_agent(question, session_id=f"profile-{int(time.time())}")
     total_ms = int((time.time() - start) * 1000)
 
-    meta = result.get("meta", {})
-
-    print(f"   Mode used: {meta.get('mode_used', 'unknown')}")
-    print(f"   Company: {meta.get('company_id', 'None')}")
+    print(f"   Mode used: {result.get('mode_used', 'unknown')}")
+    print(f"   Company: {result.get('resolved_company_id', 'None')}")
     print(f"   Sources: {len(result.get('sources', []))}")
     print()
-    print(f"   TOTAL LATENCY: {total_ms}ms ({meta.get('latency_ms', 0)}ms reported)")
+    print(f"   TOTAL LATENCY: {total_ms}ms")
     print()
 
     # Show answer preview
@@ -100,7 +105,7 @@ def run_profiled_query(question: str, expected_mode: str):
 
     return {
         "question": question,
-        "mode": meta.get("mode_used"),
+        "mode": result.get("mode_used"),
         "latency_ms": total_ms,
         "sources": len(result.get("sources", [])),
     }

@@ -7,7 +7,7 @@ import time
 
 from rich.progress import track
 
-from backend.agent.nodes.graph import run_agent
+from backend.agent.nodes.graph import agent_graph, build_thread_config
 from backend.agent.eval.base import console, print_eval_header
 from backend.agent.eval.parallel import run_parallel_evaluation, calculate_p95_latency
 from backend.agent.eval.shared import run_llm_judge
@@ -15,6 +15,13 @@ from backend.agent.eval.models import E2EEvalResult, E2EEvalSummary
 from backend.agent.eval.e2e.test_cases import E2E_TEST_CASES
 from backend.agent.eval.prompts import E2E_JUDGE_SYSTEM, E2E_JUDGE_PROMPT
 from backend.agent.nodes.support.memory import clear_session
+
+
+def _invoke_agent(question: str, session_id: str | None = None) -> dict:
+    """Invoke the agent graph and return state for eval."""
+    state = {"question": question, "session_id": session_id, "sources": []}
+    config = build_thread_config(session_id)
+    return agent_graph.invoke(state, config=config)
 
 
 def judge_e2e_response(
@@ -116,17 +123,16 @@ def run_e2e_test(
         # Run the full agent pipeline
         if agent_lock:
             with agent_lock:
-                result = run_agent(question, session_id=session_id)
+                result = _invoke_agent(question, session_id=session_id)
         else:
-            result = run_agent(question, session_id=session_id)
+            result = _invoke_agent(question, session_id=session_id)
         latency = (time.time() - start_time) * 1000
 
         answer = result.get("answer", "")
-        sources = [s.get("id", "") for s in result.get("sources", [])]
-        meta = result.get("meta", {})
+        sources = [s.id if hasattr(s, "id") else s.get("id", "") for s in result.get("sources", [])]
 
-        actual_company = meta.get("company_id")
-        actual_intent = meta.get("intent", "general")
+        actual_company = result.get("resolved_company_id")
+        actual_intent = result.get("intent", "general")
 
     except Exception as e:
         error = str(e)
@@ -206,7 +212,7 @@ def run_e2e_test(
         has_sources=len(sources) > 0,
         sources=sources,
         latency_ms=latency,
-        total_tokens=meta.get("total_tokens", 0),
+        total_tokens=0,
         error=error,
     )
 

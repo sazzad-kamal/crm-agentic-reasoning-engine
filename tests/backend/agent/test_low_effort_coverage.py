@@ -4,7 +4,6 @@ Low-effort coverage tests - targeting modules with 1-3 missing lines.
 
 import pytest
 from unittest.mock import MagicMock, patch
-import time
 
 
 class TestFormattersEdgeCases:
@@ -41,35 +40,6 @@ class TestMemoryEdgeCases:
 
         result = format_history_for_prompt([])
         assert result == ""
-
-
-class TestCacheEviction:
-    """Tests for cache eviction."""
-
-    def test_set_cached_result_eviction(self):
-        """Test that cache evicts oldest entry when full."""
-        from backend.agent.nodes.support import session
-
-        # Clear and set small max size
-        session.clear_query_cache()
-        original_max = session._CACHE_MAX_SIZE
-        session._CACHE_MAX_SIZE = 2
-
-        try:
-            # Fill cache
-            session.set_cached_result("key1", {"data": 1})
-            session.set_cached_result("key2", {"data": 2})
-
-            # This should trigger eviction
-            session.set_cached_result("key3", {"data": 3})
-
-            # key1 should be evicted
-            assert session.get_cached_result("key1") is None
-            assert session.get_cached_result("key2") is not None
-            assert session.get_cached_result("key3") is not None
-        finally:
-            session._CACHE_MAX_SIZE = original_max
-            session.clear_query_cache()
 
 
 class TestAuditLoggerEdgeCases:

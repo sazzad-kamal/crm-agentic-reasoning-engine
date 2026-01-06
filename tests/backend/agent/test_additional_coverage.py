@@ -320,37 +320,6 @@ class TestLlmRouterAutoMode:
 
 
 # =============================================================================
-# session.py - checkpoint with messages
-# =============================================================================
-
-
-class TestSessionCheckpointMessages:
-    """Tests for session checkpoint with messages."""
-
-    def test_get_session_state_with_checkpoint(self):
-        """Test get_session_state returns channel_values from checkpoint."""
-        from backend.agent.nodes.support import session
-
-        original = session._checkpointer
-
-        with patch.object(session, "_checkpointer") as mock_cp:
-            mock_cp.get.return_value = {
-                "channel_values": {
-                    "messages": [{"role": "user", "content": "Hello"}],
-                    "answer": "Hi there!",
-                }
-            }
-
-            result = session.get_session_state("test-session")
-
-            assert result is not None
-            assert "messages" in result
-            assert len(result["messages"]) == 1
-
-        session._checkpointer = original
-
-
-# =============================================================================
 # datastore edge cases
 # =============================================================================
 

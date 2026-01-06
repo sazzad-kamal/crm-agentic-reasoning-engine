@@ -273,44 +273,6 @@ class TestEvalModelsProperties:
 
 
 # =============================================================================
-# conversation.py - lines 55-58: message extraction from checkpoint
-# =============================================================================
-
-
-class TestConversationMessageExtraction:
-    """Tests for conversation.py message extraction."""
-
-    def test_get_session_messages_with_messages(self):
-        """Test get_session_messages returns messages from checkpoint state."""
-        from backend.agent.nodes.support.session import get_session_messages
-
-        with patch("backend.agent.nodes.support.session.get_session_state") as mock_get_state:
-            mock_get_state.return_value = {
-                "messages": [
-                    {"role": "user", "content": "Hello"},
-                    {"role": "assistant", "content": "Hi there"},
-                ]
-            }
-
-            messages = get_session_messages("test-session-123")
-
-            assert len(messages) == 2
-            assert messages[0]["role"] == "user"
-            assert messages[1]["role"] == "assistant"
-
-    def test_get_session_messages_empty_messages_list(self):
-        """Test get_session_messages with empty messages in state."""
-        from backend.agent.nodes.support.session import get_session_messages
-
-        with patch("backend.agent.nodes.support.session.get_session_state") as mock_get_state:
-            mock_get_state.return_value = {"messages": []}
-
-            messages = get_session_messages("test-session-456")
-
-            assert messages == []
-
-
-# =============================================================================
 # datastore/analytics.py - line 283: group not found error
 # =============================================================================
 

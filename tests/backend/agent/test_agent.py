@@ -23,7 +23,14 @@ from backend.agent.handlers import (
     tool_pipeline_by_owner,
 )
 from backend.agent.llm.router import route_question
-from backend.agent.nodes.graph import run_agent
+from backend.agent.nodes.graph import agent_graph, build_thread_config
+
+
+def _invoke_agent(question: str, session_id: str | None = None) -> dict:
+    """Helper to invoke agent for tests."""
+    state = {"question": question, "session_id": session_id, "sources": []}
+    config = build_thread_config(session_id)
+    return agent_graph.invoke(state, config=config)
 
 # datastore fixture is provided by conftest.py
 
@@ -264,23 +271,19 @@ class TestRouter:
 
 class TestAgent:
     """Tests for the agent with MOCK_LLM."""
-    
-    def test_run_agent_company(self):
+
+    def test_invoke_agent_company(self):
         """Test answering a company question.
 
         Note: In mock mode, the router returns default values (general intent).
         Real company resolution is tested via e2e_eval with actual API calls.
         """
-        result = run_agent("What's going on with Acme Manufacturing in the last 90 days?")
+        result = _invoke_agent("What's going on with Acme Manufacturing in the last 90 days?")
 
         # Check all required keys exist
         assert "answer" in result
         assert "raw_data" in result
-        assert "meta" in result
-
-        # Check meta
-        assert "mode_used" in result["meta"]
-        assert "latency_ms" in result["meta"]
+        assert "mode_used" in result
 
         # Check raw_data structure exists (content depends on routing)
         assert "companies" in result["raw_data"]
@@ -289,30 +292,30 @@ class TestAgent:
 
         # Note: In mock mode, company resolution doesn't happen
         # Full routing behavior is tested in e2e_eval with real API calls
-    
-    def test_run_agent_renewals(self):
+
+    def test_invoke_agent_renewals(self):
         """Test answering a renewals question."""
-        result = run_agent("Which accounts have upcoming renewals in the next 90 days?")
-        
+        result = _invoke_agent("Which accounts have upcoming renewals in the next 90 days?")
+
         assert "answer" in result
         assert "raw_data" in result
         assert "renewals" in result["raw_data"]
-    
-    def test_run_agent_pipeline(self):
+
+    def test_invoke_agent_pipeline(self):
         """Test answering a pipeline question."""
-        result = run_agent("Show the open pipeline for Beta Tech Solutions")
-        
+        result = _invoke_agent("Show the open pipeline for Beta Tech Solutions")
+
         assert "answer" in result
         assert "raw_data" in result
         assert "opportunities" in result["raw_data"]
-    
-    def test_run_agent_company_not_found(self):
+
+    def test_invoke_agent_company_not_found(self):
         """Test handling of unknown company."""
-        result = run_agent("What's going on with NonExistent Corp XYZ?")
-        
+        result = _invoke_agent("What's going on with NonExistent Corp XYZ?")
+
         # Should still return valid response
         assert "answer" in result
-        assert "meta" in result
+        assert "mode_used" in result
 
 
 # =============================================================================

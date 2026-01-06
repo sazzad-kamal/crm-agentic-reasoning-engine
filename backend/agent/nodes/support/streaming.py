@@ -10,8 +10,7 @@ from fastapi.encoders import jsonable_encoder
 from backend.agent.nodes.state import AgentState
 from backend.agent.nodes.support.audit import AgentAuditLogger
 from backend.agent.handlers.common import enrich_raw_data
-from backend.agent.nodes.graph import agent_graph
-from backend.agent.nodes.support.session import build_thread_config
+from backend.agent.nodes.graph import agent_graph, build_thread_config
 
 logger = logging.getLogger(__name__)
 

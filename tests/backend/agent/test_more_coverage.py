@@ -6,61 +6,12 @@ import pytest
 from unittest.mock import MagicMock, patch
 
 
-class TestConversationCheckpointer:
-    """Tests for conversation checkpointer."""
-
-    def test_get_checkpointer_returns_saver(self):
-        """Test get_checkpointer returns MemorySaver."""
-        from backend.agent.nodes.support.session import get_checkpointer
-
-        checkpointer = get_checkpointer()
-        assert checkpointer is not None
-
-    def test_get_session_state_not_found(self):
-        """Test get_session_state returns None when not found."""
-        from backend.agent.nodes.support.session import get_session_state
-
-        result = get_session_state("nonexistent-session-id")
-        assert result is None
-
-    def test_get_session_state_exception(self):
-        """Test get_session_state handles exceptions."""
-        from backend.agent.nodes.support import session
-
-        original_checkpointer = session._checkpointer
-
-        with patch.object(session, "_checkpointer") as mock_cp:
-            mock_cp.get.side_effect = Exception("Checkpointer error")
-
-            result = session.get_session_state("test-session")
-            assert result is None
-
-        session._checkpointer = original_checkpointer
-
-    def test_get_session_messages_not_found(self):
-        """Test get_session_messages returns empty list when not found."""
-        from backend.agent.nodes.support.session import get_session_messages
-
-        result = get_session_messages("nonexistent-session-id")
-        assert result == []
-
-    def test_get_session_messages_exception(self):
-        """Test get_session_messages handles exceptions."""
-        from backend.agent.nodes.support import session
-
-        original_checkpointer = session._checkpointer
-
-        with patch.object(session, "_checkpointer") as mock_cp:
-            mock_cp.get.side_effect = Exception("Checkpointer error")
-
-            result = session.get_session_messages("test-session")
-            assert result == []
-
-        session._checkpointer = original_checkpointer
+class TestBuildThreadConfig:
+    """Tests for build_thread_config function."""
 
     def test_build_thread_config_with_session(self):
         """Test build_thread_config with session ID."""
-        from backend.agent.nodes.support.session import build_thread_config
+        from backend.agent.nodes.graph import build_thread_config
 
         config = build_thread_config("my-session")
 
@@ -69,7 +20,7 @@ class TestConversationCheckpointer:
 
     def test_build_thread_config_without_session(self):
         """Test build_thread_config without session ID generates UUID."""
-        from backend.agent.nodes.support.session import build_thread_config
+        from backend.agent.nodes.graph import build_thread_config
 
         config = build_thread_config(None)
 
@@ -146,30 +97,12 @@ class TestConfigEdgeCases:
 class TestGraphModule:
     """Tests for graph module edge cases."""
 
-    def test_build_agent_graph_returns_graph(self):
-        """Test build_agent_graph returns a compiled graph."""
-        from backend.agent.nodes.graph import build_agent_graph
+    def test_agent_graph_exists(self):
+        """Test agent_graph is a compiled graph."""
+        from backend.agent.nodes.graph import agent_graph
 
-        graph = build_agent_graph()
-        assert graph is not None
-
-    def test_run_agent_mock_mode(self):
-        """Test run_agent in mock mode."""
-        from backend.agent.nodes.graph import run_agent
-
-        with patch("backend.agent.nodes.graph.agent_graph") as mock_graph:
-            mock_graph.invoke.return_value = {
-                "answer": "Test answer",
-                "sources": [],
-                "steps": [],
-                "raw_data": {},
-                "follow_up_suggestions": [],
-                "mode_used": "data",
-            }
-
-            result = run_agent(question="What is the pipeline?", use_cache=False)
-
-            assert "answer" in result
+        assert agent_graph is not None
+        assert hasattr(agent_graph, "invoke")
 
 
 class TestStreamingModule:

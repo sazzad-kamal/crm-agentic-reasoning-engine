@@ -195,39 +195,42 @@ class TestLLMRouter:
 
 class TestAgentIntegration:
     """Integration tests for enhanced agent."""
-    
+
     def setup_method(self):
         """Reset config between tests."""
         reset_config()
-    
-    def test_agent_returns_meta_info(self):
-        """Test that agent returns metadata."""
-        from backend.agent.nodes.graph import run_agent
 
-        result = run_agent("Show me pipeline")
+    def test_agent_returns_mode_info(self):
+        """Test that agent returns mode metadata."""
+        from backend.agent.nodes.graph import agent_graph, build_thread_config
 
-        assert "meta" in result
-        assert "mode_used" in result["meta"]
-        assert "latency_ms" in result["meta"]
+        state = {"question": "Show me pipeline", "sources": []}
+        config = build_thread_config(None)
+        result = agent_graph.invoke(state, config=config)
+
+        assert "mode_used" in result
 
     def test_agent_handles_company_query(self):
         """Test agent handles company-specific queries."""
-        from backend.agent.nodes.graph import run_agent
+        from backend.agent.nodes.graph import agent_graph, build_thread_config
 
-        result = run_agent("What's happening with Acme Manufacturing?")
+        state = {"question": "What's happening with Acme Manufacturing?", "sources": []}
+        config = build_thread_config(None)
+        result = agent_graph.invoke(state, config=config)
 
         assert "answer" in result
         assert len(result["answer"]) > 0
 
     def test_agent_handles_docs_query(self):
         """Test agent handles documentation queries."""
-        from backend.agent.nodes.graph import run_agent
+        from backend.agent.nodes.graph import agent_graph, build_thread_config
 
-        result = run_agent("How do I create an opportunity?")
+        state = {"question": "How do I create an opportunity?", "sources": []}
+        config = build_thread_config(None)
+        result = agent_graph.invoke(state, config=config)
 
         assert "answer" in result
-        # Mode is auto-detected by LLM router
-        assert "mode_used" in result["meta"]
+        assert "mode_used" in result
 
 
 # =============================================================================

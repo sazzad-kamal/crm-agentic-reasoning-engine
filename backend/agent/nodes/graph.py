@@ -1,215 +1,42 @@
 """
 LangGraph-based agent orchestration.
 
-Implements a minimal 4-node graph workflow for answering CRM questions:
-
-                    ┌─────────┐
-                    │  Route  │
-                    └────┬────┘
-                         │
-                         ▼
-                  ┌─────────────┐
-                  │   Fetch     │  (Parallel: CRM + Docs + Account)
-                  └──────┬──────┘
-                         │
-                         ▼
-                  ┌─────────────┐
-                  │   Answer    │
-                  └──────┬──────┘
-                         │
-                         ▼
-                  ┌─────────────┐
-                  │  Follow-up  │
-                  └──────┬──────┘
-                         │
-                         ▼
-                     ┌───────┐
-                     │  END  │
-                     └───────┘
+Implements a 4-node graph: Route → Fetch → Answer → Followup.
 """
 
-import logging
-import time
-from typing import Any
+import uuid
 
 from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.memory import MemorySaver
 
-from backend.agent.nodes.state import AgentState, Message
+from backend.agent.nodes.state import AgentState
 from backend.agent.nodes.routing import route_node
 from backend.agent.nodes.fetching import fetch_node
 from backend.agent.nodes.generation import answer_node, followup_node
-from backend.agent.nodes.support.audit import AgentAuditLogger
-from backend.agent.nodes.support.session import (
-    make_cache_key,
-    get_cached_result,
-    set_cached_result,
-    get_checkpointer,
-    get_session_messages,
-    build_thread_config,
-)
+
+_checkpointer = MemorySaver()
 
 
-logger = logging.getLogger(__name__)
+def build_thread_config(session_id: str | None) -> dict:
+    """Build LangGraph config with thread_id for checkpointing."""
+    return {"configurable": {"thread_id": session_id or str(uuid.uuid4())}}
 
 
-def build_agent_graph(checkpointer: Any = None) -> Any:
-    """
-    Build the LangGraph workflow.
-
-    Simplified 4-node architecture:
-      Route → Fetch (parallel) → Answer → Followup
-
-    Args:
-        checkpointer: Optional LangGraph checkpointer for conversation persistence.
-                     If None, uses the global MemorySaver.
-
-    Returns compiled graph ready for execution.
-    """
+def _build_graph():
+    """Build the LangGraph workflow."""
     graph = StateGraph(AgentState)
-
-    # Add nodes (simplified 4-node architecture)
     graph.add_node("route", route_node)
     graph.add_node("fetch", fetch_node)
     graph.add_node("answer", answer_node)
     graph.add_node("followup", followup_node)
-
-    # Set entry point
     graph.set_entry_point("route")
-
-    # Linear flow: route → fetch → answer → followup → END
     graph.add_edge("route", "fetch")
     graph.add_edge("fetch", "answer")
     graph.add_edge("answer", "followup")
     graph.add_edge("followup", END)
-
-    return graph.compile(checkpointer=checkpointer or get_checkpointer())
-
-
-# Compile the graph once at module load
-agent_graph = build_agent_graph()
+    return graph.compile(checkpointer=_checkpointer)
 
 
-def run_agent(
-    question: str,
-    session_id: str | None = None,
-    use_cache: bool = True,
-) -> dict:
-    """
-    Run the agent graph and return formatted response.
+agent_graph = _build_graph()
 
-    Args:
-        question: The user's question
-        session_id: Optional session ID (used as thread_id for checkpointing)
-        use_cache: Whether to use query cache (default True)
-
-    Returns:
-        Dict matching ChatResponse schema
-    """
-    start_time = time.time()
-
-    # Check query cache first (only for non-session queries)
-    cache_key = None
-    if use_cache and not session_id:
-        cache_key = make_cache_key(question)
-        cached = get_cached_result(cache_key)
-        if cached:
-            logger.info("[Agent] Cache hit, returning cached result")
-            return {
-                **cached,
-                "meta": {
-                    **cached["meta"],
-                    "latency_ms": int((time.time() - start_time) * 1000),
-                    "cached": True,
-                },
-            }
-
-    # Load conversation history from checkpoint
-    messages: list[Message] = get_session_messages(session_id) if session_id else []
-
-    # Initialize state
-    initial_state: AgentState = {
-        "question": question,
-        "session_id": session_id,
-        "messages": messages,
-        "sources": [],
-        "steps": [],
-        "raw_data": {},
-        "follow_up_suggestions": [],
-    }
-
-    config = build_thread_config(session_id)
-    logger.info(f"[Agent] Starting graph execution for: {question[:50]}...")
-
-    try:
-        final_state = agent_graph.invoke(initial_state, config=config)
-    except Exception as e:
-        logger.error(f"[Agent] Graph execution failed: {e}")
-        return _build_error_response(str(e), start_time)
-
-    latency_ms = int((time.time() - start_time) * 1000)
-
-    # Audit logging
-    AgentAuditLogger().log_query(
-        question=question,
-        mode_used=final_state.get("mode_used", "unknown"),
-        company_id=final_state.get("resolved_company_id"),
-        latency_ms=latency_ms,
-        source_count=len(final_state.get("sources", [])),
-        session_id=session_id,
-    )
-
-    logger.info(f"[Agent] Complete in {latency_ms}ms")
-
-    # Build response
-    result = {
-        "answer": final_state.get("answer", ""),
-        "sources": [
-            s.model_dump() if hasattr(s, "model_dump") else s
-            for s in final_state.get("sources", [])
-        ],
-        "steps": final_state.get("steps", []),
-        "raw_data": final_state.get("raw_data", {}),
-        "follow_up_suggestions": final_state.get("follow_up_suggestions", []),
-        "meta": {
-            "mode_used": final_state.get("mode_used", "unknown"),
-            "latency_ms": latency_ms,
-            "company_id": final_state.get("resolved_company_id"),
-            "intent": final_state.get("intent", "general"),
-            "days": final_state.get("days", 90),
-            "router_latency_ms": final_state.get("router_latency_ms"),
-            "fetch_latency_ms": final_state.get("fetch_latency_ms"),
-            "answer_latency_ms": final_state.get("answer_latency_ms"),
-            "followup_latency_ms": final_state.get("followup_latency_ms"),
-        },
-    }
-
-    # Cache result for non-session queries
-    if cache_key:
-        set_cached_result(cache_key, result)
-
-    return result
-
-
-def _build_error_response(error: str, start_time: float) -> dict[str, Any]:
-    """Build error response with consistent structure."""
-    return {
-        "answer": f"I'm sorry, I encountered an error: {error}",
-        "sources": [],
-        "steps": [{"id": "error", "label": f"Error: {error[:50]}", "status": "error"}],
-        "raw_data": {},
-        "follow_up_suggestions": [],
-        "meta": {
-            "mode_used": "error",
-            "latency_ms": int((time.time() - start_time) * 1000),
-            "router_latency_ms": None,
-            "fetch_latency_ms": None,
-            "answer_latency_ms": None,
-            "followup_latency_ms": None,
-        },
-    }
-
-
-__all__ = [
-    "run_agent",
-    "build_agent_graph",
-]
+__all__ = ["agent_graph", "build_thread_config"]

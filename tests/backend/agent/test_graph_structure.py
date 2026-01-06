@@ -15,13 +15,10 @@ class TestGraphStructure:
 
     def test_graph_has_four_nodes(self):
         """Verify the graph was simplified to 4 nodes."""
-        from backend.agent.nodes.graph import build_agent_graph
-
-        # Build a fresh graph
-        graph = build_agent_graph(checkpointer=None)
+        from backend.agent.nodes.graph import agent_graph
 
         # Get node names from the graph
-        node_names = set(graph.nodes.keys())
+        node_names = set(agent_graph.nodes.keys())
 
         # Should have exactly these 4 nodes (plus __start__ and __end__)
         expected_nodes = {"route", "fetch", "answer", "followup"}

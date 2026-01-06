@@ -43,6 +43,15 @@ def judge_answer(
     }
 
 
+def _invoke_agent(question: str, session_id: str | None = None) -> dict:
+    """Invoke the agent graph and return state."""
+    from backend.agent.nodes.graph import agent_graph, build_thread_config
+
+    state = {"question": question, "session_id": session_id, "sources": []}
+    config = build_thread_config(session_id)
+    return agent_graph.invoke(state, config=config)
+
+
 async def test_single_question(
     question: str,
     history: list[dict],
@@ -61,16 +70,13 @@ async def test_single_question(
     Returns:
         FlowStepResult with answer and metrics
     """
-    from backend.agent.nodes.graph import run_agent
-
     start_time = time.time()
 
     try:
         # Run the agent in a thread pool for true parallelism
         result = await asyncio.to_thread(
-            run_agent,
+            _invoke_agent,
             question=question,
-            mode="auto",
             session_id=session_id,
         )
 

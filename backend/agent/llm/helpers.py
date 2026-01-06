@@ -121,6 +121,46 @@ def _get_chain(chain_type: str) -> Any:
 # =============================================================================
 
 
+def get_answer_chain() -> Any:
+    """Get the answer chain for use with LangGraph streaming.
+
+    Returns the LCEL chain directly so LangGraph's astream_events
+    can capture on_chat_model_stream events for token streaming.
+    """
+    return _get_chain("answer")
+
+
+def build_answer_input(
+    question: str,
+    conversation_history_section: str,
+    company_section: str,
+    activities_section: str,
+    history_section: str,
+    pipeline_section: str,
+    renewals_section: str,
+    docs_section: str,
+    account_context_section: str = "",
+    contacts_section: str = "",
+    groups_section: str = "",
+    attachments_section: str = "",
+) -> dict[str, str]:
+    """Build input dict for the answer chain."""
+    return {
+        "question": question,
+        "conversation_history_section": conversation_history_section,
+        "company_section": company_section,
+        "contacts_section": contacts_section,
+        "activities_section": activities_section,
+        "history_section": history_section,
+        "pipeline_section": pipeline_section,
+        "renewals_section": renewals_section,
+        "groups_section": groups_section,
+        "attachments_section": attachments_section,
+        "docs_section": docs_section,
+        "account_context_section": account_context_section,
+    }
+
+
 def call_answer_chain(
     question: str,
     conversation_history_section: str,
@@ -299,5 +339,7 @@ __all__ = [
     "call_answer_chain",
     "stream_answer_chain",
     "call_not_found_chain",
+    "get_answer_chain",
+    "build_answer_input",
     "FollowUpSuggestions",
 ]

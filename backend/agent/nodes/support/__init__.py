@@ -1,7 +1,7 @@
 """
 Support utilities for the graph execution layer.
 
-Provides caching, memory, streaming, formatting, and audit logging.
+Provides caching, memory, formatting, and audit logging.
 """
 
 from backend.agent.nodes.support.session import (
@@ -17,12 +17,6 @@ from backend.agent.nodes.support.session import (
 from backend.agent.nodes.support.memory import (
     clear_session,
     format_history_for_prompt,
-)
-from backend.agent.nodes.support.streaming import (
-    stream_agent,
-    StreamEvent,
-    format_sse,
-    serialize_for_json,
 )
 from backend.agent.nodes.support.audit import (
     AgentAuditEntry,
@@ -59,11 +53,6 @@ __all__ = [
     # Memory
     "clear_session",
     "format_history_for_prompt",
-    # Streaming
-    "stream_agent",
-    "StreamEvent",
-    "format_sse",
-    "serialize_for_json",
     # Audit
     "AgentAuditEntry",
     "AgentAuditLogger",

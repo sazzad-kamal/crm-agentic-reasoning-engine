@@ -79,13 +79,19 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
 
   if (!hasData) return null;
 
-  const tableCount = [
-    rawData.companies?.length,
-    rawData.activities?.length,
-    rawData.opportunities?.length,
-    rawData.history?.length,
-    rawData.renewals?.length,
-  ].filter(Boolean).length;
+  // Build list of present data types with icons
+  const presentDataTypes = useMemo(() => {
+    const types: { key: string; icon: string; count: number }[] = [];
+    if (rawData.companies?.length) types.push({ key: "companies", icon: "🏢", count: rawData.companies.length });
+    if (rawData.activities?.length) types.push({ key: "activities", icon: "📋", count: rawData.activities.length });
+    if (rawData.opportunities?.length) types.push({ key: "opportunities", icon: "💰", count: rawData.opportunities.length });
+    if (rawData.history?.length) types.push({ key: "history", icon: "📜", count: rawData.history.length });
+    if (rawData.renewals?.length) types.push({ key: "renewals", icon: "🔄", count: rawData.renewals.length });
+    if (rawData.pipeline_summary) types.push({ key: "pipeline", icon: "📊", count: 1 });
+    return types;
+  }, [rawData]);
+
+  const tableCount = presentDataTypes.length;
 
   return (
     <section
@@ -100,8 +106,15 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
         aria-expanded={expanded}
         aria-controls="data-tables-content"
       >
-        <span aria-hidden="true">{expanded ? "▼" : "▶"}</span>
-        <span>Data used ({tableCount} table{tableCount !== 1 ? "s" : ""})</span>
+        <span className="data-section__arrow" aria-hidden="true">▶</span>
+        <span className="data-section__label">Data used</span>
+        <span className="data-section__preview" aria-label={`Contains ${presentDataTypes.map(t => t.key).join(", ")}`}>
+          {presentDataTypes.map((type) => (
+            <span key={type.key} className="data-section__preview-icon" title={`${type.key} (${type.count})`}>
+              {type.icon}
+            </span>
+          ))}
+        </span>
       </button>
 
       {expanded && (
@@ -113,8 +126,9 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
         >
           {/* Companies Table */}
           {rawData.companies && rawData.companies.length > 0 && (
-            <div role="region" aria-label="Companies data">
+            <div role="region" aria-label="Companies data" data-type="companies">
               <h4 className="data-table__title" id="companies-table-label">
+                <span className="data-table__icon">🏢</span>
                 Companies ({rawData.companies.length})
               </h4>
               <table className="data-table" aria-labelledby="companies-table-label">
@@ -144,8 +158,9 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
 
           {/* Activities Table */}
           {rawData.activities && rawData.activities.length > 0 && (
-            <div role="region" aria-label="Activities data">
+            <div role="region" aria-label="Activities data" data-type="activities">
               <h4 className="data-table__title" id="activities-table-label">
+                <span className="data-table__icon">📋</span>
                 Activities ({rawData.activities.length})
               </h4>
               <table className="data-table" aria-labelledby="activities-table-label">
@@ -173,8 +188,9 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
 
           {/* Opportunities Table */}
           {rawData.opportunities && rawData.opportunities.length > 0 && (
-            <div role="region" aria-label="Opportunities data">
+            <div role="region" aria-label="Opportunities data" data-type="opportunities">
               <h4 className="data-table__title" id="opportunities-table-label">
+                <span className="data-table__icon">💰</span>
                 Opportunities ({rawData.opportunities.length})
               </h4>
               <table className="data-table" aria-labelledby="opportunities-table-label">
@@ -206,8 +222,9 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
 
           {/* History Table */}
           {rawData.history && rawData.history.length > 0 && (
-            <div role="region" aria-label="History data">
+            <div role="region" aria-label="History data" data-type="history">
               <h4 className="data-table__title" id="history-table-label">
+                <span className="data-table__icon">📜</span>
                 History ({rawData.history.length})
               </h4>
               <table className="data-table" aria-labelledby="history-table-label">
@@ -233,8 +250,9 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
 
           {/* Renewals Table */}
           {rawData.renewals && rawData.renewals.length > 0 && (
-            <div role="region" aria-label="Renewals data">
+            <div role="region" aria-label="Renewals data" data-type="renewals">
               <h4 className="data-table__title" id="renewals-table-label">
+                <span className="data-table__icon">🔄</span>
                 Upcoming Renewals ({rawData.renewals.length})
               </h4>
               <table className="data-table" aria-labelledby="renewals-table-label">
@@ -260,8 +278,9 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
 
           {/* Pipeline Summary */}
           {rawData.pipeline_summary && (
-            <div role="region" aria-label="Pipeline summary data">
+            <div role="region" aria-label="Pipeline summary data" data-type="pipeline">
               <h4 className="data-table__title" id="pipeline-table-label">
+                <span className="data-table__icon">📊</span>
                 Pipeline Summary
               </h4>
               <table className="data-table" aria-labelledby="pipeline-table-label">

@@ -11,12 +11,12 @@ from unittest.mock import patch, MagicMock
 # Set mock mode
 os.environ["MOCK_LLM"] = "1"
 
-from backend.agent.graph import (
+from backend.agent.nodes.graph import (
     build_agent_graph,
     run_agent,
     get_graph_mermaid,
 )
-from backend.agent.core.state import AgentState
+from backend.agent.nodes.state import AgentState
 
 
 # =============================================================================
@@ -61,7 +61,7 @@ class TestGraphMermaid:
 class TestRunAgent:
     """Tests for run_agent function."""
 
-    @patch("backend.agent.graph.agent_graph")
+    @patch("backend.agent.nodes.graph.agent_graph")
     def test_run_agent_returns_dict_with_required_keys(self, mock_graph):
         """Test that run_agent returns all required response keys."""
         mock_graph.invoke.return_value = {
@@ -83,7 +83,7 @@ class TestRunAgent:
         assert "follow_up_suggestions" in result
         assert "meta" in result
 
-    @patch("backend.agent.graph.agent_graph")
+    @patch("backend.agent.nodes.graph.agent_graph")
     def test_run_agent_includes_latency_in_meta(self, mock_graph):
         """Test that run_agent includes latency in meta."""
         mock_graph.invoke.return_value = {
@@ -100,7 +100,7 @@ class TestRunAgent:
         assert "latency_ms" in result["meta"]
         assert isinstance(result["meta"]["latency_ms"], int)
 
-    @patch("backend.agent.graph.agent_graph")
+    @patch("backend.agent.nodes.graph.agent_graph")
     def test_run_agent_handles_graph_exception(self, mock_graph):
         """Test that run_agent handles exceptions gracefully."""
         mock_graph.invoke.side_effect = Exception("Graph error")
@@ -111,7 +111,7 @@ class TestRunAgent:
         assert "error" in result["answer"].lower() or "sorry" in result["answer"].lower()
         assert result["meta"]["mode_used"] == "error"
 
-    @patch("backend.agent.graph.agent_graph")
+    @patch("backend.agent.nodes.graph.agent_graph")
     def test_run_agent_passes_mode_to_initial_state(self, mock_graph):
         """Test that mode is passed correctly to initial state."""
         mock_graph.invoke.return_value = {
@@ -128,7 +128,7 @@ class TestRunAgent:
         call_args = mock_graph.invoke.call_args[0][0]
         assert call_args["mode"] == "data"
 
-    @patch("backend.agent.graph.agent_graph")
+    @patch("backend.agent.nodes.graph.agent_graph")
     def test_run_agent_passes_company_id(self, mock_graph):
         """Test that company_id is passed correctly."""
         mock_graph.invoke.return_value = {

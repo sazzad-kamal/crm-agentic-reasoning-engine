@@ -352,7 +352,7 @@ class TestSerializeForJson:
 
     def test_serialize_pydantic_v1_model(self):
         """Test serialize_for_json handles Pydantic v1 models."""
-        from backend.agent.output.streaming import serialize_for_json
+        from backend.agent.nodes.support.streaming import serialize_for_json
 
         class MockPydanticV1:
             def dict(self):
@@ -365,7 +365,7 @@ class TestSerializeForJson:
 
     def test_serialize_unknown_type(self):
         """Test serialize_for_json converts unknown types to string."""
-        from backend.agent.output.streaming import serialize_for_json
+        from backend.agent.nodes.support.streaming import serialize_for_json
 
         class CustomClass:
             def __str__(self):
@@ -378,7 +378,7 @@ class TestSerializeForJson:
 
     def test_serialize_nested_structures(self):
         """Test serialize_for_json handles nested lists and dicts."""
-        from backend.agent.output.streaming import serialize_for_json
+        from backend.agent.nodes.support.streaming import serialize_for_json
         from datetime import datetime
 
         data = {
@@ -406,7 +406,7 @@ class TestSessionCheckpointMessages:
 
     def test_get_session_state_with_checkpoint(self):
         """Test get_session_state returns channel_values from checkpoint."""
-        from backend.agent import session
+        from backend.agent.nodes.support import session
 
         original = session._checkpointer
 

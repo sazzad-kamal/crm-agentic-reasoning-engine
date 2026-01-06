@@ -5,7 +5,7 @@ Handles company_status, company_search, contacts, and attachments intents.
 Includes tool functions merged from tools/company.py.
 """
 
-from backend.agent.output.extractors import (
+from backend.agent.handlers.extractors import (
     extract_role_from_question,
     extract_company_criteria,
     extract_attachment_query,

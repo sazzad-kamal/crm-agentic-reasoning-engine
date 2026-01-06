@@ -28,7 +28,7 @@ Implements a minimal 4-node graph workflow for answering CRM questions:
                      └───────┘
 
 Usage:
-    from backend.agent.graph import agent_graph, run_agent
+    from backend.agent.nodes.graph import agent_graph, run_agent
 
     result = run_agent("What's going on with Acme Manufacturing?")
 """
@@ -39,12 +39,12 @@ from typing import Any
 
 from langgraph.graph import StateGraph, END
 
-from backend.agent.core.state import AgentState, Message
+from backend.agent.nodes.state import AgentState, Message
 from backend.agent.nodes.routing import route_node
 from backend.agent.nodes.fetching import fetch_node
 from backend.agent.nodes.generation import answer_node, followup_node
-from backend.agent.output.audit import AgentAuditLogger
-from backend.agent.session import (
+from backend.agent.nodes.support.audit import AgentAuditLogger
+from backend.agent.nodes.support.session import (
     make_cache_key,
     get_cached_result,
     set_cached_result,

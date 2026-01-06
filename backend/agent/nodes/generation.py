@@ -7,10 +7,10 @@ Handles answer synthesis and follow-up suggestion generation.
 import logging
 import time
 
-from backend.agent.core.state import AgentState
+from backend.agent.nodes.state import AgentState
 from backend.agent.core.config import get_config
-from backend.agent.shared.memory import format_history_for_prompt
-from backend.agent.output.formatters import (
+from backend.agent.nodes.support.memory import format_history_for_prompt
+from backend.agent.nodes.support.formatters import (
     format_company_section,
     format_activities_section,
     format_history_section,

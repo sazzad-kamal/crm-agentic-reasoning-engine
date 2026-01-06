@@ -5,7 +5,7 @@ Handles activities, analytics, and fallback intents.
 Includes tool functions merged from tools/activity.py.
 """
 
-from backend.agent.output.extractors import extract_activity_type
+from backend.agent.handlers.extractors import extract_activity_type
 from backend.agent.handlers.common import (
     IntentContext,
     IntentResult,

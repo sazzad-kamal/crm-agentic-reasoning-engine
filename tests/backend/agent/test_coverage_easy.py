@@ -282,9 +282,9 @@ class TestConversationMessageExtraction:
 
     def test_get_session_messages_with_messages(self):
         """Test get_session_messages returns messages from checkpoint state."""
-        from backend.agent.session import get_session_messages
+        from backend.agent.nodes.support.session import get_session_messages
 
-        with patch("backend.agent.session.get_session_state") as mock_get_state:
+        with patch("backend.agent.nodes.support.session.get_session_state") as mock_get_state:
             mock_get_state.return_value = {
                 "messages": [
                     {"role": "user", "content": "Hello"},
@@ -300,9 +300,9 @@ class TestConversationMessageExtraction:
 
     def test_get_session_messages_empty_messages_list(self):
         """Test get_session_messages with empty messages in state."""
-        from backend.agent.session import get_session_messages
+        from backend.agent.nodes.support.session import get_session_messages
 
-        with patch("backend.agent.session.get_session_state") as mock_get_state:
+        with patch("backend.agent.nodes.support.session.get_session_state") as mock_get_state:
             mock_get_state.return_value = {"messages": []}
 
             messages = get_session_messages("test-session-456")

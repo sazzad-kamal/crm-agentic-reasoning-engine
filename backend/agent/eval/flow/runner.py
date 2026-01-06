@@ -61,7 +61,7 @@ async def test_single_question(
     Returns:
         FlowStepResult with answer and metrics
     """
-    from backend.agent.graph import run_agent
+    from backend.agent.nodes.graph import run_agent
 
     start_time = time.time()
 

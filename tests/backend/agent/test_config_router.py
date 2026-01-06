@@ -22,7 +22,7 @@ from backend.agent.core.config import (
     reset_config,
     is_mock_mode,
 )
-from backend.agent.output.audit import AgentAuditLogger, AgentAuditEntry
+from backend.agent.nodes.support.audit import AgentAuditLogger, AgentAuditEntry
 
 
 # =============================================================================
@@ -210,7 +210,7 @@ class TestAgentIntegration:
     
     def test_agent_returns_meta_info(self):
         """Test that agent returns metadata."""
-        from backend.agent.graph import run_agent
+        from backend.agent.nodes.graph import run_agent
 
         result = run_agent("Show me pipeline")
 
@@ -220,7 +220,7 @@ class TestAgentIntegration:
 
     def test_agent_handles_company_query(self):
         """Test agent handles company-specific queries."""
-        from backend.agent.graph import run_agent
+        from backend.agent.nodes.graph import run_agent
 
         result = run_agent("What's happening with Acme Manufacturing?")
 
@@ -229,7 +229,7 @@ class TestAgentIntegration:
 
     def test_agent_handles_docs_query(self):
         """Test agent handles documentation queries."""
-        from backend.agent.graph import run_agent
+        from backend.agent.nodes.graph import run_agent
 
         result = run_agent("How do I create an opportunity?", mode="docs")
 

@@ -656,6 +656,41 @@ body {
   /* text flows naturally */
 }
 
+/* Attention animation for starter buttons on load */
+@keyframes attention-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 transparent;
+    border-color: var(--color-border);
+  }
+  50% {
+    box-shadow: 0 0 0 4px var(--color-primary-bg), 0 0 12px var(--color-primary);
+    border-color: var(--color-primary);
+  }
+}
+
+.suggestion-btn {
+  animation: attention-pulse 1.5s ease-in-out 2;
+}
+
+.suggestion-btn:nth-child(1) { animation-delay: 0.3s; }
+.suggestion-btn:nth-child(2) { animation-delay: 0.5s; }
+.suggestion-btn:nth-child(3) { animation-delay: 0.7s; }
+.suggestion-btn:nth-child(4) { animation-delay: 0.9s; }
+.suggestion-btn:nth-child(5) { animation-delay: 1.1s; }
+
+/* Stop animation on hover or focus - user is engaged */
+.suggestion-btn:hover,
+.suggestion-btn:focus {
+  animation: none;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .suggestion-btn {
+    animation: none;
+  }
+}
+
 /* -----------------------------------------------------------------------------
    Messages
    ----------------------------------------------------------------------------- */
@@ -773,58 +808,55 @@ body {
   opacity: 1;
 }
 
-/* Thinking indicator */
-.message__thinking {
+/* Skeleton loader for message loading state */
+.message-skeleton {
   display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-  padding: var(--space-xs) 0;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md) 0;
+  max-width: 400px;
 }
 
-.message__thinking-dots {
-  display: flex;
-  gap: 4px;
+.message-skeleton__line {
+  height: 14px;
+  background: linear-gradient(
+    90deg,
+    var(--color-border-light) 0%,
+    var(--color-border) 50%,
+    var(--color-border-light) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
 
-.message__thinking-dot {
-  width: 6px;
-  height: 6px;
-  background: var(--color-primary);
-  border-radius: 50%;
-  animation: thinking-pulse 1.4s ease-in-out infinite;
+.message-skeleton__line--long {
+  width: 100%;
 }
 
-.message__thinking-dot:nth-child(2) {
+.message-skeleton__line--medium {
+  width: 75%;
+  animation-delay: 0.1s;
+}
+
+.message-skeleton__line--short {
+  width: 50%;
   animation-delay: 0.2s;
 }
 
-.message__thinking-dot:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes thinking-pulse {
-  0%, 80%, 100% {
-    opacity: 0.3;
-    transform: scale(0.8);
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
   }
-  40% {
-    opacity: 1;
-    transform: scale(1);
+  100% {
+    background-position: -200% 0;
   }
 }
 
-.message__thinking-text {
-  animation: thinking-fade 2s ease-in-out infinite;
-}
-
-@keyframes thinking-fade {
-  0%, 100% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 1;
+@media (prefers-reduced-motion: reduce) {
+  .message-skeleton__line {
+    animation: none;
+    background: var(--color-border-light);
   }
 }
 
@@ -840,18 +872,18 @@ body {
 }
 
 .avatar--sm {
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
 }
 
 .avatar--md {
-  width: 36px;
-  height: 36px;
+  width: 24px;
+  height: 24px;
 }
 
 .avatar--lg {
-  width: 44px;
-  height: 44px;
+  width: 32px;
+  height: 32px;
 }
 
 .avatar--user {
@@ -1151,6 +1183,27 @@ body {
   transform: translateY(0);
 }
 
+/* Attention animation for follow-up buttons after answer */
+.follow-up-btn {
+  animation: attention-pulse 1.5s ease-in-out 2;
+}
+
+.follow-up-btn:nth-child(1) { animation-delay: 0.8s; }
+.follow-up-btn:nth-child(2) { animation-delay: 1.0s; }
+.follow-up-btn:nth-child(3) { animation-delay: 1.2s; }
+
+/* Stop animation on hover or focus */
+.follow-up-btn:hover,
+.follow-up-btn:focus {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .follow-up-btn {
+    animation: none;
+  }
+}
+
 /* -----------------------------------------------------------------------------
    Data Tables
    ----------------------------------------------------------------------------- */
@@ -1177,12 +1230,67 @@ body {
   background-color: var(--color-border);
 }
 
+.data-section__arrow {
+  font-size: 10px;
+  transition: transform var(--transition-fast);
+}
+
+.data-section__header[aria-expanded="true"] .data-section__arrow {
+  transform: rotate(90deg);
+}
+
+.data-section__label {
+  flex-shrink: 0;
+}
+
+.data-section__preview {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  padding-left: var(--space-sm);
+}
+
+.data-section__preview-icon {
+  font-size: 12px;
+  opacity: 0.8;
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.data-section__preview-icon:hover {
+  transform: scale(1.2);
+  opacity: 1;
+}
+
 .data-section__content {
   background-color: #fafafa;
   border-radius: var(--radius-md);
   padding: var(--space-lg);
   margin-top: var(--space-sm);
-  animation: fadeIn 0.2s ease;
+  animation: slideDown 0.2s ease-out;
+  overflow: hidden;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    max-height: 2000px;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .data-section__content {
+    animation: none;
+  }
+  .data-section__arrow {
+    transition: none;
+  }
 }
 
 .data-table__title {
@@ -1225,6 +1333,79 @@ body {
 .data-table tr:hover td {
   background-color: var(--color-border-light);
 }
+
+/* Data table title icon */
+.data-table__icon {
+  margin-right: var(--space-xs);
+}
+
+/* -----------------------------------------------------------------------------
+   Data Type Color Coding
+   ----------------------------------------------------------------------------- */
+
+/* Chat DataTables - left border accents per data type */
+[data-type="companies"] .data-table__title { color: var(--color-success); }
+[data-type="companies"] .data-table { border-left: 3px solid var(--color-success); }
+
+[data-type="activities"] .data-table__title { color: var(--color-info); }
+[data-type="activities"] .data-table { border-left: 3px solid var(--color-info); }
+
+[data-type="opportunities"] .data-table__title { color: var(--color-warning); }
+[data-type="opportunities"] .data-table { border-left: 3px solid var(--color-warning); }
+
+[data-type="history"] .data-table__title { color: var(--color-text-secondary); }
+[data-type="history"] .data-table { border-left: 3px solid var(--color-border); }
+
+[data-type="renewals"] .data-table__title { color: var(--color-success); }
+[data-type="renewals"] .data-table { border-left: 3px solid var(--color-success); }
+
+[data-type="pipeline"] .data-table__title { color: var(--color-primary); }
+[data-type="pipeline"] .data-table { border-left: 3px solid var(--color-primary); }
+
+/* Browse Data tabs - color accents when active */
+.data-tab[data-type="companies"].data-tab--active {
+  background: var(--color-success-light);
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.data-tab[data-type="contacts"].data-tab--active {
+  background: var(--color-info-light);
+  color: var(--color-info);
+  border-color: var(--color-info);
+}
+
+.data-tab[data-type="opportunities"].data-tab--active {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+}
+
+.data-tab[data-type="activities"].data-tab--active {
+  background: var(--color-info-light);
+  color: var(--color-info);
+  border-color: var(--color-info);
+}
+
+.data-tab[data-type="groups"].data-tab--active {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.data-tab[data-type="history"].data-tab--active {
+  background: var(--color-border-light);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+
+/* Browse Data table wrapper - top border accent */
+.data-table-wrapper[data-type="companies"] { border-top: 3px solid var(--color-success); }
+.data-table-wrapper[data-type="contacts"] { border-top: 3px solid var(--color-info); }
+.data-table-wrapper[data-type="opportunities"] { border-top: 3px solid var(--color-warning); }
+.data-table-wrapper[data-type="activities"] { border-top: 3px solid var(--color-info); }
+.data-table-wrapper[data-type="groups"] { border-top: 3px solid var(--color-primary); }
+.data-table-wrapper[data-type="history"] { border-top: 3px solid var(--color-border); }
 
 /* -----------------------------------------------------------------------------
    Loading States
@@ -1537,8 +1718,8 @@ input:focus-visible {
   }
 
   .avatar--md {
-    width: 28px;
-    height: 28px;
+    width: 20px;
+    height: 20px;
   }
 
   .input-bar {
@@ -1933,6 +2114,21 @@ input:focus-visible {
   font-weight: 500;
 }
 
+.data-tab__count {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  background-color: var(--color-border-light);
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  margin-left: var(--space-xs);
+}
+
+.data-tab--active .data-tab__count {
+  background-color: rgba(255, 255, 255, 0.3);
+  color: inherit;
+}
+
 /* Data Explorer Search */
 .data-explorer__search {
   display: flex;
@@ -2023,6 +2219,44 @@ input:focus-visible {
 .data-table__th--action {
   width: 60px;
   text-align: center;
+}
+
+.data-table__th--sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.data-table__th--sortable:hover {
+  background-color: var(--color-border);
+  color: var(--color-primary);
+}
+
+.data-table__th--sortable:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.data-table__th--sorted {
+  color: var(--color-primary);
+  background-color: var(--color-primary-bg);
+}
+
+.data-table__sort-indicator {
+  font-size: 12px;
+  margin-left: var(--space-xs);
+  opacity: 0.8;
+}
+
+/* Show ↕ hint on hover for unsorted columns */
+.data-table__th--sortable:not(.data-table__th--sorted) .data-table__sort-indicator::after {
+  content: "↕";
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.data-table__th--sortable:not(.data-table__th--sorted):hover .data-table__sort-indicator::after {
+  opacity: 0.6;
 }
 
 .data-table__row {

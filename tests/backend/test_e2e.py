@@ -26,10 +26,10 @@ class TestE2EAgentPipeline:
     """End-to-end tests for agent pipeline."""
 
     @pytest.mark.integration
-    @patch("backend.agent.graph.agent_graph")
+    @patch("backend.agent.nodes.graph.agent_graph")
     def test_agent_handles_data_query(self, mock_graph):
         """Test agent handles data query end-to-end."""
-        from backend.agent.graph import run_agent
+        from backend.agent.nodes.graph import run_agent
 
         mock_graph.invoke.return_value = {
             "answer": "Acme Manufacturing has $500K in pipeline.",
@@ -54,10 +54,10 @@ class TestE2EAgentPipeline:
         assert result["meta"]["mode_used"] == "data"
 
     @pytest.mark.integration
-    @patch("backend.agent.graph.agent_graph")
+    @patch("backend.agent.nodes.graph.agent_graph")
     def test_agent_handles_docs_query(self, mock_graph):
         """Test agent handles docs query end-to-end."""
-        from backend.agent.graph import run_agent
+        from backend.agent.nodes.graph import run_agent
 
         mock_graph.invoke.return_value = {
             "answer": "To import contacts, use the Import wizard.",
@@ -77,10 +77,10 @@ class TestE2EAgentPipeline:
         assert result["meta"]["mode_used"] == "docs"
 
     @pytest.mark.integration
-    @patch("backend.agent.graph.agent_graph")
+    @patch("backend.agent.nodes.graph.agent_graph")
     def test_agent_includes_latency_metric(self, mock_graph):
         """Test agent response includes latency metric."""
-        from backend.agent.graph import run_agent
+        from backend.agent.nodes.graph import run_agent
 
         mock_graph.invoke.return_value = {
             "answer": "Test answer",
@@ -98,10 +98,10 @@ class TestE2EAgentPipeline:
         assert isinstance(result["meta"]["latency_ms"], int)
 
     @pytest.mark.integration
-    @patch("backend.agent.graph.agent_graph")
+    @patch("backend.agent.nodes.graph.agent_graph")
     def test_agent_handles_error_gracefully(self, mock_graph):
         """Test agent handles errors gracefully."""
-        from backend.agent.graph import run_agent
+        from backend.agent.nodes.graph import run_agent
 
         mock_graph.invoke.side_effect = Exception("Test error")
 

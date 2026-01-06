@@ -189,6 +189,8 @@ const Pagination = memo(function Pagination({
 // Main Component
 // =============================================================================
 
+type SortDirection = "asc" | "desc" | null;
+
 export const DataTable = memo(function DataTable({
   data,
   columns,
@@ -199,10 +201,54 @@ export const DataTable = memo(function DataTable({
 }: DataTableProps) {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [requestedPage, setRequestedPage] = useState(1);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const tableId = useId();
 
+  // Handle column header click for sorting
+  const handleSort = useCallback((column: string) => {
+    if (sortColumn === column) {
+      // Cycle: asc -> desc -> null
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else if (sortDirection === "desc") {
+        setSortColumn(null);
+        setSortDirection(null);
+      }
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+    setRequestedPage(1); // Reset to first page when sorting
+  }, [sortColumn, sortDirection]);
+
+  // Sort data
+  const sortedData = useMemo(() => {
+    if (!sortColumn || !sortDirection) return data;
+
+    return [...data].sort((a, b) => {
+      const aVal = a[sortColumn];
+      const bVal = b[sortColumn];
+
+      // Handle null/undefined
+      if (aVal == null && bVal == null) return 0;
+      if (aVal == null) return sortDirection === "asc" ? 1 : -1;
+      if (bVal == null) return sortDirection === "asc" ? -1 : 1;
+
+      // Compare values
+      let comparison = 0;
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        comparison = aVal - bVal;
+      } else {
+        comparison = String(aVal).localeCompare(String(bVal));
+      }
+
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [data, sortColumn, sortDirection]);
+
   // Calculate pagination
-  const totalItems = data.length;
+  const totalItems = sortedData.length;
   const totalPages = Math.ceil(totalItems / pageSize);
 
   // Derive the actual current page (clamp to valid range)
@@ -211,12 +257,12 @@ export const DataTable = memo(function DataTable({
     return Math.min(Math.max(1, requestedPage), totalPages);
   }, [requestedPage, totalPages]);
 
-  // Get current page data
+  // Get current page data (from sorted data)
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    return data.slice(startIndex, endIndex);
-  }, [data, currentPage, pageSize]);
+    return sortedData.slice(startIndex, endIndex);
+  }, [sortedData, currentPage, pageSize]);
 
   // Handle page change request
   const handlePageChange = useCallback((page: number) => {
@@ -249,7 +295,7 @@ export const DataTable = memo(function DataTable({
   const colCount = displayColumns.length + (onAskAbout ? 1 : 0) + (nestedFields ? 1 : 0);
 
   return (
-    <div className="data-table-wrapper">
+    <div className="data-table-wrapper" data-type={dataType}>
       <div
         className="data-table-container"
         role="region"
@@ -280,11 +326,34 @@ export const DataTable = memo(function DataTable({
                   Ask AI
                 </th>
               )}
-              {displayColumns.map((col) => (
-                <th key={col} className="data-table__th" scope="col">
-                  {formatHeader(col)}
-                </th>
-              ))}
+              {displayColumns.map((col) => {
+                const isSorted = sortColumn === col;
+                const sortIndicator = isSorted
+                  ? sortDirection === "asc" ? " ↑" : " ↓"
+                  : "";
+                return (
+                  <th
+                    key={col}
+                    className={`data-table__th data-table__th--sortable ${isSorted ? "data-table__th--sorted" : ""}`}
+                    scope="col"
+                    onClick={() => handleSort(col)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleSort(col);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="columnheader"
+                    aria-sort={isSorted ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}
+                  >
+                    {formatHeader(col)}
+                    <span className="data-table__sort-indicator" aria-hidden="true">
+                      {sortIndicator}
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>

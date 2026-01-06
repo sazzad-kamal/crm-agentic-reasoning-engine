@@ -13,7 +13,7 @@ import json
 from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, date
 
-from backend.agent.output.streaming import (
+from backend.agent.nodes.support.streaming import (
     format_sse,
     serialize_for_json,
     StreamEvent,
@@ -241,29 +241,29 @@ class TestStreamAgentIntegration:
         async def run_test():
             # Set mock mode
             with patch.dict(os.environ, {"MOCK_LLM": "1"}):
-                from backend.agent.output.streaming import stream_agent
-                
+                from backend.agent.nodes.support.streaming import stream_agent
+
                 events = []
                 async for event in stream_agent("What is Acme CRM?"):
                     events.append(event)
-                
+
                 # Should have at least status and done events
                 assert len(events) > 0
-                
+
                 # Should end with done event
                 last_event = events[-1]
                 assert "event: done" in last_event or "event: error" in last_event
-        
+
         asyncio.run(run_test())
 
     def test_stream_agent_yields_sse_format(self):
         """All yielded events should be valid SSE format."""
         import os
         import asyncio
-        
+
         async def run_test():
             with patch.dict(os.environ, {"MOCK_LLM": "1"}):
-                from backend.agent.output.streaming import stream_agent
+                from backend.agent.nodes.support.streaming import stream_agent
                 
                 async for event in stream_agent("Test question"):
                     # Each event should have event: and data: lines

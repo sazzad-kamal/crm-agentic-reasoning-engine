@@ -11,10 +11,10 @@ import time
 from typing import AsyncGenerator, Any
 from datetime import datetime, date
 
-from backend.agent.core.state import AgentState
+from backend.agent.nodes.state import AgentState
 from backend.agent.core.config import get_config
-from backend.agent.output.audit import AgentAuditLogger
-from backend.agent.output.formatters import (
+from backend.agent.nodes.support.audit import AgentAuditLogger
+from backend.agent.nodes.support.formatters import (
     format_company_section,
     format_activities_section,
     format_history_section,

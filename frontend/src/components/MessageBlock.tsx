@@ -8,15 +8,16 @@ import { CopyButton } from "./CopyButton";
 import { MarkdownText } from "./MarkdownText";
 
 /**
- * Simple thinking indicator shown while waiting for response.
- * Just animated dots - clean and minimal.
+ * Skeleton loader shown while waiting for response.
+ * Shows message-shaped placeholder with shimmer animation.
  */
-function ThinkingIndicator() {
+function MessageSkeleton() {
   return (
-    <div className="message__thinking" role="status" aria-label="Assistant is thinking">
-      <span className="message__thinking-dot" />
-      <span className="message__thinking-dot" />
-      <span className="message__thinking-dot" />
+    <div className="message-skeleton" role="status" aria-label="Assistant is thinking">
+      <div className="message-skeleton__line message-skeleton__line--long" />
+      <div className="message-skeleton__line message-skeleton__line--medium" />
+      <div className="message-skeleton__line message-skeleton__line--short" />
+      <span className="visually-hidden">Loading response...</span>
     </div>
   );
 }
@@ -88,7 +89,7 @@ export const MessageBlock = memo(function MessageBlock({
                 )}
             </div>
           ) : (
-            <ThinkingIndicator />
+            <MessageSkeleton />
           )}
         </div>
       </div>

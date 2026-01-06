@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 project_root = Path(__file__).parent.parent.parent.parent
 load_dotenv(project_root / ".env")
 
-from backend.agent.graph import run_agent
+from backend.agent.nodes.graph import run_agent
 from backend.agent.rag.tools import tool_docs_rag
 
 # Configure logging to show timing

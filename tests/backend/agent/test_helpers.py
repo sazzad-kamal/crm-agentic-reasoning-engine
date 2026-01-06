@@ -21,18 +21,18 @@ class TestFormatCompanySection:
     
     def test_returns_empty_for_none(self):
         """Returns empty string for None input."""
-        from backend.agent.output.formatters import format_company_section
+        from backend.agent.nodes.support.formatters import format_company_section
         assert format_company_section(None) == ""
     
     def test_returns_empty_for_missing_company(self):
         """Returns empty string when company key missing."""
-        from backend.agent.output.formatters import format_company_section
+        from backend.agent.nodes.support.formatters import format_company_section
         assert format_company_section({}) == ""
         assert format_company_section({"other": "data"}) == ""
     
     def test_formats_basic_company_info(self):
         """Formats basic company information."""
-        from backend.agent.output.formatters import format_company_section
+        from backend.agent.nodes.support.formatters import format_company_section
         
         data = {
             "company": {
@@ -52,7 +52,7 @@ class TestFormatCompanySection:
     
     def test_includes_contacts_when_present(self):
         """Includes contacts in output."""
-        from backend.agent.output.formatters import format_company_section
+        from backend.agent.nodes.support.formatters import format_company_section
         
         data = {
             "company": {"name": "Test", "company_id": "T-001"},
@@ -68,7 +68,7 @@ class TestFormatCompanySection:
     
     def test_limits_contacts_to_three(self):
         """Only shows first 3 contacts."""
-        from backend.agent.output.formatters import format_company_section
+        from backend.agent.nodes.support.formatters import format_company_section
         
         contacts = [
             {"first_name": f"Contact{i}", "last_name": "Test", "job_title": "Role", "email": f"c{i}@test.com"}
@@ -89,19 +89,19 @@ class TestFormatActivitiesSection:
     
     def test_returns_empty_for_none(self):
         """Returns empty string for None input."""
-        from backend.agent.output.formatters import format_activities_section
+        from backend.agent.nodes.support.formatters import format_activities_section
         assert format_activities_section(None) == ""
     
     def test_handles_no_activities(self):
         """Shows message when no activities."""
-        from backend.agent.output.formatters import format_activities_section
+        from backend.agent.nodes.support.formatters import format_activities_section
         
         result = format_activities_section({"activities": []})
         assert "No recent activities" in result
     
     def test_formats_activities(self):
         """Formats activity list."""
-        from backend.agent.output.formatters import format_activities_section
+        from backend.agent.nodes.support.formatters import format_activities_section
         
         data = {
             "activities": [
@@ -124,19 +124,19 @@ class TestFormatHistorySection:
     
     def test_returns_empty_for_none(self):
         """Returns empty string for None input."""
-        from backend.agent.output.formatters import format_history_section
+        from backend.agent.nodes.support.formatters import format_history_section
         assert format_history_section(None) == ""
     
     def test_handles_no_history(self):
         """Shows message when no history."""
-        from backend.agent.output.formatters import format_history_section
+        from backend.agent.nodes.support.formatters import format_history_section
         
         result = format_history_section({"history": []})
         assert "No recent history" in result
     
     def test_formats_history_entries(self):
         """Formats history entries."""
-        from backend.agent.output.formatters import format_history_section
+        from backend.agent.nodes.support.formatters import format_history_section
         
         data = {
             "history": [
@@ -158,19 +158,19 @@ class TestFormatPipelineSection:
     
     def test_returns_empty_for_none(self):
         """Returns empty string for None input."""
-        from backend.agent.output.formatters import format_pipeline_section
+        from backend.agent.nodes.support.formatters import format_pipeline_section
         assert format_pipeline_section(None) == ""
     
     def test_handles_empty_pipeline(self):
         """Shows message when no opportunities."""
-        from backend.agent.output.formatters import format_pipeline_section
+        from backend.agent.nodes.support.formatters import format_pipeline_section
         
         result = format_pipeline_section({"summary": {"total_count": 0}})
         assert "No open opportunities" in result
     
     def test_formats_pipeline_summary(self):
         """Formats pipeline summary."""
-        from backend.agent.output.formatters import format_pipeline_section
+        from backend.agent.nodes.support.formatters import format_pipeline_section
         
         data = {
             "summary": {
@@ -192,19 +192,19 @@ class TestFormatRenewalsSection:
     
     def test_returns_empty_for_none(self):
         """Returns empty string for None input."""
-        from backend.agent.output.formatters import format_renewals_section
+        from backend.agent.nodes.support.formatters import format_renewals_section
         assert format_renewals_section(None) == ""
     
     def test_handles_no_renewals(self):
         """Shows message when no renewals."""
-        from backend.agent.output.formatters import format_renewals_section
+        from backend.agent.nodes.support.formatters import format_renewals_section
         
         result = format_renewals_section({"renewals": []})
         assert "No renewals" in result
     
     def test_formats_renewals(self):
         """Formats renewal list."""
-        from backend.agent.output.formatters import format_renewals_section
+        from backend.agent.nodes.support.formatters import format_renewals_section
         
         data = {
             "renewals": [
@@ -225,13 +225,13 @@ class TestFormatDocsSection:
     
     def test_returns_empty_for_none(self):
         """Returns empty string for None input."""
-        from backend.agent.output.formatters import format_docs_section
+        from backend.agent.nodes.support.formatters import format_docs_section
         assert format_docs_section(None) == ""
         assert format_docs_section("") == ""
     
     def test_formats_docs_answer(self):
         """Formats documentation answer."""
-        from backend.agent.output.formatters import format_docs_section
+        from backend.agent.nodes.support.formatters import format_docs_section
         
         result = format_docs_section("Here is how to import contacts...")
         assert "DOCUMENTATION GUIDANCE" in result
@@ -415,27 +415,27 @@ class TestFormatDateHelper:
 
     def test_extracts_date_from_datetime(self):
         """Extracts date portion from ISO datetime string."""
-        from backend.agent.output.formatters import _format_date
+        from backend.agent.nodes.support.formatters import _format_date
         assert _format_date("2025-01-15T10:30:00") == "2025-01-15"
 
     def test_returns_string_as_is_if_no_t(self):
         """Returns string as-is if no T separator."""
-        from backend.agent.output.formatters import _format_date
+        from backend.agent.nodes.support.formatters import _format_date
         assert _format_date("2025-01-15") == "2025-01-15"
 
     def test_returns_na_for_none(self):
         """Returns N/A for None input."""
-        from backend.agent.output.formatters import _format_date
+        from backend.agent.nodes.support.formatters import _format_date
         assert _format_date(None) == "N/A"
 
     def test_returns_na_for_empty_string(self):
         """Returns N/A for empty string."""
-        from backend.agent.output.formatters import _format_date
+        from backend.agent.nodes.support.formatters import _format_date
         assert _format_date("") == "N/A"
 
     def test_handles_non_string_input(self):
         """Handles non-string input by converting."""
-        from backend.agent.output.formatters import _format_date
+        from backend.agent.nodes.support.formatters import _format_date
         result = _format_date(12345)
         assert result == "12345"
 
@@ -445,12 +445,12 @@ class TestTruncateHelper:
 
     def test_returns_short_text_unchanged(self):
         """Returns short text unchanged."""
-        from backend.agent.output.formatters import _truncate
+        from backend.agent.nodes.support.formatters import _truncate
         assert _truncate("Hello") == "Hello"
 
     def test_truncates_long_text(self):
         """Truncates text exceeding max_len."""
-        from backend.agent.output.formatters import _truncate
+        from backend.agent.nodes.support.formatters import _truncate
         long_text = "x" * 150
         result = _truncate(long_text, max_len=100)
         assert len(result) == 103  # 100 + "..."
@@ -458,23 +458,23 @@ class TestTruncateHelper:
 
     def test_returns_empty_for_none(self):
         """Returns empty string for None."""
-        from backend.agent.output.formatters import _truncate
+        from backend.agent.nodes.support.formatters import _truncate
         assert _truncate(None) == ""
 
     def test_returns_empty_for_empty_string(self):
         """Returns empty string for empty input."""
-        from backend.agent.output.formatters import _truncate
+        from backend.agent.nodes.support.formatters import _truncate
         assert _truncate("") == ""
 
     def test_uses_custom_max_len(self):
         """Respects custom max_len."""
-        from backend.agent.output.formatters import _truncate
+        from backend.agent.nodes.support.formatters import _truncate
         result = _truncate("Hello World", max_len=5)
         assert result == "Hello..."
 
     def test_handles_exact_length(self):
         """Handles text exactly at max_len."""
-        from backend.agent.output.formatters import _truncate
+        from backend.agent.nodes.support.formatters import _truncate
         result = _truncate("Hello", max_len=5)
         assert result == "Hello"
 
@@ -484,7 +484,7 @@ class TestSectionFormatter:
 
     def test_format_returns_empty_for_none_data(self):
         """Returns empty string for None data."""
-        from backend.agent.output.formatters import SectionFormatter
+        from backend.agent.nodes.support.formatters import SectionFormatter
         formatter = SectionFormatter(
             header="TEST",
             empty_message="No data",
@@ -494,7 +494,7 @@ class TestSectionFormatter:
 
     def test_format_shows_empty_message_for_no_items(self):
         """Shows empty message when items list is empty."""
-        from backend.agent.output.formatters import SectionFormatter
+        from backend.agent.nodes.support.formatters import SectionFormatter
         formatter = SectionFormatter(
             header="TEST",
             empty_message="No data found",
@@ -506,7 +506,7 @@ class TestSectionFormatter:
 
     def test_format_with_count_and_days(self):
         """Includes count and days in header."""
-        from backend.agent.output.formatters import SectionFormatter
+        from backend.agent.nodes.support.formatters import SectionFormatter
         formatter = SectionFormatter(
             header="ITEMS",
             empty_message="None",
@@ -521,7 +521,7 @@ class TestSectionFormatter:
 
     def test_format_with_count_only(self):
         """Includes only count in header when no days."""
-        from backend.agent.output.formatters import SectionFormatter
+        from backend.agent.nodes.support.formatters import SectionFormatter
         formatter = SectionFormatter(
             header="ITEMS",
             empty_message="None",
@@ -536,7 +536,7 @@ class TestSectionFormatter:
 
     def test_format_with_days_only(self):
         """Includes only days in header when no count."""
-        from backend.agent.output.formatters import SectionFormatter
+        from backend.agent.nodes.support.formatters import SectionFormatter
         formatter = SectionFormatter(
             header="ITEMS",
             empty_message="None",
@@ -550,7 +550,7 @@ class TestSectionFormatter:
 
     def test_format_limits_items(self):
         """Respects max_items limit."""
-        from backend.agent.output.formatters import SectionFormatter
+        from backend.agent.nodes.support.formatters import SectionFormatter
         formatter = SectionFormatter(
             header="ITEMS",
             empty_message="None",
@@ -569,7 +569,7 @@ class TestFormatActivityItem:
 
     def test_formats_complete_activity(self):
         """Formats activity with all fields."""
-        from backend.agent.output.formatters import _format_activity
+        from backend.agent.nodes.support.formatters import _format_activity
         activity = {
             "type": "Call",
             "subject": "Check-in",
@@ -586,7 +586,7 @@ class TestFormatActivityItem:
 
     def test_uses_created_at_fallback(self):
         """Uses created_at when due_datetime missing."""
-        from backend.agent.output.formatters import _format_activity
+        from backend.agent.nodes.support.formatters import _format_activity
         activity = {
             "type": "Task",
             "subject": "Follow up",
@@ -599,7 +599,7 @@ class TestFormatActivityItem:
 
     def test_handles_missing_fields(self):
         """Handles missing fields with N/A."""
-        from backend.agent.output.formatters import _format_activity
+        from backend.agent.nodes.support.formatters import _format_activity
         result = _format_activity({})
         assert "N/A" in result
 
@@ -609,7 +609,7 @@ class TestFormatHistoryItem:
 
     def test_formats_complete_history(self):
         """Formats history entry with all fields."""
-        from backend.agent.output.formatters import _format_history
+        from backend.agent.nodes.support.formatters import _format_history
         entry = {
             "type": "Note",
             "subject": "Meeting summary",
@@ -626,7 +626,7 @@ class TestFormatHistoryItem:
 
     def test_skips_empty_description(self):
         """Doesn't add Note line when no description."""
-        from backend.agent.output.formatters import _format_history
+        from backend.agent.nodes.support.formatters import _format_history
         entry = {
             "type": "Email",
             "subject": "Sent proposal",
@@ -642,7 +642,7 @@ class TestFormatOpportunityItem:
 
     def test_formats_complete_opportunity(self):
         """Formats opportunity with all fields."""
-        from backend.agent.output.formatters import _format_opportunity
+        from backend.agent.nodes.support.formatters import _format_opportunity
         opp = {
             "name": "Enterprise Deal",
             "stage": "Proposal",
@@ -657,7 +657,7 @@ class TestFormatOpportunityItem:
 
     def test_handles_zero_value(self):
         """Handles zero value opportunity."""
-        from backend.agent.output.formatters import _format_opportunity
+        from backend.agent.nodes.support.formatters import _format_opportunity
         opp = {"name": "Free Pilot", "stage": "Discovery", "value": 0}
         result = _format_opportunity(opp)
         assert "$0" in result
@@ -668,7 +668,7 @@ class TestFormatRenewalItem:
 
     def test_formats_complete_renewal(self):
         """Formats renewal with all fields."""
-        from backend.agent.output.formatters import _format_renewal
+        from backend.agent.nodes.support.formatters import _format_renewal
         renewal = {
             "name": "Acme Corp",
             "company_id": "ACME-001",
@@ -689,7 +689,7 @@ class TestFormatCompaniesListSection:
 
     def test_formats_companies_list(self):
         """Formats list of companies from search."""
-        from backend.agent.output.formatters import format_company_section
+        from backend.agent.nodes.support.formatters import format_company_section
         data = {
             "companies": [
                 {"name": "Acme", "company_id": "A001", "industry": "Tech",
@@ -707,7 +707,7 @@ class TestFormatCompaniesListSection:
 
     def test_handles_empty_companies_list(self):
         """Returns empty for empty companies list (falsy check)."""
-        from backend.agent.output.formatters import format_company_section
+        from backend.agent.nodes.support.formatters import format_company_section
         # Empty list is falsy, so returns empty string
         data = {"companies": [], "count": 0}
         result = format_company_section(data)
@@ -715,7 +715,7 @@ class TestFormatCompaniesListSection:
 
     def test_format_companies_list_helper_handles_empty(self):
         """The format_section helper handles empty list via companies formatter."""
-        from backend.agent.output.formatters import format_section
+        from backend.agent.nodes.support.formatters import format_section
         result = format_section("companies", {"companies": [], "count": 0})
         assert "No companies found" in result
 
@@ -725,18 +725,18 @@ class TestFormatContactsSection:
 
     def test_returns_empty_for_none(self):
         """Returns empty string for None."""
-        from backend.agent.output.formatters import format_contacts_section
+        from backend.agent.nodes.support.formatters import format_contacts_section
         assert format_contacts_section(None) == ""
 
     def test_handles_no_contacts(self):
         """Shows message when no contacts."""
-        from backend.agent.output.formatters import format_contacts_section
+        from backend.agent.nodes.support.formatters import format_contacts_section
         result = format_contacts_section({"contacts": []})
         assert "No contacts found" in result
 
     def test_formats_contacts(self):
         """Formats contact list."""
-        from backend.agent.output.formatters import format_contacts_section
+        from backend.agent.nodes.support.formatters import format_contacts_section
         data = {
             "contacts": [
                 {"first_name": "John", "last_name": "Doe", "job_title": "CEO",
@@ -757,17 +757,17 @@ class TestFormatGroupsSection:
 
     def test_returns_empty_for_none(self):
         """Returns empty string for None."""
-        from backend.agent.output.formatters import format_groups_section
+        from backend.agent.nodes.support.formatters import format_groups_section
         assert format_groups_section(None) == ""
 
     def test_returns_empty_for_empty_data(self):
         """Returns empty string for empty data."""
-        from backend.agent.output.formatters import format_groups_section
+        from backend.agent.nodes.support.formatters import format_groups_section
         assert format_groups_section({}) == ""
 
     def test_formats_group_members(self):
         """Formats group members list."""
-        from backend.agent.output.formatters import format_groups_section
+        from backend.agent.nodes.support.formatters import format_groups_section
         data = {
             "group_name": "Enterprise Accounts",
             "members": [
@@ -782,7 +782,7 @@ class TestFormatGroupsSection:
 
     def test_formats_groups_list(self):
         """Formats list of groups."""
-        from backend.agent.output.formatters import format_groups_section
+        from backend.agent.nodes.support.formatters import format_groups_section
         data = {
             "groups": [
                 {"name": "Enterprise", "group_id": "G001", "description": "Large accounts"},
@@ -801,18 +801,18 @@ class TestFormatAttachmentsSection:
 
     def test_returns_empty_for_none(self):
         """Returns empty string for None."""
-        from backend.agent.output.formatters import format_attachments_section
+        from backend.agent.nodes.support.formatters import format_attachments_section
         assert format_attachments_section(None) == ""
 
     def test_handles_no_attachments(self):
         """Shows message when no attachments."""
-        from backend.agent.output.formatters import format_attachments_section
+        from backend.agent.nodes.support.formatters import format_attachments_section
         result = format_attachments_section({"attachments": []})
         assert "No attachments found" in result
 
     def test_formats_attachments(self):
         """Formats attachment list."""
-        from backend.agent.output.formatters import format_attachments_section
+        from backend.agent.nodes.support.formatters import format_attachments_section
         data = {
             "attachments": [
                 {"name": "Contract.pdf", "file_type": "PDF",
@@ -832,13 +832,13 @@ class TestFormatAccountContextSection:
 
     def test_returns_empty_for_none(self):
         """Returns empty string for None."""
-        from backend.agent.output.formatters import format_account_context_section
+        from backend.agent.nodes.support.formatters import format_account_context_section
         assert format_account_context_section(None) == ""
         assert format_account_context_section("") == ""
 
     def test_formats_account_context(self):
         """Formats account context."""
-        from backend.agent.output.formatters import format_account_context_section
+        from backend.agent.nodes.support.formatters import format_account_context_section
         result = format_account_context_section("Important notes about the account...")
         assert "ACCOUNT CONTEXT" in result
         assert "Important notes" in result
@@ -849,17 +849,17 @@ class TestFormatConversationHistorySection:
 
     def test_returns_empty_for_none(self):
         """Returns empty string for None."""
-        from backend.agent.output.formatters import format_conversation_history_section
+        from backend.agent.nodes.support.formatters import format_conversation_history_section
         assert format_conversation_history_section(None) == ""
 
     def test_returns_empty_for_empty_list(self):
         """Returns empty string for empty list."""
-        from backend.agent.output.formatters import format_conversation_history_section
+        from backend.agent.nodes.support.formatters import format_conversation_history_section
         assert format_conversation_history_section([]) == ""
 
     def test_formats_conversation_history(self):
         """Formats conversation messages."""
-        from backend.agent.output.formatters import format_conversation_history_section
+        from backend.agent.nodes.support.formatters import format_conversation_history_section
         messages = [
             {"role": "user", "content": "What's happening with Acme?"},
             {"role": "assistant", "content": "Acme Corp is doing well..."},
@@ -872,7 +872,7 @@ class TestFormatConversationHistorySection:
 
     def test_truncates_long_messages(self):
         """Truncates messages longer than 150 chars."""
-        from backend.agent.output.formatters import format_conversation_history_section
+        from backend.agent.nodes.support.formatters import format_conversation_history_section
         long_message = "x" * 200
         messages = [{"role": "user", "content": long_message}]
         result = format_conversation_history_section(messages)
@@ -881,7 +881,7 @@ class TestFormatConversationHistorySection:
 
     def test_respects_max_messages(self):
         """Respects max_messages parameter."""
-        from backend.agent.output.formatters import format_conversation_history_section
+        from backend.agent.nodes.support.formatters import format_conversation_history_section
         messages = [
             {"role": "user", "content": f"Message {i}"}
             for i in range(10)
@@ -897,7 +897,7 @@ class TestFormatPipelineSectionOpportunities:
 
     def test_includes_opportunities_list(self):
         """Includes opportunities in output."""
-        from backend.agent.output.formatters import format_pipeline_section
+        from backend.agent.nodes.support.formatters import format_pipeline_section
         data = {
             "summary": {
                 "total_count": 2,

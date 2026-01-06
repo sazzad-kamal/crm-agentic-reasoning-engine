@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from backend.agent.core.schemas import ChatRequest
-from backend.agent.output.streaming import stream_agent
+from backend.agent.nodes.support.streaming import stream_agent
 from backend.agent.question_tree import get_starters
 
 logger = logging.getLogger(__name__)

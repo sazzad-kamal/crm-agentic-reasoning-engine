@@ -23,7 +23,7 @@ from backend.agent.handlers import (
     tool_pipeline_by_owner,
 )
 from backend.agent.llm.router import route_question
-from backend.agent.graph import run_agent
+from backend.agent.nodes.graph import run_agent
 
 # datastore fixture is provided by conftest.py
 

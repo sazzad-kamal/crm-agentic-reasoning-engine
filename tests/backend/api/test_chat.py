@@ -86,7 +86,7 @@ class TestStreamingModule:
 
     def test_format_sse_returns_valid_format(self):
         """Test that format_sse returns valid SSE format."""
-        from backend.agent.output.streaming import format_sse
+        from backend.agent.nodes.support.streaming import format_sse
 
         result = format_sse("status", {"message": "Testing"})
 
@@ -96,7 +96,7 @@ class TestStreamingModule:
 
     def test_format_sse_serializes_json(self):
         """Test that format_sse properly serializes JSON."""
-        from backend.agent.output.streaming import format_sse
+        from backend.agent.nodes.support.streaming import format_sse
 
         result = format_sse("test", {"key": "value", "num": 42})
 
@@ -110,7 +110,7 @@ class TestStreamingModule:
 
     def test_serialize_for_json_handles_primitives(self):
         """Test that serialize_for_json handles primitive types."""
-        from backend.agent.output.streaming import serialize_for_json
+        from backend.agent.nodes.support.streaming import serialize_for_json
 
         assert serialize_for_json("test") == "test"
         assert serialize_for_json(42) == 42
@@ -120,21 +120,21 @@ class TestStreamingModule:
 
     def test_serialize_for_json_handles_lists(self):
         """Test that serialize_for_json handles lists."""
-        from backend.agent.output.streaming import serialize_for_json
+        from backend.agent.nodes.support.streaming import serialize_for_json
 
         result = serialize_for_json([1, "two", 3.0])
         assert result == [1, "two", 3.0]
 
     def test_serialize_for_json_handles_dicts(self):
         """Test that serialize_for_json handles dicts."""
-        from backend.agent.output.streaming import serialize_for_json
+        from backend.agent.nodes.support.streaming import serialize_for_json
 
         result = serialize_for_json({"a": 1, "b": "two"})
         assert result == {"a": 1, "b": "two"}
 
     def test_serialize_for_json_handles_datetime(self):
         """Test that serialize_for_json handles datetime objects."""
-        from backend.agent.output.streaming import serialize_for_json
+        from backend.agent.nodes.support.streaming import serialize_for_json
         from datetime import datetime
 
         dt = datetime(2024, 1, 15, 10, 30, 0)
@@ -144,7 +144,7 @@ class TestStreamingModule:
 
     def test_serialize_for_json_handles_pydantic_models(self):
         """Test that serialize_for_json handles Pydantic models."""
-        from backend.agent.output.streaming import serialize_for_json
+        from backend.agent.nodes.support.streaming import serialize_for_json
         from backend.agent.core.schemas import Source
 
         source = Source(type="company", id="ACME", label="Acme Corp")
@@ -156,7 +156,7 @@ class TestStreamingModule:
 
     def test_stream_event_types_defined(self):
         """Test that all expected stream event types are defined."""
-        from backend.agent.output.streaming import StreamEvent
+        from backend.agent.nodes.support.streaming import StreamEvent
 
         assert hasattr(StreamEvent, "STATUS")
         assert hasattr(StreamEvent, "ANSWER_START")
@@ -168,7 +168,7 @@ class TestStreamingModule:
 
     def test_node_messages_defined(self):
         """Test that node messages are defined for expected nodes."""
-        from backend.agent.output.streaming import NODE_MESSAGES
+        from backend.agent.nodes.support.streaming import NODE_MESSAGES
 
         assert "route" in NODE_MESSAGES
         assert "fetch" in NODE_MESSAGES

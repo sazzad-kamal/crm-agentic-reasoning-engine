@@ -15,7 +15,7 @@ class TestGraphStructure:
 
     def test_graph_has_four_nodes(self):
         """Verify the graph was simplified to 4 nodes."""
-        from backend.agent.graph import build_agent_graph
+        from backend.agent.nodes.graph import build_agent_graph
 
         # Build a fresh graph
         graph = build_agent_graph(checkpointer=None)

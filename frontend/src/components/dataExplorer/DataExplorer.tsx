@@ -4,10 +4,11 @@
  * Main component that provides tabbed navigation, search, and data display
  * for exploring CRM entities (companies, contacts, opportunities, etc.).
  */
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useDataFetch } from "../../hooks/useDataFetch";
 import { DataTable } from "./DataTable";
 import { TABS, type DataTab } from "../../types/dataExplorer";
+import { config } from "../../config";
 
 // =============================================================================
 // Types
@@ -46,9 +47,39 @@ function ErrorState({ message }: { message: string }) {
 export function DataExplorer({ onAskAbout }: DataExplorerProps) {
   const [activeTab, setActiveTab] = useState<DataTab>("companies");
   const [searchTerm, setSearchTerm] = useState("");
+  const [tabCounts, setTabCounts] = useState<Partial<Record<DataTab, number>>>({});
 
   const currentTab = TABS.find((t) => t.id === activeTab)!;
   const { data, loading, error } = useDataFetch(currentTab.endpoint);
+
+  // Pre-fetch counts for all tabs on mount
+  useEffect(() => {
+    const fetchAllCounts = async () => {
+      const counts: Partial<Record<DataTab, number>> = {};
+      await Promise.all(
+        TABS.map(async (tab) => {
+          try {
+            const res = await fetch(`${config.apiUrl}${tab.endpoint}`);
+            if (res.ok) {
+              const json = await res.json();
+              counts[tab.id] = json.total ?? 0;
+            }
+          } catch {
+            // Silently ignore fetch errors for counts
+          }
+        })
+      );
+      setTabCounts(counts);
+    };
+    fetchAllCounts();
+  }, []);
+
+  // Update count when data is fetched for a tab (in case it changed)
+  useEffect(() => {
+    if (data?.total !== undefined && !loading) {
+      setTabCounts((prev) => ({ ...prev, [activeTab]: data.total }));
+    }
+  }, [data?.total, activeTab, loading]);
 
   // Extract data array for cleaner memoization
   const dataArray = data?.data;
@@ -91,18 +122,25 @@ export function DataExplorer({ onAskAbout }: DataExplorerProps) {
 
       {/* Tabs */}
       <div className="data-explorer__tabs" role="tablist">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            className={`data-tab ${activeTab === tab.id ? "data-tab--active" : ""}`}
-            onClick={() => handleTabChange(tab.id)}
-          >
-            <span className="data-tab__icon">{tab.icon}</span>
-            <span className="data-tab__label">{tab.label}</span>
-          </button>
-        ))}
+        {TABS.map((tab) => {
+          const count = tabCounts[tab.id];
+          return (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              className={`data-tab ${activeTab === tab.id ? "data-tab--active" : ""}`}
+              onClick={() => handleTabChange(tab.id)}
+              data-type={tab.id}
+            >
+              <span className="data-tab__icon">{tab.icon}</span>
+              <span className="data-tab__label">{tab.label}</span>
+              {count !== undefined && (
+                <span className="data-tab__count">{count}</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Search */}

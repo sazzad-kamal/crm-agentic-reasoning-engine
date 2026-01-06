@@ -11,21 +11,21 @@ class TestConversationCheckpointer:
 
     def test_get_checkpointer_returns_saver(self):
         """Test get_checkpointer returns MemorySaver."""
-        from backend.agent.session import get_checkpointer
+        from backend.agent.nodes.support.session import get_checkpointer
 
         checkpointer = get_checkpointer()
         assert checkpointer is not None
 
     def test_get_session_state_not_found(self):
         """Test get_session_state returns None when not found."""
-        from backend.agent.session import get_session_state
+        from backend.agent.nodes.support.session import get_session_state
 
         result = get_session_state("nonexistent-session-id")
         assert result is None
 
     def test_get_session_state_exception(self):
         """Test get_session_state handles exceptions."""
-        from backend.agent import session
+        from backend.agent.nodes.support import session
 
         original_checkpointer = session._checkpointer
 
@@ -39,14 +39,14 @@ class TestConversationCheckpointer:
 
     def test_get_session_messages_not_found(self):
         """Test get_session_messages returns empty list when not found."""
-        from backend.agent.session import get_session_messages
+        from backend.agent.nodes.support.session import get_session_messages
 
         result = get_session_messages("nonexistent-session-id")
         assert result == []
 
     def test_get_session_messages_exception(self):
         """Test get_session_messages handles exceptions."""
-        from backend.agent import session
+        from backend.agent.nodes.support import session
 
         original_checkpointer = session._checkpointer
 
@@ -60,7 +60,7 @@ class TestConversationCheckpointer:
 
     def test_build_thread_config_with_session(self):
         """Test build_thread_config with session ID."""
-        from backend.agent.session import build_thread_config
+        from backend.agent.nodes.support.session import build_thread_config
 
         config = build_thread_config("my-session")
 
@@ -69,7 +69,7 @@ class TestConversationCheckpointer:
 
     def test_build_thread_config_without_session(self):
         """Test build_thread_config without session ID generates UUID."""
-        from backend.agent.session import build_thread_config
+        from backend.agent.nodes.support.session import build_thread_config
 
         config = build_thread_config(None)
 
@@ -148,16 +148,16 @@ class TestGraphModule:
 
     def test_build_agent_graph_returns_graph(self):
         """Test build_agent_graph returns a compiled graph."""
-        from backend.agent.graph import build_agent_graph
+        from backend.agent.nodes.graph import build_agent_graph
 
         graph = build_agent_graph()
         assert graph is not None
 
     def test_run_agent_mock_mode(self):
         """Test run_agent in mock mode."""
-        from backend.agent.graph import run_agent
+        from backend.agent.nodes.graph import run_agent
 
-        with patch("backend.agent.graph._execute_graph") as mock_exec:
+        with patch("backend.agent.nodes.graph._execute_graph") as mock_exec:
             mock_exec.return_value = {
                 "answer": "Test answer",
                 "sources": [],
@@ -180,7 +180,7 @@ class TestStreamingModule:
 
     def test_serialize_for_json_basic(self):
         """Test serialize_for_json with basic types."""
-        from backend.agent.output.streaming import serialize_for_json
+        from backend.agent.nodes.support.streaming import serialize_for_json
 
         result = serialize_for_json({"key": "value", "num": 42})
         assert result["key"] == "value"
@@ -188,7 +188,7 @@ class TestStreamingModule:
 
     def test_serialize_for_json_datetime(self):
         """Test serialize_for_json with datetime."""
-        from backend.agent.output.streaming import serialize_for_json
+        from backend.agent.nodes.support.streaming import serialize_for_json
         from datetime import datetime
 
         dt = datetime(2024, 1, 15, 12, 30, 0)
@@ -198,7 +198,7 @@ class TestStreamingModule:
 
     def test_format_sse(self):
         """Test format_sse creates proper SSE format."""
-        from backend.agent.output.streaming import format_sse
+        from backend.agent.nodes.support.streaming import format_sse
 
         result = format_sse("progress", {"step": "fetching"})
 

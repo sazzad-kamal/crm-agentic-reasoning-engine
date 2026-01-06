@@ -10,7 +10,7 @@ from threading import Lock
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from backend.agent.core.state import Message
+    from backend.agent.nodes.state import Message
 
 
 logger = logging.getLogger(__name__)

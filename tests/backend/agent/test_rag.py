@@ -183,12 +183,12 @@ class TestRagIngest:
             assert result == 0
 
 
-class TestEvalLlmClient:
-    """Tests for backend.eval.llm_client module."""
+class TestSharedLlmClient:
+    """Tests for backend.llm.client module (shared LLM infrastructure)."""
 
     def test_requires_max_completion_tokens_o1(self):
         """Test that o1 models require max_completion_tokens."""
-        from backend.eval.llm_client import _requires_max_completion_tokens
+        from backend.llm.client import _requires_max_completion_tokens
 
         assert _requires_max_completion_tokens("o1-preview") is True
         assert _requires_max_completion_tokens("o1-mini") is True
@@ -196,37 +196,37 @@ class TestEvalLlmClient:
 
     def test_requires_max_completion_tokens_gpt4(self):
         """Test that gpt-4 models don't require max_completion_tokens."""
-        from backend.eval.llm_client import _requires_max_completion_tokens
+        from backend.llm.client import _requires_max_completion_tokens
 
         assert _requires_max_completion_tokens("gpt-4o") is False
         assert _requires_max_completion_tokens("gpt-4o-mini") is False
         assert _requires_max_completion_tokens("gpt-4-turbo") is False
 
     def test_get_chat_model_no_api_key(self):
-        """Test _get_chat_model raises when no API key."""
-        from backend.eval.llm_client import _get_chat_model
+        """Test get_chat_model raises when no API key."""
+        from backend.llm.client import get_chat_model
 
         # Clear cache
-        _get_chat_model.cache_clear()
+        get_chat_model.cache_clear()
 
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValueError, match="OPENAI_API_KEY"):
-                _get_chat_model("gpt-4o-mini", 0.0, 1024)
+                get_chat_model("gpt-4o-mini", 0.0, 1024)
 
     def test_get_chat_model_with_api_key(self):
-        """Test _get_chat_model creates ChatOpenAI with API key."""
-        from backend.eval.llm_client import _get_chat_model
+        """Test get_chat_model creates ChatOpenAI with API key."""
+        from backend.llm.client import get_chat_model
 
         # Clear cache
-        _get_chat_model.cache_clear()
+        get_chat_model.cache_clear()
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}), \
-             patch("backend.eval.llm_client.ChatOpenAI") as mock_chat:
+             patch("backend.llm.client.ChatOpenAI") as mock_chat:
 
             mock_instance = MagicMock()
             mock_chat.return_value = mock_instance
 
-            result = _get_chat_model("gpt-4o-mini", 0.0, 1024)
+            result = get_chat_model("gpt-4o-mini", 0.0, 1024)
 
             assert result is mock_instance
             mock_chat.assert_called_once()
@@ -236,21 +236,21 @@ class TestEvalLlmClient:
             assert call_kwargs["max_tokens"] == 1024
 
         # Clear cache for other tests
-        _get_chat_model.cache_clear()
+        get_chat_model.cache_clear()
 
     def test_get_chat_model_o1_uses_max_completion_tokens(self):
         """Test that o1 models use max_completion_tokens parameter."""
-        from backend.eval.llm_client import _get_chat_model
+        from backend.llm.client import get_chat_model
 
-        _get_chat_model.cache_clear()
+        get_chat_model.cache_clear()
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}), \
-             patch("backend.eval.llm_client.ChatOpenAI") as mock_chat:
+             patch("backend.llm.client.ChatOpenAI") as mock_chat:
 
             mock_instance = MagicMock()
             mock_chat.return_value = mock_instance
 
-            _get_chat_model("o1-preview", 0.0, 1024)
+            get_chat_model("o1-preview", 0.0, 1024)
 
             call_kwargs = mock_chat.call_args[1]
             assert "max_completion_tokens" in call_kwargs
@@ -258,16 +258,16 @@ class TestEvalLlmClient:
             assert "max_tokens" not in call_kwargs
             assert "temperature" not in call_kwargs
 
-        _get_chat_model.cache_clear()
+        get_chat_model.cache_clear()
 
     def test_call_llm_with_system_prompt(self):
         """Test call_llm with system prompt."""
-        from backend.eval.llm_client import call_llm, _get_chat_model
+        from backend.llm.client import call_llm, get_chat_model
 
-        _get_chat_model.cache_clear()
+        get_chat_model.cache_clear()
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}), \
-             patch("backend.eval.llm_client.ChatOpenAI") as mock_chat:
+             patch("backend.llm.client.ChatOpenAI") as mock_chat:
 
             mock_response = MagicMock()
             mock_response.content = "Test response"
@@ -282,16 +282,16 @@ class TestEvalLlmClient:
             call_args = mock_instance.invoke.call_args[0][0]
             assert len(call_args) == 2
 
-        _get_chat_model.cache_clear()
+        get_chat_model.cache_clear()
 
     def test_call_llm_without_system_prompt(self):
         """Test call_llm without system prompt."""
-        from backend.eval.llm_client import call_llm, _get_chat_model
+        from backend.llm.client import call_llm, get_chat_model
 
-        _get_chat_model.cache_clear()
+        get_chat_model.cache_clear()
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}), \
-             patch("backend.eval.llm_client.ChatOpenAI") as mock_chat:
+             patch("backend.llm.client.ChatOpenAI") as mock_chat:
 
             mock_response = MagicMock()
             mock_response.content = "Test response"
@@ -306,7 +306,7 @@ class TestEvalLlmClient:
             call_args = mock_instance.invoke.call_args[0][0]
             assert len(call_args) == 1
 
-        _get_chat_model.cache_clear()
+        get_chat_model.cache_clear()
 
 
 class TestEvalShared:

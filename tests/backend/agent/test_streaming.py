@@ -106,7 +106,7 @@ class TestStreamAnswerChain:
 
         async def run_test():
             with patch.dict(os.environ, {"MOCK_LLM": "1"}):
-                from backend.agent.llm.helpers import stream_answer_chain
+                from backend.agent.answer.llm import stream_answer_chain
 
                 tokens = []
                 async for token in stream_answer_chain(
@@ -136,7 +136,7 @@ class TestStreamAnswerChain:
 
         async def run_test():
             with patch.dict(os.environ, {"MOCK_LLM": "1"}):
-                from backend.agent.llm.helpers import stream_answer_chain
+                from backend.agent.answer.llm import stream_answer_chain
 
                 async for token in stream_answer_chain(
                     question="Test",

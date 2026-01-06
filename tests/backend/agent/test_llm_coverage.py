@@ -9,25 +9,16 @@ from unittest.mock import MagicMock, patch, PropertyMock
 import time
 
 
-class TestLlmHelpersChains:
-    """Tests for llm_helpers chain creation and caching."""
+class TestSharedLlmClient:
+    """Tests for backend.llm.client chain creation."""
 
     def test_create_chain_with_structured_output(self):
-        """Test _create_chain with structured output."""
-        from backend.agent.llm.helpers import _create_chain, _chains_cache, FollowUpSuggestions
+        """Test create_chain with structured output."""
+        from backend.llm.client import create_chain
+        from backend.agent.followup.llm import FollowUpSuggestions
 
-        _chains_cache.clear()
-
-        with patch("backend.agent.llm.helpers.ChatOpenAI") as mock_chat, \
-             patch("backend.agent.llm.helpers.get_config") as mock_config, \
+        with patch("backend.llm.client.ChatOpenAI") as mock_chat, \
              patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-
-            mock_cfg = MagicMock()
-            mock_cfg.llm_model = "gpt-4o"
-            mock_cfg.router_model = "gpt-4o-mini"
-            mock_cfg.llm_temperature = 0.0
-            mock_cfg.llm_max_tokens = 2000
-            mock_config.return_value = mock_cfg
 
             mock_llm = MagicMock()
             mock_structured = MagicMock()
@@ -36,90 +27,90 @@ class TestLlmHelpersChains:
 
             from backend.agent.followup.prompts import FOLLOW_UP_PROMPT_TEMPLATE
 
-            chain = _create_chain(
+            chain = create_chain(
                 FOLLOW_UP_PROMPT_TEMPLATE,
-                model_key="fast",
+                model="gpt-4o-mini",
                 structured_output=FollowUpSuggestions,
                 temperature=0.7,
             )
 
             mock_llm.with_structured_output.assert_called_once_with(FollowUpSuggestions)
 
-        _chains_cache.clear()
-
     def test_create_chain_without_structured_output(self):
-        """Test _create_chain without structured output returns string parser chain."""
-        from backend.agent.llm.helpers import _create_chain, _chains_cache
+        """Test create_chain without structured output returns string parser chain."""
+        from backend.llm.client import create_chain
 
-        _chains_cache.clear()
-
-        with patch("backend.agent.llm.helpers.ChatOpenAI") as mock_chat, \
-             patch("backend.agent.llm.helpers.get_config") as mock_config, \
-             patch("backend.agent.llm.helpers.StrOutputParser") as mock_parser, \
+        with patch("backend.llm.client.ChatOpenAI") as mock_chat, \
+             patch("backend.llm.client.StrOutputParser") as mock_parser, \
              patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-
-            mock_cfg = MagicMock()
-            mock_cfg.llm_model = "gpt-4o"
-            mock_cfg.llm_temperature = 0.0
-            mock_cfg.llm_max_tokens = 2000
-            mock_config.return_value = mock_cfg
 
             mock_llm = MagicMock()
             mock_chat.return_value = mock_llm
 
             from backend.agent.answer.prompts import DATA_ANSWER_TEMPLATE
 
-            chain = _create_chain(DATA_ANSWER_TEMPLATE, model_key="main")
+            chain = create_chain(DATA_ANSWER_TEMPLATE, model="gpt-4o")
 
             # Should not call with_structured_output
             mock_llm.with_structured_output.assert_not_called()
 
-        _chains_cache.clear()
+    def test_get_chat_model_caching(self):
+        """Test that get_chat_model caches models."""
+        from backend.llm.client import get_chat_model
 
-    def test_get_chain_caching(self):
-        """Test that _get_chain caches chains."""
-        from backend.agent.llm.helpers import _get_chain, _chains_cache
+        # Clear cache first
+        get_chat_model.cache_clear()
 
-        _chains_cache.clear()
+        with patch("backend.llm.client.ChatOpenAI") as mock_chat, \
+             patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
 
-        with patch("backend.agent.llm.helpers._create_chain") as mock_create:
-            mock_chain = MagicMock()
-            mock_create.return_value = mock_chain
+            mock_llm = MagicMock()
+            mock_chat.return_value = mock_llm
 
-            # First call creates chain
-            chain1 = _get_chain("answer")
-            assert chain1 is mock_chain
+            # First call creates model
+            model1 = get_chat_model("gpt-4o", 0.0, 2000)
 
-            # Second call returns cached
-            chain2 = _get_chain("answer")
-            assert chain2 is chain1
+            # Second call with same params returns cached
+            model2 = get_chat_model("gpt-4o", 0.0, 2000)
+            assert model1 is model2
 
-            # _create_chain only called once
-            assert mock_create.call_count == 1
+            # ChatOpenAI only called once
+            assert mock_chat.call_count == 1
 
-        _chains_cache.clear()
+        get_chat_model.cache_clear()
 
-    def test_get_chain_unknown_type_raises(self):
-        """Test _get_chain raises for unknown chain type."""
-        from backend.agent.llm.helpers import _get_chain, _chains_cache
+    def test_call_llm_basic(self):
+        """Test call_llm basic functionality."""
+        from backend.llm.client import call_llm, get_chat_model
 
-        _chains_cache.clear()
+        get_chat_model.cache_clear()
 
-        with pytest.raises(ValueError, match="Unknown chain type"):
-            _get_chain("nonexistent_chain_type")
+        with patch("backend.llm.client.ChatOpenAI") as mock_chat, \
+             patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
 
-        _chains_cache.clear()
+            mock_response = MagicMock()
+            mock_response.content = "Test response"
+            mock_llm = MagicMock()
+            mock_llm.invoke.return_value = mock_response
+            mock_chat.return_value = mock_llm
+
+            result = call_llm("Test prompt", system_prompt="You are a test assistant")
+
+            assert result == "Test response"
+            mock_llm.invoke.assert_called_once()
+
+        get_chat_model.cache_clear()
 
 
 class TestLlmHelpersCallFunctions:
-    """Tests for the call_* functions in llm_helpers.
+    """Tests for the call_* functions in node-specific modules.
 
     Note: These tests run with conftest.py autouse mock fixtures.
     """
 
     def test_call_answer_chain_returns_tuple(self):
         """Test call_answer_chain returns (answer, latency) tuple."""
-        from backend.agent.llm.helpers import call_answer_chain
+        from backend.agent.answer.llm import call_answer_chain
 
         answer, latency = call_answer_chain(
             question="What is the pipeline?",
@@ -139,7 +130,7 @@ class TestLlmHelpersCallFunctions:
 
     def test_call_not_found_chain_returns_tuple(self):
         """Test call_not_found_chain returns (answer, latency) tuple."""
-        from backend.agent.llm.helpers import call_not_found_chain
+        from backend.agent.answer.llm import call_not_found_chain
 
         answer, latency = call_not_found_chain(
             question="Tell me about Acme",
@@ -153,7 +144,7 @@ class TestLlmHelpersCallFunctions:
 
     def test_call_docs_rag_returns_context_and_sources(self):
         """Test call_docs_rag returns context and sources."""
-        from backend.agent.llm.helpers import call_docs_rag
+        from backend.agent.fetch.rag import call_docs_rag
 
         context, sources = call_docs_rag("How do I create a contact?")
 
@@ -162,7 +153,7 @@ class TestLlmHelpersCallFunctions:
 
     def test_call_account_rag_returns_context_and_sources(self):
         """Test call_account_rag returns context and sources."""
-        from backend.agent.llm.helpers import call_account_rag
+        from backend.agent.fetch.rag import call_account_rag
 
         context, sources = call_account_rag("What are the notes?", "COMP001")
 
@@ -178,7 +169,7 @@ class TestLlmHelpersFollowUp:
 
     def test_generate_follow_up_returns_list(self):
         """Test generate_follow_up_suggestions returns a list."""
-        from backend.agent.llm.helpers import generate_follow_up_suggestions
+        from backend.agent.followup.llm import generate_follow_up_suggestions
 
         result = generate_follow_up_suggestions(
             question="What is the pipeline?",
@@ -189,7 +180,7 @@ class TestLlmHelpersFollowUp:
 
     def test_generate_follow_up_with_hardcoded_tree(self):
         """Test generate_follow_up_suggestions uses hardcoded tree."""
-        from backend.agent.llm.helpers import generate_follow_up_suggestions
+        from backend.agent.followup.llm import generate_follow_up_suggestions
 
         with patch("backend.agent.followup.tree.get_follow_ups") as mock_get_followups:
             mock_get_followups.return_value = ["Follow-up 1", "Follow-up 2"]
@@ -204,7 +195,7 @@ class TestLlmHelpersFollowUp:
 
     def test_generate_follow_up_limited_to_three(self):
         """Test generate_follow_up_suggestions returns at most 3 suggestions."""
-        from backend.agent.llm.helpers import generate_follow_up_suggestions
+        from backend.agent.followup.llm import generate_follow_up_suggestions
 
         result = generate_follow_up_suggestions(
             question="Test question",

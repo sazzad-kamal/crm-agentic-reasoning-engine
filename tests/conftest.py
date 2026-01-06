@@ -243,12 +243,12 @@ def mock_llm():
             owner=detect_owner_from_starter(question),
         )
 
-    with patch("backend.agent.llm.helpers.call_answer_chain", mock_call_answer_chain), \
-         patch("backend.agent.llm.helpers.stream_answer_chain", mock_stream_answer_chain), \
-         patch("backend.agent.llm.helpers.call_not_found_chain", mock_call_not_found_chain), \
-         patch("backend.agent.llm.helpers.call_docs_rag", mock_call_docs_rag), \
-         patch("backend.agent.llm.helpers.call_account_rag", mock_call_account_rag), \
-         patch("backend.agent.llm.helpers.generate_follow_up_suggestions", mock_generate_follow_up_suggestions), \
+    with patch("backend.agent.answer.llm.call_answer_chain", mock_call_answer_chain), \
+         patch("backend.agent.answer.llm.stream_answer_chain", mock_stream_answer_chain), \
+         patch("backend.agent.answer.llm.call_not_found_chain", mock_call_not_found_chain), \
+         patch("backend.agent.fetch.rag.call_docs_rag", mock_call_docs_rag), \
+         patch("backend.agent.fetch.rag.call_account_rag", mock_call_account_rag), \
+         patch("backend.agent.followup.llm.generate_follow_up_suggestions", mock_generate_follow_up_suggestions), \
          patch("backend.agent.route.router.llm_route_question", mock_llm_route_question):
         yield
 

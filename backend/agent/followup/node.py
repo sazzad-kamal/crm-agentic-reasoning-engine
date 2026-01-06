@@ -6,7 +6,7 @@ import time
 from backend.agent.core.state import AgentState
 from backend.agent.core.config import get_config
 from backend.agent.core.memory import format_history_for_prompt
-from backend.agent.llm.helpers import generate_follow_up_suggestions
+from backend.agent.followup.llm import generate_follow_up_suggestions
 
 
 logger = logging.getLogger(__name__)

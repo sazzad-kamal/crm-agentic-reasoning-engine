@@ -38,7 +38,7 @@ class TestGraphIntegration:
     """Integration tests for the graph with mocked LLM."""
 
     @pytest.mark.integration
-    @patch("backend.agent.llm.helpers.call_answer_chain")
+    @patch("backend.agent.answer.llm.call_answer_chain")
     @patch("backend.agent.route.router.route_question")
     def test_graph_execution_docs_mode(self, mock_route, mock_answer_chain):
         """Test graph execution in docs mode."""
@@ -58,7 +58,7 @@ class TestGraphIntegration:
         assert isinstance(result.get("answer", ""), str)
 
     @pytest.mark.integration
-    @patch("backend.agent.llm.helpers.call_answer_chain")
+    @patch("backend.agent.answer.llm.call_answer_chain")
     @patch("backend.agent.route.router.route_question")
     @patch("backend.agent.fetch.handlers.company.tool_company_lookup")
     def test_graph_execution_data_mode(self, mock_company, mock_route, mock_answer_chain):

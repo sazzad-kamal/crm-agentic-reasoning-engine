@@ -248,7 +248,7 @@ class TestCallAnswerChainMockMode:
 
     def test_returns_tuple(self):
         """Returns tuple of (response, latency)."""
-        from backend.agent.llm.helpers import call_answer_chain
+        from backend.agent.answer.llm import call_answer_chain
 
         result = call_answer_chain(
             question="Test prompt",
@@ -268,7 +268,7 @@ class TestCallAnswerChainMockMode:
 
     def test_returns_mock_latency(self):
         """Returns mock latency of 100ms in mock mode."""
-        from backend.agent.llm.helpers import call_answer_chain
+        from backend.agent.answer.llm import call_answer_chain
 
         _, latency = call_answer_chain(
             question="Test",
@@ -292,25 +292,25 @@ class TestFormatAvailableData:
 
     def test_returns_string(self):
         """Returns a string."""
-        from backend.agent.llm.helpers import _format_available_data
+        from backend.agent.followup.llm import _format_available_data
         result = _format_available_data(None, None)
         assert isinstance(result, str)
 
     def test_handles_none_data(self):
         """Handles None data gracefully."""
-        from backend.agent.llm.helpers import _format_available_data
+        from backend.agent.followup.llm import _format_available_data
         result = _format_available_data(None, "Acme Corp")
         assert "No specific data available" in result
 
     def test_handles_empty_data(self):
         """Handles empty data dict."""
-        from backend.agent.llm.helpers import _format_available_data
+        from backend.agent.followup.llm import _format_available_data
         result = _format_available_data({}, "Acme Corp")
         assert "No specific data available" in result
 
     def test_formats_contacts(self):
         """Formats contacts count."""
-        from backend.agent.llm.helpers import _format_available_data
+        from backend.agent.followup.llm import _format_available_data
         result = _format_available_data({"contacts": 5}, "Acme Corp")
         assert "Contacts" in result
         assert "5" in result
@@ -318,21 +318,21 @@ class TestFormatAvailableData:
 
     def test_formats_activities(self):
         """Formats activities count."""
-        from backend.agent.llm.helpers import _format_available_data
+        from backend.agent.followup.llm import _format_available_data
         result = _format_available_data({"activities": 10}, "Test Co")
         assert "Activities" in result
         assert "10" in result
 
     def test_formats_opportunities(self):
         """Formats opportunities count."""
-        from backend.agent.llm.helpers import _format_available_data
+        from backend.agent.followup.llm import _format_available_data
         result = _format_available_data({"opportunities": 3}, "Test Co")
         assert "Opportunities" in result
         assert "3" in result
 
     def test_formats_multiple_data_types(self):
         """Formats multiple data types."""
-        from backend.agent.llm.helpers import _format_available_data
+        from backend.agent.followup.llm import _format_available_data
         data = {
             "contacts": 5,
             "activities": 10,
@@ -347,7 +347,7 @@ class TestFormatAvailableData:
 
     def test_excludes_zero_counts(self):
         """Excludes data types with zero counts."""
-        from backend.agent.llm.helpers import _format_available_data
+        from backend.agent.followup.llm import _format_available_data
         data = {"contacts": 0, "activities": 5}
         result = _format_available_data(data, "Acme")
         assert "Activities" in result
@@ -365,7 +365,7 @@ class TestGenerateFollowUpSuggestionsMock:
 
     def test_returns_list(self):
         """Returns a list of suggestions."""
-        from backend.agent.llm.helpers import generate_follow_up_suggestions
+        from backend.agent.followup.llm import generate_follow_up_suggestions
         result = generate_follow_up_suggestions(
             question="What's happening with Acme?",
             mode="data",
@@ -374,7 +374,7 @@ class TestGenerateFollowUpSuggestionsMock:
 
     def test_returns_up_to_three_suggestions(self):
         """Returns up to 3 suggestions."""
-        from backend.agent.llm.helpers import generate_follow_up_suggestions
+        from backend.agent.followup.llm import generate_follow_up_suggestions
         result = generate_follow_up_suggestions(
             question="Show me renewals",
             mode="data",
@@ -383,7 +383,7 @@ class TestGenerateFollowUpSuggestionsMock:
 
     def test_suggestions_are_strings(self):
         """All suggestions are strings."""
-        from backend.agent.llm.helpers import generate_follow_up_suggestions
+        from backend.agent.followup.llm import generate_follow_up_suggestions
         result = generate_follow_up_suggestions(
             question="What's in the pipeline?",
             mode="data",
@@ -393,7 +393,7 @@ class TestGenerateFollowUpSuggestionsMock:
 
     def test_uses_company_name_when_provided(self):
         """Uses company name in context-aware suggestions."""
-        from backend.agent.llm.helpers import generate_follow_up_suggestions
+        from backend.agent.followup.llm import generate_follow_up_suggestions
         result = generate_follow_up_suggestions(
             question="Tell me about Acme",
             mode="data",

@@ -59,7 +59,7 @@ class TestLlmHelpersFormatAvailableData:
 
     def test_format_available_data_with_pipeline_and_docs(self):
         """Test _format_available_data includes pipeline and docs."""
-        from backend.agent.llm.helpers import _format_available_data
+        from backend.agent.followup.llm import _format_available_data
 
         result = _format_available_data(
             data={
@@ -76,7 +76,7 @@ class TestLlmHelpersFormatAvailableData:
 
     def test_format_available_data_empty_after_filtering(self):
         """Test _format_available_data with all zero counts."""
-        from backend.agent.llm.helpers import _format_available_data
+        from backend.agent.followup.llm import _format_available_data
 
         result = _format_available_data(
             data={"contacts": 0, "activities": 0},

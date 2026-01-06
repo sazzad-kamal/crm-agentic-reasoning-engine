@@ -143,26 +143,60 @@ class TestAccountRAGTrigger:
                 )
 
 
-class TestLLMHelpersCleanup:
-    """Tests for removed dead code."""
+class TestVerticalSliceStructure:
+    """Tests for the vertical slice LLM structure."""
 
-    def test_call_llm_removed_from_exports(self):
-        """Verify call_llm was removed from llm_helpers exports."""
-        from backend.agent.llm.helpers import __all__
+    def test_shared_llm_client_exists(self):
+        """Verify shared LLM client exists at backend.llm."""
+        from backend.llm.client import create_chain, get_chat_model, call_llm
 
-        assert "call_llm" not in __all__, "call_llm should be removed from exports"
+        assert callable(create_chain)
+        assert callable(get_chat_model)
+        assert callable(call_llm)
 
-    def test_essential_functions_still_exported(self):
-        """Verify essential LLM helper functions are still exported."""
-        from backend.agent.llm.helpers import __all__
+    def test_answer_llm_module_exists(self):
+        """Verify answer/llm.py exports the correct functions."""
+        from backend.agent.answer.llm import (
+            call_answer_chain,
+            call_not_found_chain,
+            get_answer_chain,
+            build_answer_input,
+            stream_answer_chain,
+        )
 
-        required_exports = {
-            "call_docs_rag",
-            "call_account_rag",
-            "generate_follow_up_suggestions",
-            "call_answer_chain",
-            "call_not_found_chain",
-        }
+        assert callable(call_answer_chain)
+        assert callable(call_not_found_chain)
+        assert callable(get_answer_chain)
+        assert callable(build_answer_input)
 
-        for export in required_exports:
-            assert export in __all__, f"'{export}' should be in llm_helpers exports"
+    def test_followup_llm_module_exists(self):
+        """Verify followup/llm.py exports the correct functions."""
+        from backend.agent.followup.llm import (
+            generate_follow_up_suggestions,
+            FollowUpSuggestions,
+        )
+
+        assert callable(generate_follow_up_suggestions)
+        assert FollowUpSuggestions is not None
+
+    def test_fetch_rag_module_exists(self):
+        """Verify fetch/rag.py exports the correct functions."""
+        from backend.agent.fetch.rag import (
+            call_docs_rag,
+            call_account_rag,
+        )
+
+        assert callable(call_docs_rag)
+        assert callable(call_account_rag)
+
+    def test_agent_llm_folder_removed(self):
+        """Verify agent/llm/ folder has been removed."""
+        import importlib.util
+
+        # These should NOT exist - find_spec raises ModuleNotFoundError when
+        # parent exists but child doesn't
+        try:
+            spec = importlib.util.find_spec("backend.agent.llm.helpers")
+            assert spec is None, "backend.agent.llm.helpers should not exist"
+        except ModuleNotFoundError:
+            pass  # Expected - module doesn't exist

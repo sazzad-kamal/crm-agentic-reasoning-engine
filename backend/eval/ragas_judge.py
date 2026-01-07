@@ -12,10 +12,10 @@ from ragas import evaluate
 from ragas.embeddings import LangchainEmbeddingsWrapper
 from ragas.llms import LangchainLLMWrapper
 
-# Use old-style metrics (deprecated but work with evaluate())
+# Import metric CLASSES (not singleton instances) for thread-safe instantiation
 with warnings.catch_warnings():
     warnings.simplefilter("ignore", DeprecationWarning)
-    from ragas.metrics import answer_correctness, answer_relevancy, context_precision, faithfulness
+    from ragas.metrics import AnswerCorrectness, AnswerRelevancy, ContextPrecision, Faithfulness
 
 logger = logging.getLogger(__name__)
 
@@ -65,27 +65,34 @@ def evaluate_single(
         "retrieved_contexts": [contexts],
     }
 
-    # Get LLM and embeddings
-    ragas_llm = _get_ragas_llm()
-    ragas_embeddings = _get_ragas_embeddings()
+    # Get LLM and embeddings factories for thread-safe metric instantiation
+    def llm_factory() -> LangchainLLMWrapper:
+        return _get_ragas_llm()
 
-    # Select metrics based on available data
-    # context_precision and answer_correctness require reference (ground truth)
-    metrics: list[Any] = [answer_relevancy, faithfulness]
+    def embeddings_factory() -> LangchainEmbeddingsWrapper:
+        return _get_ragas_embeddings()
+
+    # Create fresh metric instances per call for thread safety
+    # RAGAS 0.4.x metrics require llm to be passed via llm_factory
+    metrics: list[Any] = [
+        AnswerRelevancy(llm=llm_factory(), embeddings=embeddings_factory()),
+        Faithfulness(llm=llm_factory()),
+    ]
 
     if reference_answer:
         dataset_dict["reference"] = [reference_answer]
-        metrics.extend([context_precision, answer_correctness])
+        metrics.extend([
+            ContextPrecision(llm=llm_factory()),
+            AnswerCorrectness(llm=llm_factory()),
+        ])
 
     dataset = Dataset.from_dict(dataset_dict)
 
     try:
-        # Pass llm and embeddings to evaluate() for old-style metrics
+        # Metrics already have llm/embeddings set via constructor (thread-safe)
         result = evaluate(
             dataset,
             metrics=metrics,
-            llm=ragas_llm,
-            embeddings=ragas_embeddings,
         )
 
         # Convert to pandas DataFrame

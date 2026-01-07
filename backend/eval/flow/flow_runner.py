@@ -53,10 +53,18 @@ def judge_answer(
     contexts: list[str],
     reference_answer: str | None = None,
     verbose: bool = False,
+    timeout: int = 120,
 ) -> dict:
-    """Judge an answer using RAGAS metrics."""
+    """Judge an answer using RAGAS metrics with timeout."""
     try:
-        result = evaluate_single(question, answer, contexts, reference_answer=reference_answer, verbose=verbose)
+        # Run RAGAS evaluation with timeout to prevent hanging
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(
+                evaluate_single, question, answer, contexts,
+                reference_answer=reference_answer, verbose=verbose
+            )
+            result = future.result(timeout=timeout)
+
         return {
             "relevance": result["answer_relevancy"],
             "faithfulness": result["faithfulness"],
@@ -64,6 +72,16 @@ def judge_answer(
             "context_recall": result.get("context_recall", 0.0),
             "answer_correctness": result.get("answer_correctness", 0.0),
             "explanation": "",
+        }
+    except TimeoutError:
+        logger.warning(f"RAGAS judge timed out after {timeout}s")
+        return {
+            "relevance": 0.0,
+            "faithfulness": 0.0,
+            "context_precision": 0.0,
+            "context_recall": 0.0,
+            "answer_correctness": 0.0,
+            "explanation": f"RAGAS timeout after {timeout}s",
         }
     except Exception as e:
         logger.warning(f"RAGAS judge failed: {e}")

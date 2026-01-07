@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+import asyncio
 import atexit
+import platform
 from pathlib import Path
 
 import typer
 from dotenv import load_dotenv
+
+# Fix Windows asyncio cleanup issues with httpx/RAGAS
+# Use SelectorEventLoop instead of ProactorEventLoop to avoid "Event loop is closed" errors
+if platform.system() == "Windows":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 # Load environment before other imports
 _project_root = Path(__file__).parent.parent.parent.parent

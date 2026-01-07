@@ -44,6 +44,7 @@ def route_node(state: AgentState) -> AgentState:
         )
 
         return {
+            "router_result": router_result,  # Full result for downstream access
             "mode_used": router_result.mode_used,
             "resolved_company_id": router_result.company_id,
             "company_name_query": router_result.company_name_query,

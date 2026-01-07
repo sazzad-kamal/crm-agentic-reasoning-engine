@@ -442,24 +442,24 @@ class TestCompanyHandlerFilters:
 
 
 # =============================================================================
-# nodes/fetching.py - error handling
+# fetch nodes - error handling (parallel fetch)
 # =============================================================================
 
 
 class TestFetchingNodeErrors:
-    """Tests for fetching node error handling."""
+    """Tests for parallel fetch node error handling."""
 
-    def test_fetch_docs_handles_exceptions(self):
-        """Test _fetch_docs returns empty on exception."""
-        from backend.agent.fetch.node import _fetch_docs
+    def test_fetch_docs_node_handles_exceptions(self):
+        """Test fetch_docs_node returns empty on exception."""
+        from backend.agent.fetch.fetch_docs import fetch_docs_node
 
-        with patch("backend.agent.fetch.node.call_docs_rag") as mock_rag:
+        with patch("backend.agent.fetch.fetch_docs.call_docs_rag") as mock_rag:
             mock_rag.side_effect = Exception("RAG failed")
 
-            result = _fetch_docs("test question")
+            state = {"question": "test question"}
+            result = fetch_docs_node(state)
 
             assert result["docs_answer"] == ""
-            assert result["docs_sources"] == []
             assert "error" in result
 
 

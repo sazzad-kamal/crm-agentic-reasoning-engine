@@ -1,8 +1,8 @@
 """
-Tests for the simplified LangGraph agent structure.
+Tests for the LangGraph agent structure with parallel fetch nodes.
 
 Verifies:
-- Graph has 4 nodes (simplified from 6)
+- Graph has 6 nodes (route + 3 parallel fetch + answer + followup)
 - All router intents are explicitly mapped
 - Account RAG triggers for correct intents
 """
@@ -11,23 +11,24 @@ import pytest
 
 
 class TestGraphStructure:
-    """Tests for the simplified graph structure."""
+    """Tests for the parallel fetch graph structure."""
 
-    def test_graph_has_four_nodes(self):
-        """Verify the graph was simplified to 4 nodes."""
+    def test_graph_has_six_nodes(self):
+        """Verify the graph has 6 nodes with parallel fetch."""
         from backend.agent.graph import agent_graph
 
         # Get node names from the graph
         node_names = set(agent_graph.nodes.keys())
 
-        # Should have exactly these 4 nodes (plus __start__ and __end__)
-        expected_nodes = {"route", "fetch", "answer", "followup"}
+        # Should have exactly these 6 nodes (plus __start__ and __end__)
+        # 3 parallel fetch nodes: fetch_crm, fetch_docs, fetch_account
+        expected_nodes = {"route", "fetch_crm", "fetch_docs", "fetch_account", "answer", "followup"}
 
         # Filter out internal nodes
         actual_nodes = {n for n in node_names if not n.startswith("__")}
 
         assert actual_nodes == expected_nodes, (
-            f"Expected 4 nodes {expected_nodes}, got {actual_nodes}"
+            f"Expected 6 nodes {expected_nodes}, got {actual_nodes}"
         )
 
     def test_old_nodes_removed(self):
@@ -46,24 +47,19 @@ class TestGraphStructure:
     def test_nodes_modules_exist(self):
         """Verify nodes submodules export the correct functions."""
         from backend.agent.route.node import route_node
-        from backend.agent.fetch.node import (
-            fetch_node,
-            ACCOUNT_RAG_INTENTS,
-            _fetch_crm_data,
-            _fetch_docs,
-            _fetch_account_context,
-        )
+        from backend.agent.fetch.fetch_crm import fetch_crm_node
+        from backend.agent.fetch.fetch_docs import fetch_docs_node
+        from backend.agent.fetch.fetch_account import fetch_account_node, ACCOUNT_RAG_INTENTS
         from backend.agent.answer.node import answer_node
         from backend.agent.followup.node import followup_node
 
         # Verify all functions are callable
         assert callable(route_node)
-        assert callable(fetch_node)
+        assert callable(fetch_crm_node)
+        assert callable(fetch_docs_node)
+        assert callable(fetch_account_node)
         assert callable(answer_node)
         assert callable(followup_node)
-        assert callable(_fetch_crm_data)
-        assert callable(_fetch_docs)
-        assert callable(_fetch_account_context)
         assert isinstance(ACCOUNT_RAG_INTENTS, frozenset)
 
 
@@ -120,7 +116,7 @@ class TestAccountRAGTrigger:
 
     def test_account_rag_trigger_intents(self):
         """Verify Account RAG triggers for the correct intents using the constant."""
-        from backend.agent.fetch.node import ACCOUNT_RAG_INTENTS
+        from backend.agent.fetch.fetch_account import ACCOUNT_RAG_INTENTS
 
         # Expected intents that should trigger Account RAG
         expected_intents = {"account_context", "company_status", "history", "pipeline"}
@@ -131,7 +127,7 @@ class TestAccountRAGTrigger:
 
     def test_account_rag_not_trigger_for_aggregate_intents(self):
         """Verify Account RAG does NOT trigger for aggregate intents."""
-        from backend.agent.fetch.node import ACCOUNT_RAG_INTENTS
+        from backend.agent.fetch.fetch_account import ACCOUNT_RAG_INTENTS
 
         # Aggregate intents that don't need Account RAG
         aggregate_intents = {"renewals", "pipeline_summary", "activities", "groups"}

@@ -3,10 +3,8 @@
 import pytest
 from pydantic import ValidationError
 
-from backend.agent.core.schemas import (
-    Source,
-    RouterResult,
-)
+from backend.agent.core.state import Source
+from backend.agent.route.schemas import RouterResult
 from backend.agent.fetch.handlers.schemas import ToolResult
 from backend.api.chat import ChatRequest
 

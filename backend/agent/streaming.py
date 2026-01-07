@@ -27,7 +27,9 @@ class StreamEvent:
 
 NODE_MESSAGES = {
     "route": "Understanding your question...",
-    "fetch": "Fetching data...",
+    "fetch_crm": "Fetching CRM data...",
+    "fetch_docs": "Searching documentation...",
+    "fetch_account": "Searching account context...",
     "answer": "Generating answer...",
     "followup": "Generating suggestions...",
 }

@@ -314,54 +314,56 @@ class TestLlmRouter:
 
 
 class TestNodesFetching:
-    """Tests for nodes/fetching module."""
+    """Tests for parallel fetch nodes."""
 
-    def test_fetch_docs_success(self):
-        """Test _fetch_docs successful fetch."""
-        from backend.agent.fetch.node import _fetch_docs
+    def test_fetch_docs_node_success(self):
+        """Test fetch_docs_node successful fetch."""
+        from backend.agent.fetch.fetch_docs import fetch_docs_node
         from backend.agent.core.schemas import Source
 
-        with patch("backend.agent.fetch.node.call_docs_rag") as mock_rag:
+        with patch("backend.agent.fetch.fetch_docs.call_docs_rag") as mock_rag:
             mock_rag.return_value = ("Docs content", [Source(type="doc", id="doc1", label="Doc")])
 
-            result = _fetch_docs("How to create contact?")
+            state = {"question": "How to create contact?"}
+            result = fetch_docs_node(state)
 
             assert result["docs_answer"] == "Docs content"
-            assert len(result["docs_sources"]) == 1
+            assert len(result["sources"]) == 1
 
-    def test_fetch_docs_exception(self):
-        """Test _fetch_docs handles exceptions."""
-        from backend.agent.fetch.node import _fetch_docs
+    def test_fetch_docs_node_exception(self):
+        """Test fetch_docs_node handles exceptions."""
+        from backend.agent.fetch.fetch_docs import fetch_docs_node
 
-        with patch("backend.agent.fetch.node.call_docs_rag", side_effect=Exception("RAG error")):
-            result = _fetch_docs("How to create contact?")
+        with patch("backend.agent.fetch.fetch_docs.call_docs_rag", side_effect=Exception("RAG error")):
+            state = {"question": "How to create contact?"}
+            result = fetch_docs_node(state)
 
             assert result["docs_answer"] == ""
-            assert result["docs_sources"] == []
             assert "error" in result
 
-    def test_fetch_account_context_success(self):
-        """Test _fetch_account_context successful fetch."""
-        from backend.agent.fetch.node import _fetch_account_context
+    def test_fetch_account_node_success(self):
+        """Test fetch_account_node successful fetch."""
+        from backend.agent.fetch.fetch_account import fetch_account_node
         from backend.agent.core.schemas import Source
 
-        with patch("backend.agent.fetch.node.call_account_rag") as mock_rag:
+        with patch("backend.agent.fetch.fetch_account.call_account_rag") as mock_rag:
             mock_rag.return_value = ("Account notes", [Source(type="note", id="n1", label="Note")])
 
-            result = _fetch_account_context("What are the notes?", "COMP001")
+            state = {"question": "What are the notes?", "resolved_company_id": "COMP001", "intent": "account_context"}
+            result = fetch_account_node(state)
 
             assert result["account_context_answer"] == "Account notes"
-            assert len(result["account_context_sources"]) == 1
+            assert len(result["sources"]) == 1
 
-    def test_fetch_account_context_exception(self):
-        """Test _fetch_account_context handles exceptions."""
-        from backend.agent.fetch.node import _fetch_account_context
+    def test_fetch_account_node_exception(self):
+        """Test fetch_account_node handles exceptions."""
+        from backend.agent.fetch.fetch_account import fetch_account_node
 
-        with patch("backend.agent.fetch.node.call_account_rag", side_effect=Exception("RAG error")):
-            result = _fetch_account_context("What are the notes?", "COMP001")
+        with patch("backend.agent.fetch.fetch_account.call_account_rag", side_effect=Exception("RAG error")):
+            state = {"question": "What are the notes?", "resolved_company_id": "COMP001", "intent": "account_context"}
+            result = fetch_account_node(state)
 
             assert result["account_context_answer"] == ""
-            assert result["account_context_sources"] == []
             assert "error" in result
 
 

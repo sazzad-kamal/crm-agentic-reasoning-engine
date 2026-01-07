@@ -29,7 +29,7 @@ from backend.agent.fetch.handlers.activity import (
     handle_activities,
     handle_fallback,
 )
-from backend.agent.core.schemas import Source
+from backend.agent.core.state import Source
 
 
 # =============================================================================

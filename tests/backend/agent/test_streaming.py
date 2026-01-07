@@ -81,8 +81,9 @@ class TestNodeMessages:
     """Tests for node message mappings."""
 
     def test_all_nodes_have_messages(self):
-        """Should have messages for all pipeline nodes."""
-        expected_nodes = ["route", "fetch", "answer", "followup"]
+        """Should have messages for all pipeline nodes (including 3 parallel fetch nodes)."""
+        # With parallel fetch, we have: route, fetch_crm, fetch_docs, fetch_account, answer, followup
+        expected_nodes = ["route", "fetch_crm", "fetch_docs", "fetch_account", "answer", "followup"]
 
         for node in expected_nodes:
             assert node in NODE_MESSAGES
@@ -92,7 +93,10 @@ class TestNodeMessages:
     def test_messages_are_user_friendly(self):
         """Messages should be descriptive and user-friendly."""
         assert "question" in NODE_MESSAGES["route"].lower() or "understanding" in NODE_MESSAGES["route"].lower()
-        assert "fetch" in NODE_MESSAGES["fetch"].lower() or "data" in NODE_MESSAGES["fetch"].lower()
+        # Check parallel fetch nodes have appropriate messages
+        assert "crm" in NODE_MESSAGES["fetch_crm"].lower() or "data" in NODE_MESSAGES["fetch_crm"].lower()
+        assert "doc" in NODE_MESSAGES["fetch_docs"].lower() or "search" in NODE_MESSAGES["fetch_docs"].lower()
+        assert "account" in NODE_MESSAGES["fetch_account"].lower() or "context" in NODE_MESSAGES["fetch_account"].lower()
         assert "answer" in NODE_MESSAGES["answer"].lower() or "generating" in NODE_MESSAGES["answer"].lower()
 
 

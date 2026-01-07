@@ -56,6 +56,7 @@ class IntentContext:
     days: int
     company_name_query: str | None = None  # For resolving company names
     owner: str | None = None  # Role-based owner filter (jsmith, amartin, or None for all)
+    router_result: Any | None = None  # Optional router result for advanced routing
 
 
 @dataclass

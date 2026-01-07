@@ -240,7 +240,9 @@ def _print_slo_failures(results: FlowEvalResults) -> None:
     failed_table.add_column("Doc", justify="center", width=4)
     failed_table.add_column("Acct", justify="center", width=4)
 
-    def fmt(passed: bool) -> str:
+    def fmt(passed: bool | None) -> str:
+        if passed is None:
+            return "[dim]-[/dim]"
         return "[green]Y[/green]" if passed else "[red]X[/red]"
 
     for path_id, step in shown:
@@ -249,12 +251,18 @@ def _print_slo_failures(results: FlowEvalResults) -> None:
         r_pass = step.relevance_score >= SLO_FLOW_RELEVANCE
         f_pass = step.faithfulness_score >= SLO_FLOW_FAITHFULNESS
         a_pass = step.answer_correctness_score >= SLO_FLOW_ANSWER_CORRECTNESS
-        # Doc passes if both precision and recall pass (or source not used)
-        doc_pass = (step.doc_precision_score == 0 or step.doc_precision_score >= SLO_DOC_PRECISION) and \
-                   (step.doc_recall_score == 0 or step.doc_recall_score >= SLO_DOC_RECALL)
-        # Account passes if both precision and recall pass (or source not used)
-        acct_pass = (step.account_precision_score == 0 or step.account_precision_score >= SLO_ACCOUNT_PRECISION) and \
-                    (step.account_recall_score == 0 or step.account_recall_score >= SLO_ACCOUNT_RECALL)
+
+        # Doc: None if source not used, else check both precision and recall
+        doc_used = step.doc_precision_score > 0 or step.doc_recall_score > 0
+        doc_pass: bool | None = None if not doc_used else (
+            step.doc_precision_score >= SLO_DOC_PRECISION and step.doc_recall_score >= SLO_DOC_RECALL
+        )
+
+        # Account: None if source not used, else check both precision and recall
+        acct_used = step.account_precision_score > 0 or step.account_recall_score > 0
+        acct_pass: bool | None = None if not acct_used else (
+            step.account_precision_score >= SLO_ACCOUNT_PRECISION and step.account_recall_score >= SLO_ACCOUNT_RECALL
+        )
 
         failed_table.add_row(
             str(path_id + 1),

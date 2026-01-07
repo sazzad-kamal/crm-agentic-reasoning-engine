@@ -2,7 +2,7 @@
 
 ## Standard Post-Implementation Steps
 
-After completing any implementation plan, always execute these steps:
+After completing a **significant implementation** (new features, refactors, bug fixes affecting multiple files), execute these steps. Skip for trivial changes (config tweaks, single-line fixes, documentation):
 
 1. **Fix Broken Tests** - Run tests and fix any failures before proceeding
 2. **Ensure Coverage ≥ 98%** - Verify test coverage is at least 98%. Add tests if coverage is below threshold
@@ -19,4 +19,4 @@ After completing any implementation plan, always execute these steps:
    git push
    ```
 
-**IMPORTANT:** Claude MUST include these steps at the end of every implementation plan and execute them after the core implementation is complete.
+**Note:** Include these steps in implementation plans for significant work. Use judgment - a one-line fix doesn't need full CI validation.

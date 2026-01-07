@@ -7,31 +7,25 @@ import os
 from typing import Any
 
 from datasets import Dataset
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from openai import AsyncOpenAI
 from ragas import evaluate
-from ragas.embeddings import LangchainEmbeddingsWrapper
-from ragas.llms import LangchainLLMWrapper
+from ragas.embeddings import OpenAIEmbeddings as RagasOpenAIEmbeddings
+from ragas.llms import llm_factory
 from ragas.metrics import answer_correctness, answer_relevancy, context_precision, faithfulness
 
 logger = logging.getLogger(__name__)
 
 
 def _get_ragas_llm() -> Any:
-    """Get LLM wrapper for RAGAS."""
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        api_key=os.environ.get("OPENAI_API_KEY"),  # type: ignore[arg-type]
-    )
-    return LangchainLLMWrapper(llm)
+    """Get LLM for RAGAS using native factory."""
+    client = AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    return llm_factory("gpt-4o-mini", client=client)
 
 
 def _get_ragas_embeddings() -> Any:
-    """Get embeddings wrapper for RAGAS."""
-    embeddings = OpenAIEmbeddings(
-        model="text-embedding-3-small",
-        api_key=os.environ.get("OPENAI_API_KEY"),  # type: ignore[arg-type]
-    )
-    return LangchainEmbeddingsWrapper(embeddings)
+    """Get embeddings for RAGAS using native class."""
+    client = AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    return RagasOpenAIEmbeddings(client=client, model="text-embedding-3-small")
 
 
 def evaluate_single(

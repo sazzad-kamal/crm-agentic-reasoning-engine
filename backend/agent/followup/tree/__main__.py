@@ -38,7 +38,7 @@ def _call_with_role(func: Callable[..., T], role: str | None, **kwargs: object) 
         return func(role=role, **kwargs)
     except ValueError as e:
         rprint(f"[red]{e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command()

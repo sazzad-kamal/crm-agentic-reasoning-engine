@@ -26,15 +26,15 @@ print_error() {
 
 run_backend() {
     print_header "Backend: Ruff Linter"
-    ruff check backend/ --select=E,F,W,I,B,UP --ignore=E501,E402,E701,E741
+    python -m ruff check backend/ --select=E,F,W,I,B,UP --ignore=E501,E402,E701,E741
     print_success "Ruff linter passed"
 
     print_header "Backend: Mypy Type Check"
-    mypy backend/ --ignore-missing-imports --no-error-summary --allow-untyped-defs
+    python -m mypy backend/ --ignore-missing-imports --no-error-summary --allow-untyped-defs
     print_success "Mypy passed"
 
     print_header "Backend: Pytest"
-    MOCK_LLM=1 OPENAI_API_KEY=test-key pytest tests/backend/ -v --tb=short
+    MOCK_LLM=1 OPENAI_API_KEY=test-key python -m pytest tests/backend/ -v --tb=short
     print_success "Backend tests passed"
 }
 

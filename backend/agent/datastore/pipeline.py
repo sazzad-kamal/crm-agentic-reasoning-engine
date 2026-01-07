@@ -131,7 +131,7 @@ class PipelineMixin(_MixinBase):
         """).fetchall()
 
         columns = [desc[0] for desc in self.conn.description]
-        return [dict(zip(columns, row)) for row in result]
+        return [dict(zip(columns, row, strict=True)) for row in result]
 
     def get_pipeline_by_owner(self, owner: str | None = None) -> dict:
         self._ensure_table("opportunities")
@@ -326,7 +326,7 @@ class PipelineMixin(_MixinBase):
         total_closed = total_won + total_lost
         overall_win_rate = (total_won / total_closed * 100) if total_closed > 0 else 0
 
-        for owner_id, stats in by_owner.items():
+        for _owner_id, stats in by_owner.items():
             owner_total = stats["won"] + stats["lost"]
             stats["win_rate"] = round(stats["won"] / owner_total * 100, 1) if owner_total > 0 else 0
             stats["total_closed"] = owner_total

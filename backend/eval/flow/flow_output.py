@@ -44,15 +44,18 @@ def print_summary(results: FlowEvalResults) -> bool:
     # Compute SLO pass/fail
     path_slo_pass = results.path_pass_rate >= SLO_FLOW_PATH_PASS_RATE
     q_slo_pass = results.question_pass_rate >= SLO_FLOW_QUESTION_PASS_RATE
-    company_slo_pass = results.company_extraction_accuracy >= SLO_COMPANY_EXTRACTION
+    # Company extraction: N/A if no questions have expected company
+    company_slo_pass = results.company_extraction_accuracy >= SLO_COMPANY_EXTRACTION if results.company_sample_count > 0 else None
     intent_slo_pass = results.intent_accuracy >= SLO_ROUTER_ACCURACY
     relevance_slo_pass = results.avg_relevance >= SLO_FLOW_RELEVANCE
     faithfulness_slo_pass = results.avg_faithfulness >= SLO_FLOW_FAITHFULNESS
     answer_correctness_slo_pass = results.avg_answer_correctness >= SLO_FLOW_ANSWER_CORRECTNESS
 
-    # RAG source-specific SLOs (None if no samples)
-    doc_precision_slo_pass = results.avg_doc_precision >= SLO_DOC_PRECISION if results.doc_sample_count > 0 else None
-    doc_recall_slo_pass = results.avg_doc_recall >= SLO_DOC_RECALL if results.doc_sample_count > 0 else None
+    # RAG source-specific SLOs
+    # Doc RAG always runs, so always show metrics (0% if retrieval failed, never N/A)
+    doc_precision_slo_pass = results.avg_doc_precision >= SLO_DOC_PRECISION
+    doc_recall_slo_pass = results.avg_doc_recall >= SLO_DOC_RECALL
+    # Account RAG is conditional, show N/A only if never invoked
     account_precision_slo_pass = results.avg_account_precision >= SLO_ACCOUNT_PRECISION if results.account_sample_count > 0 else None
     account_recall_slo_pass = results.avg_account_recall >= SLO_ACCOUNT_RECALL if results.account_sample_count > 0 else None
 
@@ -68,8 +71,8 @@ def print_summary(results: FlowEvalResults) -> bool:
             [
                 (
                     "  Company Extraction",
-                    format_percentage(results.company_extraction_accuracy),
-                    f">={format_percentage(SLO_COMPANY_EXTRACTION)}",
+                    format_percentage(results.company_extraction_accuracy) if results.company_sample_count > 0 else "N/A",
+                    f">={format_percentage(SLO_COMPANY_EXTRACTION)}" if results.company_sample_count > 0 else "-",
                     company_slo_pass,
                 ),
                 (
@@ -91,14 +94,14 @@ def print_summary(results: FlowEvalResults) -> bool:
             [
                 (
                     "  Doc Precision",
-                    format_percentage(results.avg_doc_precision) if results.doc_sample_count > 0 else "N/A",
-                    f">={format_percentage(SLO_DOC_PRECISION)}" if results.doc_sample_count > 0 else "-",
+                    format_percentage(results.avg_doc_precision),
+                    f">={format_percentage(SLO_DOC_PRECISION)}",
                     doc_precision_slo_pass,
                 ),
                 (
                     "  Doc Recall",
-                    format_percentage(results.avg_doc_recall) if results.doc_sample_count > 0 else "N/A",
-                    f">={format_percentage(SLO_DOC_RECALL)}" if results.doc_sample_count > 0 else "-",
+                    format_percentage(results.avg_doc_recall),
+                    f">={format_percentage(SLO_DOC_RECALL)}",
                     doc_recall_slo_pass,
                 ),
                 (
@@ -166,10 +169,10 @@ def print_summary(results: FlowEvalResults) -> bool:
     all_slos_passed = (
         path_slo_pass
         and q_slo_pass
-        and company_slo_pass
+        and (company_slo_pass is None or company_slo_pass)
         and intent_slo_pass
-        and (doc_precision_slo_pass is None or doc_precision_slo_pass)
-        and (doc_recall_slo_pass is None or doc_recall_slo_pass)
+        and doc_precision_slo_pass  # Doc RAG always runs, never None
+        and doc_recall_slo_pass  # Doc RAG always runs, never None
         and (account_precision_slo_pass is None or account_precision_slo_pass)
         and (account_recall_slo_pass is None or account_recall_slo_pass)
         and relevance_slo_pass
@@ -195,14 +198,15 @@ def _count_ragas_failures(step: FlowStepResult) -> int:
         count += 1
     if step.answer_correctness_score < SLO_FLOW_ANSWER_CORRECTNESS:
         count += 1
-    # Count source-specific RAG failures (only if that source was used)
-    if step.doc_precision_score > 0 and step.doc_precision_score < SLO_DOC_PRECISION:
+    # Doc RAG always runs, so always count its failures
+    if step.doc_rag_invoked and step.doc_precision_score < SLO_DOC_PRECISION:
         count += 1
-    if step.doc_recall_score > 0 and step.doc_recall_score < SLO_DOC_RECALL:
+    if step.doc_rag_invoked and step.doc_recall_score < SLO_DOC_RECALL:
         count += 1
-    if step.account_precision_score > 0 and step.account_precision_score < SLO_ACCOUNT_PRECISION:
+    # Account RAG is conditional, only count if invoked
+    if step.account_rag_invoked and step.account_precision_score < SLO_ACCOUNT_PRECISION:
         count += 1
-    if step.account_recall_score > 0 and step.account_recall_score < SLO_ACCOUNT_RECALL:
+    if step.account_rag_invoked and step.account_recall_score < SLO_ACCOUNT_RECALL:
         count += 1
     return count
 
@@ -252,15 +256,13 @@ def _print_slo_failures(results: FlowEvalResults) -> None:
         f_pass = step.faithfulness_score >= SLO_FLOW_FAITHFULNESS
         a_pass = step.answer_correctness_score >= SLO_FLOW_ANSWER_CORRECTNESS
 
-        # Doc: None if source not used, else check both precision and recall
-        doc_used = step.doc_precision_score > 0 or step.doc_recall_score > 0
-        doc_pass: bool | None = None if not doc_used else (
+        # Doc: Always show since doc RAG always runs (never N/A)
+        doc_pass: bool = (
             step.doc_precision_score >= SLO_DOC_PRECISION and step.doc_recall_score >= SLO_DOC_RECALL
         )
 
-        # Account: None if source not used, else check both precision and recall
-        acct_used = step.account_precision_score > 0 or step.account_recall_score > 0
-        acct_pass: bool | None = None if not acct_used else (
+        # Account: N/A if not invoked, else check both precision and recall
+        acct_pass: bool | None = None if not step.account_rag_invoked else (
             step.account_precision_score >= SLO_ACCOUNT_PRECISION and step.account_recall_score >= SLO_ACCOUNT_RECALL
         )
 

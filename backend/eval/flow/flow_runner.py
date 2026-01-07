@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 from rich.table import Table
@@ -18,8 +18,8 @@ from backend.eval.ragas_judge import evaluate_single
 
 logger = logging.getLogger(__name__)
 
-# Global lock for RAGAS evaluation calls to avoid httpx async event loop conflicts
-_ragas_lock = threading.Lock()
+# Lock for thread-safe console output
+_console_lock = threading.Lock()
 
 
 def _detect_expected_company(question: str) -> str | None:
@@ -54,14 +54,9 @@ def judge_answer(
     reference_answer: str | None = None,
     verbose: bool = False,
 ) -> dict:
-    """Judge an answer using RAGAS metrics.
-
-    Uses a global lock to serialize RAGAS calls and avoid httpx async event loop conflicts.
-    """
+    """Judge an answer using RAGAS metrics."""
     try:
-        # Use lock to serialize RAGAS calls (avoids event loop conflicts)
-        with _ragas_lock:
-            result = evaluate_single(question, answer, contexts, reference_answer=reference_answer, verbose=verbose)
+        result = evaluate_single(question, answer, contexts, reference_answer=reference_answer, verbose=verbose)
         return {
             "relevance": result["answer_relevancy"],
             "faithfulness": result["faithfulness"],
@@ -91,7 +86,7 @@ def _invoke_agent(question: str, session_id: str | None = None) -> dict[str, Any
     return agent_graph.invoke(state, config=config)  # type: ignore[no-any-return]
 
 
-async def test_single_question(
+def test_single_question(
     question: str,
     history: list[dict],
     session_id: str,
@@ -113,12 +108,8 @@ async def test_single_question(
     start_time = time.time()
 
     try:
-        # Run the agent in a thread pool for true parallelism
-        result = await asyncio.to_thread(
-            _invoke_agent,
-            question=question,
-            session_id=session_id,
-        )
+        # Invoke agent synchronously
+        result = _invoke_agent(question=question, session_id=session_id)
 
         latency_ms = int((time.time() - start_time) * 1000)
 
@@ -143,6 +134,14 @@ async def test_single_question(
         doc_chunks = result.get("doc_chunks", [])
         account_chunks = result.get("account_chunks", [])
 
+        # Determine if each RAG was invoked
+        # Doc RAG always runs (fetch_docs_node always executes)
+        doc_rag_invoked = True
+
+        # Account RAG is conditional on intent and company_id
+        # Check if it was actually invoked by looking at the result
+        account_rag_invoked = bool(result.get("account_context_answer"))
+
         # Get expected answer for answer_correctness metric
         expected_answer = get_expected_answer(question)
 
@@ -157,48 +156,25 @@ async def test_single_question(
         explanation = ""
 
         if use_judge and has_answer:
-            # Evaluate doc RAG if chunks exist
-            if doc_chunks:
-                doc_result = await asyncio.wait_for(
-                    asyncio.to_thread(
-                        judge_answer, question, answer, doc_chunks, reference_answer=expected_answer, verbose=verbose
-                    ),
-                    timeout=120.0,
-                )
-                doc_precision = doc_result.get("context_precision", 0.0)
-                doc_recall = doc_result.get("context_recall", 0.0)
-                # Use doc result for answer metrics if available
-                relevance = doc_result.get("relevance", 0.0)
-                faithfulness = doc_result.get("faithfulness", 0.0)
-                answer_correctness = doc_result.get("answer_correctness", 0.0)
+            # Always evaluate doc RAG (it's always invoked)
+            # Even with empty chunks, this shows 0% (retrieval failure) not N/A
+            doc_result = judge_answer(
+                question, answer, doc_chunks, reference_answer=expected_answer, verbose=verbose
+            )
+            doc_precision = doc_result.get("context_precision", 0.0)
+            doc_recall = doc_result.get("context_recall", 0.0)
+            # Use doc result for answer metrics
+            relevance = doc_result.get("relevance", 0.0)
+            faithfulness = doc_result.get("faithfulness", 0.0)
+            answer_correctness = doc_result.get("answer_correctness", 0.0)
 
-            # Evaluate account RAG if chunks exist
-            if account_chunks:
-                account_result = await asyncio.wait_for(
-                    asyncio.to_thread(
-                        judge_answer, question, answer, account_chunks, reference_answer=expected_answer, verbose=verbose
-                    ),
-                    timeout=120.0,
+            # Only evaluate account RAG if it was actually invoked
+            if account_rag_invoked:
+                account_result = judge_answer(
+                    question, answer, account_chunks, reference_answer=expected_answer, verbose=verbose
                 )
                 account_precision = account_result.get("context_precision", 0.0)
                 account_recall = account_result.get("context_recall", 0.0)
-                # If no doc chunks, use account result for answer metrics
-                if not doc_chunks:
-                    relevance = account_result.get("relevance", 0.0)
-                    faithfulness = account_result.get("faithfulness", 0.0)
-                    answer_correctness = account_result.get("answer_correctness", 0.0)
-
-            # If neither source has chunks, evaluate with empty context
-            if not doc_chunks and not account_chunks:
-                fallback_result = await asyncio.wait_for(
-                    asyncio.to_thread(
-                        judge_answer, question, answer, [], reference_answer=expected_answer, verbose=verbose
-                    ),
-                    timeout=120.0,
-                )
-                relevance = fallback_result.get("relevance", 0.0)
-                faithfulness = fallback_result.get("faithfulness", 0.0)
-                answer_correctness = fallback_result.get("answer_correctness", 0.0)
 
         return FlowStepResult(
             question=question,
@@ -218,6 +194,8 @@ async def test_single_question(
             doc_recall_score=doc_recall,
             account_precision_score=account_precision,
             account_recall_score=account_recall,
+            doc_rag_invoked=doc_rag_invoked,
+            account_rag_invoked=account_rag_invoked,
             judge_explanation=explanation,
             error=None,
         )
@@ -256,7 +234,7 @@ async def test_single_question(
         )
 
 
-async def test_flow(path: list[str], path_id: int, use_judge: bool = True, verbose: bool = False) -> FlowResult:
+def test_flow(path: list[str], path_id: int, use_judge: bool = True, verbose: bool = False) -> FlowResult:
     """
     Test a complete conversation flow (sequence of questions with memory).
 
@@ -275,8 +253,9 @@ async def test_flow(path: list[str], path_id: int, use_judge: bool = True, verbo
     total_latency = 0
     success = True
 
+    # Questions within a flow must be sequential (memory dependency)
     for question in path:
-        step_result = await test_single_question(question, history, session_id, use_judge, verbose)
+        step_result = test_single_question(question, history, session_id, use_judge, verbose)
         steps.append(step_result)
         total_latency += step_result.latency_ms
 
@@ -300,14 +279,14 @@ async def test_flow(path: list[str], path_id: int, use_judge: bool = True, verbo
     )
 
 
-async def run_flow_eval(
+def run_flow_eval(
     max_paths: int | None = None,
     verbose: bool = False,
     use_judge: bool = True,
     concurrency: int = 5,
 ) -> FlowEvalResults:
     """
-    Run the flow evaluation on all paths.
+    Run the flow evaluation on all paths using ThreadPoolExecutor.
 
     Args:
         max_paths: Limit number of paths to test (None = all)
@@ -341,49 +320,52 @@ async def run_flow_eval(
     console.print(config_table)
     console.print()
 
-    # Semaphore to limit concurrent flows
-    semaphore = asyncio.Semaphore(concurrency)
     completed = 0
     total = len(paths_to_test)
-    lock = asyncio.Lock()
+    results: list[FlowResult] = []
 
-    async def run_with_semaphore(path: list[str], path_id: int) -> FlowResult:
-        nonlocal completed
-        async with semaphore:
-            result = await test_flow(path, path_id, use_judge, verbose)
-            async with lock:
-                completed += 1
-                status_color = "green" if result.success else "red"
-                status = "PASS" if result.success else "FAIL"
-                console.print(
-                    f"[dim][{completed}/{total}][/dim] Path {path_id + 1}: "
-                    f"[{status_color}]{status}[/{status_color}] ({result.total_latency_ms}ms)"
+    console.print(f"[cyan]Starting {total} flows with {concurrency} workers...[/cyan]")
+
+    # Use ThreadPoolExecutor for parallel flow execution
+    with ThreadPoolExecutor(max_workers=concurrency) as executor:
+        # Submit all flows
+        futures = {
+            executor.submit(test_flow, path, i, use_judge, verbose): i
+            for i, path in enumerate(paths_to_test)
+        }
+
+        # Process results as they complete
+        for future in as_completed(futures):
+            path_id = futures[future]
+            try:
+                result = future.result()
+                results.append(result)
+
+                with _console_lock:
+                    completed += 1
+                    status_color = "green" if result.success else "red"
+                    status = "PASS" if result.success else "FAIL"
+                    console.print(
+                        f"[dim][{completed}/{total}][/dim] Path {path_id + 1}: "
+                        f"[{status_color}]{status}[/{status_color}] ({result.total_latency_ms}ms)"
+                    )
+            except Exception as e:
+                with _console_lock:
+                    completed += 1
+                    console.print(f"[red]Path {path_id + 1} raised exception: {e}[/red]")
+                results.append(
+                    FlowResult(
+                        path_id=path_id,
+                        questions=paths_to_test[path_id],
+                        steps=[],
+                        total_latency_ms=0,
+                        success=False,
+                        error=str(e),
+                    )
                 )
-            return result
 
-    # Run all flows in parallel
-    tasks = [run_with_semaphore(path, i) for i, path in enumerate(paths_to_test)]
-    console.print(f"[cyan]Starting {len(tasks)} flows...[/cyan]")
-    gathered = await asyncio.gather(*tasks, return_exceptions=True)
-
-    # Check for exceptions in results
-    actual_results: list[FlowResult] = []
-    for i, r in enumerate(gathered):
-        if isinstance(r, Exception):
-            console.print(f"[red]Path {i + 1} raised exception: {r}[/red]")
-            actual_results.append(
-                FlowResult(
-                    path_id=i,
-                    questions=paths_to_test[i],
-                    steps=[],
-                    total_latency_ms=0,
-                    success=False,
-                    error=str(r),
-                )
-            )
-        else:
-            actual_results.append(r)  # type: ignore[arg-type]
-    results = actual_results  # Use consistent name for rest of function
+    # Sort results by path_id for consistent ordering
+    results.sort(key=lambda r: r.path_id)
 
     # Aggregate results
     paths_passed = sum(1 for r in results if r.success)
@@ -399,9 +381,11 @@ async def run_flow_eval(
     avg_faithfulness = sum(s.faithfulness_score for s in all_steps) / len(all_steps) if all_steps else 0.0
     avg_answer_correctness = sum(s.answer_correctness_score for s in all_steps) / len(all_steps) if all_steps else 0.0
 
-    # Calculate source-specific RAG metrics (only for steps that have chunks from that source)
-    steps_with_doc = [s for s in all_steps if s.doc_precision_score > 0 or s.doc_recall_score > 0]
-    steps_with_account = [s for s in all_steps if s.account_precision_score > 0 or s.account_recall_score > 0]
+    # Calculate source-specific RAG metrics based on invocation flags
+    # Doc RAG is always invoked, so always count all steps
+    steps_with_doc = [s for s in all_steps if s.doc_rag_invoked]
+    # Account RAG is conditional, only count steps where it was invoked
+    steps_with_account = [s for s in all_steps if s.account_rag_invoked]
 
     avg_doc_precision = sum(s.doc_precision_score for s in steps_with_doc) / len(steps_with_doc) if steps_with_doc else 0.0
     avg_doc_recall = sum(s.doc_recall_score for s in steps_with_doc) / len(steps_with_doc) if steps_with_doc else 0.0
@@ -411,11 +395,12 @@ async def run_flow_eval(
     # Calculate routing accuracy
     # Only count questions that have expected company (skip questions without company context)
     steps_with_expected_company = [s for s in all_steps if s.expected_company_id is not None]
-    if steps_with_expected_company:
+    company_sample_count = len(steps_with_expected_company)
+    if company_sample_count > 0:
         company_correct_count = sum(1 for s in steps_with_expected_company if s.company_correct)
-        company_extraction_accuracy = company_correct_count / len(steps_with_expected_company)
+        company_extraction_accuracy = company_correct_count / company_sample_count
     else:
-        company_extraction_accuracy = 1.0  # No questions with company context
+        company_extraction_accuracy = 0.0  # Will show as N/A
 
     intent_correct_count = sum(1 for s in all_steps if s.intent_correct)
     intent_accuracy = intent_correct_count / len(all_steps) if all_steps else 0.0
@@ -439,6 +424,7 @@ async def run_flow_eval(
         questions_passed=questions_passed,
         questions_failed=questions_failed,
         company_extraction_accuracy=company_extraction_accuracy,
+        company_sample_count=company_sample_count,
         intent_accuracy=intent_accuracy,
         avg_relevance=avg_relevance,
         avg_faithfulness=avg_faithfulness,

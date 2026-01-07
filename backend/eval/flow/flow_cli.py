@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import atexit
 import logging
 import time
@@ -30,7 +29,7 @@ atexit.register(close_qdrant_client)
 app = typer.Typer()
 
 
-async def _run_eval_async(
+def _run_eval(
     limit: int | None,
     verbose: bool,
     parallel: bool,
@@ -39,7 +38,7 @@ async def _run_eval_async(
     output: str | None,
     debug: bool,
 ) -> None:
-    """Async implementation of the eval runner."""
+    """Run the flow evaluation."""
     eval_start_time = time.time()
 
     # Check if Qdrant is accessible
@@ -72,11 +71,11 @@ async def _run_eval_async(
     for key, value in stats.items():
         console.print(f"  [dim]{key}:[/dim] {value}")
 
-    # Run evaluation
+    # Run evaluation (synchronous - uses ThreadPoolExecutor internally)
     use_judge = not no_judge
     concurrency = workers if parallel else 1
     try:
-        results = await run_flow_eval(
+        results = run_flow_eval(
             max_paths=limit,
             verbose=verbose,
             use_judge=use_judge,
@@ -156,16 +155,14 @@ def main(
 ) -> None:
     """Run conversation flow evaluation."""
     logging.basicConfig(level=logging.WARNING)
-    asyncio.run(
-        _run_eval_async(
-            limit=limit,
-            verbose=verbose,
-            parallel=parallel,
-            workers=workers,
-            no_judge=no_judge,
-            output=output,
-            debug=debug,
-        )
+    _run_eval(
+        limit=limit,
+        verbose=verbose,
+        parallel=parallel,
+        workers=workers,
+        no_judge=no_judge,
+        output=output,
+        debug=debug,
     )
 
 

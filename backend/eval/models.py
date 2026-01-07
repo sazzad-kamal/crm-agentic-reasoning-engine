@@ -174,6 +174,9 @@ class FlowStepResult:
     doc_recall_score: float = 0.0  # Doc RAG recall
     account_precision_score: float = 0.0  # Account RAG precision
     account_recall_score: float = 0.0  # Account RAG recall
+    # RAG invocation flags (for N/A vs 0% distinction)
+    doc_rag_invoked: bool = True  # Always True (doc RAG always runs)
+    account_rag_invoked: bool = False  # True only if account RAG was called
     judge_explanation: str = ""
     error: str | None = None
 
@@ -212,6 +215,7 @@ class FlowEvalResults:
     questions_failed: int
     # Routing metrics
     company_extraction_accuracy: float = 0.0
+    company_sample_count: int = 0  # Number of steps with expected company (0 = N/A)
     intent_accuracy: float = 0.0
     # RAGAS metrics (0.0-1.0) - answer quality
     avg_relevance: float = 0.0  # RAGAS answer_relevancy

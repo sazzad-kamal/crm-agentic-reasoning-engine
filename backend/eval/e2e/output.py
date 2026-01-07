@@ -204,7 +204,7 @@ def _print_issues(results: list[E2EEvalResult]) -> None:
         if len(r.question.strip()) > 10:
             question_display = r.question[:60] + ("..." if len(r.question) > 60 else "")
         else:
-            question_display = f"[{r.test_case_id}]"
+            question_display = f"\\[{r.test_case_id}]"
         console.print(f"\n  [#{i}] {question_display}")
         for f in failures:
             console.print(f"    [red]x[/red] {f}")

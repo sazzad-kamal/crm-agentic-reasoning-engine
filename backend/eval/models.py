@@ -89,8 +89,13 @@ class E2EEvalSummary(BaseModel):
 
     # Latency
     avg_latency_ms: float
-    p95_latency_ms: float = 0.0
-    latency_slo_pass: bool = True
+    wall_clock_ms: int = 0  # Total wall-clock time for the eval
+
+    # Latency breakdown by node (percentage of total)
+    latency_routing_pct: float = 0.0
+    latency_retrieval_pct: float = 0.0
+    latency_answer_pct: float = 0.0
+    latency_followup_pct: float = 0.0
 
     # Breakdown by category
     by_category: dict[str, dict]
@@ -103,8 +108,15 @@ class E2EEvalSummary(BaseModel):
 # Latency SLOs
 SLO_LATENCY_P95_MS = 5000  # 5s P95 - catches outliers
 
+# Latency % SLOs (percentage of total latency per node)
+SLO_LATENCY_ROUTING_PCT = 0.25  # 25% - routing should be quick
+SLO_LATENCY_RETRIEVAL_PCT = 0.35  # 35% - RAG fetch from vector DB
+SLO_LATENCY_ANSWER_PCT = 0.30  # 30% - LLM generation
+SLO_LATENCY_FOLLOWUP_PCT = 0.30  # 30% - LLM generation
+
 # Quality SLOs - RAGAS metrics (same for E2E and Flow)
-SLO_ROUTER_ACCURACY = 0.90  # 90% router accuracy (company extraction)
+SLO_ROUTER_ACCURACY = 0.90  # 90% router accuracy (intent classification)
+SLO_COMPANY_EXTRACTION = 0.90  # 90% company extraction accuracy
 SLO_FAITHFULNESS = 0.90  # 90% - critical for CRM, no hallucination allowed
 SLO_ANSWER_RELEVANCE = 0.85  # 85% - answers should address the question
 SLO_CONTEXT_PRECISION = 0.80  # 80% - good retrieval quality

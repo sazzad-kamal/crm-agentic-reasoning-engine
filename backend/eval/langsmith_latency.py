@@ -86,6 +86,51 @@ def get_latency_breakdown(
 AGENT_NODES = {"route", "fetch_crm", "fetch_docs", "fetch_account", "answer", "followup"}
 
 
+def get_latency_percentages(
+    minutes_ago: int = 10,
+    project_name: str | None = None,
+) -> dict[str, float]:
+    """
+    Get latency percentages by section for display in eval summary.
+
+    Returns dict with keys: routing, retrieval, answer, followup
+    Values are percentages (0.0 to 1.0)
+    """
+    breakdown = get_latency_breakdown(minutes_ago, project_name)
+
+    if not breakdown:
+        return {}
+
+    # Filter to agent nodes only
+    breakdown = {k: v for k, v in breakdown.items() if k in AGENT_NODES}
+
+    if not breakdown:
+        return {}
+
+    # Calculate total for percentages
+    total_avg = sum(stats["avg_ms"] for stats in breakdown.values())
+
+    if total_avg == 0:
+        return {}
+
+    # Map node names to sections
+    # routing = route node
+    # retrieval = fetch_docs (fetch_crm and fetch_account run in parallel, fetch_docs is the main one)
+    # answer = answer node
+    # followup = followup node
+    route_pct = breakdown.get("route", {}).get("avg_ms", 0) / total_avg
+    fetch_docs_pct = breakdown.get("fetch_docs", {}).get("avg_ms", 0) / total_avg
+    answer_pct = breakdown.get("answer", {}).get("avg_ms", 0) / total_avg
+    followup_pct = breakdown.get("followup", {}).get("avg_ms", 0) / total_avg
+
+    return {
+        "routing": route_pct,
+        "retrieval": fetch_docs_pct,
+        "answer": answer_pct,
+        "followup": followup_pct,
+    }
+
+
 def print_latency_breakdown(
     minutes_ago: int = 10,
     project_name: str | None = None,

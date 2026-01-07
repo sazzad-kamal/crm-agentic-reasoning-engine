@@ -33,7 +33,6 @@ def main(
     workers: int = typer.Option(4, "--workers", "-w", help="Max parallel workers"),
     output: str | None = typer.Option(None, "--output", "-o", help="Path to save JSON results"),
     debug: bool = typer.Option(False, "--debug", "-d", help="Dump full details for failing cases"),
-    latency: bool = typer.Option(True, "--latency/--no-latency", help="Show per-node latency breakdown from LangSmith"),
 ) -> None:
     """Run end-to-end agent evaluation."""
     import time
@@ -42,6 +41,17 @@ def main(
     results, summary = run_e2e_eval(
         limit=limit, verbose=verbose, parallel=parallel, max_workers=workers
     )
+
+    # Fetch latency breakdown from LangSmith and update summary
+    from backend.eval.langsmith_latency import get_latency_percentages
+    elapsed_minutes = int((time.time() - eval_start_time) / 60) + 1
+    latency_pcts = get_latency_percentages(minutes_ago=max(elapsed_minutes, 5))
+    if latency_pcts:
+        summary.latency_routing_pct = latency_pcts.get("routing", 0.0)
+        summary.latency_retrieval_pct = latency_pcts.get("retrieval", 0.0)
+        summary.latency_answer_pct = latency_pcts.get("answer", 0.0)
+        summary.latency_followup_pct = latency_pcts.get("followup", 0.0)
+
     print_e2e_eval_results(results, summary)
 
     # Debug output for failing cases
@@ -97,13 +107,6 @@ def main(
                 "error": r.error,
             },
         )
-
-    # Show LangSmith latency breakdown if requested
-    if latency:
-        from backend.eval.langsmith_latency import print_latency_breakdown
-        # Use elapsed time + 1 minute buffer to capture all runs from this eval
-        elapsed_minutes = int((time.time() - eval_start_time) / 60) + 1
-        print_latency_breakdown(minutes_ago=max(elapsed_minutes, 5))
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ from backend.agent.graph import agent_graph, build_thread_config, clear_thread
 from backend.eval.base import console, print_eval_header
 from backend.eval.e2e.test_cases import E2E_TEST_CASES
 from backend.eval.models import SECURITY_CATEGORIES, E2EEvalResult, E2EEvalSummary
-from backend.eval.parallel import calculate_p95_latency, run_parallel_evaluation
+from backend.eval.parallel import run_parallel_evaluation
 from backend.eval.ragas_judge import evaluate_single
 
 
@@ -28,10 +28,11 @@ def judge_e2e_response(
     answer: str,
     contexts: list[str],
     reference_answer: str | None = None,
+    verbose: bool = False,
 ) -> dict:
     """Judge an end-to-end response using RAGAS metrics."""
     try:
-        result = evaluate_single(question, answer, contexts, reference_answer=reference_answer)
+        result = evaluate_single(question, answer, contexts, reference_answer=reference_answer, verbose=verbose)
         return {
             "answer_relevance": result["answer_relevancy"],
             "faithfulness": result["faithfulness"],
@@ -170,7 +171,7 @@ def run_e2e_test(
     else:
         # RAG tests: run full RAGAS evaluation with context chunks
         judge_result = judge_e2e_response(
-            question, answer, context_chunks, reference_answer=expected_answer
+            question, answer, context_chunks, reference_answer=expected_answer, verbose=verbose
         )
 
     # Check company extraction correctness
@@ -245,6 +246,8 @@ def run_e2e_eval(
     Returns:
         Tuple of (results list, summary)
     """
+    eval_start_time = time.time()
+
     print_eval_header(
         "[bold blue]End-to-End Agent Evaluation[/bold blue]",
         "Testing full orchestrator pipeline",
@@ -318,12 +321,8 @@ def run_e2e_eval(
 
     avg_latency = sum(r.latency_ms for r in results) / total if total > 0 else 0
 
-    # Compute P95 latency
-    latencies = [r.latency_ms for r in results]
-    p95_latency = calculate_p95_latency(latencies)
-
-    from backend.eval.models import SLO_LATENCY_P95_MS
-    latency_slo_pass = p95_latency <= SLO_LATENCY_P95_MS
+    # Calculate wall clock time
+    wall_clock_ms = int((time.time() - eval_start_time) * 1000)
 
     # By category breakdown
     by_category: dict[str, dict] = {}
@@ -375,8 +374,7 @@ def run_e2e_eval(
         security_tests_passed=security_passed,
         security_pass_rate=security_pass_rate,
         avg_latency_ms=avg_latency,
-        p95_latency_ms=p95_latency,
-        latency_slo_pass=latency_slo_pass,
+        wall_clock_ms=wall_clock_ms,
         by_category=by_category,
     )
 

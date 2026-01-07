@@ -118,8 +118,11 @@ class TestE2EEvalSummary:
             faithfulness_rate=0.84,
             context_precision_rate=0.80,
             avg_latency_ms=350.0,
-            p95_latency_ms=800.0,
-            latency_slo_pass=True,
+            wall_clock_ms=5000,
+            latency_routing_pct=0.20,
+            latency_retrieval_pct=0.30,
+            latency_answer_pct=0.25,
+            latency_followup_pct=0.25,
             by_category={
                 "company_status": {"count": 10, "relevance_rate": 0.9, "faithfulness_rate": 0.8},
                 "docs_query": {"count": 15, "relevance_rate": 0.87, "faithfulness_rate": 0.87},
@@ -128,7 +131,7 @@ class TestE2EEvalSummary:
 
         assert summary.answer_relevance_rate == 0.88
         assert summary.faithfulness_rate == 0.84
-        assert summary.latency_slo_pass is True
+        assert summary.latency_routing_pct == 0.20
 
 
 # =============================================================================
@@ -1039,11 +1042,12 @@ class TestLangSmithLatency:
 
             def list_runs(self, **kwargs):
                 self.call_count += 1
-                if "parent_run_id" in kwargs:
-                    # Child runs
+                # is_root=False means child runs (agent nodes)
+                if kwargs.get("is_root") is False:
                     return [
-                        MockRun("router", now, now + timedelta(milliseconds=100)),
-                        MockRun("rag", now, now + timedelta(milliseconds=500)),
+                        MockRun("route", now, now + timedelta(milliseconds=100)),
+                        MockRun("fetch_docs", now, now + timedelta(milliseconds=500)),
+                        MockRun("answer", now, now + timedelta(milliseconds=300)),
                     ]
                 else:
                     # Parent runs
@@ -1058,10 +1062,12 @@ class TestLangSmithLatency:
 
         result = get_latency_breakdown()
 
-        assert "router" in result
-        assert "rag" in result
-        assert result["router"]["avg_ms"] == 100.0
-        assert result["rag"]["avg_ms"] == 500.0
+        assert "route" in result
+        assert "fetch_docs" in result
+        assert "answer" in result
+        assert result["route"]["avg_ms"] == 100.0
+        assert result["fetch_docs"]["avg_ms"] == 500.0
+        assert result["answer"]["avg_ms"] == 300.0
 
     def test_print_latency_breakdown_empty(self, monkeypatch):
         """Test print_latency_breakdown with no data."""

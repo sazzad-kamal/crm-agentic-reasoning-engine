@@ -39,12 +39,17 @@ def fetch_account_node(state: AgentState) -> AgentState:
             company_id=company_id,
         )
 
+        # Split combined context back into individual chunks for RAGAS evaluation
+        # The RAG tool joins chunks with "\n\n---\n\n"
+        context_chunks = account_answer.split("\n\n---\n\n") if account_answer else []
+
         latency_ms = int((time.time() - start_time) * 1000)
-        logger.info(f"[FetchAccount] Complete in {latency_ms}ms, sources={len(account_sources)}")
+        logger.info(f"[FetchAccount] Complete in {latency_ms}ms, sources={len(account_sources)}, chunks={len(context_chunks)}")
 
         return {
             "account_context_answer": account_answer,
             "sources": account_sources,  # Uses reducer to merge with other sources
+            "context_chunks": context_chunks,  # Individual chunks for RAGAS
         }
 
     except Exception as e:

@@ -35,6 +35,7 @@ def evaluate_single(
     answer: str,
     contexts: list[str],
     reference_answer: str | None = None,
+    verbose: bool = False,
 ) -> dict[str, float]:
     """
     Evaluate a single Q&A pair using RAGAS metrics.
@@ -44,10 +45,15 @@ def evaluate_single(
         answer: The agent's answer
         contexts: List of retrieved context strings
         reference_answer: Optional ground truth answer for answer_correctness metric
+        verbose: Show RAGAS output (default: suppress)
 
     Returns:
         dict with answer_relevancy, faithfulness, context_precision, answer_correctness (0.0-1.0)
     """
+    # Suppress RAGAS output unless verbose
+    if not verbose:
+        logging.getLogger("ragas").setLevel(logging.ERROR)
+
     # RAGAS requires non-empty contexts
     if not contexts:
         contexts = ["No context provided"]

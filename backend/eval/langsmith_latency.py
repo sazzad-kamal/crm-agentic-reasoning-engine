@@ -12,8 +12,9 @@ from backend.eval.formatting import console
 
 
 def get_latency_breakdown(
-    minutes_ago: int = 30,
+    minutes_ago: int = 10,
     project_name: str | None = None,
+    limit: int = 500,
 ) -> dict[str, dict]:
     """
     Fetch latency breakdown by node from LangSmith.
@@ -43,10 +44,11 @@ def get_latency_breakdown(
     start_time = datetime.utcnow() - timedelta(minutes=minutes_ago)
 
     try:
-        # Fetch all runs (not just top-level) in a single API call
+        # Fetch runs in a single API call with limit
         runs = list(client.list_runs(
             project_name=project,
             start_time=start_time,
+            limit=limit,
         ))
     except Exception as e:
         console.print(f"[yellow]Could not fetch LangSmith runs: {e}[/yellow]")
@@ -84,11 +86,11 @@ AGENT_NODES = {"route", "fetch_crm", "fetch_docs", "fetch_account", "answer", "f
 
 
 def print_latency_breakdown(
-    minutes_ago: int = 30,
+    minutes_ago: int = 10,
     project_name: str | None = None,
 ) -> None:
     """Print latency breakdown table from LangSmith data."""
-    breakdown = get_latency_breakdown(minutes_ago, project_name)
+    breakdown = get_latency_breakdown(minutes_ago, project_name, limit=500)
 
     if not breakdown:
         return

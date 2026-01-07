@@ -98,7 +98,7 @@ def main(
     # Show LangSmith latency breakdown if requested
     if latency:
         from backend.eval.langsmith_latency import print_latency_breakdown
-        print_latency_breakdown(minutes_ago=60)
+        print_latency_breakdown(minutes_ago=10)
 
 
 if __name__ == "__main__":

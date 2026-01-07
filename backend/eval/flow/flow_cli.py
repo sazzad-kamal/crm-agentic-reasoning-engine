@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import atexit
 import logging
+import time
 from pathlib import Path
 
 import typer
@@ -21,6 +22,7 @@ from backend.eval.base import console, ensure_qdrant_collections
 from backend.eval.flow.flow_output import check_qdrant_access, print_summary, save_results
 from backend.eval.flow.flow_runner import run_flow_eval
 from backend.eval.formatting import print_debug_failures
+from backend.eval.langsmith_latency import get_latency_percentages
 
 # Register cleanup to prevent shutdown errors
 atexit.register(close_qdrant_client)
@@ -38,6 +40,8 @@ async def _run_eval_async(
     debug: bool,
 ) -> None:
     """Async implementation of the eval runner."""
+    eval_start_time = time.time()
+
     # Check if Qdrant is accessible
     if not check_qdrant_access():
         console.print(
@@ -84,6 +88,14 @@ async def _run_eval_async(
 
         traceback.print_exc()
         return
+
+    # Fetch latency breakdown from LangSmith
+    elapsed_minutes = int((time.time() - eval_start_time) / 60) + 1
+    latency_pcts = get_latency_percentages(minutes_ago=max(elapsed_minutes, 5))
+    if latency_pcts:
+        results.latency_routing_pct = latency_pcts.get("routing", 0.0)
+        results.latency_retrieval_pct = latency_pcts.get("retrieval", 0.0)
+        results.latency_answer_pct = latency_pcts.get("answer", 0.0)
 
     # Print summary
     print_summary(results)

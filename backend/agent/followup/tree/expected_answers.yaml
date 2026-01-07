@@ -1,1059 +1,2039 @@
 # Expected answers for flow eval - used for RAGAS answer_correctness metric
 # Each question from data.json is mapped to its expected answer
-# Answers are context-aware based on the question's position in the conversation tree
+# Answers contain REAL CRM data for accurate RAGAS scoring
 
 # =============================================================================
 # STARTER QUESTIONS (Root level - 3 personas)
 # =============================================================================
 
 "How's my pipeline?": |
-  Your pipeline is healthy with multiple opportunities across different stages.
-  You have deals in discovery, proposal, and negotiation phases.
-  Key accounts include Acme Manufacturing and Beta Tech Solutions.
+  Your pipeline has 4 open opportunities worth $79,000 total:
+  - Beta Tech - New rollout: $32,000 (Negotiation stage, closes Feb 15, 2026)
+  - Harbor Logistics - Initial rollout: $26,000 (Discovery stage)
+  - Acme Manufacturing - Pro to Enterprise upgrade: $15,000 (Proposal stage, closes Jan 25, 2026)
+  - Acme Manufacturing - Annual renewal: $24,000 (Qualified stage, closes Apr 15, 2026)
+  Key accounts: Acme Manufacturing (2 deals), Beta Tech Solutions (2 deals).
 
 "Any renewals at risk?": |
-  You have renewals coming up that need attention.
-  Some accounts show low engagement or have flagged concerns.
-  Delta Health and Crown Foods may need immediate follow-up.
+  You have 5 renewals in the next 90 days:
+  - Crown Foods: January 31, 2026 (Pro plan, healthy)
+  - Delta Health Clinics: February 1, 2026 (Standard plan, at-risk-renewal-soon)
+  - Beta Tech Solutions: February 15, 2026 (Standard plan, at-risk-low-activity)
+  - Harbor Logistics: March 15, 2026 (Standard plan, health-check)
+  - Acme Manufacturing: March 31, 2026 (Pro plan, healthy)
+  Delta Health and Beta Tech need immediate attention due to risk flags.
 
 "How's the team doing?": |
-  The team has a combined pipeline across multiple reps.
-  Activity levels show ongoing engagement with accounts.
-  Some reps may need coaching based on activity metrics.
+  The team has a combined pipeline across 3 reps:
+  - jsmith: Acme Manufacturing ($39,000), Crown Foods ($18,000), Fusion Retail ($12,000)
+  - ljones: Beta Tech Solutions ($40,000)
+  - mmalik: Harbor Logistics ($26,000), Eastern Travel ($8,000)
+  Total open pipeline: ~$143,000. Activity levels vary by rep.
 
 # =============================================================================
 # PIPELINE BRANCH (From "How's my pipeline?")
 # =============================================================================
 
 "Which deals need attention?": |
-  Several deals need attention based on recent activity.
-  Look for deals with stalled progress or upcoming close dates.
-  Consider prioritizing based on value and stage.
+  Deals needing attention based on stage and timeline:
+  - Acme Manufacturing - Pro to Enterprise upgrade: $15,000 in Proposal stage, expected close Jan 25, 2026. Been in stage 50 days. Next step: Send revised proposal addressing pricing concerns.
+  - Crown Foods - Subscription renewal: $18,000 in Proposal stage, expected close Jan 30, 2026. Next step: Follow up on renewal proposal with Maria Silva.
+  - Beta Tech - New rollout: $32,000 in Negotiation stage, expected close Feb 15, 2026. Next step: Finalize contract terms with Lisa Ng.
 
 "What's going on with Acme Manufacturing?": |
-  Acme Manufacturing is an active account with open opportunities.
-  They have multiple deals in the pipeline and recent activity.
-  Key contacts include decision makers in IT and operations.
+  Acme Manufacturing (ACME-MFG) is an active Pro plan customer with 2 open opportunities:
+  - Pro to Enterprise upgrade: $15,000 (Proposal stage) - primary contact Anna Lopez
+  - Annual renewal: $24,000 (Qualified stage) - primary contact Joe Smith
+  Renewal date: March 31, 2026. Health status: healthy.
+  Key contacts: Anna Lopez (Operations Manager), Joe Smith (IT Manager), Beth Turner (CFO).
 
 "What's the forecast for this quarter?": |
-  The quarterly forecast shows expected revenue from weighted pipeline.
-  Deals in late stages contribute most to the forecast.
-  Consider the close probability for each opportunity.
+  Q1 2026 forecast based on weighted pipeline:
+  - Beta Tech - New rollout: $32,000 (Negotiation, high probability)
+  - Acme Manufacturing - Upgrade: $15,000 (Proposal stage)
+  - Crown Foods - Renewal: $18,000 (Proposal stage)
+  - Harbor Logistics - New: $26,000 (Discovery, lower probability)
+  Total pipeline value: ~$91,000. Weighted forecast depends on stage probabilities.
 
 # From "Which deals need attention?"
 "What stage is the upgrade deal in?": |
-  The upgrade deal is in the discovery or proposal stage.
-  Next steps involve technical evaluation or pricing discussion.
-  The expected close date is within this quarter.
+  The Acme Manufacturing upgrade deal (Pro to Enterprise) is in Proposal stage.
+  - Value: $15,000 USD
+  - Expected close: January 25, 2026
+  - Days in stage: 50
+  - Primary contact: Anna Lopez (Operations Manager)
+  - Next step: Send revised proposal addressing pricing concerns
+  Deal is stalled due to pricing concerns - CFO Beth Turner wants ROI justification.
 
 "What's blocking the Crown Foods renewal?": |
-  Crown Foods renewal may be blocked by budget constraints.
-  There may be pending approval from their finance team.
-  Recent engagement has been limited - consider follow-up.
+  Crown Foods renewal ($18,000) is in Proposal stage. Recent notes indicate:
+  - Maria Silva (VP Operations) confirmed they're satisfied with the platform
+  - Reduced report generation time by 60%
+  - IT team loves the API flexibility
+  - Nina Foster's analytics team is expanding use cases
+  No significant blockers - should propose multi-year deal at renewal. Expected close: January 30, 2026.
 
 "Who should I follow up with?": |
-  Priority follow-ups include contacts at accounts with stalled deals.
-  Focus on decision makers and economic buyers.
-  Check for overdue activities and upcoming meetings.
+  Priority follow-ups based on upcoming activities:
+  - Anna Lopez (Acme Manufacturing): Follow up on upgrade proposal - call scheduled Jan 15, 2026
+  - Maria Silva (Crown Foods): Renewal check-in - call scheduled Jan 16, 2026
+  - Lisa Ng (Beta Tech): QBR meeting - Jan 18, 2026
+  - Beth Turner (Acme Manufacturing): Executive introduction meeting - Jan 20, 2026
 
 # From "What's the forecast for this quarter?"
 "What's the expected close value?": |
-  The expected close value is based on weighted pipeline.
-  This accounts for deal probability and stage.
-  Late-stage deals contribute most to the forecast.
+  Expected close value for Q1 2026 based on pipeline:
+  - Negotiation stage deals: Beta Tech $32,000 (highest probability)
+  - Proposal stage deals: Acme upgrade $15,000, Crown Foods renewal $18,000
+  - Discovery stage deals: Beta Tech add-on $8,000, Harbor Logistics $26,000, Delta Health expansion $15,000
+  Total open pipeline: ~$114,000. Weighted value depends on stage conversion rates.
 
 "Which deals are most likely to close?": |
-  Deals in negotiation stage are most likely to close.
-  Look for those with strong engagement and clear next steps.
-  Beta Tech and other late-stage deals show high probability.
+  Deals most likely to close based on stage and engagement:
+  1. Beta Tech - New rollout ($32,000): Negotiation stage, Lisa Ng confirmed budget approved, CEO signed off
+  2. Crown Foods - Renewal ($18,000): Proposal stage, customer confirmed satisfaction and commitment
+  3. Acme Manufacturing - Upgrade ($15,000): Proposal stage, needs ROI justification for CFO
+  Beta Tech is the strongest opportunity at $32,000.
 
 "What's at risk in my pipeline?": |
-  At-risk deals show signs of stalling or concern.
-  These may have limited recent activity or blockers.
-  Prioritize outreach to save these opportunities.
+  At-risk deals showing concern signals:
+  - Beta Tech Solutions: Account flagged as at-risk-low-activity despite $40,000 in pipeline
+  - Delta Health Clinics: at-risk-renewal-soon flag, $22,000 renewal plus $15,000 expansion
+  - Acme upgrade deal: Stalled 50 days in Proposal stage due to pricing concerns
+  Focus on re-engaging Beta Tech and addressing Delta Health's concerns.
 
 # From "What's blocking the Crown Foods renewal?"
 "When did we last talk to Crown Foods?": |
-  The last activity with Crown Foods was a call or meeting.
-  Check the activity log for specific dates and notes.
-  Consider scheduling a follow-up if it's been too long.
+  Last Crown Foods activities:
+  - November 15, 2025: Note - Maria confirmed 2-year renewal commitment
+  - November 1, 2025: Call with Nina Foster - collected user feedback on dashboard usability
+  - October 18, 2025: Email to Alex Dupont - helped troubleshoot API connection
+  - October 10, 2025: Call with Maria Silva - reviewed renewal options
+  Most recent substantive engagement was the renewal confirmation on November 15.
 
 "Who is Maria Silva?": |
-  Maria Silva is a contact at one of your accounts.
-  She may be a decision maker or key stakeholder.
-  Check her role and recent interactions in the contact record.
+  Maria Silva is a key contact at Crown Foods:
+  - Job Title: VP Operations
+  - Role: Decision Maker
+  - Email: maria.silva@crownfoods.ca
+  - Phone: +1-555-0201
+  - Primary contact for: Crown Foods - Subscription renewal ($18,000)
+  She confirmed 2-year renewal commitment on November 15, 2025.
 
 "What's the renewal value?": |
-  The renewal value reflects the annual contract amount.
-  This may include any expansion or add-on opportunities.
-  Compare to the original deal size for context.
+  Crown Foods renewal opportunity value:
+  - Opportunity: Crown Foods - Subscription renewal
+  - Value: $18,000 USD
+  - Stage: Proposal
+  - Expected close: January 30, 2026
+  - Current plan: Pro
+  - Renewal date: January 31, 2026
+  Customer has confirmed commitment - consider proposing multi-year deal.
 
 # From "Who should I follow up with?"
 "What's the next scheduled activity?": |
-  The next scheduled activity is a call or meeting.
-  Check your calendar for the specific date and time.
-  Prepare by reviewing the account history.
+  Next scheduled activities (by date):
+  - January 14, 2026: Support ticket follow-up with Mike Rivera (Delta Health)
+  - January 15, 2026: Call with Anna Lopez - Follow up on upgrade proposal (Acme, High priority)
+  - January 16, 2026: Call with Maria Silva - Renewal check-in (Crown Foods, High priority)
+  - January 17, 2026: Contract review task for Lars Müller (Fusion Retail)
+  Nearest high-priority activity is the Acme follow-up on January 15.
 
 "Show me overdue activities": |
-  Here are activities that are past their due date.
-  Prioritize these for immediate attention.
-  Consider reassigning if needed.
+  There are no overdue activities currently. All activities have future due dates.
+  Upcoming activities that need preparation:
+  - January 14, 2026: Delta Health support ticket follow-up
+  - January 15, 2026: Acme Manufacturing upgrade proposal follow-up
+  - January 16, 2026: Crown Foods renewal check-in
 
 "What meetings do I have this week?": |
-  Your meetings this week include customer calls and internal syncs.
-  Review the agenda and prepare talking points.
-  Check for any conflicts or reschedule needs.
+  Scheduled meetings (upcoming):
+  - January 18, 2026: Beta Tech QBR with Lisa Ng (Quarterly business review)
+  - January 20, 2026: Acme Manufacturing executive introduction with Beth Turner
+  - January 21, 2026: Delta Health expansion discussion with Erin Cho
+  - January 22, 2026: Beta Tech executive demo with Omar Haddad (CEO sign-off)
+  Key meetings require preparation for Beta Tech CEO demo and Delta Health expansion.
 
 # From "What's the expected close value?"
 "What's the weighted pipeline?": |
-  The weighted pipeline multiplies deal value by probability.
-  This gives a realistic revenue projection.
-  Use this for forecasting and planning.
+  Weighted pipeline by stage (approximate probabilities):
+  - Negotiation (80%): Beta Tech $32,000 = ~$25,600 weighted
+  - Proposal (50%): Acme upgrade $15,000 + Crown Foods $18,000 = ~$16,500 weighted
+  - Qualified (30%): Acme renewal $24,000 + Delta renewal $22,000 + Fusion upsell $12,000 = ~$17,400 weighted
+  - Discovery (20%): Beta add-on $8,000 + Harbor $26,000 + Delta expand $15,000 = ~$9,800 weighted
+  Total weighted pipeline: approximately $69,300.
 
 "Which deals are in negotiation?": |
-  Deals in negotiation stage are near closing.
-  Focus on removing final blockers and getting approval.
-  These represent your best near-term revenue.
+  Deals currently in Negotiation stage:
+  - Beta Tech - New rollout: $32,000 USD
+    - Primary contact: Lisa Ng (Head of Sales)
+    - Expected close: February 15, 2026
+    - Owner: ljones
+    - Next step: Finalize contract terms with Lisa Ng
+    - Note: Budget approved, CEO Omar Haddad signed off, needs data migration before Q2
+  This is the highest-probability deal in the pipeline.
 
 "How many open opportunities do I have?": |
-  You have multiple open opportunities across accounts.
-  These span different stages from discovery to closing.
-  Track progress on each for accurate forecasting.
+  You have 10 open opportunities across all accounts:
+  1. Acme Manufacturing - Pro to Enterprise upgrade: $15,000 (Proposal)
+  2. Acme Manufacturing - Annual renewal: $24,000 (Qualified)
+  3. Beta Tech - New rollout: $32,000 (Negotiation)
+  4. Beta Tech - Analytics add-on: $8,000 (Discovery)
+  5. Crown Foods - Subscription renewal: $18,000 (Proposal)
+  6. Delta Health - Renewal: $22,000 (Qualified)
+  7. Delta Health - Additional clinics: $15,000 (Discovery)
+  8. Eastern Travel - Trial to paid: $8,000 (New)
+  9. Fusion Retail - Seats expansion: $12,000 (Qualified)
+  10. Harbor Logistics - Initial rollout: $26,000 (Discovery)
+  Total open pipeline: $180,000.
 
 # From "Which deals are most likely to close?"
 "Tell me about the Beta Tech negotiation deal": |
-  The Beta Tech deal is in advanced negotiation.
-  Value and terms are being finalized.
-  Key contacts are engaged and decision timeline is clear.
+  Beta Tech - New rollout opportunity:
+  - Value: $32,000 USD
+  - Stage: Negotiation
+  - Expected close: February 15, 2026
+  - Primary contact: Lisa Ng (Head of Sales, Champion)
+  - Owner: ljones
+  Key details:
+  - Budget is approved, CEO Omar Haddad signed off
+  - Concerns: Data migration timeline (want before Q2), training for 50 users in first month
+  - Omar wants weekly progress reports during rollout
+  Next step: Finalize contract terms with Lisa Ng.
 
 "What's the next step for my biggest deal?": |
-  The next step depends on current stage and blockers.
-  For late-stage deals, focus on contract and approval.
-  For earlier stages, advance the evaluation process.
+  Biggest deal: Beta Tech - New rollout ($32,000)
+  - Current stage: Negotiation
+  - Next step: Finalize contract terms with Lisa Ng
+  - Upcoming activities:
+    - January 18, 2026: QBR with Lisa Ng
+    - January 22, 2026: Executive demo for CEO Omar Haddad
+    - January 25, 2026: Security questionnaire due (Sam Clarke)
+  Focus on addressing data migration timeline and training requirements.
 
 "Who owns the contacts for these deals?": |
-  Contact ownership is assigned to the account owner.
-  Check the account record for the assigned rep.
-  Collaborate with the owner for coordinated outreach.
+  Contact ownership for high-probability deals:
+  - Beta Tech contacts: ljones owns Lisa Ng, Omar Haddad, Sam Clarke
+  - Crown Foods contacts: jsmith owns Maria Silva, Alex Dupont, Nina Foster
+  - Acme Manufacturing contacts: jsmith owns Anna Lopez, Joe Smith, Beth Turner
+  All contacts are owned by their respective account owners.
 
 # From "What's at risk in my pipeline?"
 "Which deals are stalled?": |
-  Stalled deals show no recent activity or progress.
-  These may need intervention or re-engagement.
-  Consider a different approach or new champion.
+  Stalled deals (long time in stage with limited progress):
+  - Acme Manufacturing - Upgrade: 50 days in Proposal stage
+    - Stalled due to pricing concerns, CFO wants ROI justification
+  - Delta Health - Renewal: 135 days in Qualified stage
+    - AT RISK: Low usage in 3 of 5 clinics, competitor demo scheduled
+  - Eastern Travel - Trial to paid: 85 days in New stage
+    - Trial extended twice due to internal IT delays
 
 "What accounts have low engagement?": |
-  Accounts with low engagement have limited recent activity.
-  This may indicate risk to the relationship or deal.
-  Plan outreach to re-establish connection.
+  Accounts with low engagement flags:
+  - Beta Tech Solutions: at-risk-low-activity flag
+  - Delta Health Clinics: at-risk-renewal-soon, low usage in 3 of 5 clinics
+  - Eastern Travel Co.: Trial account with extended timeline, low engagement from key contacts
+  These accounts need proactive outreach to prevent churn or deal loss.
 
 "Show me deals with no recent activity": |
-  Deals without recent activity may be at risk.
-  Check when the last touchpoint occurred.
-  Prioritize these for immediate outreach.
+  Deals with oldest last activity:
+  - Delta Health - Renewal: Last activity was renewal discussion on August 25, 2025 (completed)
+  - Eastern Travel - Trial to paid: Last engagement was trial check-in on February 1, 2025
+  - Acme Manufacturing - Upgrade: Last substantive meeting was October 20, 2025
+  Delta Health and Eastern Travel need immediate re-engagement.
 
 # =============================================================================
 # RENEWALS BRANCH (From "Any renewals at risk?")
 # =============================================================================
 
 "Tell me about Delta Health's status": |
-  Delta Health is an active account with upcoming renewal.
-  Current engagement level and health status are shown.
-  Consider expansion opportunities beyond renewal.
+  Delta Health Clinics (DELTA-HEALTH):
+  - Status: Active, Standard plan
+  - Account owner: amartin
+  - Health flag: at-risk-renewal-soon
+  - Renewal date: February 1, 2026
+  Open opportunities:
+  - Renewal: $22,000 (Qualified stage)
+  - Additional clinics expansion: $15,000 (Discovery stage)
+  Key contacts: Erin Cho (Clinic Director), Mike Rivera (IT Coordinator), Priya Sharma (Office Manager)
+  Risk notes: Low usage in 3 of 5 clinics, competitor demo scheduled.
 
 "Which renewals close this quarter?": |
-  Multiple renewals are due this quarter.
-  Review each for health status and any risks.
-  Plan outreach for those needing attention.
+  Q1 2026 renewals (January - March):
+  - Crown Foods: January 31, 2026 - $18,000 (Pro plan, healthy)
+  - Delta Health Clinics: February 1, 2026 - $22,000 (Standard plan, at-risk)
+  - Beta Tech Solutions: February 15, 2026 - no active renewal opp (at-risk-low-activity)
+  - Harbor Logistics: March 15, 2026 - no active renewal opp (health-check)
+  - Acme Manufacturing: March 31, 2026 - $24,000 (Pro plan, healthy)
+  Total Q1 renewal pipeline: ~$64,000.
 
 "What accounts need immediate attention?": |
-  Accounts needing immediate attention show warning signs.
-  These may have low engagement, complaints, or blockers.
-  Prioritize based on value and risk level.
+  Accounts needing immediate attention:
+  1. Delta Health Clinics: at-risk-renewal-soon, renewal Feb 1, competitor demo scheduled
+  2. Beta Tech Solutions: at-risk-low-activity, renewal Feb 15
+  3. Eastern Travel Co.: Trial account, conversion keeps slipping
+  4. Green Energy Partners: Churned account, potential win-back scheduled for March
+  Priority: Delta Health needs urgent QBR to address concerns before renewal.
 
 # From "Tell me about Delta Health's status"
 "When does Delta Health renew?": |
-  Delta Health's renewal date is coming up.
-  Check the contract for exact timing.
-  Plan renewal discussion in advance.
+  Delta Health Clinics renewal details:
+  - Renewal date: February 1, 2026
+  - Current plan: Standard
+  - Renewal opportunity value: $22,000 USD
+  - Stage: Qualified
+  - Account owner: amartin
+  - Primary contact: Erin Cho (Clinic Director)
+  Note: Account is flagged at-risk-renewal-soon. Urgent QBR needed to address concerns.
 
 "Who are the contacts at Delta Health?": |
-  Key contacts at Delta Health include decision makers.
-  These may be in operations, IT, or finance.
-  Review recent interactions for context.
+  Delta Health Clinics contacts:
+  1. Erin Cho - Clinic Director (Decision Maker)
+     - Email: erin.cho@deltahealth.org
+     - Phone: +1-555-0301
+     - Primary contact for renewal and expansion opportunities
+  2. Mike Rivera - IT Coordinator (Technical Contact)
+     - Email: mike.rivera@deltahealth.org
+     - Phone: +1-555-0302
+  3. Priya Sharma - Office Manager (User)
+     - Email: priya.sharma@deltahealth.org
+     - Phone: +1-555-0303
 
 "What's the expansion opportunity?": |
-  The expansion opportunity adds value beyond renewal.
-  This may include additional users, features, or services.
-  Position this as part of the renewal conversation.
+  Delta Health expansion opportunity:
+  - Name: Delta Health - Additional clinics
+  - Value: $15,000 USD
+  - Stage: Discovery
+  - Expected close: April 1, 2026
+  - Primary contact: Erin Cho
+  Details: Expansion to 3 additional clinic locations in Q1 2026. Need to present multi-location pricing and training package. Key risk: budget approval from corporate. Depends on securing the renewal first.
 
 # From "When does Delta Health renew?"
 "What's the renewal value for Delta Health?": |
-  The renewal value is the annual contract amount.
-  This may differ from original if terms changed.
-  Consider including expansion in discussions.
+  Delta Health renewal opportunity:
+  - Name: Delta Health - Renewal
+  - Value: $22,000 USD
+  - Stage: Qualified
+  - Expected close: September 1, 2025 (past due)
+  - Current plan: Standard ($22,000/year)
+  Note: Opportunity is overdue - needs immediate attention. Combined with expansion ($15,000), total account potential is $37,000.
 
 "Are there any risks with Delta Health?": |
-  Risks may include low engagement or competitive threats.
-  Check for any open support issues or complaints.
-  Address these proactively before renewal.
+  Delta Health risk factors:
+  1. Low usage in 3 of 5 clinics - need to re-engage users
+  2. Erin Cho mentioned competitor demo scheduled for next week
+  3. Open support tickets about reporting reliability
+  4. Account flagged as at-risk-renewal-soon
+  5. Renewal opportunity is past expected close date
+  Action needed: Schedule urgent QBR to address concerns and demonstrate value.
 
 "What's the engagement level with Delta Health?": |
-  Engagement level reflects recent activity and interactions.
-  Higher engagement typically indicates healthier relationship.
-  Low engagement may signal risk to the renewal.
+  Delta Health engagement summary:
+  - Last call with Erin Cho: September 15, 2025 (Quarterly review)
+  - Last email to Mike Rivera: August 5, 2025 (Training resources)
+  - Last call with Priya Sharma: October 20, 2025 (Support follow-up)
+  Engagement is declining. Most recent note (November 20, 2025) flagged renewal at risk. Need to schedule urgent outreach to re-establish connection.
 
 # From "Who are the contacts at Delta Health?"
 "Who is Erin Cho?": |
-  Erin Cho is a key contact at Delta Health.
-  Check her role, title, and recent interactions.
-  She may be a decision maker or influencer.
+  Erin Cho - Delta Health Clinics:
+  - Job Title: Clinic Director
+  - Role: Decision Maker
+  - Email: erin.cho@deltahealth.org
+  - Phone: +1-555-0301
+  - Lifecycle Stage: Customer
+  - Primary contact for: Renewal ($22,000) and Expansion ($15,000) opportunities
+  Recent note: She mentioned plans to expand to 3 additional clinic locations in Q1 2026, but also has competitor demo scheduled.
 
 "What is Mike Tran's role?": |
-  Mike Tran's role is shown in the contact record.
-  This indicates his influence on decisions.
-  Tailor your engagement based on his responsibilities.
+  Note: There is no Mike Tran in the Delta Health contacts. You may be thinking of Mike Rivera.
+  Mike Rivera - Delta Health Clinics:
+  - Job Title: IT Coordinator
+  - Role: Technical Contact
+  - Email: mike.rivera@deltahealth.org
+  - Phone: +1-555-0302
+  Last activity: Received training resources email on August 5, 2025. Has open support tickets pending follow-up.
 
 "When did we last meet with Delta Health?": |
-  The last meeting with Delta Health is in the activity log.
-  Review notes from that meeting for context.
-  Consider scheduling a follow-up if needed.
+  Last Delta Health meetings and activities:
+  - September 15, 2025: Quarterly review meeting with Erin Cho - discussed expansion to additional clinics
+  - October 20, 2025: Call with Priya Sharma - resolved reporting question
+  - August 25, 2025: Renewal discussion call with Erin Cho (completed)
+  Most recent in-person meeting was the quarterly review on September 15. Next scheduled: Expansion discussion on January 21, 2026.
 
 # From "What's the expansion opportunity?"
 "What's the expansion deal worth?": |
-  The expansion deal value adds to the renewal.
-  This represents additional revenue opportunity.
-  Include in your forecast appropriately.
+  Delta Health expansion opportunity value:
+  - Deal: Delta Health - Additional clinics
+  - Value: $15,000 USD
+  - Stage: Discovery
+  - Expected close: April 1, 2026
+  Combined with renewal ($22,000), total account potential is $37,000. Expansion depends on successfully securing the renewal first.
 
 "Which clinics are we expanding to?": |
-  Expansion may cover additional locations or departments.
-  Check the opportunity notes for specifics.
-  This helps with planning and implementation.
+  Expansion details for Delta Health:
+  - 3 additional clinic locations planned for Q1 2026
+  - New clinics have different needs - more focused on patient scheduling than current analytics focus
+  - Requires multi-location pricing and training package
+  - Key risk: budget approval from corporate
+  Specific clinic locations are not detailed in the notes - need to confirm with Erin Cho.
 
 "Who's driving the expansion?": |
-  The expansion champion is the internal advocate.
-  This person is pushing for expanded use.
-  Engage them to accelerate the opportunity.
+  The expansion at Delta Health is being driven by:
+  - Erin Cho (Clinic Director, Decision Maker)
+  - She mentioned the expansion plans during the quarterly review
+  - She's the primary contact for both renewal and expansion opportunities
+  Note: Despite championing expansion, Erin has also scheduled a competitor demo, indicating she's evaluating options.
 
 # From "Which renewals close this quarter?"
 "What's the total renewal value at risk?": |
-  Total at-risk renewal value sums up risky accounts.
-  This helps prioritize rescue efforts.
-  Focus on high-value accounts first.
+  At-risk renewal value in Q1 2026:
+  - Delta Health Clinics: $22,000 (at-risk-renewal-soon, competitor demo scheduled)
+  - Beta Tech Solutions: Standard plan renewal (at-risk-low-activity)
+  Total identified at-risk renewal value: ~$22,000+ depending on Beta Tech renewal value.
+  Crown Foods ($18,000) and Acme Manufacturing ($24,000) are healthy.
 
 "Which renewals are in good standing?": |
-  Renewals in good standing show healthy engagement.
-  These are likely to renew without intervention.
-  Consider upsell opportunities.
+  Renewals in good standing (healthy flag):
+  - Crown Foods: January 31, 2026 - $18,000 (Pro plan)
+    - Customer confirmed 2-year commitment, very satisfied
+  - Acme Manufacturing: March 31, 2026 - $24,000 (Pro plan)
+    - Healthy status, active engagement
+  - Fusion Retail Group: May 1, 2026 - (Pro plan)
+    - Already closed won $28,000 renewal in September 2025
+  Focus on upsell opportunities with these healthy accounts.
 
 "Show me renewal timeline": |
-  The renewal timeline shows upcoming due dates.
-  Plan outreach based on proximity.
-  Allow time for negotiation and processing.
+  Renewal timeline for next 90 days:
+  - January 31, 2026: Crown Foods (Pro, healthy) - $18,000
+  - February 1, 2026: Delta Health Clinics (Standard, at-risk) - $22,000
+  - February 15, 2026: Beta Tech Solutions (Standard, at-risk-low-activity)
+  - March 15, 2026: Harbor Logistics (Standard, health-check)
+  - March 31, 2026: Acme Manufacturing (Pro, healthy) - $24,000
+  Priority order: Delta Health (Feb 1) and Beta Tech (Feb 15) need immediate attention.
 
 # From "What's the total renewal value at risk?"
 "Which account has the highest risk?": |
-  The highest risk account needs immediate attention.
-  Check the risk factors and recent activity.
-  Develop a recovery plan.
+  Highest risk account: Delta Health Clinics
+  - Renewal date: February 1, 2026
+  - Renewal value: $22,000
+  - Health flag: at-risk-renewal-soon
+  Risk factors:
+  1. Low usage in 3 of 5 clinics
+  2. Competitor demo scheduled
+  3. Open support tickets about reporting reliability
+  4. Renewal opportunity past expected close date
+  Immediate action: Schedule urgent QBR to address concerns.
 
 "What's causing the risk?": |
-  Risk factors may include low engagement, issues, or competition.
-  Review the account history for patterns.
-  Address root causes in your outreach.
+  Root causes of Delta Health risk:
+  1. Low adoption: Only 2 of 5 clinics actively using the platform
+  2. Competition: Erin Cho has scheduled a competitor demo
+  3. Support issues: Open tickets about reporting reliability remain unresolved
+  4. Engagement gap: Last meaningful engagement was September 2025
+  5. Value perception: Need to demonstrate clearer ROI to justify renewal
+  Post-mortem from Green Energy churn suggests similar patterns - act quickly.
 
 "How can I save these renewals?": |
-  To save at-risk renewals, address concerns directly.
-  Re-engage key stakeholders with value propositions.
-  Consider incentives or concessions if needed.
+  Strategy to save at-risk renewals:
+  1. Delta Health ($22,000):
+     - Schedule urgent QBR before competitor demo
+     - Re-engage users in underutilized clinics
+     - Resolve open support tickets immediately
+     - Prepare ROI analysis for decision makers
+  2. Beta Tech (upcoming renewal):
+     - Increase engagement frequency
+     - Close the $32,000 new rollout deal first
+     - Demonstrate value through successful implementation
+  Key learning from Green Energy churn: More frequent check-ins and clearer value demonstration needed.
 
 # From "Which renewals are in good standing?"
 "What's the total healthy renewal value?": |
-  Healthy renewal value represents secure revenue.
-  These accounts are likely to renew.
-  Still maintain relationship for retention.
+  Healthy renewal value in upcoming quarters:
+  - Crown Foods (Jan 31, 2026): $18,000 - Pro plan, customer very satisfied
+  - Acme Manufacturing (Mar 31, 2026): $24,000 - Pro plan, healthy engagement
+  - Fusion Retail (May 1, 2026): Already renewed - $28,000 closed won Sep 2025
+  Total healthy Q1 renewals: $42,000 (Crown Foods + Acme Manufacturing)
+  These accounts are likely to renew without significant intervention.
 
 "Any upsell opportunities?": |
-  Upsell opportunities exist in healthy accounts.
-  These customers are satisfied and may want more.
-  Position additional value during renewal.
+  Upsell opportunities in healthy accounts:
+  1. Fusion Retail - Seats expansion: $12,000 (Qualified stage)
+     - Expanding from 15 to additional seats
+     - Champion: Emma Khan (Head of CX)
+  2. Acme Manufacturing - Pro to Enterprise upgrade: $15,000 (Proposal stage)
+     - Needs ROI justification for CFO Beth Turner
+  3. Crown Foods - Multi-year deal potential
+     - Customer confirmed satisfaction, ready for 2-year commitment
+  Total upsell pipeline from healthy accounts: $27,000+.
 
 "When should I reach out?": |
-  Reach out well before the renewal date.
-  This allows time for discussion and processing.
-  Plan based on your sales cycle length.
+  Recommended outreach timing for renewals:
+  - Crown Foods (Jan 31): Immediately - renewal check-in scheduled Jan 16
+  - Delta Health (Feb 1): URGENT - schedule QBR this week before competitor demo
+  - Beta Tech (Feb 15): This month - focus on closing new rollout deal
+  - Harbor Logistics (Mar 15): February - allow time for implementation progress
+  - Acme Manufacturing (Mar 31): February - address upgrade proposal first
+  Rule of thumb: Reach out 60-90 days before renewal for complex negotiations.
 
 # From "Show me renewal timeline"
 "What's due next month?": |
-  Next month's renewals need preparation now.
-  Review each account's health and history.
-  Schedule outreach for the coming weeks.
+  Renewals due in next 30 days (from January 6, 2026):
+  - January 31, 2026: Crown Foods - $18,000 (Pro plan, healthy)
+    - Status: Customer confirmed 2-year commitment
+    - Action: Finalize renewal terms with Maria Silva
+  - February 1, 2026: Delta Health Clinics - $22,000 (Standard plan, at-risk)
+    - Status: At risk, competitor demo scheduled
+    - Action: Urgent QBR needed immediately
+  Prepare renewal paperwork for Crown Foods; escalate Delta Health.
 
 "Which renewals need prep?": |
-  Renewals needing prep may have complexities.
-  These might involve negotiation or stakeholder alignment.
-  Start preparation early for smooth renewal.
+  Renewals needing preparation:
+  1. Delta Health (Feb 1): Urgent - need QBR, address support tickets, re-engage clinics
+  2. Beta Tech (Feb 15): Need to close new rollout deal first, address low-activity flag
+  3. Harbor Logistics (Mar 15): Health-check status - review implementation progress
+  Crown Foods and Acme Manufacturing are straightforward - healthy accounts with confirmed commitment.
 
 "What's the 90-day renewal forecast?": |
-  The 90-day forecast shows expected renewal revenue.
-  This factors in health status and probability.
-  Use for planning and resource allocation.
+  90-day renewal forecast (January 6 - April 6, 2026):
+  - Healthy/Likely to renew:
+    - Crown Foods: $18,000 (Jan 31)
+    - Acme Manufacturing: $24,000 (Mar 31)
+  - At risk:
+    - Delta Health: $22,000 (Feb 1) - 50% probability given risk factors
+    - Beta Tech: Plan renewal (Feb 15) - needs attention
+  - Health check:
+    - Harbor Logistics: (Mar 15) - monitor implementation
+  Conservative forecast: $42,000 secure, $22,000 at risk.
 
 # From "What accounts need immediate attention?"
 "What happened with Green Energy?": |
-  Green Energy had some issues or changes.
-  Review the account history for context.
-  This may be a churned or at-risk account.
+  Green Energy Partners account history:
+  - Status: Former customer (Churned)
+  - Previous plan: Cancelled
+  - Churn date: June 30, 2024
+  - Account owner: amartin
+  Lost opportunities:
+  - Renewal 2025: $20,000 (Closed Lost June 15, 2025)
+  - Solar division rollout: $35,000 (Closed Lost May 10, 2025)
+  Reason: Customer did not renew due to budget cuts following restructuring. Carlos Mendez cited lack of clear ROI demonstration and infrequent account engagement.
 
 "Tell me about Eastern Travel's trial": |
-  Eastern Travel is on a trial or evaluation.
-  Check progress and engagement during trial.
-  Plan for conversion conversation.
+  Eastern Travel Co. trial status:
+  - Status: Trial
+  - Plan: Trial (active)
+  - Account owner: mmalik
+  - Trial started: January 2, 2025
+  Open opportunity:
+  - Trial to paid: $8,000 (New stage)
+  - Expected close: March 28, 2026
+  Key contacts: Sanjay Patel (Owner), Ravi Kumar (Operations Manager), Anita Desai (Marketing Lead)
+  Note: Trial extended twice due to internal IT delays. Sanjay is champion but lacks budget authority - need to escalate to Ravi (CTO).
 
 "How is Harbor Logistics progressing?": |
-  Harbor Logistics is moving through the pipeline.
-  Check current stage and next steps.
-  Address any blockers to keep momentum.
+  Harbor Logistics (HARBOR-LOGISTICS) status:
+  - Status: Active, Standard plan
+  - Health flag: health-check
+  - Renewal date: March 15, 2026
+  - Account owner: mmalik
+  Open opportunity:
+  - Initial rollout: $26,000 (Discovery stage)
+  - Expected close: February 28, 2026
+  Key contacts: Jacob Wu (Operations Lead), Mei Chen (Logistics Coordinator), Dan O'Brien (Finance Director)
+  Next steps: Schedule technical demo with Jacob Wu, implementation kickoff planned for Jan 25.
 
 # From "What happened with Green Energy?"
 "Why did Green Energy churn?": |
-  Green Energy churned due to specific reasons.
-  This may include budget, value perception, or competition.
-  Learn from this for future retention.
+  Green Energy churn analysis:
+  - Churn date: June 30, 2024
+  - Lost revenue: $20,000 renewal + $35,000 expansion = $55,000 total
+  Root causes cited by Carlos Mendez:
+  1. Budget cuts following company restructuring
+  2. Lack of clear ROI demonstration
+  3. Infrequent account engagement
+  Post-mortem learning: Should have implemented QBRs and usage reporting earlier. Win-back potential exists in 2026 after budget cycle.
 
 "Who were the contacts at Green Energy?": |
-  Key contacts at Green Energy were decision makers.
-  Review their roles and your interactions.
-  Consider if relationship can be re-established.
+  Green Energy Partners contacts (Former customers):
+  1. Carlos Mendez - Director of Operations (Decision Maker)
+     - Email: carlos.mendez@greenenergy.co
+     - Phone: +1-555-0401
+     - Cited budget and ROI concerns for churn
+  2. Linda Park - Project Manager (Champion)
+     - Email: linda.park@greenenergy.co
+     - Phone: +1-555-0402
+     - Was championing expansion but lost executive support
+  3. Tom Baker - IT Admin (Technical Contact)
+     - Email: tom.baker@greenenergy.co
+     - Phone: +1-555-0403
 
 "What was the timeline of the Green Energy relationship?": |
-  The timeline shows when they became a customer and churned.
-  Review key milestones and warning signs.
-  Use for learning and improvement.
+  Green Energy relationship timeline:
+  - June 2022: Became customer (initial onboarding call)
+  - March 2023: Feature request from Linda Park (custom reporting)
+  - August 2024: Support escalation - Tom Baker raised performance concerns
+  - April 2025: Renewal discussion - Carlos expressed budget constraints
+  - May 2025: Expansion deal lost - Linda lost executive support
+  - May 20, 2025: Carlos sent cancellation notice
+  - June 30, 2024: Account churned
+  - July 2025: Churn post-mortem completed
 
 # From "Why did Green Energy churn?"
 "What were the warning signs?": |
-  Warning signs included declining engagement.
-  There may have been support issues or complaints.
-  Identify these patterns for early intervention.
+  Green Energy warning signs (in hindsight):
+  1. August 2024: Support escalation about performance concerns
+  2. April 2025: Budget constraints mentioned in renewal discussion
+  3. May 2025: Expansion deal collapsed - early indicator of churn risk
+  4. Declining engagement frequency over final 6 months
+  5. Champion (Linda Park) lost executive support
+  Key pattern: Similar signals now visible at Delta Health - act early.
 
 "Could we have saved the account?": |
-  Account retention depends on early intervention.
-  Review what actions were taken and when.
-  Consider if different approach would help.
+  Analysis of Green Energy save potential:
+  - Post-mortem conclusion: Yes, with earlier intervention
+  Missed opportunities:
+  1. Should have implemented quarterly business reviews (QBRs)
+  2. Should have provided usage/ROI reporting proactively
+  3. Should have noticed declining engagement earlier
+  4. Should have engaged executives when Linda lost support
+  Win-back attempt scheduled: March 1, 2026 call with Carlos Mendez (after budget cycle).
 
 "What can we learn from this?": |
-  Lessons include early warning indicators.
-  Process improvements may prevent future churn.
-  Apply these learnings to at-risk accounts.
+  Lessons from Green Energy churn:
+  1. Early warning indicators: Watch for declining engagement, support escalations
+  2. Proactive value demonstration: Implement QBRs and usage reporting
+  3. Executive relationships: Don't rely on single champion
+  4. Budget cycle awareness: Engage before budget decisions are made
+  5. ROI documentation: Provide clear value metrics regularly
+  Apply to current at-risk accounts: Delta Health, Beta Tech show similar patterns.
 
 # From "Who were the contacts at Green Energy?"
 "Who was Carlos at Green Energy?": |
-  Carlos was a contact at Green Energy.
-  Check his role and your interactions.
-  His departure may have impacted the account.
+  Carlos Mendez - Green Energy Partners:
+  - Job Title: Director of Operations
+  - Role: Decision Maker
+  - Email: carlos.mendez@greenenergy.co
+  - Phone: +1-555-0401
+  - Lifecycle Stage: Former customer
+  He made the final decision not to renew, citing budget cuts and lack of clear ROI. Win-back call scheduled for March 1, 2026.
 
 "What was Linda's role?": |
-  Linda's role at Green Energy is in the record.
-  This indicates her influence on decisions.
-  Review your engagement with her.
+  Linda Park - Green Energy Partners:
+  - Job Title: Project Manager
+  - Role: Champion (internal advocate)
+  - Email: linda.park@greenenergy.co
+  - Phone: +1-555-0402
+  - Lifecycle Stage: Former customer
+  She was championing the $35,000 solar division expansion but lost executive support when budget cuts were announced. Her departure from advocacy was an early churn indicator.
 
 "When did we last engage with them?": |
-  Last engagement with Green Energy is in the log.
-  This shows final touchpoints before churn.
-  Earlier engagement may have helped retention.
+  Last engagement with Green Energy:
+  - May 20, 2025: Carlos sent cancellation notice via email
+  - April 15, 2025: Renewal discussion meeting with Carlos - he expressed budget constraints
+  - August 10, 2024: Support escalation call with Tom Baker about performance
+  Post-churn: Win-back outreach scheduled for March 1, 2026 with Carlos Mendez.
 
 # From "What was the timeline of the Green Energy relationship?"
 "When did they first become a customer?": |
-  Green Energy became a customer on a specific date.
-  Check the original opportunity for context.
-  Review the initial deal terms.
+  Green Energy Partners became a customer in June 2022.
+  - Account created: May 20, 2022
+  - Initial onboarding call: June 20, 2022 (with Carlos Mendez)
+  - Original deal terms: Not specified
+  - Account owner: ljones (then transferred to amartin)
+  Total customer lifetime: Approximately 2 years before churn.
 
 "What milestones happened?": |
-  Key milestones include implementation and renewals.
-  These show the progression of the relationship.
-  Note any significant events or changes.
+  Green Energy milestones:
+  - June 2022: Initial onboarding and setup
+  - March 2023: Feature request for custom reporting (engagement was strong)
+  - Late 2024: Relationship began declining
+  - August 2024: Performance concerns raised (support escalation)
+  - April 2025: Renewal discussion revealed budget issues
+  - May 2025: Expansion opportunity collapsed
+  - June 2025: Account churned
 
 "When did issues start?": |
-  Issues may have started at a specific point.
-  Check support tickets and activity notes.
-  This helps identify root causes.
+  Issues at Green Energy started becoming visible around:
+  - August 2024: First support escalation - Tom Baker raised performance concerns
+  - This was about 10 months before churn
+  - Issues accelerated in April-May 2025 with budget cuts and restructuring
+  Early warning was missed - should have triggered proactive engagement when support escalation occurred.
 
 # From "Tell me about Eastern Travel's trial"
 "What's blocking the trial conversion?": |
-  Trial conversion may be blocked by concerns.
-  These could include budget, features, or timing.
-  Address these to move forward.
+  Eastern Travel trial conversion blockers:
+  1. Internal IT delays: Trial extended twice due to customer IT team
+  2. Budget authority: Sanjay Patel (Owner, champion) doesn't have final budget authority
+  3. Decision escalation needed: Need to engage Ravi Kumar for final decision
+  4. Slipping timeline: Conversion keeps getting delayed
+  Trial usage is good, but conversion requires executive engagement.
 
 "Who are the contacts at Eastern Travel?": |
-  Contacts at Eastern Travel include trial users.
-  Identify decision makers and champions.
-  Engage them for conversion.
+  Eastern Travel Co. contacts:
+  1. Sanjay Patel - Owner (Decision Maker)
+     - Email: sanjay.patel@easterntravel.co
+     - Phone: +91-22-5550
+     - Champion but lacks budget authority
+  2. Ravi Kumar - Operations Manager (Champion)
+     - Email: ravi.kumar@easterntravel.co
+     - Phone: +91-22-5551
+     - Has CTO-level influence, needed for escalation
+  3. Anita Desai - Marketing Lead (User)
+     - Email: anita.desai@easterntravel.co
+     - Phone: +91-22-5552
 
 "What's the trial usage like?": |
-  Trial usage shows how actively they're evaluating.
-  Higher usage typically indicates better fit.
-  Low usage may signal need for guidance.
+  Eastern Travel trial usage assessment:
+  - Trial start: January 2, 2025
+  - Status: Active (extended multiple times)
+  - Owner notes: "Trial usage is good but conversion timeline keeps slipping"
+  Activities completed:
+  - Onboarding call with Ravi Kumar (January 10, 2025)
+  - Email campaign templates shared with Anita Desai (January 20, 2025)
+  - Trial check-in with Sanjay Patel (February 1, 2025)
+  Usage is positive - conversion is blocked by internal decision-making, not product fit.
 
 # From "What's blocking the trial conversion?"
 "Who has budget authority?": |
-  Budget authority lies with specific stakeholders.
-  Identify and engage the economic buyer.
-  Understand their approval process.
+  Budget authority at Eastern Travel:
+  - Sanjay Patel (Owner): Champion but lacks final budget authority
+  - Ravi Kumar (Operations Manager): Has CTO-level influence, needed for decision
+  Notes indicate: Need to escalate to Ravi for final budget approval.
+  Deal value: $8,000 for trial to paid conversion.
 
 "What are their concerns?": |
-  Concerns may include cost, features, or integration.
-  Address each concern with relevant value propositions.
-  Provide evidence and references as needed.
+  Eastern Travel concerns/blockers:
+  1. Internal IT delays: Their team hasn't completed required integrations
+  2. Decision timeline: Multiple trial extensions requested
+  3. Budget process: Formal approval process with Ravi Kumar required
+  No product or pricing concerns documented - this is an internal process issue at the customer.
 
 "When was the trial extended?": |
-  Trial extension date is in the opportunity record.
-  This indicates they need more time to evaluate.
-  Use this time to increase engagement.
+  Eastern Travel trial extension history:
+  - Original trial start: January 2, 2025
+  - Trial extended twice (per notes from February 10, 2025)
+  - Current expected conversion: March 28, 2026
+  - Reason: Internal IT delays at customer
+  Trial has been active for nearly 12 months - needs executive engagement to close.
 
 # From "Who are the contacts at Eastern Travel?"
 "Who is Sanjay Patel?": |
-  Sanjay Patel is a contact at Eastern Travel.
-  Check his role and engagement level.
-  He may be a key decision maker.
+  Sanjay Patel - Eastern Travel Co.:
+  - Job Title: Owner
+  - Role: Decision Maker
+  - Email: sanjay.patel@easterntravel.co
+  - Phone: +91-22-5550
+  - Lifecycle Stage: Lead
+  - Primary contact for: Trial to paid conversion ($8,000)
+  Note: He's a champion but doesn't have final budget authority. Need to engage Ravi Kumar for decision escalation.
 
 "What is Ravi's role?": |
-  Ravi's role indicates his responsibilities.
-  This helps tailor your engagement approach.
-  Check his influence on the decision.
+  Ravi Kumar - Eastern Travel Co.:
+  - Job Title: Operations Manager
+  - Role: Champion
+  - Email: ravi.kumar@easterntravel.co
+  - Phone: +91-22-5551
+  - Lifecycle Stage: Lead
+  He has CTO-level influence and is needed for final budget approval. Escalate to him for trial conversion decision.
 
 "Who should we escalate to?": |
-  Escalation may go to senior leadership.
-  Identify the appropriate level for issues.
-  Prepare your case before escalating.
+  Escalation path at Eastern Travel:
+  1. Current champion: Sanjay Patel (Owner) - lacks budget authority
+  2. Escalate to: Ravi Kumar (Operations Manager, CTO-level influence)
+  Ravi has the authority to approve the $8,000 conversion. Schedule call with both Sanjay and Ravi to finalize decision.
 
 # From "What's the trial usage like?"
 "Which features are they using?": |
-  Feature usage shows what's valuable to them.
-  Highlight these in your conversion pitch.
-  Address any unused features.
+  Eastern Travel feature usage during trial:
+  - Email campaign templates (shared with Anita Desai, Marketing Lead)
+  - Basic CRM functionality (contacts, activities)
+  - Onboarding focused on initial setup and configuration
+  Specific feature analytics not detailed in notes. Overall: "Trial usage is good" per account notes.
 
 "How active are the users?": |
-  User activity indicates trial engagement.
-  Active users are more likely to advocate.
-  Low activity may need intervention.
+  Eastern Travel user activity:
+  - 3 contacts in the system: Sanjay, Ravi, Anita
+  - Multiple touchpoints recorded (calls, emails)
+  - Last check-in: February 1, 2025 with Sanjay
+  Activity pattern: Engaged during onboarding, activity declined after IT delays. Need to re-engage to push conversion.
 
 "What's the engagement trend?": |
-  Engagement trend shows if usage is increasing.
-  Growing engagement is a positive sign.
-  Declining trends need attention.
+  Eastern Travel engagement trend:
+  - January 2025: High engagement (onboarding, setup, training)
+  - February 2025: Check-in calls, trial extension requested
+  - Post-February: Engagement decreased as IT delays continued
+  Trend: Declining after initial enthusiasm. Need proactive outreach to restart momentum.
 
 # From "How is Harbor Logistics progressing?"
 "What's the status of the Harbor deal?": |
-  The Harbor Logistics deal is in active stage.
-  Check progress against expected timeline.
-  Address any blockers to advance.
+  Harbor Logistics - Initial rollout:
+  - Value: $26,000 USD
+  - Stage: Discovery
+  - Expected close: February 28, 2026
+  - Primary contact: Jacob Wu (Operations Lead)
+  - Owner: mmalik
+  - Days in stage: 50
+  Next step: Schedule technical demo with Jacob Wu. Implementation kickoff planned for January 25, 2026.
 
 "Who are the contacts at Harbor Logistics?": |
-  Contacts at Harbor Logistics include stakeholders.
-  Identify decision makers and influencers.
-  Plan your engagement strategy.
+  Harbor Logistics contacts:
+  1. Jacob Wu - Operations Lead (Decision Maker)
+     - Email: jacob.wu@harborlogistics.com
+     - Phone: +1-555-0601
+     - Primary contact for initial rollout
+  2. Mei Chen - Logistics Coordinator (User)
+     - Email: mei.chen@harborlogistics.com
+     - Phone: +1-555-0602
+  3. Dan O'Brien - Finance Director (Executive)
+     - Email: dan.obrien@harborlogistics.com
+     - Phone: +1-555-0603
 
 "What's the implementation plan?": |
-  The implementation plan covers rollout details.
-  This includes timeline, resources, and training.
-  Ensure alignment with customer expectations.
+  Harbor Logistics implementation plan:
+  Scheduled activities:
+  - January 25, 2026: Implementation kickoff meeting with Jacob Wu
+  - February 5, 2026: Billing setup call with Dan O'Brien
+  - February 15, 2026: Team training with Mei Chen (logistics coordinators)
+  History: Solution design meeting completed July 10, 2025 - rollout milestones mapped out.
 
 # From "What's the status of the Harbor deal?"
 "What stage is Harbor Logistics in?": |
-  Harbor Logistics is at a specific pipeline stage.
-  This indicates progress toward closing.
-  Plan next steps accordingly.
+  Harbor Logistics deal stage:
+  - Stage: Discovery
+  - Deal: Initial rollout ($26,000)
+  - Days in stage: 50
+  - Expected close: February 28, 2026
+  Next milestone: Technical demo with Jacob Wu, then move to Qualified stage.
 
 "What's the deal value?": |
-  The deal value is the expected revenue.
-  This helps prioritize your efforts.
-  Include in your forecast.
+  Harbor Logistics deal value:
+  - Opportunity: Initial rollout
+  - Value: $26,000 USD
+  - Currency: USD
+  - Type: New Business
+  - Source: Outbound
+  This is a new customer acquisition opportunity.
 
 "When is the expected close?": |
-  Expected close date is in the opportunity.
-  Plan activities to meet this timeline.
-  Adjust if there are delays.
+  Harbor Logistics expected close:
+  - Expected close date: February 28, 2026
+  - Current stage: Discovery
+  - Implementation kickoff scheduled: January 25, 2026
+  Timeline is on track if kickoff meeting proceeds as planned.
 
 # From "Who are the contacts at Harbor Logistics?"
 "Who is Jacob Wu?": |
-  Jacob Wu is a contact at Harbor Logistics.
-  Check his role and influence.
-  He may be a key stakeholder.
+  Jacob Wu - Harbor Logistics:
+  - Job Title: Operations Lead
+  - Role: Decision Maker
+  - Email: jacob.wu@harborlogistics.com
+  - Phone: +1-555-0601
+  - Lifecycle Stage: Customer
+  He's the primary contact for the $26,000 initial rollout opportunity. Last meeting was the solution design session on July 10, 2025.
 
 "Who handles operations at Harbor?": |
-  Operations contact handles day-to-day use.
-  This person is important for implementation.
-  Engage them for user adoption.
+  Operations contacts at Harbor Logistics:
+  - Jacob Wu (Operations Lead): Decision Maker, primary contact
+  - Mei Chen (Logistics Coordinator): Day-to-day operations user
+  Jacob handles strategic decisions; Mei will be key for user adoption and training.
 
 "Who's the decision maker?": |
-  The decision maker has final approval.
-  Identify and engage this person.
-  Understand their priorities and concerns.
+  Decision maker at Harbor Logistics:
+  - Jacob Wu (Operations Lead) - Primary decision maker for the deal
+  - Dan O'Brien (Finance Director) - Executive with budget authority
+  For final approval, Dan O'Brien may need to sign off on the $26,000 investment.
 
 # From "What's the implementation plan?"
 "What's the rollout timeline?": |
-  Rollout timeline covers implementation phases.
-  Plan resources and support accordingly.
-  Communicate clearly with customer.
+  Harbor Logistics rollout timeline:
+  - January 25, 2026: Implementation kickoff (High priority meeting)
+  - February 5, 2026: Billing setup with Dan O'Brien
+  - February 15, 2026: Team training for logistics coordinators (Mei Chen)
+  - February 28, 2026: Expected deal close / go-live target
+  Total implementation window: ~5 weeks from kickoff to go-live.
 
 "Which teams are involved?": |
-  Involved teams include IT, operations, and users.
-  Coordinate with each for smooth rollout.
-  Identify champions in each group.
+  Teams involved in Harbor Logistics rollout:
+  1. Operations: Jacob Wu (Lead), Mei Chen (Coordinator)
+  2. Finance: Dan O'Brien (Director) - billing and budget
+  3. End users: Logistics coordinator team (training with Mei)
+  Coordinate with all three groups for smooth implementation.
 
 "What training is needed?": |
-  Training requirements depend on user roles.
-  Plan sessions for different skill levels.
-  Provide ongoing support resources.
+  Harbor Logistics training requirements:
+  - Team training session scheduled: February 15, 2026 with Mei Chen
+  - Focus: Training logistics coordinators on platform use
+  - Preparation materials: Developed in August 2025 (call with Mei)
+  Additional training may be needed based on team size and complexity.
 
 # =============================================================================
 # TEAM BRANCH (From "How's the team doing?")
 # =============================================================================
 
 "What's the total pipeline?": |
-  Total pipeline shows combined opportunity value.
-  This spans all reps and stages.
-  Use for capacity planning and forecasting.
+  Total team pipeline across all reps:
+  - jsmith: $69,000 (Acme $39K, Crown $18K, Fusion $12K)
+  - ljones: $40,000 (Beta Tech $32K new + $8K add-on)
+  - mmalik: $34,000 (Harbor $26K, Eastern $8K)
+  Total open pipeline: $143,000
+  Closed Won (recent): Fusion Retail renewal $28,000 (September 2025)
 
 "Which reps are behind on activities?": |
-  Reps behind on activities may need support.
-  Check their activity levels and goals.
-  Provide coaching or resources as needed.
+  Activity status by rep:
+  - jsmith: Active - multiple upcoming calls and meetings scheduled
+  - ljones: Moderate - Beta Tech activities on track
+  - mmalik: Needs attention - Eastern Travel trial stalled, Harbor in early stage
+  - amartin: At-risk accounts - Delta Health needs urgent attention
+  Review activity levels for amartin and mmalik for potential coaching.
 
 "What's the team's forecast?": |
-  Team forecast combines individual projections.
-  This accounts for weighted pipeline by rep.
-  Use for goal tracking and planning.
+  Team forecast for Q1 2026:
+  - Committed (Negotiation): Beta Tech $32,000 (ljones)
+  - Probable (Proposal): Acme upgrade $15K + Crown $18K (jsmith) = $33,000
+  - Pipeline (Qualified): Acme renewal $24K + Delta $22K + Fusion $12K = $58,000
+  - Early stage (Discovery/New): Beta add-on $8K + Harbor $26K + Delta expand $15K + Eastern $8K = $57,000
+  Weighted forecast: ~$69,000 (based on stage probabilities)
 
 # From "What's the total pipeline?"
 "Break down pipeline by rep": |
-  Pipeline by rep shows individual contributions.
-  This helps identify top performers.
-  Balance workload and opportunities.
+  Pipeline breakdown by rep:
+
+  jsmith - $69,000 total:
+  - Acme Manufacturing upgrade: $15,000 (Proposal)
+  - Acme Manufacturing renewal: $24,000 (Qualified)
+  - Crown Foods renewal: $18,000 (Proposal)
+  - Fusion Retail upsell: $12,000 (Qualified)
+
+  ljones - $40,000 total:
+  - Beta Tech new rollout: $32,000 (Negotiation)
+  - Beta Tech add-on: $8,000 (Discovery)
+
+  mmalik - $34,000 total:
+  - Harbor Logistics new: $26,000 (Discovery)
+  - Eastern Travel trial: $8,000 (New)
+
+  amartin - $37,000 total:
+  - Delta Health renewal: $22,000 (Qualified)
+  - Delta Health expansion: $15,000 (Discovery)
 
 "What's the average deal size?": |
-  Average deal size indicates typical opportunity.
-  Compare to historical trends.
-  Use for planning and targeting.
+  Average deal size analysis:
+  - Total open pipeline: $180,000
+  - Number of open opportunities: 10
+  - Average deal size: $18,000
+
+  By stage:
+  - Negotiation: $32,000 (1 deal)
+  - Proposal: $16,500 avg (2 deals)
+  - Qualified: $19,500 avg (4 deals)
+  - Discovery: $16,333 avg (3 deals)
+
+  Largest deal: Beta Tech new rollout ($32,000)
 
 "Which stage has the most value?": |
-  Stage with most value shows where deals are.
-  This may indicate bottlenecks or opportunities.
-  Focus on moving deals through stages.
+  Pipeline value by stage:
+  - Qualified: $58,000 (4 deals) - Most value
+  - Discovery: $49,000 (3 deals)
+  - Proposal: $33,000 (2 deals)
+  - Negotiation: $32,000 (1 deal)
+  - New: $8,000 (1 deal)
+
+  Qualified stage has the most total value but needs advancement to Proposal/Negotiation for closing.
 
 # From "Break down pipeline by rep"
 "Who has the biggest deals?": |
-  Biggest deals are owned by specific reps.
-  These high-value opportunities need attention.
-  Provide support for closing.
+  Reps with biggest deals:
+  1. ljones: Beta Tech new rollout - $32,000 (largest single deal)
+  2. mmalik: Harbor Logistics - $26,000
+  3. jsmith: Acme Manufacturing renewal - $24,000
+  4. amartin: Delta Health renewal - $22,000
+
+  ljones has the highest-value near-term opportunity in Negotiation stage.
 
 "Who needs coaching?": |
-  Coaching needs depend on performance metrics.
-  Identify gaps in skills or execution.
-  Provide targeted development.
+  Coaching assessment by rep:
+
+  1. mmalik: Needs support
+     - Eastern Travel trial stalled for 12 months
+     - Harbor Logistics still in Discovery stage
+     - Both deals moving slowly
+
+  2. amartin: Urgent attention needed
+     - Delta Health at-risk, competitor demo scheduled
+     - Renewal past expected close date
+
+  3. ljones: Monitor activity
+     - Beta Tech flagged at-risk-low-activity despite strong pipeline
 
 "What's the average close rate?": |
-  Close rate shows conversion efficiency.
-  Higher rates indicate effective selling.
-  Use to identify best practices.
+  Recent close rate data:
+  - Closed Won (recent): Fusion Retail renewal $28,000 (September 2025)
+  - Closed Lost (recent): Green Energy $55,000 total (June 2025)
+
+  Historical pattern: Limited data available. Focus on:
+  - Improving Delta Health and Beta Tech close probability
+  - Learning from Green Energy churn
 
 # From "What's the average deal size?"
 "How does this compare to last quarter?": |
-  Compare current to last quarter metrics.
-  This shows trends and progress.
-  Identify factors driving changes.
+  Q4 2025 vs Q1 2026 comparison:
+  - Q4 2025 notable close: Fusion Retail renewal $28,000 (Closed Won)
+  - Q4 2025 churn: Green Energy $55,000 (Closed Lost)
+  - Current pipeline (Q1 2026): $180,000 open
+
+  Trend: Pipeline has grown, but at-risk accounts need attention to avoid repeat of Green Energy churn.
 
 "Which segment has the largest deals?": |
-  Largest deals come from specific segments.
-  Focus efforts on high-value targets.
-  Tailor approach to segment needs.
+  Deal size by segment:
+  - Mid-market: Largest deals
+    - Beta Tech (Software, SMB): $40,000
+    - Acme Manufacturing (Mid-market): $39,000
+    - Delta Health (Mid-market): $37,000
+    - Fusion Retail (Mid-market): $12,000
+
+  - SMB: Smaller deals
+    - Crown Foods (SMB): $18,000
+    - Harbor Logistics (SMB): $26,000
+    - Eastern Travel (SMB): $8,000
 
 "What's the deal size trend?": |
-  Deal size trend shows if value is growing.
-  Larger deals indicate market expansion.
-  Smaller deals may need attention.
+  Deal size trends:
+  - Average current deal: $18,000
+  - Recent closed deal: Fusion Retail $28,000 (above average)
+  - Recent lost deal: Green Energy $55,000 (significant loss)
+  - Largest in pipeline: Beta Tech $32,000
+
+  Trend: Pursuing mix of mid-market and SMB deals. Focus on closing larger Beta Tech deal.
 
 # From "Which stage has the most value?"
 "Show me deals in negotiation": |
-  Negotiation stage deals are near closing.
-  Focus on removing final blockers.
-  These represent near-term revenue.
+  Deals in Negotiation stage:
+
+  1. Beta Tech - New rollout
+     - Value: $32,000
+     - Owner: ljones
+     - Primary contact: Lisa Ng
+     - Expected close: February 15, 2026
+     - Status: Budget approved, CEO signed off
+     - Next step: Finalize contract terms
+
+  This is the only deal in Negotiation - highest probability of closing.
 
 "What's stuck in discovery?": |
-  Discovery stage deals may need advancement.
-  Check for blockers or missing information.
-  Help reps move these forward.
+  Deals stuck in Discovery stage:
+
+  1. Beta Tech - Analytics add-on: $8,000 (45 days in stage)
+     - Depends on main rollout closing first
+
+  2. Delta Health - Additional clinics: $15,000 (50 days in stage)
+     - Blocked by renewal risk
+
+  3. Harbor Logistics - Initial rollout: $26,000 (50 days in stage)
+     - Active but needs technical demo to advance
 
 "What's the conversion rate by stage?": |
-  Conversion rate shows stage progression.
-  Identify where deals get stuck.
-  Improve processes at problem stages.
+  Stage conversion analysis (based on recent data):
+  - New to Qualified: Eastern Travel stuck for 12 months (low conversion)
+  - Discovery to Proposal: 3 deals stalled (Beta add-on, Delta expand, Harbor)
+  - Proposal to Negotiation: Acme upgrade blocked by pricing concerns
+  - Negotiation to Closed Won: Beta Tech progressing well
+
+  Key bottleneck: Discovery to Proposal conversion needs improvement.
 
 # From "Which reps are behind on activities?"
 "Who has overdue tasks?": |
-  Reps with overdue tasks need attention.
-  Help them prioritize and catch up.
-  Address any blocking issues.
+  Overdue task analysis:
+  Currently no activities show as overdue (all have future due dates).
+
+  Nearest due activities:
+  - January 14, 2026: Delta Health support ticket follow-up (amartin)
+  - January 15, 2026: Acme follow-up call (jsmith)
+  - January 16, 2026: Crown Foods check-in (jsmith)
+
+  amartin has earliest upcoming task - ensure Delta Health support tickets are addressed.
 
 "What's the activity breakdown by type?": |
-  Activity breakdown shows calls, emails, meetings.
-  This indicates engagement approach.
-  Balance activities for effectiveness.
+  Activity breakdown by type:
+
+  Calls: 8 scheduled
+  - Acme follow-up, Crown check-in, Delta support, Beta QBR, etc.
+
+  Meetings: 9 scheduled
+  - Executive intros, demos, training sessions, kickoffs
+
+  Tasks: 5 scheduled
+  - Security questionnaire, contract review, proposals
+
+  Most activities are customer-facing calls and meetings.
 
 "Which accounts need more engagement?": |
-  Accounts with low engagement need outreach.
-  These may be at risk of churn.
-  Assign and track engagement activities.
+  Accounts with low engagement needing outreach:
+
+  1. Beta Tech Solutions: at-risk-low-activity flag
+  2. Delta Health Clinics: Last substantive meeting September 2025
+  3. Eastern Travel Co.: Trial stalled, needs re-engagement
+  4. Harbor Logistics: Early stage, needs consistent touchpoints
+
+  Prioritize Delta Health (renewal Feb 1) and Beta Tech (renewal Feb 15).
 
 # From "Who has overdue tasks?"
 "What are the overdue tasks?": |
-  Overdue tasks include specific activities.
-  Prioritize by importance and deadline.
-  Complete or reassign as needed.
+  Currently no overdue tasks - all activities have future due dates.
+
+  Upcoming high-priority tasks:
+  - January 14, 2026: Delta Health support ticket follow-up (Low priority but important for at-risk account)
+  - January 17, 2026: Fusion Retail contract review (High priority)
+  - January 25, 2026: Beta Tech security questionnaire (High priority)
 
 "Which accounts are affected?": |
-  Affected accounts may have stalled progress.
-  Check relationship health.
-  Plan recovery activities.
+  Accounts with pending/urgent activities:
+
+  1. Delta Health: Support tickets need resolution (affects renewal)
+  2. Acme Manufacturing: Upgrade proposal follow-up needed
+  3. Beta Tech: Security questionnaire and QBR due
+  4. Crown Foods: Renewal check-in scheduled
+
+  Delta Health is most affected - unresolved issues contributing to at-risk status.
 
 "When were these tasks due?": |
-  Task due dates show how overdue they are.
-  Longer overdue needs more urgent attention.
-  Update or close stale tasks.
+  Upcoming task due dates:
+  - January 14, 2026: Delta Health support follow-up
+  - January 15, 2026: Acme follow-up on upgrade proposal
+  - January 16, 2026: Crown Foods renewal check-in
+  - January 17, 2026: Fusion Retail contract review
+
+  All tasks are upcoming, none overdue. Stay on top of January activities.
 
 # From "What's the activity breakdown by type?"
 "How many calls were made this week?": |
-  Weekly calls show phone engagement level.
-  Compare to goals and benchmarks.
-  Quality matters as much as quantity.
+  Call activity data:
+  Recent completed calls from history:
+  - November 2025: Multiple calls logged (Fusion, Delta, Crown)
+  - Most recent: Training call with Ines Weber (Fusion Retail) on November 1, 2025
+
+  Upcoming calls scheduled:
+  - January 14-16, 2026: Delta support, Acme follow-up, Crown check-in
+
+  Specific weekly counts not available - review activity logs for details.
 
 "Which rep has the most meetings?": |
-  Meeting leader shows face-to-face engagement.
-  This often correlates with success.
-  Share best practices across team.
+  Meeting activity by rep:
+
+  jsmith: 4 upcoming meetings
+  - Acme exec intro, Crown training, Fusion onboarding, Fusion expansion
+
+  ljones: 2 upcoming meetings
+  - Beta Tech QBR, Beta Tech executive demo
+
+  mmalik: 3 upcoming meetings
+  - Harbor kickoff, Harbor training, Eastern Travel demo
+
+  amartin: 1 upcoming meeting
+  - Delta Health expansion discussion
+
+  jsmith has the most scheduled meetings.
 
 "What's the email activity level?": |
-  Email activity shows written engagement.
-  Check for responses and engagement.
-  Balance with other activity types.
+  Email activity from history:
+  Recent emails synced:
+  - Acme: Proposal sent, usage recap
+  - Beta Tech: Budget follow-up with Omar
+  - Crown Foods: Integration support for Alex
+  - Delta Health: Training resources for Mike
+  - Eastern Travel: Welcome email, campaign templates
+
+  Email sync is active across accounts. Review individual accounts for details.
 
 # From "Which accounts need more engagement?"
 "Show me accounts with no recent activity": |
-  Accounts without recent activity are at risk.
-  Assign outreach activities immediately.
-  Check relationship status.
+  Accounts with oldest last activity:
+
+  1. Eastern Travel: Last engagement February 1, 2025 (trial check-in)
+  2. Delta Health: Last meeting September 15, 2025 (QBR)
+  3. Green Energy: Former customer, last contact May 2025
+
+  Eastern Travel has gone nearly 11 months without meaningful engagement - critical for trial conversion.
 
 "What's the average activity per account?": |
-  Average activity shows typical engagement.
-  Lower than average needs attention.
-  Set targets for improvement.
+  Activity levels by account (from history):
+
+  High activity (5+ recent entries):
+  - Acme Manufacturing: 5 history items
+  - Beta Tech: 5 history items
+  - Crown Foods: 4 history items
+
+  Moderate activity:
+  - Delta Health: 4 history items
+  - Fusion Retail: 4 history items
+  - Harbor Logistics: 4 history items
+
+  Low activity:
+  - Eastern Travel: 4 history items but last was February 2025
+  - Green Energy: Former customer
 
 "Which accounts are at risk?": |
-  At-risk accounts show warning signs.
-  These may churn without intervention.
-  Prioritize based on value.
+  At-risk accounts by health flag:
+
+  1. Delta Health Clinics: at-risk-renewal-soon
+     - Renewal Feb 1, 2026, $22,000
+     - Competitor demo scheduled
+
+  2. Beta Tech Solutions: at-risk-low-activity
+     - Renewal Feb 15, 2026
+     - $40,000 in pipeline
+
+  3. Harbor Logistics: health-check
+     - Renewal Mar 15, 2026
+     - Monitor implementation progress
+
+  4. Green Energy Partners: churned
+     - Lost June 2025, win-back attempt March 2026
 
 # From "What's the team's forecast?"
 "What's the weighted pipeline by rep?": |
-  Weighted pipeline by rep shows individual forecast.
-  This accounts for probability.
-  Use for goal tracking.
+  Weighted pipeline by rep (estimated):
+
+  ljones: ~$28,000 weighted
+  - Beta Tech new: $32K x 80% (Negotiation) = $25,600
+  - Beta Tech add-on: $8K x 20% (Discovery) = $1,600
+
+  jsmith: ~$28,000 weighted
+  - Acme upgrade: $15K x 50% = $7,500
+  - Acme renewal: $24K x 30% = $7,200
+  - Crown renewal: $18K x 50% = $9,000
+  - Fusion upsell: $12K x 30% = $3,600
+
+  amartin: ~$10,000 weighted
+  - Delta renewal: $22K x 30% = $6,600
+  - Delta expand: $15K x 20% = $3,000
+
+  mmalik: ~$7,000 weighted
+  - Harbor new: $26K x 20% = $5,200
+  - Eastern trial: $8K x 20% = $1,600
 
 "Tell me about Fusion Retail's upsell": |
-  Fusion Retail has an upsell opportunity.
-  Check the details and value.
-  Plan engagement strategy.
+  Fusion Retail - Seats expansion opportunity:
+  - Value: $12,000 USD
+  - Stage: Qualified
+  - Expected close: June 10, 2026
+  - Primary contact: Emma Khan (Head of CX, Champion)
+  - Owner: jsmith
+
+  Context: Customer recently renewed ($28,000 Closed Won September 2025). Emma is expanding use cases. Strong champion support drove initial adoption. Expanding from 15 to 25 seats in last renewal - this may be additional seats beyond that.
+
+  Next step: Build business case for seat expansion.
 
 "What's at risk this quarter?": |
-  At-risk deals this quarter need attention.
-  These may not close without intervention.
-  Develop recovery plans.
+  Q1 2026 at-risk deals:
+
+  1. Delta Health - Renewal: $22,000
+     - Past expected close, competitor demo scheduled
+     - Probability: 50% or lower
+
+  2. Acme Manufacturing - Upgrade: $15,000
+     - Stalled 50 days, CFO needs ROI justification
+     - Probability: Reduced until pricing resolved
+
+  3. Eastern Travel - Trial: $8,000
+     - Stalled 12 months, needs escalation
+     - Probability: Low until Ravi engaged
+
+  Total at-risk value: ~$45,000
 
 # From "What's the weighted pipeline by rep?"
 "Who has the highest weighted value?": |
-  Highest weighted value rep leads forecast.
-  This indicates strong pipeline quality.
-  Support their closing efforts.
+  Highest weighted value by rep:
+
+  1. ljones: ~$28,000 weighted (Beta Tech deals)
+     - Highest-probability deal in Negotiation stage
+
+  2. jsmith: ~$28,000 weighted (Acme, Crown, Fusion)
+     - Spread across multiple accounts
+
+  3. amartin: ~$10,000 weighted (Delta Health)
+     - At-risk accounts reducing weighted value
+
+  4. mmalik: ~$7,000 weighted (Harbor, Eastern)
+     - Early-stage deals with lower probability
+
+  ljones and jsmith tied for highest weighted pipeline.
 
 "Which rep is behind target?": |
-  Rep behind target needs support.
-  Identify gaps and barriers.
-  Provide coaching and resources.
+  Rep performance assessment:
+
+  Potentially behind:
+  - amartin: Delta Health at-risk, renewal past due date
+  - mmalik: Eastern Travel stalled 12 months, Harbor in early stage
+
+  On track:
+  - ljones: Beta Tech in Negotiation, strong close probability
+  - jsmith: Multiple deals across stages, healthy accounts
+
+  Specific targets not defined - assess based on weighted pipeline and deal progression.
 
 "What's the forecast accuracy?": |
-  Forecast accuracy shows prediction reliability.
-  Higher accuracy enables better planning.
-  Improve processes for accuracy.
+  Forecast accuracy assessment:
+
+  Recent outcomes:
+  - Fusion Retail: Accurately forecasted, closed $28,000 on time
+  - Green Energy: Unexpected churn, $55,000 loss not predicted early enough
+
+  Current risks to accuracy:
+  - Delta Health renewal may slip or churn
+  - Beta Tech has at-risk flag despite Negotiation stage
+  - Eastern Travel timeline keeps slipping
+
+  Recommendation: Apply more conservative probabilities to at-risk accounts.
 
 # From "What's at risk this quarter?"
 "Which deals are past due?": |
-  Past due deals missed expected close.
-  Update with realistic dates.
-  Address blockers urgently.
+  Deals past expected close date:
+
+  1. Delta Health - Renewal: $22,000
+     - Expected close: September 1, 2025
+     - Status: Still in Qualified stage, 135+ days overdue
+     - Action: Urgent re-engagement needed
+
+  Other deals are on track with future close dates. Update Delta Health close date based on current situation.
 
 "What's the total at-risk value?": |
-  At-risk value shows potential lost revenue.
-  Prioritize recovery efforts.
-  Track progress weekly.
+  Total at-risk value calculation:
+
+  Renewals at risk:
+  - Delta Health: $22,000 (at-risk-renewal-soon)
+  - Beta Tech: Renewal coming (at-risk-low-activity)
+
+  Deals at risk:
+  - Acme upgrade: $15,000 (stalled on pricing)
+  - Eastern Travel: $8,000 (stalled on decision)
+
+  Total quantified at-risk: $45,000+
+  If Delta Health churns like Green Energy, could lose $37,000 (renewal + expansion).
 
 "How can we recover these deals?": |
-  Recovery requires addressing root causes.
-  Re-engage champions and decision makers.
-  Consider incentives or concessions.
+  Recovery strategies by deal:
+
+  1. Delta Health ($37,000 total):
+     - Schedule urgent QBR before competitor demo
+     - Resolve support tickets immediately
+     - Re-engage underutilized clinics
+     - Prepare ROI analysis
+
+  2. Acme Upgrade ($15,000):
+     - Prepare ROI justification for CFO Beth Turner
+     - Quantify time savings and efficiency gains
+
+  3. Eastern Travel ($8,000):
+     - Escalate to Ravi Kumar for budget decision
+     - Set firm conversion deadline
+
+  4. Beta Tech (renewal):
+     - Increase engagement frequency
+     - Focus on successful new rollout implementation
 
 # From "Tell me about Fusion Retail's upsell"
 "What's the upsell opportunity?": |
-  The upsell adds value to existing account.
-  This may include additional products or services.
-  Position as expansion of success.
+  Fusion Retail upsell details:
+  - Name: Fusion Retail - Seats expansion
+  - Value: $12,000 USD
+  - Stage: Qualified
+  - Type: Expansion
+  - Expected close: June 10, 2026
+  - Primary contact: Emma Khan (Head of CX)
+
+  Background: Customer expanded from 15 to 25 seats in recent renewal. This additional expansion may cover new departments or team growth.
 
 "Who are the contacts at Fusion Retail?": |
-  Contacts at Fusion Retail include stakeholders.
-  Identify champions and decision makers.
-  Plan engagement strategy.
+  Fusion Retail Group contacts:
+
+  1. Emma Khan - Head of CX (Champion)
+     - Email: emma.khan@fusionretail.com
+     - Phone: +49-30-5550
+     - Primary contact for seats expansion upsell
+     - Strong champion, drove initial adoption
+
+  2. Lars Müller - CTO (Executive)
+     - Email: lars.mueller@fusionretail.com
+     - Phone: +49-30-5551
+     - Contact for contract review and approvals
+
+  3. Ines Weber - Sales Manager (User)
+     - Email: ines.weber@fusionretail.com
+     - Phone: +49-30-5552
 
 "What's Fusion's current usage?": |
-  Current usage shows product adoption.
-  This justifies expansion case.
-  Address any usage gaps.
+  Fusion Retail usage status:
+  - Current plan: Pro
+  - Recent renewal: $28,000 (Closed Won September 2025)
+  - Seats expanded: From 15 to 25 seats in last renewal
+  - Health status: Healthy
+
+  Recent activity:
+  - Training call with Ines Weber for new team members (November 1, 2025)
+  - Expansion planning meeting with Emma Khan (October 10, 2025)
+  - Security documentation sent to Lars Müller (September 25, 2025)
+
+  Usage is strong - customer actively expanding use cases.
 
 # From "What's the upsell opportunity?"
 "What's the expansion deal worth?": |
-  Expansion value adds to existing revenue.
-  Include in forecast appropriately.
-  Track as separate opportunity.
+  Fusion Retail expansion opportunity value:
+  - Deal: Seats expansion
+  - Value: $12,000 USD
+  - Stage: Qualified
+  - Expected close: June 10, 2026
+
+  Combined with successful renewal ($28,000), total account value is $40,000+ annually.
 
 "How many additional seats?": |
-  Additional seats expand user base.
-  This indicates growth opportunity.
-  Plan for implementation.
+  Fusion Retail seat expansion:
+  - Previous seat count: 15
+  - After recent renewal: 25 seats
+  - Current expansion request: Additional seats (specific count TBD)
+
+  The $12,000 expansion opportunity likely represents 10-15 additional seats based on pricing.
+  Next step: Build business case for seat expansion with Emma Khan.
 
 "What's driving the expansion?": |
-  Expansion drivers include success and growth.
-  Leverage these in your pitch.
-  Document for case studies.
+  Fusion Retail expansion drivers:
+  1. Strong champion support: Emma Khan (Head of CX) drove internal adoption
+  2. Successful initial deployment: Contract signed 2 weeks ahead of deadline
+  3. Expanding use cases: Nina Foster's team growing platform usage
+  4. Team growth: New user onboarding scheduled for February 2026
+
+  Customer satisfaction is high - leverage for case study and expansion.
 
 # From "Who are the contacts at Fusion Retail?"
 "Who is Emma at Fusion?": |
-  Emma is a contact at Fusion Retail.
-  Check her role and influence.
-  Engage appropriately.
+  Emma Khan - Fusion Retail Group:
+  - Job Title: Head of CX
+  - Role: Champion
+  - Email: emma.khan@fusionretail.com
+  - Phone: +49-30-5550
+  - Lifecycle Stage: Customer
+
+  She's the primary contact for the $12,000 seats expansion and was the strong champion who drove initial adoption. Recent renewal success was largely due to her internal advocacy.
 
 "Who is Lars?": |
-  Lars is a contact with specific role.
-  Check his involvement in decisions.
-  Plan your engagement.
+  Lars Müller - Fusion Retail Group:
+  - Job Title: CTO
+  - Role: Executive
+  - Email: lars.mueller@fusionretail.com
+  - Phone: +49-30-5551
+  - Lifecycle Stage: Customer
+
+  He's the executive contact for contract review and IT-related approvals. Security documentation was sent to him in September 2025.
 
 "Who approved the original deal?": |
-  Original approver has history with you.
-  Leverage this relationship for expansion.
-  Ensure continued satisfaction.
+  Original Fusion Retail deal approvers:
+  - Champion: Emma Khan (Head of CX) - drove internal adoption
+  - Executive: Lars Müller (CTO) - likely final approval
+
+  The recent renewal ($28,000) was closed September 30, 2025, signed 2 weeks ahead of deadline. Emma's strong advocacy was key to the expansion from 15 to 25 seats.
 
 # From "What's Fusion's current usage?"
 "How many active users?": |
-  Active user count shows adoption.
-  Higher counts indicate success.
-  Lower counts may need attention.
+  Fusion Retail active users:
+  - Current seats: 25 (after expansion from 15)
+  - Plan: Pro
+  - Status: Active, healthy
+
+  Recent training: New user onboarding scheduled for February 8, 2026 with Ines Weber for newly hired sales team. Adoption appears strong based on expansion requests.
 
 "Which features are popular?": |
-  Popular features show value delivery.
-  Highlight these in expansion pitch.
-  Address underused features.
+  Fusion Retail feature usage (inferred from activities):
+  - CX management: Emma Khan (Head of CX) is primary champion
+  - Sales tools: Ines Weber (Sales Manager) training new team
+  - Security/compliance: Documentation reviewed by Lars Müller
+
+  Specific feature analytics not detailed in notes. Customer satisfaction is high based on renewal and expansion activity.
 
 "What's the adoption rate?": |
-  Adoption rate shows usage growth.
-  Higher rates indicate success.
-  Lower rates need intervention.
+  Fusion Retail adoption assessment:
+  - Seat utilization: Strong - expanded from 15 to 25 seats
+  - User training: Ongoing - new onboarding scheduled
+  - Department expansion: CX and Sales teams actively using
+  - Health status: Healthy
+
+  Adoption is excellent - customer is a strong reference candidate. Consider for case study.
 
 # =============================================================================
 # ACME MANUFACTURING BRANCH (From "What's going on with Acme Manufacturing?")
 # =============================================================================
 
 "Show me Acme Manufacturing's opportunities": |
-  Acme Manufacturing has multiple opportunities.
-  These span different stages and values.
-  Prioritize based on close dates.
+  Acme Manufacturing open opportunities:
+
+  1. Pro to Enterprise upgrade
+     - Value: $15,000
+     - Stage: Proposal
+     - Expected close: January 25, 2026
+     - Contact: Anna Lopez
+     - Next step: Send revised proposal addressing pricing concerns
+
+  2. Annual renewal
+     - Value: $24,000
+     - Stage: Qualified
+     - Expected close: April 15, 2026
+     - Contact: Joe Smith
+     - Next step: Schedule discovery call with Joe Smith
+
+  Total Acme pipeline: $39,000
 
 "Who are the key contacts at Acme Manufacturing?": |
-  Key contacts at Acme include decision makers.
-  Check their roles and engagement history.
-  Plan outreach strategy.
+  Acme Manufacturing key contacts:
+
+  1. Anna Lopez - Operations Manager (Decision Maker)
+     - Email: anna.lopez@acmemfg.com
+     - Phone: +1-555-0101
+     - Primary contact for upgrade opportunity
+
+  2. Joe Smith - IT Manager (Technical Contact)
+     - Email: joe.smith@acmemfg.com
+     - Phone: +1-555-0102
+     - Primary contact for renewal
+
+  3. Beth Turner - CFO (Executive)
+     - Email: beth.turner@acmemfg.com
+     - Phone: +1-555-0103
+     - Key for upgrade approval - needs ROI justification
 
 "What's Acme Manufacturing's renewal status?": |
-  Acme's renewal is coming up or in progress.
-  Check health status and any risks.
-  Plan renewal conversation.
+  Acme Manufacturing renewal status:
+  - Renewal date: March 31, 2026
+  - Current plan: Pro ($24,000/year)
+  - Health status: Healthy
+  - Renewal opportunity: $24,000 (Qualified stage)
+  - Expected close: April 15, 2026
+  - Primary contact: Joe Smith (IT Manager)
+
+  Note: Also pursuing $15,000 upgrade to Enterprise before renewal.
 
 # From "Show me Acme Manufacturing's opportunities"
 "When does the Acme renewal opportunity close?": |
-  Acme renewal has expected close date.
-  Plan activities to meet timeline.
-  Address any blockers early.
+  Acme Manufacturing renewal opportunity:
+  - Name: Acme Manufacturing - Annual renewal
+  - Expected close: April 15, 2026
+  - Value: $24,000
+  - Stage: Qualified
+  - Primary contact: Joe Smith (IT Manager)
+  - Days in stage: 60
+
+  Note: Actual renewal date is March 31, 2026. Opportunity close expected 2 weeks after.
 
 "What's the total pipeline value for Acme Manufacturing?": |
-  Total pipeline value sums all opportunities.
-  This shows account potential.
-  Use for prioritization.
+  Acme Manufacturing total pipeline:
+  - Upgrade opportunity: $15,000 (Proposal stage)
+  - Renewal opportunity: $24,000 (Qualified stage)
+  - Total: $39,000
+
+  Account owner: jsmith
+  Industry: Manufacturing
+  Segment: Mid-market
+  Region: North America
 
 # From "Who are the key contacts at Acme Manufacturing?"
 "What is Anna Lopez's role?": |
-  Anna Lopez has a specific role at Acme.
-  This indicates her decision influence.
-  Tailor engagement accordingly.
+  Anna Lopez - Acme Manufacturing:
+  - Job Title: Operations Manager
+  - Role: Decision Maker
+  - Email: anna.lopez@acmemfg.com
+  - Phone: +1-555-0101
+
+  She's the primary contact for the $15,000 upgrade opportunity. Recent note indicates the upgrade is stalled due to pricing concerns - she mentioned CFO Beth Turner needs ROI justification.
 
 "Who handles IT at Acme Manufacturing?": |
-  IT contact handles technical decisions.
-  Engage for implementation discussions.
-  Address technical requirements.
+  IT contact at Acme Manufacturing:
+  - Joe Smith - IT Manager (Technical Contact)
+  - Email: joe.smith@acmemfg.com
+  - Phone: +1-555-0102
+
+  He's the primary contact for the $24,000 renewal opportunity. Last email to him was November 1, 2025 with usage summary for last quarter.
 
 "Show me recent activities with Acme Manufacturing": |
-  Recent activities show engagement history.
-  Review for context and follow-ups.
-  Plan next touchpoints.
+  Recent Acme Manufacturing activities:
+
+  History (completed):
+  - November 15, 2025: Note - Deal blocker identified (pricing, CFO wants ROI)
+  - November 10, 2025: Note - Activity slowed down, watch for renewal risk
+  - November 1, 2025: Email to Joe Smith - Usage recap
+  - October 20, 2025: Meeting with Anna Lopez - Demo and Q&A
+  - October 8, 2025: Email - Sent proposal
+  - October 5, 2025: Call with Anna Lopez - Initial upgrade conversation
+
+  Upcoming:
+  - January 15, 2026: Call - Follow up on upgrade proposal (High priority)
+  - January 20, 2026: Meeting - Executive introduction with Beth Turner
+  - March 10, 2026: Call - Discuss renewal options with Joe Smith
 
 # From "What's Acme Manufacturing's renewal status?"
 "When exactly is Acme Manufacturing's renewal date?": |
-  Acme's renewal date is in the contract.
-  Plan outreach well in advance.
-  Allow time for negotiation.
+  Acme Manufacturing renewal date: March 31, 2026
+
+  Details:
+  - Current plan: Pro
+  - Renewal opportunity value: $24,000
+  - Opportunity stage: Qualified
+  - Expected opportunity close: April 15, 2026
+  - Account owner: jsmith
+  - Health status: Healthy
 
 "What documents are attached to Acme deals?": |
-  Attached documents include proposals and contracts.
-  Review for reference and updates.
-  Ensure current versions.
+  Documents for Acme Manufacturing:
+  From opportunity notes:
+  - Proposal PDF sent October 8, 2025 (upgrade opportunity)
+  - Usage recap shared November 1, 2025
+
+  Note about blockers (November 15, 2025):
+  "Upgrade deal stalled due to pricing concerns. CFO Beth Turner wants ROI justification before approving $15k upgrade. Need to prepare ROI analysis focusing on time savings and efficiency gains."
 
 "What is Beth Turner's role at Acme?": |
-  Beth Turner's role is in the contact record.
-  This indicates her responsibilities.
-  Plan engagement appropriately.
+  Beth Turner - Acme Manufacturing:
+  - Job Title: CFO
+  - Role: Executive
+  - Email: beth.turner@acmemfg.com
+  - Phone: +1-555-0103
 
-# From deeper levels
+  She's the key blocker for the $15,000 upgrade. Per recent notes, she wants to see clear ROI justification before approving. Executive introduction meeting scheduled for January 20, 2026.
+
+# From deeper levels (Acme branch)
 "Who is the contact for the upgrade opportunity?": |
-  Upgrade opportunity has assigned contact.
-  This is your primary engagement point.
-  Coordinate with account owner.
+  Primary contact for Acme upgrade opportunity:
+  - Anna Lopez (Operations Manager, Decision Maker)
+  - Email: anna.lopez@acmemfg.com
+  - Phone: +1-555-0101
+
+  Secondary stakeholder: Beth Turner (CFO) - needs ROI justification for approval.
 
 "Show me deals in discovery stage": |
-  Discovery stage deals are early in pipeline.
-  Focus on qualification and needs.
-  Move promising ones forward.
+  Deals currently in Discovery stage:
+  1. Beta Tech - Analytics add-on: $8,000 (ljones)
+  2. Delta Health - Additional clinics: $15,000 (amartin)
+  3. Harbor Logistics - Initial rollout: $26,000 (mmalik)
+
+  Total Discovery stage value: $49,000
+  All need advancement to Proposal stage.
 
 "Which deals have we closed won?": |
-  Closed won deals show success history.
-  Use for reference and case studies.
-  Celebrate and learn from wins.
+  Closed Won deals (recent):
+
+  1. Fusion Retail - Annual renewal
+     - Value: $28,000
+     - Closed: September 30, 2025
+     - Note: Customer expanded from 15 to 25 seats
+     - Champion: Emma Khan drove internal adoption
+     - Signed 2 weeks ahead of deadline
 
 "What's the expected close date for Acme's renewal?": |
-  Expected close date is in the opportunity.
-  Plan activities to meet this date.
-  Adjust if delays occur.
+  Acme Manufacturing renewal expected close:
+  - Opportunity close date: April 15, 2026
+  - Actual renewal date: March 31, 2026
+  - Value: $24,000
+  - Stage: Qualified
+  - Next step: Schedule discovery call with Joe Smith
 
 "Who's handling the Acme Manufacturing renewal?": |
-  Renewal owner is assigned to opportunity.
-  They coordinate the renewal process.
-  Support as needed.
+  Acme Manufacturing renewal ownership:
+  - Account owner: jsmith
+  - Primary contact: Joe Smith (IT Manager)
+  - Opportunity: Annual renewal, $24,000
+  - Stage: Qualified
+  - Activity scheduled: March 10, 2026 - Discuss renewal options call
 
 "What's the current stage of Acme's renewal?": |
-  Current stage shows renewal progress.
-  Plan next steps accordingly.
-  Address any blockers.
+  Acme Manufacturing renewal stage:
+  - Current stage: Qualified
+  - Value: $24,000
+  - Days in stage: 60
+  - Expected close: April 15, 2026
+  - Next step: Schedule discovery call with Joe Smith
+
+  Status: On track, no risk flags. Account is healthy.
 
 "What's the biggest opportunity for Acme?": |
-  Biggest opportunity represents highest value.
-  Prioritize this for attention.
-  Ensure proper engagement.
+  Biggest Acme Manufacturing opportunity by value:
+  - Annual renewal: $24,000 (Qualified stage)
+
+  By near-term close:
+  - Pro to Enterprise upgrade: $15,000 (Proposal stage, closes Jan 25, 2026)
+
+  Combined Acme potential: $39,000
 
 "How many opportunities does Acme have?": |
-  Opportunity count shows account potential.
-  Track each through the pipeline.
-  Balance attention across deals.
+  Acme Manufacturing has 2 open opportunities:
+  1. Pro to Enterprise upgrade: $15,000 (Proposal)
+  2. Annual renewal: $24,000 (Qualified)
+
+  Total: $39,000 in pipeline
 
 "Who is the account owner for Acme?": |
-  Account owner has primary responsibility.
-  Coordinate all activities with them.
-  Ensure consistent engagement.
+  Acme Manufacturing account owner:
+  - Owner: jsmith
+  - Account since: January 15, 2024
+  - Current plan: Pro
+  - Status: Active
+  - Region: North America
 
 "What deals is Anna Lopez involved in?": |
-  Anna's deal involvement is tracked.
-  She may be primary contact on several.
-  Engage her appropriately.
+  Anna Lopez deal involvement:
+  - Primary contact for: Pro to Enterprise upgrade ($15,000)
+
+  Recent activity with Anna:
+  - October 20, 2025: Demo and Q&A meeting
+  - October 5, 2025: Initial upgrade conversation call
+  - November 15, 2025: Note indicating pricing concerns from CFO
 
 "When did we last talk to Anna Lopez?": |
-  Last contact with Anna is in activity log.
-  Review for context.
-  Schedule follow-up if needed.
+  Last contact with Anna Lopez:
+  - October 20, 2025: Meeting - Demo and Q&A session, walked through reporting and dashboards
+  - October 5, 2025: Call - Initial upgrade conversation
+
+  Next scheduled: January 15, 2026 - Follow up on upgrade proposal (High priority call)
 
 "What's the breakdown of contact roles at Acme?": |
-  Contact roles include decision makers and users.
-  Understand each role's influence.
-  Plan engagement strategy.
+  Acme Manufacturing contact roles:
+
+  Decision Maker:
+  - Anna Lopez (Operations Manager)
+
+  Executive:
+  - Beth Turner (CFO) - Budget approval authority
+
+  Technical Contact:
+  - Joe Smith (IT Manager)
+
+  All contacts are at Customer lifecycle stage.
 
 "What is Joe Smith's contact info?": |
-  Joe Smith's contact info is in the record.
-  Use for outreach and communication.
-  Keep updated.
+  Joe Smith - Acme Manufacturing:
+  - Job Title: IT Manager
+  - Role: Technical Contact
+  - Email: joe.smith@acmemfg.com
+  - Phone: +1-555-0102
+  - Company: Acme Manufacturing (ACME-MFG)
 
 "What deals involve Joe Smith?": |
-  Joe's deal involvement is tracked.
-  He may influence specific opportunities.
-  Engage him appropriately.
+  Joe Smith deal involvement:
+  - Primary contact for: Annual renewal ($24,000)
+
+  Recent activity with Joe:
+  - November 1, 2025: Email - Usage recap for last quarter
+  - October 8, 2025: Email - Sent proposal
+
+  Next scheduled: March 10, 2026 - Discuss renewal options call
 
 "What's the priority of the next Acme activity?": |
-  Next activity priority is assigned.
-  High priority needs immediate attention.
-  Plan accordingly.
+  Next Acme Manufacturing activities by priority:
+
+  High priority:
+  - January 15, 2026: Call with Anna Lopez - Follow up on upgrade proposal
+
+  Medium priority:
+  - January 20, 2026: Meeting with Beth Turner - Executive introduction
+  - March 10, 2026: Call with Joe Smith - Discuss renewal options
 
 "What was discussed in the last Acme call?": |
-  Last call notes summarize discussion.
-  Review for context and follow-ups.
-  Reference in next conversation.
+  Last Acme call/meeting:
+  - October 20, 2025: Meeting with Anna Lopez
+  - Subject: Demo and Q&A
+  - Description: Walked through reporting and dashboards
+
+  Key follow-up notes (November 15, 2025):
+  Deal blocker identified - upgrade stalled due to pricing concerns. CFO Beth Turner wants ROI justification before approving $15k upgrade.
 
 "When was the last meeting with Acme?": |
-  Last meeting date is in activity log.
-  Check notes for context.
-  Schedule follow-up if needed.
+  Last meeting with Acme Manufacturing:
+  - Date: October 20, 2025
+  - Subject: Demo and Q&A
+  - Attendee: Anna Lopez
+  - Description: Walked through reporting and dashboards
+  - Source: Calendar
+
+  Next meeting scheduled: January 20, 2026 - Executive introduction with Beth Turner
 
 "How many activities has Acme had this month?": |
-  Monthly activity count shows engagement.
-  Compare to benchmarks.
-  Increase if needed.
+  Acme Manufacturing recent activity count:
+
+  November 2025 activities (logged):
+  - November 15, 2025: Internal note - Deal blocker identified
+  - November 10, 2025: Internal note - Activity slowed down warning
+  - November 1, 2025: Email to Joe Smith - Usage recap
+
+  Total: 3 logged activities in November
+
+  January 2026 (scheduled):
+  - January 15: Follow-up call
+  - January 20: Executive meeting
 
 "What's the health status of Acme Manufacturing?": |
-  Health status indicates relationship strength.
-  Green is healthy, red needs attention.
-  Plan activities accordingly.
+  Acme Manufacturing health status:
+  - Health flag: Healthy
+  - Status: Active
+  - Plan: Pro
+  - Account owner: jsmith
+
+  Note: Despite healthy flag, internal notes from November indicate activity slowed down and deal blocker exists on upgrade. Monitor closely.
 
 "What proposals have been sent to Acme?": |
-  Proposals are attached to opportunities.
-  Review for current status.
-  Follow up on pending ones.
+  Proposals sent to Acme Manufacturing:
+  - October 8, 2025: Proposal PDF sent to Joe Smith
+    - Related to upgrade opportunity
+    - Subject: Sent proposal - shared pricing and proposal PDF
+
+  Status: Customer has pricing concerns. CFO Beth Turner needs ROI justification.
+  Next step: Send revised proposal addressing pricing concerns.
 
 "What's the Acme upgrade opportunity worth?": |
-  Upgrade opportunity value is in the record.
-  Include in pipeline and forecast.
-  Prioritize based on value.
+  Acme upgrade opportunity value:
+  - Name: Acme Manufacturing - Pro to Enterprise upgrade
+  - Value: $15,000 USD
+  - Stage: Proposal
+  - Type: Expansion
+  - Expected close: January 25, 2026
+  - Primary contact: Anna Lopez
 
 "Is there an expansion opportunity at Acme?": |
-  Expansion opportunity may exist.
-  Check for additional products or users.
-  Include in account planning.
+  Yes, Acme Manufacturing has an expansion opportunity:
+  - Name: Pro to Enterprise upgrade
+  - Value: $15,000
+  - Stage: Proposal (stalled on pricing)
+  - Expected close: January 25, 2026
+
+  Blocker: CFO Beth Turner wants ROI justification. Prepare analysis focusing on time savings and efficiency gains.
 
 "Show me the PDF attachments for Acme": |
-  PDF attachments include documents.
-  These may be proposals, contracts, or materials.
-  Review for reference.
+  Acme Manufacturing attachments:
+  - Proposal PDF: Sent October 8, 2025 via email to Joe Smith
+    - Contains pricing and proposal details for upgrade
+
+  For detailed attachment list, check the attachments data for company ACME-MFG.
 
 "Who is the CFO at Acme Manufacturing?": |
-  CFO is a key financial decision maker.
-  Engage for budget and approval.
-  Build relationship for future deals.
+  CFO at Acme Manufacturing:
+  - Beth Turner
+  - Email: beth.turner@acmemfg.com
+  - Phone: +1-555-0103
+  - Role: Executive
+
+  She's the key stakeholder for upgrade approval. Executive introduction meeting scheduled for January 20, 2026.
 
 "What's Beth Turner's email address?": |
-  Beth's email is in contact record.
-  Use for direct communication.
-  Keep updated.
+  Beth Turner's email:
+  - Email: beth.turner@acmemfg.com
+  - Phone: +1-555-0103
+  - Job Title: CFO
+  - Company: Acme Manufacturing
 
 "Has Beth Turner been involved in any deals?": |
-  Beth's deal involvement is tracked.
-  She may influence specific opportunities.
-  Engage her appropriately.
+  Beth Turner deal involvement:
+  - Not directly assigned to any opportunity as primary contact
+  - However, she's the blocker for the upgrade deal
+
+  Per notes (November 15, 2025):
+  "CFO Beth Turner wants to see clearer ROI justification before approving the $15k upgrade."
+
+  Meeting scheduled: January 20, 2026 - Executive introduction
 
 "What's the Acme industry segment?": |
-  Acme is in manufacturing industry.
-  Tailor approach to industry needs.
-  Reference relevant case studies.
+  Acme Manufacturing segment details:
+  - Industry: Manufacturing
+  - Segment: Mid-market
+  - Region: North America
+  - Plan: Pro
+
+  This is consistent with their needs for enterprise-level features in the upgrade opportunity.
 
 # =============================================================================
 # BETA TECH BRANCH (From deals likely to close)
 # =============================================================================
 
 "When is the negotiation deal expected to close?": |
-  Negotiation deal has expected close date.
-  Plan activities to meet timeline.
-  Address final blockers.
+  Beta Tech negotiation deal close date:
+  - Expected close: February 15, 2026
+  - Deal: New rollout
+  - Value: $32,000
+  - Stage: Negotiation
+  - Days in stage: 58
+
+  Status: Budget approved, CEO Omar Haddad signed off. Finalizing contract terms.
 
 "Who is the primary contact for the Beta Tech deal?": |
-  Primary contact is assigned to opportunity.
-  They are your main engagement point.
-  Coordinate all activities through them.
+  Primary contact for Beta Tech new rollout:
+  - Lisa Ng (Head of Sales, Champion)
+  - Email: lisa.ng@betatech.io
+  - Phone: +44-20-5550
+
+  She confirmed budget is approved. Key concerns to address: data migration before Q2, training for 50 users in first month.
 
 "What's the negotiation deal value?": |
-  Deal value is in the opportunity record.
-  Include in forecast.
-  Prioritize based on size.
+  Beta Tech negotiation deal value:
+  - Deal: Beta Tech - New rollout
+  - Value: $32,000 USD
+  - Type: New Business
+  - Source: Referral
+
+  This is the highest-value deal currently in pipeline and highest probability (Negotiation stage).
 
 "What's the total value of Beta Tech deals?": |
-  Total value sums all opportunities.
-  This shows account potential.
-  Track each deal separately.
+  Beta Tech total pipeline:
+  - New rollout: $32,000 (Negotiation)
+  - Analytics add-on: $8,000 (Discovery)
+  - Total: $40,000
+
+  Note: Add-on opportunity depends on successful completion of main rollout.
 
 "Who should I follow up with at Beta Tech?": |
-  Follow up with primary contact and decision maker.
-  Check for outstanding items.
-  Schedule next touchpoint.
+  Beta Tech follow-up contacts:
+
+  1. Lisa Ng (Head of Sales) - Primary for new rollout contract
+  2. Omar Haddad (CEO) - Final sign-off, wants weekly progress reports
+  3. Sam Clarke (Sales Ops) - Security questionnaire, analytics add-on
+
+  Upcoming activities:
+  - January 18, 2026: QBR with Lisa Ng
+  - January 22, 2026: Executive demo with Omar Haddad
+  - January 25, 2026: Security questionnaire due (Sam Clarke)
 
 "What activities happened with Beta Tech?": |
-  Activities are logged in the account.
-  Review for context and progress.
-  Plan next steps.
+  Beta Tech activity history:
+
+  - November 8, 2025: Note - Deal in final negotiation, budget approved
+  - November 5, 2025: Meeting with Lisa Ng - Executive presentation, ROI analysis
+  - October 15, 2025: Call with Sam Clarke - Technical review, integration requirements
+  - October 1, 2025: Email to Omar Haddad - Budget follow-up
+  - September 1, 2025: Call with Lisa Ng - Scoping call, rollout requirements
+
+  Strong engagement pattern leading to Negotiation stage.
 
 "What's Lisa Ng's job title?": |
-  Lisa Ng's title is in contact record.
-  This indicates her role and influence.
-  Engage appropriately.
+  Lisa Ng - Beta Tech Solutions:
+  - Job Title: Head of Sales
+  - Role: Champion
+  - Email: lisa.ng@betatech.io
+  - Phone: +44-20-5550
+
+  She's the primary contact and champion for the $32,000 new rollout deal.
 
 "Who is Omar Haddad at Beta Tech?": |
-  Omar Haddad is a contact at Beta Tech.
-  Check his role and involvement.
-  Plan engagement strategy.
+  Omar Haddad - Beta Tech Solutions:
+  - Job Title: CEO
+  - Role: Executive
+  - Email: omar.haddad@betatech.io
+  - Phone: +44-20-5551
+
+  He signed off on the budget for the new rollout. Wants weekly progress reports during implementation. Executive demo scheduled January 22, 2026.
 
 "What is Lisa Ng's email?": |
-  Lisa's email is in contact record.
-  Use for direct communication.
-  Keep updated.
+  Lisa Ng's contact information:
+  - Email: lisa.ng@betatech.io
+  - Phone: +44-20-5550
+  - Job Title: Head of Sales
+  - Company: Beta Tech Solutions
 
 "What's Beta Tech's total pipeline?": |
-  Total pipeline shows opportunity value.
-  Track progress across deals.
-  Include in forecast.
+  Beta Tech Solutions total pipeline:
+  - New rollout: $32,000 (Negotiation)
+  - Analytics add-on: $8,000 (Discovery)
+  - Total: $40,000
+
+  Account status: Active, Standard plan
+  Health flag: at-risk-low-activity (address with upcoming QBR)
 
 "How many deals does Beta Tech have?": |
-  Deal count shows account activity.
-  Track each through pipeline.
-  Balance attention across deals.
+  Beta Tech Solutions has 2 open opportunities:
+  1. New rollout: $32,000 (Negotiation stage)
+  2. Analytics add-on: $8,000 (Discovery stage)
+
+  Note: Add-on deal is bundled with initial contract, depends on main rollout success.
 
 "What's the add-on deal worth?": |
-  Add-on deal value is in the record.
-  This extends the relationship.
-  Include in forecast.
+  Beta Tech add-on opportunity:
+  - Name: Beta Tech - Analytics add-on
+  - Value: $8,000 USD
+  - Stage: Discovery
+  - Type: Expansion
+  - Expected close: March 15, 2026
+  - Primary contact: Sam Clarke (Sales Ops)
+
+  Context: Technical team interested in analytics module. Can be bundled with initial contract.
 
 "Why is Beta Tech marked at-risk?": |
-  At-risk status has specific reasons.
-  Address these concerns directly.
-  Develop recovery plan.
+  Beta Tech at-risk status:
+  - Health flag: at-risk-low-activity
+
+  This flag exists despite strong pipeline ($40,000) and Negotiation stage deal.
+
+  Likely causes:
+  - Standard plan renewal coming February 15, 2026
+  - Activity gaps between major milestones
+
+  Resolution: Upcoming QBR (January 18, 2026) should address engagement concerns. Close new rollout deal to demonstrate value.
 
 "Which accounts have the lowest activity?": |
-  Low activity accounts need engagement.
-  Check for relationship health.
-  Assign outreach activities.
+  Accounts with lowest recent activity:
+
+  1. Eastern Travel: Last engagement February 2025 (11 months ago)
+  2. Delta Health: Last meeting September 2025 (4 months ago)
+  3. Beta Tech: Despite at-risk flag, has November 2025 activity
+
+  Eastern Travel has by far the lowest recent activity.
 
 "Show me at-risk renewals": |
-  At-risk renewals need immediate attention.
-  Review each for specific concerns.
-  Develop save plans.
+  At-risk renewals:
+
+  1. Delta Health Clinics
+     - Renewal: February 1, 2026
+     - Value: $22,000
+     - Flag: at-risk-renewal-soon
+     - Issues: Low usage, competitor demo, support tickets
+
+  2. Beta Tech Solutions
+     - Renewal: February 15, 2026
+     - Flag: at-risk-low-activity
+     - Mitigation: Strong new deal in Negotiation may help
 
 "Who is the meeting with?": |
-  Meeting attendees are in calendar.
-  Prepare for each participant.
-  Review their context.
+  Upcoming Beta Tech meetings:
+
+  1. January 18, 2026: QBR with Lisa Ng
+     - Type: Meeting
+     - Subject: Quarterly business review - usage and pipeline
+
+  2. January 22, 2026: Executive demo with Omar Haddad
+     - Type: Meeting
+     - Subject: Final demo for CEO sign-off
+     - Priority: High
 
 "Any activities with trial accounts like Eastern Travel?": |
-  Trial account activities are logged.
-  Review for engagement level.
-  Plan conversion activities.
+  Eastern Travel trial activities:
+
+  Completed:
+  - January 5, 2025: Welcome email to Sanjay Patel
+  - January 10, 2025: Onboarding call with Ravi Kumar
+  - January 20, 2025: Email campaign templates to Anita Desai
+  - February 1, 2025: Trial check-in with Sanjay Patel
+
+  Scheduled:
+  - February 10, 2026: Feature demo with Ravi Kumar
+  - February 15, 2026: Send proposal to Sanjay Patel
+  - February 20, 2026: Trial wrap-up call
+
+  Gap: No activity from February 2025 to February 2026 - re-engage immediately.
 
 "What type of activity is it?": |
-  Activity type indicates engagement method.
-  This may be call, meeting, or email.
-  Prepare accordingly.
+  Activity types in the system:
+
+  Call: Phone conversations and check-ins
+  - Examples: Follow-up calls, renewal discussions, support calls
+
+  Meeting: In-person or video meetings
+  - Examples: QBRs, demos, training sessions, kickoffs
+
+  Email: Written correspondence (via EmailSync)
+  - Examples: Proposals, templates, follow-ups
+
+  Task: Action items and to-dos
+  - Examples: Security questionnaires, contract reviews
+
+  Note: Internal observations and documentation
+  - Examples: Risk assessments, deal blockers, post-mortems

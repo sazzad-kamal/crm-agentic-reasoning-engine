@@ -18,6 +18,31 @@ from backend.eval.ragas_judge import evaluate_single
 logger = logging.getLogger(__name__)
 
 
+def _detect_expected_company(question: str) -> str | None:
+    """
+    Detect company mentioned in question text.
+
+    Scans question for known company names from CRM database.
+    Returns company_id if found, None otherwise.
+    """
+    from backend.agent.datastore.datastore import get_datastore
+
+    ds = get_datastore()
+
+    # Get all company names from CRM cache
+    ds._build_company_cache()
+    if not ds._company_names_cache:
+        return None
+
+    # Scan question for company names (case-insensitive)
+    question_lower = question.lower()
+    for name, company_id in ds._company_names_cache.items():
+        if name in question_lower:
+            return company_id
+
+    return None
+
+
 def judge_answer(
     question: str,
     answer: str,
@@ -94,6 +119,15 @@ async def test_single_question(
         actual_company_id = result.get("company_id")
         actual_intent = result.get("intent")
 
+        # Detect expected company from question text
+        expected_company = _detect_expected_company(question)
+
+        # Company correct if:
+        # - No company expected (None) -> True (don't penalize)
+        # - Company expected and matches actual -> True
+        # - Company expected but doesn't match -> False
+        company_correct = (expected_company is None) or (actual_company_id == expected_company)
+
         # Get actual context chunks from agent (not conversation history)
         context_chunks = result.get("context_chunks", [])
 
@@ -126,8 +160,9 @@ async def test_single_question(
             latency_ms=latency_ms,
             has_answer=has_answer,
             has_sources=len(sources) > 0,
+            expected_company_id=expected_company,
             actual_company_id=actual_company_id,
-            company_correct=actual_company_id is not None,
+            company_correct=company_correct,
             actual_intent=actual_intent,
             intent_correct=actual_intent is not None,
             relevance_score=relevance,
@@ -317,9 +352,15 @@ async def run_flow_eval(
     avg_answer_correctness = sum(s.answer_correctness_score for s in all_steps) / len(all_steps) if all_steps else 0.0
 
     # Calculate routing accuracy
-    company_correct_count = sum(1 for s in all_steps if s.company_correct)
+    # Only count questions that have expected company (skip questions without company context)
+    steps_with_expected_company = [s for s in all_steps if s.expected_company_id is not None]
+    if steps_with_expected_company:
+        company_correct_count = sum(1 for s in steps_with_expected_company if s.company_correct)
+        company_extraction_accuracy = company_correct_count / len(steps_with_expected_company)
+    else:
+        company_extraction_accuracy = 1.0  # No questions with company context
+
     intent_correct_count = sum(1 for s in all_steps if s.intent_correct)
-    company_extraction_accuracy = company_correct_count / len(all_steps) if all_steps else 0.0
     intent_accuracy = intent_correct_count / len(all_steps) if all_steps else 0.0
 
     total_latency = sum(r.total_latency_ms for r in results)

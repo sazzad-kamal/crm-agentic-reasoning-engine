@@ -11,6 +11,8 @@ from rich.table import Table
 from backend.eval.base import console, format_percentage
 from backend.eval.formatting import build_eval_table
 from backend.eval.models import (
+    SLO_FLOW_ANSWER_CORRECTNESS,
+    SLO_FLOW_CONTEXT_PRECISION,
     SLO_FLOW_FAITHFULNESS,
     SLO_FLOW_PATH_PASS_RATE,
     SLO_FLOW_QUESTION_PASS_RATE,
@@ -35,6 +37,8 @@ def print_summary(results: FlowEvalResults) -> bool:
     q_slo_pass = results.question_pass_rate >= SLO_FLOW_QUESTION_PASS_RATE
     relevance_slo_pass = results.avg_relevance >= SLO_FLOW_RELEVANCE
     faithfulness_slo_pass = results.avg_faithfulness >= SLO_FLOW_FAITHFULNESS
+    ctx_precision_slo_pass = results.avg_context_precision >= SLO_FLOW_CONTEXT_PRECISION
+    answer_correctness_slo_pass = results.avg_answer_correctness >= SLO_FLOW_ANSWER_CORRECTNESS
 
     # Build table sections: (section_name, [(label, value, slo_target, slo_passed)])
     sections: list[tuple[str, list[tuple[str, str, str | None, bool | None]]]] = [
@@ -70,8 +74,18 @@ def print_summary(results: FlowEvalResults) -> bool:
                     f">={format_percentage(SLO_FLOW_FAITHFULNESS)}",
                     faithfulness_slo_pass,
                 ),
-                ("  Context Precision", format_percentage(results.avg_context_precision), None, None),
-                ("  Answer Correctness", format_percentage(results.avg_answer_correctness), None, None),
+                (
+                    "  Context Precision",
+                    format_percentage(results.avg_context_precision),
+                    f">={format_percentage(SLO_FLOW_CONTEXT_PRECISION)}",
+                    ctx_precision_slo_pass,
+                ),
+                (
+                    "  Answer Correctness",
+                    format_percentage(results.avg_answer_correctness),
+                    f">={format_percentage(SLO_FLOW_ANSWER_CORRECTNESS)}",
+                    answer_correctness_slo_pass,
+                ),
             ],
         ),
     ]
@@ -79,7 +93,14 @@ def print_summary(results: FlowEvalResults) -> bool:
     summary_table = build_eval_table("Flow Evaluation Summary", sections)
     console.print(summary_table)
 
-    all_slos_passed = path_slo_pass and q_slo_pass and relevance_slo_pass and faithfulness_slo_pass
+    all_slos_passed = (
+        path_slo_pass
+        and q_slo_pass
+        and relevance_slo_pass
+        and faithfulness_slo_pass
+        and ctx_precision_slo_pass
+        and answer_correctness_slo_pass
+    )
 
     # Failed Paths Detail
     if results.failed_paths:
@@ -90,26 +111,28 @@ def print_summary(results: FlowEvalResults) -> bool:
             header_style="bold yellow",
         )
         failed_table.add_column("Path", style="bold", width=6)
-        failed_table.add_column("Question", width=50)
+        failed_table.add_column("Question", width=40)
         failed_table.add_column("R", justify="center", width=5)
         failed_table.add_column("F", justify="center", width=5)
-        failed_table.add_column("Latency", justify="right", width=8)
-        failed_table.add_column("Issue", width=40)
+        failed_table.add_column("C", justify="center", width=5)
+        failed_table.add_column("A", justify="center", width=5)
+        failed_table.add_column("Issue", width=35)
 
         for fp in results.failed_paths[:5]:
             for i, step in enumerate(fp.steps):
                 if not step.passed:
                     issue = (
-                        step.judge_explanation[:40]
+                        step.judge_explanation[:35]
                         if step.judge_explanation
                         else (step.error or "Unknown")
                     )
                     failed_table.add_row(
                         str(fp.path_id) if i == 0 else "",
-                        step.question[:48] + "..." if len(step.question) > 48 else step.question,
+                        step.question[:38] + "..." if len(step.question) > 38 else step.question,
                         f"{step.relevance_score:.2f}",
                         f"{step.faithfulness_score:.2f}",
-                        f"{step.latency_ms}ms",
+                        f"{step.context_precision_score:.2f}",
+                        f"{step.answer_correctness_score:.2f}",
                         issue,
                     )
 
@@ -160,6 +183,16 @@ def save_results(results: FlowEvalResults, output_path: Path) -> None:
                 "value": results.avg_faithfulness,
                 "target": SLO_FLOW_FAITHFULNESS,
                 "passed": results.avg_faithfulness >= SLO_FLOW_FAITHFULNESS,
+            },
+            "context_precision": {
+                "value": results.avg_context_precision,
+                "target": SLO_FLOW_CONTEXT_PRECISION,
+                "passed": results.avg_context_precision >= SLO_FLOW_CONTEXT_PRECISION,
+            },
+            "answer_correctness": {
+                "value": results.avg_answer_correctness,
+                "target": SLO_FLOW_ANSWER_CORRECTNESS,
+                "passed": results.avg_answer_correctness >= SLO_FLOW_ANSWER_CORRECTNESS,
             },
         },
         "tracked_metrics": {

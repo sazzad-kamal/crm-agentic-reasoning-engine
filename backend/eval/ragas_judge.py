@@ -3,29 +3,26 @@
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any
 
 from datasets import Dataset
-from openai import AsyncOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from ragas import evaluate
-from ragas.embeddings import OpenAIEmbeddings as RagasOpenAIEmbeddings
-from ragas.llms import llm_factory
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from ragas.llms import LangchainLLMWrapper
 from ragas.metrics import answer_correctness, answer_relevancy, context_precision, faithfulness
 
 logger = logging.getLogger(__name__)
 
 
 def _get_ragas_llm() -> Any:
-    """Get LLM for RAGAS using native factory."""
-    client = AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-    return llm_factory("gpt-4o-mini", client=client)
+    """Get LLM for RAGAS using LangChain wrapper."""
+    return LangchainLLMWrapper(ChatOpenAI(model="gpt-4o-mini"))
 
 
 def _get_ragas_embeddings() -> Any:
-    """Get embeddings for RAGAS using native class."""
-    client = AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-    return RagasOpenAIEmbeddings(client=client, model="text-embedding-3-small")
+    """Get embeddings for RAGAS using LangChain wrapper."""
+    return LangchainEmbeddingsWrapper(OpenAIEmbeddings(model="text-embedding-3-small"))
 
 
 def evaluate_single(
@@ -56,33 +53,38 @@ def evaluate_single(
         "contexts": [contexts],
     }
 
-    # Configure metrics with explicit LLM/embeddings (required in RAGAS 0.4.x)
+    # Get LLM and embeddings for RAGAS 0.4.x
     ragas_llm = _get_ragas_llm()
     ragas_embeddings = _get_ragas_embeddings()
 
     # Select metrics - add answer_correctness if reference provided
     metrics = [answer_relevancy, faithfulness, context_precision]
-    for metric in metrics:
-        metric.llm = ragas_llm
-        if hasattr(metric, "embeddings"):
-            metric.embeddings = ragas_embeddings
 
     if reference_answer:
         dataset_dict["ground_truth"] = [reference_answer]
-        answer_correctness.llm = ragas_llm
         metrics.append(answer_correctness)
 
     dataset = Dataset.from_dict(dataset_dict)
 
     try:
-        result = evaluate(dataset, metrics=metrics)
+        # Pass llm and embeddings to evaluate() - RAGAS 0.4.x API
+        result = evaluate(
+            dataset,
+            metrics=metrics,
+            llm=ragas_llm,
+            embeddings=ragas_embeddings,
+        )
 
-        # RAGAS 0.4.x returns lists (one score per sample) - extract first element
+        # RAGAS 0.4.x returns EvaluationResult - convert to pandas DataFrame
+        df = result.to_pandas()
+
         def get_score(name: str) -> float:
-            val = result.get(name, 0.0)  # type: ignore[union-attr]
-            if isinstance(val, list):
-                return float(val[0]) if val else 0.0
-            return float(val) if val else 0.0
+            if name in df.columns and len(df) > 0:
+                val = df[name].iloc[0]
+                if val is None or (isinstance(val, float) and val != val):  # Check for NaN
+                    return 0.0
+                return float(val)
+            return 0.0
 
         return {
             "answer_relevancy": get_score("answer_relevancy"),

@@ -103,17 +103,21 @@ class E2EEvalSummary(BaseModel):
 # Latency SLOs
 SLO_LATENCY_P95_MS = 5000  # 5s P95 - catches outliers
 
-# Quality SLOs (E2E) - RAGAS metrics
+# Quality SLOs (E2E) - RAGAS Triad + Answer Correctness
 SLO_ROUTER_ACCURACY = 0.90  # 90% router accuracy (company extraction)
 SLO_ANSWER_RELEVANCE = 0.80  # 80% RAGAS answer_relevancy
 SLO_FAITHFULNESS = 0.80  # 80% RAGAS faithfulness
+SLO_CONTEXT_PRECISION = 0.75  # 75% RAGAS context_precision
+SLO_ANSWER_CORRECTNESS = 0.70  # 70% RAGAS answer_correctness
 SLO_SECURITY_PASS_RATE = 1.0  # 100% - all security tests must pass
 
-# Flow Eval SLOs - RAGAS metrics
+# Flow Eval SLOs - RAGAS Triad + Answer Correctness
 SLO_FLOW_PATH_PASS_RATE = 0.85  # 85% of conversation paths should pass
 SLO_FLOW_QUESTION_PASS_RATE = 0.90  # 90% of individual questions should pass
 SLO_FLOW_RELEVANCE = 0.85  # 85% RAGAS answer_relevancy
 SLO_FLOW_FAITHFULNESS = 0.80  # 80% RAGAS faithfulness
+SLO_FLOW_CONTEXT_PRECISION = 0.75  # 75% RAGAS context_precision
+SLO_FLOW_ANSWER_CORRECTNESS = 0.70  # 70% RAGAS answer_correctness
 SLO_FLOW_AVG_LATENCY_MS = 4000  # 4s average per question
 SLO_FLOW_P95_LATENCY_MS = 8000  # 8s P95 per question (flow has multi-turn overhead)
 

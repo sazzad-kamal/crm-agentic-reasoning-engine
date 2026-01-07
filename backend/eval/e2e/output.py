@@ -8,8 +8,11 @@ from backend.eval.base import console, format_percentage
 from backend.eval.formatting import build_eval_table
 from backend.eval.models import (
     SECURITY_CATEGORIES,
+    SLO_ANSWER_CORRECTNESS,
     SLO_ANSWER_RELEVANCE,
+    SLO_CONTEXT_PRECISION,
     SLO_FAITHFULNESS,
+    SLO_LATENCY_P95_MS,
     SLO_ROUTER_ACCURACY,
     SLO_SECURITY_PASS_RATE,
     E2EEvalResult,
@@ -26,6 +29,8 @@ def print_e2e_eval_results(
     intent_slo_pass = summary.intent_accuracy >= SLO_ROUTER_ACCURACY
     relevance_slo_pass = summary.answer_relevance_rate >= SLO_ANSWER_RELEVANCE
     faithfulness_slo_pass = summary.faithfulness_rate >= SLO_FAITHFULNESS
+    ctx_precision_slo_pass = summary.context_precision_rate >= SLO_CONTEXT_PRECISION
+    answer_correctness_slo_pass = summary.answer_correctness_rate >= SLO_ANSWER_CORRECTNESS
     security_slo_pass = summary.security_pass_rate >= SLO_SECURITY_PASS_RATE
 
     # Build table sections: (section_name, [(label, value, slo_target, slo_passed)])
@@ -57,8 +62,18 @@ def print_e2e_eval_results(
                     f">={format_percentage(SLO_FAITHFULNESS)}",
                     faithfulness_slo_pass,
                 ),
-                ("  Context Precision", format_percentage(summary.context_precision_rate), None, None),
-                ("  Answer Correctness", format_percentage(summary.answer_correctness_rate), None, None),
+                (
+                    "  Context Precision",
+                    format_percentage(summary.context_precision_rate),
+                    f">={format_percentage(SLO_CONTEXT_PRECISION)}",
+                    ctx_precision_slo_pass,
+                ),
+                (
+                    "  Answer Correctness",
+                    format_percentage(summary.answer_correctness_rate),
+                    f">={format_percentage(SLO_ANSWER_CORRECTNESS)}",
+                    answer_correctness_slo_pass,
+                ),
             ],
         ),
         (
@@ -85,6 +100,8 @@ def print_e2e_eval_results(
     cat_table.add_column("Passed", justify="right")
     cat_table.add_column("Relev", justify="right")
     cat_table.add_column("Faith", justify="right")
+    cat_table.add_column("CtxP", justify="right")
+    cat_table.add_column("AnsC", justify="right")
 
     for cat, stats in sorted(summary.by_category.items()):
         if cat in SECURITY_CATEGORIES:
@@ -93,6 +110,8 @@ def print_e2e_eval_results(
                 cat,
                 str(stats["count"]),
                 f"{stats['passed']}/{stats['count']}",
+                "-",
+                "-",
                 "-",
                 "-",
             )
@@ -104,6 +123,8 @@ def print_e2e_eval_results(
                 f"{stats['passed']}/{stats['count']}",
                 format_percentage(stats["relevance_rate"]),
                 format_percentage(stats["faithfulness_rate"]),
+                format_percentage(stats.get("context_precision_rate", 0)),
+                format_percentage(stats.get("answer_correctness_rate", 0)),
             )
 
     console.print(cat_table)
@@ -145,7 +166,7 @@ def _print_issues(results: list[E2EEvalResult]) -> None:
             console.print(f"\n  [{r.test_case_id}] {r.question[:50]}...")
             console.print(
                 f"    Relev: {r.answer_relevance:.2f}, Faith: {r.faithfulness:.2f}, "
-                f"CtxPrec: {r.context_precision:.2f}"
+                f"CtxP: {r.context_precision:.2f}, AnsC: {r.answer_correctness:.2f}"
             )
             if r.judge_explanation:
                 console.print(f"    Judge: {r.judge_explanation[:100]}...")

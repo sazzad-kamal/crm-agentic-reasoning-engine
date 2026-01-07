@@ -907,13 +907,19 @@ class TestRagasJudge:
 
     def test_evaluate_single_success(self, monkeypatch):
         """Test evaluate_single with successful RAGAS call."""
-        # Mock the evaluate function
-        def mock_evaluate(dataset, metrics):
-            return {
-                "answer_relevancy": 0.85,
-                "faithfulness": 0.90,
-                "context_precision": 0.80,
-            }
+        import pandas as pd
+
+        # Mock EvaluationResult with to_pandas()
+        class MockResult:
+            def to_pandas(self):
+                return pd.DataFrame([{
+                    "answer_relevancy": 0.85,
+                    "faithfulness": 0.90,
+                    "context_precision": 0.80,
+                }])
+
+        def mock_evaluate(dataset, metrics, **kwargs):
+            return MockResult()
 
         monkeypatch.setattr("backend.eval.ragas_judge.evaluate", mock_evaluate)
         monkeypatch.setattr("backend.eval.ragas_judge._get_ragas_llm", lambda: None)
@@ -933,14 +939,20 @@ class TestRagasJudge:
 
     def test_evaluate_single_empty_contexts(self, monkeypatch):
         """Test evaluate_single with empty contexts."""
-        def mock_evaluate(dataset, metrics):
+        import pandas as pd
+
+        class MockResult:
+            def to_pandas(self):
+                return pd.DataFrame([{
+                    "answer_relevancy": 0.5,
+                    "faithfulness": 0.5,
+                    "context_precision": 0.5,
+                }])
+
+        def mock_evaluate(dataset, metrics, **kwargs):
             # Verify contexts is not empty (should be ["No context provided"])
             assert dataset["contexts"][0] == ["No context provided"]
-            return {
-                "answer_relevancy": 0.5,
-                "faithfulness": 0.5,
-                "context_precision": 0.5,
-            }
+            return MockResult()
 
         monkeypatch.setattr("backend.eval.ragas_judge.evaluate", mock_evaluate)
         monkeypatch.setattr("backend.eval.ragas_judge._get_ragas_llm", lambda: None)
@@ -958,7 +970,7 @@ class TestRagasJudge:
 
     def test_evaluate_single_exception(self, monkeypatch):
         """Test evaluate_single handles exceptions gracefully."""
-        def mock_evaluate(dataset, metrics):
+        def mock_evaluate(dataset, metrics, **kwargs):
             raise RuntimeError("RAGAS API error")
 
         monkeypatch.setattr("backend.eval.ragas_judge.evaluate", mock_evaluate)

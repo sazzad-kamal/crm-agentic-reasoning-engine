@@ -33,7 +33,7 @@ def main(
     workers: int = typer.Option(4, "--workers", "-w", help="Max parallel workers"),
     output: str | None = typer.Option(None, "--output", "-o", help="Path to save JSON results"),
     debug: bool = typer.Option(False, "--debug", "-d", help="Dump full details for failing cases"),
-    latency: bool = typer.Option(False, "--latency", help="Show per-node latency breakdown from LangSmith"),
+    latency: bool = typer.Option(True, "--latency/--no-latency", help="Show per-node latency breakdown from LangSmith"),
 ) -> None:
     """Run end-to-end agent evaluation."""
     results, summary = run_e2e_eval(

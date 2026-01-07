@@ -25,7 +25,7 @@ def _detect_expected_company(question: str) -> str | None:
     Scans question for known company names from CRM database.
     Returns company_id if found, None otherwise.
     """
-    from backend.agent.datastore.datastore import get_datastore
+    from backend.agent.datastore import get_datastore
 
     ds = get_datastore()
 

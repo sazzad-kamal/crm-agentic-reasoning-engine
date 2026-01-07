@@ -33,7 +33,7 @@ def clear_thread(session_id: str | None) -> None:
     if not session_id:
         return
     # MemorySaver stores checkpoints keyed by (thread_id, checkpoint_ns, checkpoint_id)
-    keys_to_delete = [k for k in _checkpointer.storage.keys() if k[0] == session_id]
+    keys_to_delete = [k for k in _checkpointer.storage if k[0] == session_id]
     for key in keys_to_delete:
         del _checkpointer.storage[key]
 

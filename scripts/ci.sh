@@ -26,7 +26,7 @@ print_error() {
 
 run_backend() {
     print_header "Backend: Ruff Linter"
-    python -m ruff check backend/ --select=E,F,W,I,B,UP --ignore=E501,E402,E701,E741
+    python -m ruff check backend/ --select=E,F,W,I,B,UP,SIM --ignore=E501,E402,E701,E741
     print_success "Ruff linter passed"
 
     print_header "Backend: Mypy Type Check"

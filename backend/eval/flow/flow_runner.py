@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 import time
 from typing import Any
 
@@ -16,6 +17,9 @@ from backend.eval.parallel import calculate_p95_latency
 from backend.eval.ragas_judge import evaluate_single
 
 logger = logging.getLogger(__name__)
+
+# Global lock for RAGAS evaluation calls to avoid httpx async event loop conflicts
+_ragas_lock = threading.Lock()
 
 
 def _detect_expected_company(question: str) -> str | None:
@@ -50,13 +54,19 @@ def judge_answer(
     reference_answer: str | None = None,
     verbose: bool = False,
 ) -> dict:
-    """Judge an answer using RAGAS metrics."""
+    """Judge an answer using RAGAS metrics.
+
+    Uses a global lock to serialize RAGAS calls and avoid httpx async event loop conflicts.
+    """
     try:
-        result = evaluate_single(question, answer, contexts, reference_answer=reference_answer, verbose=verbose)
+        # Use lock to serialize RAGAS calls (avoids event loop conflicts)
+        with _ragas_lock:
+            result = evaluate_single(question, answer, contexts, reference_answer=reference_answer, verbose=verbose)
         return {
             "relevance": result["answer_relevancy"],
             "faithfulness": result["faithfulness"],
             "context_precision": result["context_precision"],
+            "context_recall": result.get("context_recall", 0.0),
             "answer_correctness": result.get("answer_correctness", 0.0),
             "explanation": "",
         }
@@ -66,6 +76,7 @@ def judge_answer(
             "relevance": 0.0,
             "faithfulness": 0.0,
             "context_precision": 0.0,
+            "context_recall": 0.0,
             "answer_correctness": 0.0,
             "explanation": f"RAGAS error: {e}",
         }
@@ -157,7 +168,7 @@ async def test_single_question(
                 doc_precision = doc_result.get("context_precision", 0.0)
                 doc_recall = doc_result.get("context_recall", 0.0)
                 # Use doc result for answer metrics if available
-                relevance = doc_result.get("answer_relevancy", 0.0)
+                relevance = doc_result.get("relevance", 0.0)
                 faithfulness = doc_result.get("faithfulness", 0.0)
                 answer_correctness = doc_result.get("answer_correctness", 0.0)
 
@@ -173,7 +184,7 @@ async def test_single_question(
                 account_recall = account_result.get("context_recall", 0.0)
                 # If no doc chunks, use account result for answer metrics
                 if not doc_chunks:
-                    relevance = account_result.get("answer_relevancy", 0.0)
+                    relevance = account_result.get("relevance", 0.0)
                     faithfulness = account_result.get("faithfulness", 0.0)
                     answer_correctness = account_result.get("answer_correctness", 0.0)
 
@@ -185,7 +196,7 @@ async def test_single_question(
                     ),
                     timeout=120.0,
                 )
-                relevance = fallback_result.get("answer_relevancy", 0.0)
+                relevance = fallback_result.get("relevance", 0.0)
                 faithfulness = fallback_result.get("faithfulness", 0.0)
                 answer_correctness = fallback_result.get("answer_correctness", 0.0)
 
@@ -436,6 +447,8 @@ async def run_flow_eval(
         avg_doc_recall=avg_doc_recall,
         avg_account_precision=avg_account_precision,
         avg_account_recall=avg_account_recall,
+        doc_sample_count=len(steps_with_doc),
+        account_sample_count=len(steps_with_account),
         total_latency_ms=total_latency,
         avg_latency_per_question_ms=avg_latency,
         p95_latency_ms=p95_latency,

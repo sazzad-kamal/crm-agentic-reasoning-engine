@@ -50,11 +50,11 @@ def print_summary(results: FlowEvalResults) -> bool:
     faithfulness_slo_pass = results.avg_faithfulness >= SLO_FLOW_FAITHFULNESS
     answer_correctness_slo_pass = results.avg_answer_correctness >= SLO_FLOW_ANSWER_CORRECTNESS
 
-    # RAG source-specific SLOs
-    doc_precision_slo_pass = results.avg_doc_precision >= SLO_DOC_PRECISION
-    doc_recall_slo_pass = results.avg_doc_recall >= SLO_DOC_RECALL
-    account_precision_slo_pass = results.avg_account_precision >= SLO_ACCOUNT_PRECISION
-    account_recall_slo_pass = results.avg_account_recall >= SLO_ACCOUNT_RECALL
+    # RAG source-specific SLOs (None if no samples)
+    doc_precision_slo_pass = results.avg_doc_precision >= SLO_DOC_PRECISION if results.doc_sample_count > 0 else None
+    doc_recall_slo_pass = results.avg_doc_recall >= SLO_DOC_RECALL if results.doc_sample_count > 0 else None
+    account_precision_slo_pass = results.avg_account_precision >= SLO_ACCOUNT_PRECISION if results.account_sample_count > 0 else None
+    account_recall_slo_pass = results.avg_account_recall >= SLO_ACCOUNT_RECALL if results.account_sample_count > 0 else None
 
     # Compute latency SLO pass/fail
     routing_latency_pass = results.latency_routing_pct <= SLO_LATENCY_ROUTING_PCT
@@ -91,26 +91,26 @@ def print_summary(results: FlowEvalResults) -> bool:
             [
                 (
                     "  Doc Precision",
-                    format_percentage(results.avg_doc_precision),
-                    f">={format_percentage(SLO_DOC_PRECISION)}",
+                    format_percentage(results.avg_doc_precision) if results.doc_sample_count > 0 else "N/A",
+                    f">={format_percentage(SLO_DOC_PRECISION)}" if results.doc_sample_count > 0 else "-",
                     doc_precision_slo_pass,
                 ),
                 (
                     "  Doc Recall",
-                    format_percentage(results.avg_doc_recall),
-                    f">={format_percentage(SLO_DOC_RECALL)}",
+                    format_percentage(results.avg_doc_recall) if results.doc_sample_count > 0 else "N/A",
+                    f">={format_percentage(SLO_DOC_RECALL)}" if results.doc_sample_count > 0 else "-",
                     doc_recall_slo_pass,
                 ),
                 (
                     "  Account Precision",
-                    format_percentage(results.avg_account_precision),
-                    f">={format_percentage(SLO_ACCOUNT_PRECISION)}",
+                    format_percentage(results.avg_account_precision) if results.account_sample_count > 0 else "N/A",
+                    f">={format_percentage(SLO_ACCOUNT_PRECISION)}" if results.account_sample_count > 0 else "-",
                     account_precision_slo_pass,
                 ),
                 (
                     "  Account Recall",
-                    format_percentage(results.avg_account_recall),
-                    f">={format_percentage(SLO_ACCOUNT_RECALL)}",
+                    format_percentage(results.avg_account_recall) if results.account_sample_count > 0 else "N/A",
+                    f">={format_percentage(SLO_ACCOUNT_RECALL)}" if results.account_sample_count > 0 else "-",
                     account_recall_slo_pass,
                 ),
                 (
@@ -162,15 +162,16 @@ def print_summary(results: FlowEvalResults) -> bool:
         f"{results.p95_latency_ms:.0f}ms P95"
     )
 
+    # N/A metrics (None) don't affect overall pass/fail
     all_slos_passed = (
         path_slo_pass
         and q_slo_pass
         and company_slo_pass
         and intent_slo_pass
-        and doc_precision_slo_pass
-        and doc_recall_slo_pass
-        and account_precision_slo_pass
-        and account_recall_slo_pass
+        and (doc_precision_slo_pass is None or doc_precision_slo_pass)
+        and (doc_recall_slo_pass is None or doc_recall_slo_pass)
+        and (account_precision_slo_pass is None or account_precision_slo_pass)
+        and (account_recall_slo_pass is None or account_recall_slo_pass)
         and relevance_slo_pass
         and faithfulness_slo_pass
         and answer_correctness_slo_pass

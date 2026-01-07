@@ -223,6 +223,9 @@ class FlowEvalResults:
     avg_doc_recall: float = 0.0  # Doc RAG recall
     avg_account_precision: float = 0.0  # Account RAG precision
     avg_account_recall: float = 0.0  # Account RAG recall
+    # Sample counts for N/A display (0 means no samples)
+    doc_sample_count: int = 0  # Number of steps with doc chunks
+    account_sample_count: int = 0  # Number of steps with account chunks
     # Latency
     total_latency_ms: int = 0
     avg_latency_per_question_ms: float = 0.0

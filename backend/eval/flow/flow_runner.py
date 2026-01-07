@@ -23,10 +23,11 @@ def judge_answer(
     answer: str,
     contexts: list[str],
     reference_answer: str | None = None,
+    verbose: bool = False,
 ) -> dict:
     """Judge an answer using RAGAS metrics."""
     try:
-        result = evaluate_single(question, answer, contexts, reference_answer=reference_answer)
+        result = evaluate_single(question, answer, contexts, reference_answer=reference_answer, verbose=verbose)
         return {
             "relevance": result["answer_relevancy"],
             "faithfulness": result["faithfulness"],
@@ -59,6 +60,7 @@ async def test_single_question(
     history: list[dict],
     session_id: str,
     use_judge: bool = True,
+    verbose: bool = False,
 ) -> FlowStepResult:
     """
     Test a single question with conversation history.
@@ -102,8 +104,11 @@ async def test_single_question(
         explanation = ""
 
         if use_judge and has_answer:
-            judge_result = await asyncio.to_thread(
-                judge_answer, question, answer, context_chunks, reference_answer=expected_answer
+            judge_result = await asyncio.wait_for(
+                asyncio.to_thread(
+                    judge_answer, question, answer, context_chunks, reference_answer=expected_answer, verbose=verbose
+                ),
+                timeout=120.0,  # 120s timeout to prevent hanging
             )
             relevance = judge_result.get("relevance", 0.0)
             faithfulness = judge_result.get("faithfulness", 0.0)
@@ -125,6 +130,22 @@ async def test_single_question(
             error=None,
         )
 
+    except asyncio.TimeoutError:
+        latency_ms = int((time.time() - start_time) * 1000)
+        logger.warning(f"Timeout testing question '{question}' after 120s")
+        return FlowStepResult(
+            question=question,
+            answer="",
+            latency_ms=latency_ms,
+            has_answer=False,
+            has_sources=False,
+            relevance_score=0.0,
+            faithfulness_score=0.0,
+            context_precision_score=0.0,
+            answer_correctness_score=0.0,
+            judge_explanation="Timeout after 120s",
+            error="Timeout after 120s",
+        )
     except Exception as e:
         latency_ms = int((time.time() - start_time) * 1000)
         logger.error(f"Error testing question '{question}': {e}")
@@ -143,7 +164,7 @@ async def test_single_question(
         )
 
 
-async def test_flow(path: list[str], path_id: int, use_judge: bool = True) -> FlowResult:
+async def test_flow(path: list[str], path_id: int, use_judge: bool = True, verbose: bool = False) -> FlowResult:
     """
     Test a complete conversation flow (sequence of questions with memory).
 
@@ -151,6 +172,7 @@ async def test_flow(path: list[str], path_id: int, use_judge: bool = True) -> Fl
         path: List of questions in order
         path_id: ID for this path
         use_judge: Whether to run LLM-as-judge evaluation
+        verbose: Show detailed RAGAS output
 
     Returns:
         FlowResult with all step results
@@ -162,7 +184,7 @@ async def test_flow(path: list[str], path_id: int, use_judge: bool = True) -> Fl
     success = True
 
     for question in path:
-        step_result = await test_single_question(question, history, session_id, use_judge)
+        step_result = await test_single_question(question, history, session_id, use_judge, verbose)
         steps.append(step_result)
         total_latency += step_result.latency_ms
 
@@ -236,7 +258,7 @@ async def run_flow_eval(
     async def run_with_semaphore(path: list[str], path_id: int) -> FlowResult:
         nonlocal completed
         async with semaphore:
-            result = await test_flow(path, path_id, use_judge)
+            result = await test_flow(path, path_id, use_judge, verbose)
             async with lock:
                 completed += 1
                 status_color = "green" if result.success else "red"

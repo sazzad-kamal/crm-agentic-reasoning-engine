@@ -93,6 +93,13 @@ def print_summary(results: FlowEvalResults) -> bool:
     summary_table = build_eval_table("Flow Evaluation Summary", sections)
     console.print(summary_table)
 
+    # Latency summary
+    console.print(
+        f"\nLatency: {results.wall_clock_ms / 1000:.1f}s total | "
+        f"{results.avg_latency_per_question_ms:.0f}ms avg | "
+        f"{results.p95_latency_ms:.0f}ms P95"
+    )
+
     all_slos_passed = (
         path_slo_pass
         and q_slo_pass

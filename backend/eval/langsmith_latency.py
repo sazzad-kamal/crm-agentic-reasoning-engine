@@ -43,10 +43,10 @@ def get_latency_breakdown(
     start_time = datetime.utcnow() - timedelta(minutes=minutes_ago)
 
     try:
+        # Fetch all runs (not just top-level) in a single API call
         runs = list(client.list_runs(
             project_name=project,
             start_time=start_time,
-            execution_order=1,  # Top-level runs only
         ))
     except Exception as e:
         console.print(f"[yellow]Could not fetch LangSmith runs: {e}[/yellow]")
@@ -56,22 +56,14 @@ def get_latency_breakdown(
         console.print(f"[dim]No runs found in last {minutes_ago} minutes[/dim]")
         return {}
 
-    # Aggregate latencies by node
+    # Aggregate latencies by node name (filter to child runs only)
     node_latencies: dict[str, list[float]] = defaultdict(list)
 
     for run in runs:
-        # Get child runs (individual nodes)
-        try:
-            children = list(client.list_runs(
-                project_name=project,
-                parent_run_id=run.id,
-            ))
-            for child in children:
-                if child.end_time and child.start_time:
-                    latency_ms = (child.end_time - child.start_time).total_seconds() * 1000
-                    node_latencies[child.name].append(latency_ms)
-        except Exception:
-            continue
+        # Only include runs that have a parent (child nodes)
+        if run.parent_run_id and run.end_time and run.start_time:
+            latency_ms = (run.end_time - run.start_time).total_seconds() * 1000
+            node_latencies[run.name].append(latency_ms)
 
     # Compute stats
     breakdown = {}

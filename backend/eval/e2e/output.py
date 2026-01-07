@@ -88,6 +88,23 @@ def print_e2e_eval_results(
                 ),
             ],
         ),
+        (
+            "Latency",
+            [
+                (
+                    "  Average",
+                    f"{summary.avg_latency_ms:.0f}ms",
+                    None,
+                    None,
+                ),
+                (
+                    "  P95",
+                    f"{summary.p95_latency_ms:.0f}ms",
+                    f"<={SLO_LATENCY_P95_MS}ms",
+                    latency_slo_pass,
+                ),
+            ],
+        ),
     ]
 
     table = build_eval_table("E2E Evaluation Summary", sections)

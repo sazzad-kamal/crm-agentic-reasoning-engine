@@ -18,7 +18,6 @@ from backend.eval.models import (
     SLO_LATENCY_RETRIEVAL_PCT,
     SLO_LATENCY_ROUTING_PCT,
     SLO_ROUTER_ACCURACY,
-    SLO_SECURITY_PASS_RATE,
     E2EEvalResult,
     E2EEvalSummary,
 )
@@ -29,6 +28,26 @@ def print_e2e_eval_results(
     summary: E2EEvalSummary,
 ) -> None:
     """Print end-to-end evaluation results."""
+    # 1. Category table first
+    cat_table = Table(title="Results by Category", show_header=True)
+    cat_table.add_column("Category")
+    cat_table.add_column("Tests", justify="right")
+    cat_table.add_column("Passed", justify="right")
+    cat_table.add_column("Pass%", justify="right")
+
+    for cat, stats in sorted(summary.by_category.items()):
+        pass_rate = stats["passed"] / stats["count"] if stats["count"] > 0 else 0
+        cat_table.add_row(
+            cat,
+            str(stats["count"]),
+            str(stats["passed"]),
+            format_percentage(pass_rate),
+        )
+
+    console.print(cat_table)
+    console.print()
+
+    # 2. Main summary table
     # Compute SLO pass/fail for quality metrics
     company_slo_pass = summary.company_extraction_accuracy >= SLO_COMPANY_EXTRACTION
     intent_slo_pass = summary.intent_accuracy >= SLO_ROUTER_ACCURACY
@@ -130,81 +149,85 @@ def print_e2e_eval_results(
     table = build_eval_table("E2E Evaluation Summary", sections)
     console.print(table)
 
-    # Security Tests and Latency below table
-    security_slo_pass = summary.security_pass_rate >= SLO_SECURITY_PASS_RATE
-    security_color = "green" if security_slo_pass else "red"
-    console.print(
-        f"\nSecurity Tests: [{security_color}]{summary.security_tests_passed}/{summary.security_tests_total}[/{security_color}] passed"
-    )
+    # 3. Latency line
     console.print(
         f"Latency: {summary.wall_clock_ms / 1000:.1f}s total | {summary.avg_latency_ms:.0f}ms avg/question"
     )
 
-    # By-category breakdown
-    console.print()
-    cat_table = Table(title="Results by Category", show_header=True)
-    cat_table.add_column("Category")
-    cat_table.add_column("Tests", justify="right")
-    cat_table.add_column("Passed", justify="right")
-    cat_table.add_column("Pass%", justify="right")
-
-    for cat, stats in sorted(summary.by_category.items()):
-        pass_rate = stats["passed"] / stats["count"] if stats["count"] > 0 else 0
-        cat_table.add_row(
-            cat,
-            str(stats["count"]),
-            str(stats["passed"]),
-            format_percentage(pass_rate),
-        )
-
-    console.print(cat_table)
-
-    # Issue Details
+    # 4. SLO Failures table
     _print_issues(results)
 
 
-def _get_failed_slos(r: E2EEvalResult) -> list[str]:
-    """Get list of failed SLOs for a result."""
-    failures = []
-
-    # Routing SLOs (only check if expected value exists)
-    if r.expected_company_id and not r.company_correct:
-        failures.append(f"Company: expected={r.expected_company_id}, got={r.actual_company_id}")
-    if r.expected_intent and not r.intent_correct:
-        failures.append(f"Intent: expected={r.expected_intent}, got={r.actual_intent}")
-
-    # RAGAS SLOs (skip for security tests)
-    if r.category not in SECURITY_CATEGORIES:
-        if r.answer_relevance < SLO_ANSWER_RELEVANCE:
-            failures.append(f"Relevance: {r.answer_relevance:.0%} < {SLO_ANSWER_RELEVANCE:.0%}")
-        if r.faithfulness < SLO_FAITHFULNESS:
-            failures.append(f"Faithfulness: {r.faithfulness:.0%} < {SLO_FAITHFULNESS:.0%}")
-        if r.context_precision < SLO_CONTEXT_PRECISION:
-            failures.append(f"CtxPrecision: {r.context_precision:.0%} < {SLO_CONTEXT_PRECISION:.0%}")
-        if r.answer_correctness < SLO_ANSWER_CORRECTNESS:
-            failures.append(f"AnsCorrectness: {r.answer_correctness:.0%} < {SLO_ANSWER_CORRECTNESS:.0%}")
-
-    return failures
+def _count_ragas_failures(r: E2EEvalResult) -> int:
+    """Count how many RAGAS metrics failed for a result."""
+    if r.category in SECURITY_CATEGORIES:
+        return 0
+    count = 0
+    if r.answer_relevance < SLO_ANSWER_RELEVANCE:
+        count += 1
+    if r.faithfulness < SLO_FAITHFULNESS:
+        count += 1
+    if r.context_precision < SLO_CONTEXT_PRECISION:
+        count += 1
+    if r.answer_correctness < SLO_ANSWER_CORRECTNESS:
+        count += 1
+    return count
 
 
 def _print_issues(results: list[E2EEvalResult]) -> None:
-    """Print details of SLO failures."""
-    issues = []
-    for i, r in enumerate(results, 1):
-        failures = _get_failed_slos(r)
-        if failures:
-            issues.append((i, r, failures))
+    """Print details of SLO failures as a compact table."""
+    # Collect failures (non-security tests with at least one RAGAS failure)
+    failures = [
+        r for r in results
+        if r.category not in SECURITY_CATEGORIES and _count_ragas_failures(r) > 0
+    ]
 
-    if not issues:
+    if not failures:
         return
 
-    console.print(f"\n[yellow bold]SLO Failures ({len(issues)} questions):[/yellow bold]")
-    for i, r, failures in issues:
-        # Show test_case_id if question is empty or too short
-        if len(r.question.strip()) > 10:
-            question_display = r.question[:60] + ("..." if len(r.question) > 60 else "")
+    # Sort by failure count (most failures first)
+    failures.sort(key=lambda r: _count_ragas_failures(r), reverse=True)
+
+    # Show top 5
+    shown = failures[:5]
+    total = len(failures)
+
+    console.print()
+    failed_table = Table(
+        title=f"SLO Failures ({len(shown)} of {total} shown, sorted by severity)",
+        show_header=True,
+        header_style="bold yellow",
+    )
+    failed_table.add_column("#", style="dim", width=3)
+    failed_table.add_column("Question", width=45)
+    failed_table.add_column("R", justify="center", width=3)
+    failed_table.add_column("F", justify="center", width=3)
+    failed_table.add_column("C", justify="center", width=3)
+    failed_table.add_column("A", justify="center", width=3)
+
+    for i, r in enumerate(shown, 1):
+        # Format question display (show question, fallback to test_case_id if empty)
+        if r.question.strip():
+            question_display = r.question[:43] + "..." if len(r.question) > 43 else r.question
         else:
-            question_display = f"\\[{r.test_case_id}]"
-        console.print(f"\n  [#{i}] {question_display}")
-        for f in failures:
-            console.print(f"    [red]x[/red] {f}")
+            question_display = f"[{r.test_case_id}]"
+
+        # Format RAGAS metrics as checkmarks
+        r_pass = r.answer_relevance >= SLO_ANSWER_RELEVANCE
+        f_pass = r.faithfulness >= SLO_FAITHFULNESS
+        c_pass = r.context_precision >= SLO_CONTEXT_PRECISION
+        a_pass = r.answer_correctness >= SLO_ANSWER_CORRECTNESS
+
+        def fmt(passed: bool) -> str:
+            return "[green]Y[/green]" if passed else "[red]X[/red]"
+
+        failed_table.add_row(
+            str(i),
+            question_display,
+            fmt(r_pass),
+            fmt(f_pass),
+            fmt(c_pass),
+            fmt(a_pass),
+        )
+
+    console.print(failed_table)

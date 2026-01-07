@@ -150,6 +150,13 @@ class FlowStepResult:
     latency_ms: int
     has_answer: bool
     has_sources: bool
+    # Routing metrics
+    expected_company_id: str | None = None
+    actual_company_id: str | None = None
+    company_correct: bool = True
+    expected_intent: str | None = None
+    actual_intent: str | None = None
+    intent_correct: bool = True
     # RAGAS metrics (0.0-1.0)
     relevance_score: float = 0.0  # RAGAS answer_relevancy
     faithfulness_score: float = 0.0  # RAGAS faithfulness
@@ -191,15 +198,24 @@ class FlowEvalResults:
     total_questions: int
     questions_passed: int
     questions_failed: int
+    # Routing metrics
+    company_extraction_accuracy: float = 0.0
+    intent_accuracy: float = 0.0
     # RAGAS metrics (0.0-1.0)
     avg_relevance: float = 0.0  # RAGAS answer_relevancy
     avg_faithfulness: float = 0.0  # RAGAS faithfulness
     avg_context_precision: float = 0.0  # RAGAS context_precision
     avg_answer_correctness: float = 0.0  # RAGAS answer_correctness
+    # Latency
     total_latency_ms: int = 0
     avg_latency_per_question_ms: float = 0.0
     p95_latency_ms: float = 0.0  # P95 latency per question
     wall_clock_ms: int = 0  # Total wall-clock time for the eval
+    # Latency breakdown by node (percentage of total)
+    latency_routing_pct: float = 0.0
+    latency_retrieval_pct: float = 0.0
+    latency_answer_pct: float = 0.0
+    # Results
     failed_paths: list[FlowResult] = field(default_factory=list)
     all_results: list[FlowResult] = field(default_factory=list)
 

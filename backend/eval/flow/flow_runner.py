@@ -90,6 +90,10 @@ async def test_single_question(
         sources = result.get("sources", [])
         has_answer = bool(answer and len(answer) > 10)
 
+        # Get routing info from agent result
+        actual_company_id = result.get("company_id")
+        actual_intent = result.get("intent")
+
         # Get actual context chunks from agent (not conversation history)
         context_chunks = result.get("context_chunks", [])
 
@@ -122,6 +126,10 @@ async def test_single_question(
             latency_ms=latency_ms,
             has_answer=has_answer,
             has_sources=len(sources) > 0,
+            actual_company_id=actual_company_id,
+            company_correct=actual_company_id is not None,
+            actual_intent=actual_intent,
+            intent_correct=actual_intent is not None,
             relevance_score=relevance,
             faithfulness_score=faithfulness,
             context_precision_score=context_precision,
@@ -130,7 +138,7 @@ async def test_single_question(
             error=None,
         )
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         latency_ms = int((time.time() - start_time) * 1000)
         logger.warning(f"Timeout testing question '{question}' after 120s")
         return FlowStepResult(
@@ -267,21 +275,6 @@ async def run_flow_eval(
                     f"[dim][{completed}/{total}][/dim] Path {path_id + 1}: "
                     f"[{status_color}]{status}[/{status_color}] ({result.total_latency_ms}ms)"
                 )
-                if verbose or not result.success:
-                    for j, step in enumerate(result.steps):
-                        step_color = "green" if step.passed else "red"
-                        status_icon = "PASS" if step.passed else "FAIL"
-                        console.print(f"  Q{j + 1}: {step.question[:50]}...")
-                        console.print(
-                            f"      [{step_color}][{status_icon}][/{step_color}] "
-                            f"R={step.relevance_score:.2f} F={step.faithfulness_score:.2f} | {step.latency_ms}ms"
-                        )
-                        if step.judge_explanation and verbose:
-                            console.print(
-                                f"      [dim]Judge: {step.judge_explanation[:80]}...[/dim]"
-                            )
-                        if step.error:
-                            console.print(f"      [red]ERROR: {step.error}[/red]")
             return result
 
     # Run all flows in parallel
@@ -323,6 +316,12 @@ async def run_flow_eval(
     avg_context_precision = sum(s.context_precision_score for s in all_steps) / len(all_steps) if all_steps else 0.0
     avg_answer_correctness = sum(s.answer_correctness_score for s in all_steps) / len(all_steps) if all_steps else 0.0
 
+    # Calculate routing accuracy
+    company_correct_count = sum(1 for s in all_steps if s.company_correct)
+    intent_correct_count = sum(1 for s in all_steps if s.intent_correct)
+    company_extraction_accuracy = company_correct_count / len(all_steps) if all_steps else 0.0
+    intent_accuracy = intent_correct_count / len(all_steps) if all_steps else 0.0
+
     total_latency = sum(r.total_latency_ms for r in results)
     avg_latency = total_latency / total_questions if total_questions > 0 else 0
 
@@ -341,6 +340,8 @@ async def run_flow_eval(
         total_questions=total_questions,
         questions_passed=questions_passed,
         questions_failed=questions_failed,
+        company_extraction_accuracy=company_extraction_accuracy,
+        intent_accuracy=intent_accuracy,
         avg_relevance=avg_relevance,
         avg_faithfulness=avg_faithfulness,
         avg_context_precision=avg_context_precision,

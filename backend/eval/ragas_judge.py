@@ -20,12 +20,12 @@ with warnings.catch_warnings():
 logger = logging.getLogger(__name__)
 
 
-def _get_ragas_llm() -> LangchainLLMWrapper:
+def _get_ragas_llm() -> Any:
     """Get LLM for RAGAS using LangChain wrapper."""
     return LangchainLLMWrapper(ChatOpenAI(model="gpt-4o-mini"))
 
 
-def _get_ragas_embeddings() -> LangchainEmbeddingsWrapper:
+def _get_ragas_embeddings() -> Any:
     """Get embeddings for RAGAS using LangChain wrapper."""
     return LangchainEmbeddingsWrapper(OpenAIEmbeddings(model="text-embedding-3-small"))
 
@@ -66,10 +66,10 @@ def evaluate_single(
     }
 
     # Get LLM and embeddings factories for thread-safe metric instantiation
-    def llm_factory() -> LangchainLLMWrapper:
+    def llm_factory() -> Any:
         return _get_ragas_llm()
 
-    def embeddings_factory() -> LangchainEmbeddingsWrapper:
+    def embeddings_factory() -> Any:
         return _get_ragas_embeddings()
 
     # Create fresh metric instances per call for thread safety
@@ -96,7 +96,7 @@ def evaluate_single(
         )
 
         # Convert to pandas DataFrame
-        df = result.to_pandas()
+        df = result.to_pandas()  # type: ignore[union-attr]
 
         def get_score(name: str) -> float:
             if name in df.columns and len(df) > 0:

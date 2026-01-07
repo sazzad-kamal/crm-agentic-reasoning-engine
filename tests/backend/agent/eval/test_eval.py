@@ -413,7 +413,7 @@ class TestTables:
 
         table = build_eval_table("Test Table", sections)
         assert table.title == "Test Table"
-        assert len(table.columns) == 4
+        assert len(table.columns) == 3  # Metric, Value, SLO
 
 
 class TestPrintFunctions:

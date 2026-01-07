@@ -141,18 +141,19 @@ def build_eval_table(
     table.add_column("Metric", style="bold")
     table.add_column("Value", justify="right")
     table.add_column("SLO", justify="right", style="dim")
-    table.add_column("Status", justify="center")
 
     for section_name, rows in sections:
         if section_name:
-            table.add_row(f"[bold]{section_name}[/bold]", "", "", "")
+            # Color section header based on whether all SLOs in section pass
+            section_passed = all(slo_passed for _, _, _, slo_passed in rows if slo_passed is not None)
+            color = "green" if section_passed else "red"
+            table.add_row(f"[bold {color}]{section_name}[/bold {color}]", "", "")
 
-        for label, value, slo_target, slo_passed in rows:
+        for label, value, slo_target, _slo_passed in rows:
             slo_display = slo_target if slo_target else ""
-            status = format_check_mark(slo_passed) if slo_passed is not None else ""
-            table.add_row(label, value, slo_display, status)
+            table.add_row(label, value, slo_display)
 
-        table.add_row("", "", "", "")  # Spacer
+        table.add_row("", "", "")  # Spacer
 
     return table
 

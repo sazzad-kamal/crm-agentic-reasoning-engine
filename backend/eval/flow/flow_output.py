@@ -11,13 +11,19 @@ from rich.table import Table
 from backend.eval.base import console, format_percentage
 from backend.eval.formatting import build_eval_table
 from backend.eval.models import (
+    SLO_COMPANY_EXTRACTION,
     SLO_FLOW_ANSWER_CORRECTNESS,
     SLO_FLOW_CONTEXT_PRECISION,
     SLO_FLOW_FAITHFULNESS,
     SLO_FLOW_PATH_PASS_RATE,
     SLO_FLOW_QUESTION_PASS_RATE,
     SLO_FLOW_RELEVANCE,
+    SLO_LATENCY_ANSWER_PCT,
+    SLO_LATENCY_RETRIEVAL_PCT,
+    SLO_LATENCY_ROUTING_PCT,
+    SLO_ROUTER_ACCURACY,
     FlowEvalResults,
+    FlowStepResult,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,13 +41,43 @@ def print_summary(results: FlowEvalResults) -> bool:
     # Compute SLO pass/fail
     path_slo_pass = results.path_pass_rate >= SLO_FLOW_PATH_PASS_RATE
     q_slo_pass = results.question_pass_rate >= SLO_FLOW_QUESTION_PASS_RATE
+    company_slo_pass = results.company_extraction_accuracy >= SLO_COMPANY_EXTRACTION
+    intent_slo_pass = results.intent_accuracy >= SLO_ROUTER_ACCURACY
+    ctx_precision_slo_pass = results.avg_context_precision >= SLO_FLOW_CONTEXT_PRECISION
     relevance_slo_pass = results.avg_relevance >= SLO_FLOW_RELEVANCE
     faithfulness_slo_pass = results.avg_faithfulness >= SLO_FLOW_FAITHFULNESS
-    ctx_precision_slo_pass = results.avg_context_precision >= SLO_FLOW_CONTEXT_PRECISION
     answer_correctness_slo_pass = results.avg_answer_correctness >= SLO_FLOW_ANSWER_CORRECTNESS
+
+    # Compute latency SLO pass/fail
+    routing_latency_pass = results.latency_routing_pct <= SLO_LATENCY_ROUTING_PCT
+    retrieval_latency_pass = results.latency_retrieval_pct <= SLO_LATENCY_RETRIEVAL_PCT
+    answer_latency_pass = results.latency_answer_pct <= SLO_LATENCY_ANSWER_PCT
 
     # Build table sections matching E2E structure: (section_name, [(label, value, slo_target, slo_passed)])
     sections: list[tuple[str, list[tuple[str, str, str | None, bool | None]]]] = [
+        (
+            "Routing",
+            [
+                (
+                    "  Company Extraction",
+                    format_percentage(results.company_extraction_accuracy),
+                    f">={format_percentage(SLO_COMPANY_EXTRACTION)}",
+                    company_slo_pass,
+                ),
+                (
+                    "  Intent Classification",
+                    format_percentage(results.intent_accuracy),
+                    f">={format_percentage(SLO_ROUTER_ACCURACY)}",
+                    intent_slo_pass,
+                ),
+                (
+                    "  latency",
+                    format_percentage(results.latency_routing_pct),
+                    f"<={format_percentage(SLO_LATENCY_ROUTING_PCT)}",
+                    routing_latency_pass,
+                ),
+            ],
+        ),
         (
             "Retrieval",
             [
@@ -50,6 +86,12 @@ def print_summary(results: FlowEvalResults) -> bool:
                     format_percentage(results.avg_context_precision),
                     f">={format_percentage(SLO_FLOW_CONTEXT_PRECISION)}",
                     ctx_precision_slo_pass,
+                ),
+                (
+                    "  latency",
+                    format_percentage(results.latency_retrieval_pct),
+                    f"<={format_percentage(SLO_LATENCY_RETRIEVAL_PCT)}",
+                    retrieval_latency_pass,
                 ),
             ],
         ),
@@ -74,6 +116,12 @@ def print_summary(results: FlowEvalResults) -> bool:
                     f">={format_percentage(SLO_FLOW_ANSWER_CORRECTNESS)}",
                     answer_correctness_slo_pass,
                 ),
+                (
+                    "  latency",
+                    format_percentage(results.latency_answer_pct),
+                    f"<={format_percentage(SLO_LATENCY_ANSWER_PCT)}",
+                    answer_latency_pass,
+                ),
             ],
         ),
     ]
@@ -81,13 +129,9 @@ def print_summary(results: FlowEvalResults) -> bool:
     summary_table = build_eval_table("Flow Evaluation Summary", sections)
     console.print(summary_table)
 
-    # Summary stats below table
+    # Latency stats below table
     console.print(
-        f"\nPaths: {results.paths_passed}/{results.paths_tested} passed | "
-        f"Questions: {results.questions_passed}/{results.total_questions} passed"
-    )
-    console.print(
-        f"Latency: {results.wall_clock_ms / 1000:.1f}s total | "
+        f"\nLatency: {results.wall_clock_ms / 1000:.1f}s total | "
         f"{results.avg_latency_per_question_ms:.0f}ms avg | "
         f"{results.p95_latency_ms:.0f}ms P95"
     )
@@ -95,49 +139,90 @@ def print_summary(results: FlowEvalResults) -> bool:
     all_slos_passed = (
         path_slo_pass
         and q_slo_pass
+        and company_slo_pass
+        and intent_slo_pass
+        and ctx_precision_slo_pass
         and relevance_slo_pass
         and faithfulness_slo_pass
-        and ctx_precision_slo_pass
         and answer_correctness_slo_pass
+        and routing_latency_pass
+        and retrieval_latency_pass
+        and answer_latency_pass
     )
 
-    # Failed Paths Detail
-    if results.failed_paths:
-        console.print()
-        failed_table = Table(
-            title=f"Failed Paths ({len(results.failed_paths)} total, showing first 5)",
-            show_header=True,
-            header_style="bold yellow",
-        )
-        failed_table.add_column("Path", style="bold", width=6)
-        failed_table.add_column("Question", width=40)
-        failed_table.add_column("R", justify="center", width=5)
-        failed_table.add_column("F", justify="center", width=5)
-        failed_table.add_column("C", justify="center", width=5)
-        failed_table.add_column("A", justify="center", width=5)
-        failed_table.add_column("Issue", width=35)
-
-        for fp in results.failed_paths[:5]:
-            for i, step in enumerate(fp.steps):
-                if not step.passed:
-                    issue = (
-                        step.judge_explanation[:35]
-                        if step.judge_explanation
-                        else (step.error or "Unknown")
-                    )
-                    failed_table.add_row(
-                        str(fp.path_id) if i == 0 else "",
-                        step.question[:38] + "..." if len(step.question) > 38 else step.question,
-                        f"{step.relevance_score:.2f}",
-                        f"{step.faithfulness_score:.2f}",
-                        f"{step.context_precision_score:.2f}",
-                        f"{step.answer_correctness_score:.2f}",
-                        issue,
-                    )
-
-        console.print(failed_table)
+    # SLO Failures Detail
+    _print_slo_failures(results)
 
     return all_slos_passed
+
+
+def _count_ragas_failures(step: FlowStepResult) -> int:
+    """Count how many RAGAS metrics failed for a step."""
+    count = 0
+    if step.relevance_score < SLO_FLOW_RELEVANCE:
+        count += 1
+    if step.faithfulness_score < SLO_FLOW_FAITHFULNESS:
+        count += 1
+    if step.context_precision_score < SLO_FLOW_CONTEXT_PRECISION:
+        count += 1
+    if step.answer_correctness_score < SLO_FLOW_ANSWER_CORRECTNESS:
+        count += 1
+    return count
+
+
+def _print_slo_failures(results: FlowEvalResults) -> None:
+    """Print details of SLO failures as a compact table."""
+    # Collect all failed steps with their path info
+    failures: list[tuple[int, FlowStepResult]] = []
+    for flow_result in results.all_results:
+        for step in flow_result.steps:
+            if _count_ragas_failures(step) > 0:
+                failures.append((flow_result.path_id, step))
+
+    if not failures:
+        return
+
+    # Sort by failure count (most failures first)
+    failures.sort(key=lambda x: _count_ragas_failures(x[1]), reverse=True)
+
+    # Show top 5
+    shown = failures[:5]
+    total = len(failures)
+
+    console.print()
+    failed_table = Table(
+        title=f"SLO Failures ({len(shown)} of {total} shown, sorted by severity)",
+        show_header=True,
+        header_style="bold yellow",
+    )
+    failed_table.add_column("Path", style="dim", width=4)
+    failed_table.add_column("Question", width=45)
+    failed_table.add_column("R", justify="center", width=3)
+    failed_table.add_column("F", justify="center", width=3)
+    failed_table.add_column("C", justify="center", width=3)
+    failed_table.add_column("A", justify="center", width=3)
+
+    def fmt(passed: bool) -> str:
+        return "[green]Y[/green]" if passed else "[red]X[/red]"
+
+    for path_id, step in shown:
+        question_display = step.question[:43] + "..." if len(step.question) > 43 else step.question
+
+        r_pass = step.relevance_score >= SLO_FLOW_RELEVANCE
+        f_pass = step.faithfulness_score >= SLO_FLOW_FAITHFULNESS
+        c_pass = step.context_precision_score >= SLO_FLOW_CONTEXT_PRECISION
+        a_pass = step.answer_correctness_score >= SLO_FLOW_ANSWER_CORRECTNESS
+
+        failed_table.add_row(
+            str(path_id + 1),
+            question_display,
+            fmt(r_pass),
+            fmt(f_pass),
+            fmt(c_pass),
+            fmt(a_pass),
+        )
+
+    console.print(failed_table)
 
 
 def save_results(results: FlowEvalResults, output_path: Path) -> None:
@@ -153,6 +238,8 @@ def save_results(results: FlowEvalResults, output_path: Path) -> None:
             "questions_passed": results.questions_passed,
             "questions_failed": results.questions_failed,
             "question_pass_rate": results.question_pass_rate,
+            "company_extraction_accuracy": results.company_extraction_accuracy,
+            "intent_accuracy": results.intent_accuracy,
             "avg_relevance": results.avg_relevance,
             "avg_faithfulness": results.avg_faithfulness,
             "avg_context_precision": results.avg_context_precision,
@@ -161,6 +248,9 @@ def save_results(results: FlowEvalResults, output_path: Path) -> None:
             "avg_latency_per_question_ms": results.avg_latency_per_question_ms,
             "p95_latency_ms": results.p95_latency_ms,
             "wall_clock_ms": results.wall_clock_ms,
+            "latency_routing_pct": results.latency_routing_pct,
+            "latency_retrieval_pct": results.latency_retrieval_pct,
+            "latency_answer_pct": results.latency_answer_pct,
         },
         "slo_results": {
             "path_pass_rate": {

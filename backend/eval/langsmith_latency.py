@@ -45,10 +45,11 @@ def get_latency_breakdown(
     start_time = datetime.utcnow() - timedelta(minutes=minutes_ago)
 
     try:
-        # Fetch runs in a single API call with limit
+        # Fetch only child runs (is_root=False) to exclude RAGAS top-level runs
         runs = list(client.list_runs(
             project_name=project,
             start_time=start_time,
+            is_root=False,
             limit=limit,
         ))
     except Exception as e:
@@ -59,12 +60,11 @@ def get_latency_breakdown(
         console.print(f"[dim]No runs found in last {minutes_ago} minutes[/dim]")
         return {}
 
-    # Aggregate latencies by node name (filter to child runs only)
+    # Aggregate latencies by node name
     node_latencies: dict[str, list[float]] = defaultdict(list)
 
     for run in runs:
-        # Only include runs that have a parent (child nodes)
-        if run.parent_run_id and run.end_time and run.start_time:
+        if run.end_time and run.start_time:
             latency_ms = (run.end_time - run.start_time).total_seconds() * 1000
             node_latencies[run.name].append(latency_ms)
 

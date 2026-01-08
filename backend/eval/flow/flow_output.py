@@ -215,42 +215,45 @@ def print_summary(results: FlowEvalResults, eval_mode: str = "both") -> bool:
     )
 
     # SLO Failures Detail
-    _print_slo_failures(results)
+    _print_slo_failures(results, eval_mode)
 
     return all_slos_passed
 
 
-def _count_ragas_failures(step: FlowStepResult) -> int:
-    """Count how many RAGAS metrics failed for a step."""
+def _count_ragas_failures(step: FlowStepResult, eval_mode: str = "both") -> int:
+    """Count how many RAGAS metrics failed for a step based on eval_mode."""
     count = 0
-    if step.relevance_score < SLO_FLOW_RELEVANCE:
-        count += 1
-    if step.faithfulness_score < SLO_FLOW_FAITHFULNESS:
-        count += 1
-    if step.answer_correctness_score < SLO_FLOW_ANSWER_CORRECTNESS:
-        count += 1
-    # Account RAG is conditional, only count if invoked
-    if step.account_rag_invoked and step.account_precision_score < SLO_ACCOUNT_PRECISION:
-        count += 1
-    if step.account_rag_invoked and step.account_recall_score < SLO_ACCOUNT_RECALL:
-        count += 1
+    # Pipeline metrics (relevance, faithfulness, answer_correctness)
+    if eval_mode in ("pipeline", "both"):
+        if step.relevance_score < SLO_FLOW_RELEVANCE:
+            count += 1
+        if step.faithfulness_score < SLO_FLOW_FAITHFULNESS:
+            count += 1
+        if step.answer_correctness_score < SLO_FLOW_ANSWER_CORRECTNESS:
+            count += 1
+    # RAG metrics (precision, recall) - only count if invoked
+    if eval_mode in ("rag", "both"):
+        if step.account_rag_invoked and step.account_precision_score < SLO_ACCOUNT_PRECISION:
+            count += 1
+        if step.account_rag_invoked and step.account_recall_score < SLO_ACCOUNT_RECALL:
+            count += 1
     return count
 
 
-def _print_slo_failures(results: FlowEvalResults) -> None:
+def _print_slo_failures(results: FlowEvalResults, eval_mode: str = "both") -> None:
     """Print details of SLO failures as a compact table."""
     # Collect all failed steps with their path info
     failures: list[tuple[int, FlowStepResult]] = []
     for flow_result in results.all_results:
         for step in flow_result.steps:
-            if _count_ragas_failures(step) > 0:
+            if _count_ragas_failures(step, eval_mode) > 0:
                 failures.append((flow_result.path_id, step))
 
     if not failures:
         return
 
     # Sort by failure count (most failures first)
-    failures.sort(key=lambda x: _count_ragas_failures(x[1]), reverse=True)
+    failures.sort(key=lambda x: _count_ragas_failures(x[1], eval_mode), reverse=True)
 
     # Show top 5
     shown = failures[:5]
@@ -264,10 +267,14 @@ def _print_slo_failures(results: FlowEvalResults) -> None:
     )
     failed_table.add_column("Path", style="dim", width=4)
     failed_table.add_column("Question", width=40)
-    failed_table.add_column("R", justify="center", width=3)
-    failed_table.add_column("F", justify="center", width=3)
-    failed_table.add_column("A", justify="center", width=3)
-    failed_table.add_column("P/R", justify="center", width=4)
+
+    # Add columns based on eval_mode
+    if eval_mode in ("pipeline", "both"):
+        failed_table.add_column("R", justify="center", width=3)
+        failed_table.add_column("F", justify="center", width=3)
+        failed_table.add_column("A", justify="center", width=3)
+    if eval_mode in ("rag", "both"):
+        failed_table.add_column("P/R", justify="center", width=4)
 
     def fmt(passed: bool | None) -> str:
         if passed is None:
@@ -277,23 +284,22 @@ def _print_slo_failures(results: FlowEvalResults) -> None:
     for path_id, step in shown:
         question_display = step.question[:38] + "..." if len(step.question) > 38 else step.question
 
-        r_pass = step.relevance_score >= SLO_FLOW_RELEVANCE
-        f_pass = step.faithfulness_score >= SLO_FLOW_FAITHFULNESS
-        a_pass = step.answer_correctness_score >= SLO_FLOW_ANSWER_CORRECTNESS
+        row: list[str] = [str(path_id + 1), question_display]
 
-        # Account: N/A if not invoked, else check both precision and recall
-        acct_pass: bool | None = None if not step.account_rag_invoked else (
-            step.account_precision_score >= SLO_ACCOUNT_PRECISION and step.account_recall_score >= SLO_ACCOUNT_RECALL
-        )
+        if eval_mode in ("pipeline", "both"):
+            r_pass = step.relevance_score >= SLO_FLOW_RELEVANCE
+            f_pass = step.faithfulness_score >= SLO_FLOW_FAITHFULNESS
+            a_pass = step.answer_correctness_score >= SLO_FLOW_ANSWER_CORRECTNESS
+            row.extend([fmt(r_pass), fmt(f_pass), fmt(a_pass)])
 
-        failed_table.add_row(
-            str(path_id + 1),
-            question_display,
-            fmt(r_pass),
-            fmt(f_pass),
-            fmt(a_pass),
-            fmt(acct_pass),
-        )
+        if eval_mode in ("rag", "both"):
+            # Account: N/A if not invoked, else check both precision and recall
+            acct_pass: bool | None = None if not step.account_rag_invoked else (
+                step.account_precision_score >= SLO_ACCOUNT_PRECISION and step.account_recall_score >= SLO_ACCOUNT_RECALL
+            )
+            row.append(fmt(acct_pass))
+
+        failed_table.add_row(*row)
 
     console.print(failed_table)
 

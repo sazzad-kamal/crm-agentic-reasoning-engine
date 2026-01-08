@@ -12,7 +12,7 @@ from backend.agent.fetch.handlers import (
     tool_upcoming_renewals,
     ToolResult,
 )
-from backend.agent.core.schemas import Source
+from backend.agent.core import Source
 
 
 class TestMakeSources:

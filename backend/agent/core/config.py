@@ -52,9 +52,6 @@ class AgentConfig(BaseSettings):
     enable_follow_up_suggestions: bool = Field(
         default=True, description="Generate follow-up question suggestions"
     )
-    enable_audit_logging: bool = Field(
-        default=True, description="Enable audit logging for agent queries"
-    )
 
     # -------------------------------------------------------------------------
     # Node Configuration

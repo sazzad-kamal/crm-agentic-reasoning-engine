@@ -122,18 +122,6 @@ def _analytics_result(data: dict, source_id: str, label: str) -> ToolResult:
     return ToolResult(data=data, sources=[Source(type="analytics", id=source_id, label=label)])
 
 
-def _resolve_company_name(ds: CRMDataStore, company_id: str) -> tuple[str | None, str]:
-    """Resolve company ID and get company name."""
-    if not company_id:
-        return None, ""
-    resolved = ds.resolve_company_id(company_id)
-    if not resolved:
-        return None, ""
-    company = ds.get_company(resolved)
-    name = company.get("name", resolved) if company else resolved
-    return resolved, name
-
-
 @with_datastore
 def tool_analytics(
     metric: str,
@@ -147,7 +135,14 @@ def tool_analytics(
     """Get analytics and breakdowns for CRM data."""
     ds = datastore
     assert ds is not None  # Guaranteed by @with_datastore
-    resolved, company_name = _resolve_company_name(ds, company_id)
+    # Resolve company ID and get company name
+    resolved: str | None = None
+    company_name = ""
+    if company_id:
+        resolved = ds.resolve_company_id(company_id)
+        if resolved:
+            company = ds.get_company(resolved)
+            company_name = company.get("name", resolved) if company else resolved
     suffix = f" for {company_name}" if company_name else ""
 
     match metric:
@@ -313,6 +308,4 @@ __all__ = [
     "tool_recent_history",
     "tool_search_activities",
     "tool_analytics",
-    # Helpers (exported for tests)
-    "_resolve_company_name",
 ]

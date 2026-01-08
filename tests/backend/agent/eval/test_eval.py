@@ -222,7 +222,6 @@ class TestFlowStepResult:
             has_sources=True,
             relevance_score=0.9,
             faithfulness_score=0.85,
-            context_precision_score=0.8,
         )
 
         assert result.relevance_score == 0.9
@@ -321,7 +320,6 @@ class TestFlowEvalResults:
             questions_failed=3,
             avg_relevance=0.85,
             avg_faithfulness=0.80,
-            avg_context_precision=0.75,
             total_latency_ms=5000,
             avg_latency_per_question_ms=166.7,
             p95_latency_ms=300.0,
@@ -374,7 +372,6 @@ class TestFlowEvalResults:
             intent_accuracy=0.90,
             avg_relevance=0.88,
             avg_faithfulness=0.92,
-            avg_context_precision=0.82,
             avg_answer_correctness=0.75,
             avg_account_precision=0.85,
             avg_account_recall=0.80,

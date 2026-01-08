@@ -173,20 +173,17 @@ SLO_ANSWER_RELEVANCE = 0.85  # 85% - answers should address the question
 SLO_CONTEXT_PRECISION = 0.80  # 80% - good retrieval quality
 SLO_CONTEXT_RECALL = 0.70  # 70% - retrieved contexts should cover the answer
 SLO_ANSWER_CORRECTNESS = 0.70  # 70% - hardest metric, flexible answer formats
-SLO_SECURITY_PASS_RATE = 1.0  # 100% - all security tests must pass
 
 # Flow Eval SLOs - same quality bar as E2E
 SLO_FLOW_PATH_PASS_RATE = 0.85  # 85% of conversation paths should pass
 SLO_FLOW_QUESTION_PASS_RATE = 0.90  # 90% of individual questions should pass
 SLO_FLOW_FAITHFULNESS = 0.90  # 90% - critical for CRM, no hallucination allowed
 SLO_FLOW_RELEVANCE = 0.85  # 85% - answers should address the question
-SLO_FLOW_CONTEXT_PRECISION = 0.80  # 80% - good retrieval quality (legacy combined)
 SLO_FLOW_ANSWER_CORRECTNESS = 0.70  # 70% - hardest metric, flexible answer formats
 SLO_FLOW_AVG_LATENCY_MS = 4000  # 4s average per question
 SLO_FLOW_P95_LATENCY_MS = 8000  # 8s P95 per question (flow has multi-turn overhead)
 
 # Composite Score SLOs - weighted average of all metrics
-SLO_COMPOSITE_SCORE = 0.85  # 85% - overall system health target
 SLO_E2E_COMPOSITE_SCORE = 0.85  # 85% - E2E eval composite
 SLO_FLOW_COMPOSITE_SCORE = 0.85  # 85% - Flow eval composite
 
@@ -223,7 +220,6 @@ class FlowStepResult:
     faithfulness_score: float = 0.0  # RAGAS faithfulness
     answer_correctness_score: float = 0.0  # RAGAS answer_correctness
     # RAGAS metrics (0.0-1.0) - retrieval quality
-    context_precision_score: float = 0.0  # Legacy combined (deprecated)
     account_precision_score: float = 0.0  # Account RAG precision
     account_recall_score: float = 0.0  # Account RAG recall
     # RAG invocation flags (for N/A vs 0% distinction)
@@ -273,7 +269,6 @@ class FlowEvalResults:
     avg_faithfulness: float = 0.0  # RAGAS faithfulness
     avg_answer_correctness: float = 0.0  # RAGAS answer_correctness
     # RAGAS metrics (0.0-1.0) - retrieval quality
-    avg_context_precision: float = 0.0  # Legacy combined (deprecated)
     avg_account_precision: float = 0.0  # Account RAG precision
     avg_account_recall: float = 0.0  # Account RAG recall
     # Sample counts for N/A display (0 means no samples)

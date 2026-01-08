@@ -310,7 +310,7 @@ class TestNodesFetching:
     def test_fetch_account_node_success(self):
         """Test fetch_account_node successful fetch."""
         from backend.agent.fetch.fetch_account import fetch_account_node
-        from backend.agent.core.schemas import Source
+        from backend.agent.core import Source
 
         with patch("backend.agent.fetch.fetch_account.call_account_rag") as mock_rag:
             mock_rag.return_value = ("Account notes", [Source(type="note", id="n1", label="Note")])

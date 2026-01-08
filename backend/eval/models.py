@@ -226,6 +226,8 @@ class FlowStepResult:
     account_rag_invoked: bool = False  # True only if account RAG was called
     judge_explanation: str = ""
     error: str | None = None
+    # RAGAS reliability tracking
+    ragas_failed: bool = False  # True if RAGAS API call failed
 
     @property
     def passed(self) -> bool:
@@ -273,6 +275,9 @@ class FlowEvalResults:
     avg_account_recall: float = 0.0  # Account RAG recall
     # Sample counts for N/A display (0 means no samples)
     account_sample_count: int = 0  # Number of steps with account chunks
+    # RAGAS reliability tracking
+    ragas_calls_total: int = 0  # Total RAGAS evaluations attempted
+    ragas_calls_failed: int = 0  # RAGAS evaluations that failed (API errors, timeouts)
     # Latency
     total_latency_ms: int = 0
     avg_latency_per_question_ms: float = 0.0
@@ -295,6 +300,13 @@ class FlowEvalResults:
     def question_pass_rate(self) -> float:
         """Percentage of questions that passed."""
         return self.questions_passed / self.total_questions if self.total_questions > 0 else 0.0
+
+    @property
+    def ragas_success_rate(self) -> float:
+        """Percentage of RAGAS calls that succeeded (1.0 = all succeeded, 0.0 = all failed)."""
+        if self.ragas_calls_total == 0:
+            return 1.0  # No RAGAS calls = no failures
+        return (self.ragas_calls_total - self.ragas_calls_failed) / self.ragas_calls_total
 
     @property
     def composite_score(self) -> float:

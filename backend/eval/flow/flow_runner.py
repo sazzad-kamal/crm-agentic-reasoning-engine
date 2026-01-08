@@ -65,13 +65,16 @@ def judge_answer(
             )
             result = future.result(timeout=timeout)
 
+        # Check if RAGAS itself reported an error
+        ragas_error = result.get("error")
         return {
             "relevance": result["answer_relevancy"],
             "faithfulness": result["faithfulness"],
             "context_precision": result["context_precision"],
             "context_recall": result.get("context_recall", 0.0),
             "answer_correctness": result.get("answer_correctness", 0.0),
-            "explanation": "",
+            "explanation": f"RAGAS error: {ragas_error}" if ragas_error else "",
+            "ragas_failed": ragas_error is not None,
         }
     except TimeoutError:
         logger.warning(f"RAGAS judge timed out after {timeout}s")
@@ -82,6 +85,7 @@ def judge_answer(
             "context_recall": 0.0,
             "answer_correctness": 0.0,
             "explanation": f"RAGAS timeout after {timeout}s",
+            "ragas_failed": True,
         }
     except Exception as e:
         logger.warning(f"RAGAS judge failed: {e}")
@@ -92,6 +96,7 @@ def judge_answer(
             "context_recall": 0.0,
             "answer_correctness": 0.0,
             "explanation": f"RAGAS error: {e}",
+            "ragas_failed": True,
         }
 
 
@@ -165,6 +170,7 @@ def test_single_question(
         account_precision = 0.0
         account_recall = 0.0
         explanation = ""
+        ragas_failed = False
 
         if use_judge and has_answer:
             # Evaluate account RAG if it was invoked
@@ -177,6 +183,8 @@ def test_single_question(
                 relevance = account_result.get("relevance", 0.0)
                 faithfulness = account_result.get("faithfulness", 0.0)
                 answer_correctness = account_result.get("answer_correctness", 0.0)
+                explanation = account_result.get("explanation", "")
+                ragas_failed = account_result.get("ragas_failed", False)
             else:
                 # If no account RAG, evaluate answer quality without context
                 general_result = judge_answer(
@@ -185,6 +193,8 @@ def test_single_question(
                 relevance = general_result.get("relevance", 0.0)
                 faithfulness = general_result.get("faithfulness", 0.0)
                 answer_correctness = general_result.get("answer_correctness", 0.0)
+                explanation = general_result.get("explanation", "")
+                ragas_failed = general_result.get("ragas_failed", False)
 
         return FlowStepResult(
             question=question,
@@ -205,6 +215,7 @@ def test_single_question(
             account_rag_invoked=account_rag_invoked,
             judge_explanation=explanation,
             error=None,
+            ragas_failed=ragas_failed,
         )
 
     except TimeoutError:
@@ -405,6 +416,11 @@ def run_flow_eval(
     intent_correct_count = sum(1 for s in all_steps if s.intent_correct)
     intent_accuracy = intent_correct_count / len(all_steps) if all_steps else 0.0
 
+    # Calculate RAGAS reliability (steps with answers that were evaluated)
+    steps_with_judge = [s for s in all_steps if s.has_answer]
+    ragas_calls_total = len(steps_with_judge)
+    ragas_calls_failed = sum(1 for s in steps_with_judge if s.ragas_failed)
+
     total_latency = sum(r.total_latency_ms for r in results)
     avg_latency = total_latency / total_questions if total_questions > 0 else 0
 
@@ -432,6 +448,8 @@ def run_flow_eval(
         avg_account_precision=avg_account_precision,
         avg_account_recall=avg_account_recall,
         account_sample_count=len(steps_with_account),
+        ragas_calls_total=ragas_calls_total,
+        ragas_calls_failed=ragas_calls_failed,
         total_latency_ms=total_latency,
         avg_latency_per_question_ms=avg_latency,
         p95_latency_ms=p95_latency,

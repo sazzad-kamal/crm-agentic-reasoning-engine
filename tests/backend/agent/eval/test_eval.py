@@ -1002,6 +1002,10 @@ class TestFinalizeEvalCLI:
 # =============================================================================
 
 
+@pytest.mark.skipif(
+    os.environ.get("MOCK_LLM", "0") == "1",
+    reason="RAGAS imports not available in MOCK_LLM mode",
+)
 class TestRagasJudge:
     """Tests for RAGAS judge with mocked evaluate."""
 
@@ -1080,6 +1084,67 @@ class TestRagasJudge:
         assert result["answer_relevancy"] == 0.0
         assert result["faithfulness"] == 0.0
         assert result["context_precision"] == 0.0
+
+
+# =============================================================================
+# RAGAS Mock Mode Tests
+# =============================================================================
+
+
+class TestRagasMockMode:
+    """Tests for RAGAS mock mode evaluation."""
+
+    def test_mock_evaluate_single_with_context(self, monkeypatch):
+        """Test mock evaluate returns scores when answer and context present."""
+        monkeypatch.setenv("MOCK_LLM", "1")
+
+        # Force reimport with mock mode enabled
+        from backend.eval.ragas_judge import _mock_evaluate_single
+
+        result = _mock_evaluate_single(
+            question="What is the revenue?",
+            answer="The revenue is $1M for Q4.",
+            contexts=["Revenue data shows $1M."],
+            reference_answer="The Q4 revenue was $1 million.",
+        )
+
+        assert result["answer_relevancy"] == 0.85
+        assert result["faithfulness"] == 0.80
+        assert result["context_precision"] == 0.75
+        assert result["context_recall"] == 0.70
+        assert result["answer_correctness"] == 0.65
+
+    def test_mock_evaluate_single_without_context(self, monkeypatch):
+        """Test mock evaluate returns reduced scores without context."""
+        monkeypatch.setenv("MOCK_LLM", "1")
+
+        from backend.eval.ragas_judge import _mock_evaluate_single
+
+        result = _mock_evaluate_single(
+            question="What is the revenue?",
+            answer="The revenue is $1M for Q4.",
+            contexts=[],
+        )
+
+        assert result["answer_relevancy"] == 0.70
+        assert result["faithfulness"] == 0.50
+        assert result["context_precision"] == 0.0
+        assert result["context_recall"] == 0.0
+
+    def test_mock_evaluate_single_empty_answer(self, monkeypatch):
+        """Test mock evaluate returns zeros for empty answer."""
+        monkeypatch.setenv("MOCK_LLM", "1")
+
+        from backend.eval.ragas_judge import _mock_evaluate_single
+
+        result = _mock_evaluate_single(
+            question="What is the revenue?",
+            answer="",
+            contexts=["Some context"],
+        )
+
+        assert result["answer_relevancy"] == 0.0
+        assert result["faithfulness"] == 0.0
 
 
 # =============================================================================

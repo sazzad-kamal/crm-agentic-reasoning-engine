@@ -11,7 +11,13 @@ from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 from backend.agent.core.state import Source
 from backend.agent.rag.client import get_qdrant_client
-from backend.agent.rag.config import EMBEDDING_MODEL, PRIVATE_COLLECTION
+from backend.agent.rag.config import (
+    EMBEDDING_MODEL,
+    PRIVATE_COLLECTION,
+    RERANKER_ENABLED,
+    RERANKER_TOP_K,
+    RETRIEVAL_TOP_K,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +37,12 @@ def tool_account_rag(
     """
     Search company-scoped CRM text (notes, attachments).
 
+    Uses over-retrieval + reranking for better precision when enabled.
+
     Args:
         question: User's question
         company_id: Company ID for filtering
-        top_k: Number of chunks to retrieve
+        top_k: Number of chunks to return (after reranking if enabled)
 
     Returns:
         Tuple of (context_text, sources)
@@ -57,12 +65,24 @@ def tool_account_rag(
             collection_name=PRIVATE_COLLECTION,
         )
 
+        # Over-retrieve if reranker is enabled, otherwise use top_k directly
+        retrieval_k = RETRIEVAL_TOP_K if RERANKER_ENABLED else top_k
+
         index = VectorStoreIndex.from_vector_store(vector_store)
         retriever = index.as_retriever(
-            similarity_top_k=top_k,
+            similarity_top_k=retrieval_k,
             vector_store_kwargs={"qdrant_filters": qdrant_filter},
         )
         nodes = retriever.retrieve(question)
+
+        # Rerank if enabled and we have more nodes than needed
+        if RERANKER_ENABLED and len(nodes) > RERANKER_TOP_K:
+            from backend.agent.rag.reranker import rerank_nodes
+
+            nodes = rerank_nodes(nodes, question, top_k=RERANKER_TOP_K)
+            logger.info(f"Account RAG: reranked to {len(nodes)} chunks for company {company_id}")
+        else:
+            logger.info(f"Account RAG: retrieved {len(nodes)} chunks for company {company_id}")
 
         context_parts = []
         sources = []
@@ -75,7 +95,6 @@ def tool_account_rag(
             sources.append(Source(type=source_type, id=source_id, label=label))
 
         context = "\n\n---\n\n".join(context_parts)
-        logger.info(f"Account RAG: retrieved {len(nodes)} chunks for company {company_id}")
         return context, sources
 
     except Exception as e:

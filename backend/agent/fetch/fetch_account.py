@@ -29,7 +29,7 @@ def fetch_account_node(state: AgentState) -> AgentState:
     # Skip if no company_id or wrong intent
     if not company_id or intent not in ACCOUNT_RAG_INTENTS:
         logger.info(f"[FetchAccount] Skipped (company={company_id}, intent={intent})")
-        return {"account_context_answer": ""}
+        return {"account_context_answer": "", "account_rag_invoked": False}
 
     logger.info(f"[FetchAccount] Searching account context for {company_id}...")
 
@@ -50,12 +50,13 @@ def fetch_account_node(state: AgentState) -> AgentState:
             "account_context_answer": account_answer,
             "sources": account_sources,  # Uses reducer to merge with other sources
             "account_chunks": context_chunks,  # Individual chunks for RAGAS (account source)
+            "account_rag_invoked": True,  # RAG was called (even if empty results)
         }
 
     except Exception as e:
         latency_ms = int((time.time() - start_time) * 1000)
         logger.error(f"[FetchAccount] Failed after {latency_ms}ms: {e}")
-        return {"account_context_answer": "", "error": f"Account fetch failed: {e}"}
+        return {"account_context_answer": "", "account_rag_invoked": True, "error": f"Account fetch failed: {e}"}
 
 
 __all__ = ["fetch_account_node"]

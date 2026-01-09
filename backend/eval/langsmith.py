@@ -6,8 +6,6 @@ import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from rich.table import Table
-
 from backend.eval.formatting import console
 
 
@@ -129,48 +127,3 @@ def get_latency_percentages(
         "answer": answer_pct,
         "followup": followup_pct,
     }
-
-
-def print_latency_breakdown(
-    minutes_ago: int = 10,
-    project_name: str | None = None,
-) -> None:
-    """Print latency breakdown table from LangSmith data."""
-    breakdown = get_latency_breakdown(minutes_ago, project_name)
-
-    if not breakdown:
-        return
-
-    # Filter to only agent nodes (exclude RAGAS evaluation nodes like "row 0")
-    breakdown = {k: v for k, v in breakdown.items() if k in AGENT_NODES}
-
-    if not breakdown:
-        console.print("[dim]No agent node latencies found[/dim]")
-        return
-
-    # Calculate total for percentages
-    total_avg = sum(stats["avg_ms"] for stats in breakdown.values())
-
-    table = Table(title="Node Latency Breakdown (LangSmith)", show_header=True)
-    table.add_column("Node", style="bold")
-    table.add_column("Calls", justify="right")
-    table.add_column("Avg", justify="right")
-    table.add_column("Min", justify="right")
-    table.add_column("Max", justify="right")
-    table.add_column("%", justify="right")
-
-    # Sort by average latency descending
-    for node, stats in sorted(breakdown.items(), key=lambda x: -x[1]["avg_ms"]):
-        pct = (stats["avg_ms"] / total_avg * 100) if total_avg > 0 else 0
-        table.add_row(
-            node,
-            str(stats["count"]),
-            f"{stats['avg_ms']:.0f}ms",
-            f"{stats['min_ms']:.0f}ms",
-            f"{stats['max_ms']:.0f}ms",
-            f"{pct:.1f}%",
-        )
-
-    console.print()
-    console.print(table)
-    console.print(f"[dim]Total avg: {total_avg:.0f}ms across {len(breakdown)} nodes[/dim]")

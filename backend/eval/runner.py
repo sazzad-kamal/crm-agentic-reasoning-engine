@@ -1,4 +1,4 @@
-"""Flow evaluation runner - tests conversation paths."""
+"""Evaluation runner - tests conversation paths."""
 
 from __future__ import annotations
 
@@ -22,10 +22,10 @@ from backend.agent.answer.formatters import (
     format_renewals_section,
 )
 from backend.agent.followup.tree import get_expected_answer, get_paths_for_role
-from backend.eval.base import console, print_eval_header
+from backend.eval.formatting import console, print_eval_header
+from backend.eval.judge import evaluate_single
 from backend.eval.models import FlowEvalResults, FlowResult, FlowStepResult
 from backend.eval.parallel import calculate_p95_latency
-from backend.eval.ragas_judge import evaluate_single
 
 logger = logging.getLogger(__name__)
 
@@ -84,8 +84,7 @@ def judge_answer(
             "answer_correctness": result.get("answer_correctness", 0.0),
             "explanation": f"RAGAS error: {ragas_error}" if ragas_error else "",
             "ragas_failed": ragas_error is not None,
-            "metrics_total": 5,
-            "metrics_failed": len(nan_metrics),
+            "nan_metrics": nan_metrics,  # Pass through for per-metric failure tracking
         }
     except TimeoutError:
         logger.warning(f"RAGAS judge timed out after {timeout}s")
@@ -97,8 +96,7 @@ def judge_answer(
             "answer_correctness": 0.0,
             "explanation": f"RAGAS timeout after {timeout}s",
             "ragas_failed": True,
-            "metrics_total": 5,
-            "metrics_failed": 5,  # All metrics failed on timeout
+            "nan_metrics": [],  # Not applicable for timeout (ragas_failed handles it)
         }
     except Exception as e:
         logger.warning(f"RAGAS judge failed: {e}")
@@ -110,8 +108,7 @@ def judge_answer(
             "answer_correctness": 0.0,
             "explanation": f"RAGAS error: {e}",
             "ragas_failed": True,
-            "metrics_total": 5,
-            "metrics_failed": 5,  # All metrics failed on exception
+            "nan_metrics": [],  # Not applicable for exception (ragas_failed handles it)
         }
 
 
@@ -173,8 +170,8 @@ def test_single_question(
         account_chunks = result.get("account_chunks", [])
 
         # Account RAG is conditional on intent and company_id
-        # Check if it was actually invoked by looking at the result
-        account_rag_invoked = bool(result.get("account_context_answer"))
+        # Use the explicit flag set by fetch_account_node (tracks actual invocations, not just results)
+        account_rag_invoked = result.get("account_rag_invoked", False)
 
         # Build all_contexts from all data sources the LLM used
         all_contexts = []
@@ -514,7 +511,7 @@ def run_flow_eval(
         avg_account_precision=avg_account_precision,
         avg_account_recall=avg_account_recall,
         account_sample_count=len(steps_with_account),
-        rag_expected_count=len(steps_with_expected_company),
+        rag_invoked_count=sum(1 for s in all_steps if s.account_rag_invoked),
         ragas_metrics_total=ragas_metrics_total,
         ragas_metrics_failed=ragas_metrics_failed,
         total_latency_ms=total_latency,

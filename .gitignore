@@ -52,3 +52,4 @@ htmlcov/
 # Windows reserved device name artifacts
 nul
 frontend/nul
+storage/

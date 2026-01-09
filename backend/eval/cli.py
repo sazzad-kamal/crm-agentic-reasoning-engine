@@ -1,4 +1,4 @@
-"""CLI for flow evaluation."""
+"""CLI for evaluation."""
 
 from __future__ import annotations
 
@@ -19,21 +19,52 @@ if platform.system() == "Windows":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 # Load environment before other imports
-_project_root = Path(__file__).parent.parent.parent.parent
+_project_root = Path(__file__).parent.parent.parent
 load_dotenv(_project_root / ".env")
 
 from backend.agent.followup.tree import get_tree_stats
 from backend.agent.rag.client import close_qdrant_client
-from backend.eval.base import console, ensure_qdrant_collections
-from backend.eval.flow.flow_output import check_qdrant_access, print_summary, save_results
-from backend.eval.flow.flow_runner import run_flow_eval
-from backend.eval.formatting import print_debug_failures
-from backend.eval.langsmith_latency import get_latency_percentages
+from backend.eval.formatting import console, print_debug_failures
+from backend.eval.langsmith import get_latency_percentages
+from backend.eval.output import check_qdrant_access, print_summary, save_results
+from backend.eval.runner import run_flow_eval
 
 # Register cleanup to prevent shutdown errors
 atexit.register(close_qdrant_client)
 
 app = typer.Typer()
+
+
+def ensure_qdrant_collections() -> None:
+    """Ensure Qdrant collections exist, ingesting data if needed."""
+    from backend.agent.rag.client import close_qdrant_client, get_qdrant_client
+    from backend.agent.rag.config import PRIVATE_COLLECTION, QDRANT_PATH
+    from backend.agent.rag.ingest import ingest_private_texts
+
+    QDRANT_PATH.mkdir(parents=True, exist_ok=True)
+    qdrant = get_qdrant_client()
+
+    private_exists = (
+        qdrant.collection_exists(PRIVATE_COLLECTION)
+        and (qdrant.get_collection(PRIVATE_COLLECTION).points_count or 0) > 0
+    )
+
+    if private_exists:
+        print("Qdrant collections ready.")
+        return
+
+    # Close singleton before ingest (ingest needs exclusive access to local storage)
+    close_qdrant_client()
+
+    print("Ingesting private texts into Qdrant...")
+    ingest_private_texts()
+
+    # Verify collection was created (this creates a fresh singleton)
+    qdrant = get_qdrant_client()
+    if not qdrant.collection_exists(PRIVATE_COLLECTION):
+        raise RuntimeError(f"Failed to create collection {PRIVATE_COLLECTION}")
+    count = qdrant.get_collection(PRIVATE_COLLECTION).points_count or 0
+    print(f"  Private collection created ({count} points)")
 
 
 def _run_eval(

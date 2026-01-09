@@ -491,15 +491,15 @@ class TestRouterLLMRouteQuestion:
 
 
 # =============================================================================
-# langsmith_latency.py - lines 30-32, 73-74, 102-126: no langsmith/api key
+# langsmith.py - edge cases
 # =============================================================================
 
 
 class TestLangSmithLatency:
-    """Tests for langsmith_latency.py edge cases."""
+    """Tests for langsmith.py edge cases."""
 
     def test_get_latency_breakdown_no_langsmith(self):
-        """Test get_latency_breakdown returns empty when langsmith not installed (lines 30-32)."""
+        """Test get_latency_breakdown returns empty when langsmith not installed."""
         import sys
 
         # Mock langsmith as not installed
@@ -508,8 +508,8 @@ class TestLangSmithLatency:
             pass
 
     def test_get_latency_breakdown_no_api_key(self):
-        """Test get_latency_breakdown returns empty when no API key (lines 35-37)."""
-        from backend.eval.langsmith_latency import get_latency_breakdown
+        """Test get_latency_breakdown returns empty when no API key."""
+        from backend.eval.langsmith import get_latency_breakdown
 
         with patch.dict("os.environ", {"LANGCHAIN_API_KEY": ""}, clear=False):
             with patch("os.getenv") as mock_getenv:
@@ -519,16 +519,6 @@ class TestLangSmithLatency:
 
                 # Should return empty dict when no API key
                 assert result == {} or isinstance(result, dict)
-
-    def test_print_latency_breakdown_empty_breakdown(self):
-        """Test print_latency_breakdown with empty breakdown (line 98-99)."""
-        from backend.eval.langsmith_latency import print_latency_breakdown
-
-        with patch("backend.eval.langsmith_latency.get_latency_breakdown") as mock_get:
-            mock_get.return_value = {}
-
-            # Should not raise, just return early
-            print_latency_breakdown()
 
 
 # =============================================================================

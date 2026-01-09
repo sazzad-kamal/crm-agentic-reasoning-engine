@@ -4,11 +4,19 @@ from __future__ import annotations
 
 import logging
 import os
+import random
 import sys
+import threading
+import time
 import warnings
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+# Thread-safe singleton instances for RAGAS LLM/embeddings
+_ragas_llm = None
+_ragas_embeddings = None
+_ragas_lock = threading.Lock()
 
 
 # Suppress "Event loop is closed" errors from httpx/aiohttp during cleanup
@@ -134,13 +142,25 @@ if not _is_mock_mode():
 
 
 def _get_ragas_llm() -> Any:
-    """Get LLM for RAGAS using LangChain wrapper."""
-    return LangchainLLMWrapper(ChatOpenAI(model="gpt-4o-mini", temperature=0))
+    """Get shared LLM for RAGAS (thread-safe singleton)."""
+    global _ragas_llm
+    if _ragas_llm is None:
+        with _ragas_lock:
+            if _ragas_llm is None:
+                logger.info("Initializing RAGAS LLM (gpt-4o-mini)")
+                _ragas_llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-4o-mini", temperature=0))
+    return _ragas_llm
 
 
 def _get_ragas_embeddings() -> Any:
-    """Get embeddings for RAGAS using LangChain wrapper."""
-    return LangchainEmbeddingsWrapper(OpenAIEmbeddings(model="text-embedding-3-small"))
+    """Get shared embeddings for RAGAS (thread-safe singleton)."""
+    global _ragas_embeddings
+    if _ragas_embeddings is None:
+        with _ragas_lock:
+            if _ragas_embeddings is None:
+                logger.info("Initializing RAGAS embeddings (text-embedding-3-small)")
+                _ragas_embeddings = LangchainEmbeddingsWrapper(OpenAIEmbeddings(model="text-embedding-3-small"))
+    return _ragas_embeddings
 
 
 def evaluate_single(
@@ -183,85 +203,98 @@ def evaluate_single(
         "retrieved_contexts": [contexts],
     }
 
-    # Get LLM and embeddings factories for thread-safe metric instantiation
-    def llm_factory() -> Any:
-        return _get_ragas_llm()
+    # Get SHARED LLM and embeddings instances (thread-safe singletons)
+    llm = _get_ragas_llm()
+    embeddings = _get_ragas_embeddings()
 
-    def embeddings_factory() -> Any:
-        return _get_ragas_embeddings()
-
-    # Create fresh metric instances per call for thread safety
-    # RAGAS 0.4.x metrics require llm to be passed via llm_factory
+    # All metrics share the same LLM/embeddings instances
     metrics: list[Any] = [
-        AnswerRelevancy(llm=llm_factory(), embeddings=embeddings_factory()),
-        Faithfulness(llm=llm_factory()),
+        AnswerRelevancy(llm=llm, embeddings=embeddings),
+        Faithfulness(llm=llm),
+        ContextPrecision(llm=llm),
     ]
-
-    # Add context precision always (doesn't need reference)
-    metrics.append(ContextPrecision(llm=llm_factory()))
 
     if reference_answer:
         dataset_dict["reference"] = [reference_answer]
         metrics.extend([
-            ContextRecall(llm=llm_factory()),
-            AnswerCorrectness(llm=llm_factory()),
+            ContextRecall(llm=llm),
+            AnswerCorrectness(llm=llm),
         ])
 
     dataset = Dataset.from_dict(dataset_dict)
 
-    try:
-        # Metrics already have llm/embeddings set via constructor (thread-safe)
-        eval_result = evaluate(
-            dataset,
-            metrics=metrics,
-            show_progress=False,  # Suppress tqdm progress bars
-        )
+    # Retry logic with exponential backoff for transient failures
+    max_retries = 3
+    last_error: str | None = None
 
-        # Convert to pandas DataFrame
-        df = eval_result.to_pandas()  # type: ignore[union-attr]
+    for attempt in range(max_retries):
+        try:
+            # Metrics already have llm/embeddings set via constructor (thread-safe)
+            eval_result = evaluate(
+                dataset,
+                metrics=metrics,
+                show_progress=False,  # Suppress tqdm progress bars
+            )
 
-        # Track which metrics returned NaN (internal RAGAS failure)
-        nan_metrics: list[str] = []
+            # Convert to pandas DataFrame
+            df = eval_result.to_pandas()  # type: ignore[union-attr]
 
-        def get_score(name: str) -> float:
-            if name in df.columns and len(df) > 0:
-                val = df[name].iloc[0]
-                if val is None or (isinstance(val, float) and val != val):  # Check for NaN
-                    nan_metrics.append(name)
-                    return 0.0
-                return float(val)
-            return 0.0
+            # Track which metrics returned NaN (internal RAGAS failure)
+            nan_metrics: list[str] = []
 
-        result = {
-            "answer_relevancy": get_score("answer_relevancy"),
-            "faithfulness": get_score("faithfulness"),
-            "context_precision": get_score("context_precision"),
-            "context_recall": get_score("context_recall"),
-            "answer_correctness": get_score("answer_correctness"),
-            "error": None,
-            "nan_metrics": nan_metrics,  # Track which metrics returned NaN
-        }
+            def get_score(name: str) -> float:
+                if name in df.columns and len(df) > 0:
+                    val = df[name].iloc[0]
+                    if val is None or (isinstance(val, float) and val != val):  # Check for NaN
+                        nan_metrics.append(name)
+                        return 0.0
+                    return float(val)
+                return 0.0
 
-        # If any metrics returned NaN, mark as partial failure
-        if nan_metrics:
-            result["error"] = f"RAGAS returned NaN for: {', '.join(nan_metrics)}"
-            logger.debug(f"RAGAS partial failure - NaN metrics: {nan_metrics}")
+            result = {
+                "answer_relevancy": get_score("answer_relevancy"),
+                "faithfulness": get_score("faithfulness"),
+                "context_precision": get_score("context_precision"),
+                "context_recall": get_score("context_recall"),
+                "answer_correctness": get_score("answer_correctness"),
+                "error": None,
+                "nan_metrics": nan_metrics,  # Track which metrics returned NaN
+            }
 
-        return result
-    except Exception as e:
-        error_msg = str(e)
-        logger.warning(f"RAGAS evaluation failed: {error_msg}")
-        # All metrics failed
-        all_metrics = ["answer_relevancy", "faithfulness", "context_precision", "context_recall", "answer_correctness"]
-        return {
-            "answer_relevancy": 0.0,
-            "faithfulness": 0.0,
-            "context_precision": 0.0,
-            "context_recall": 0.0,
-            "answer_correctness": 0.0,
-            "error": error_msg,
-            "nan_metrics": all_metrics,  # All metrics failed
-        }
+            # If any metrics returned NaN, retry (might be transient JSON parsing failure)
+            if nan_metrics and attempt < max_retries - 1:
+                wait_time = (2 ** attempt) + random.uniform(0, 1)
+                logger.debug(f"RAGAS returned NaN for {nan_metrics}, retrying in {wait_time:.1f}s (attempt {attempt + 1}/{max_retries})")
+                time.sleep(wait_time)
+                continue
+
+            # If any metrics returned NaN on final attempt, mark as partial failure
+            if nan_metrics:
+                result["error"] = f"RAGAS returned NaN for: {', '.join(nan_metrics)}"
+                logger.debug(f"RAGAS partial failure - NaN metrics: {nan_metrics}")
+
+            return result
+
+        except Exception as e:
+            last_error = str(e)
+            if attempt < max_retries - 1:
+                wait_time = (2 ** attempt) + random.uniform(0, 1)
+                logger.debug(f"RAGAS evaluation failed: {last_error}, retrying in {wait_time:.1f}s (attempt {attempt + 1}/{max_retries})")
+                time.sleep(wait_time)
+            else:
+                logger.warning(f"RAGAS evaluation failed after {max_retries} attempts: {last_error}")
+
+    # All retries exhausted
+    all_metrics = ["answer_relevancy", "faithfulness", "context_precision", "context_recall", "answer_correctness"]
+    return {
+        "answer_relevancy": 0.0,
+        "faithfulness": 0.0,
+        "context_precision": 0.0,
+        "context_recall": 0.0,
+        "answer_correctness": 0.0,
+        "error": last_error or "RAGAS evaluation failed",
+        "nan_metrics": all_metrics,  # All metrics failed
+    }
 
 
 __all__ = ["evaluate_single"]

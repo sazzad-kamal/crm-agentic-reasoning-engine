@@ -1,4 +1,4 @@
-"""Output and display functions for flow evaluation."""
+"""Output and display functions for evaluation."""
 
 from __future__ import annotations
 
@@ -8,8 +8,7 @@ from pathlib import Path
 
 from rich.table import Table
 
-from backend.eval.base import console, format_percentage
-from backend.eval.formatting import build_eval_table
+from backend.eval.formatting import build_eval_table, console, format_percentage
 from backend.eval.models import (
     SLO_ACCOUNT_PRECISION,
     SLO_ACCOUNT_RECALL,
@@ -108,7 +107,7 @@ def print_summary(results: FlowEvalResults, eval_mode: str = "both") -> bool:
             ],
         ),
         (
-            f"Fetch (n={results.account_sample_count})" if results.account_sample_count > 0 and eval_mode != "pipeline" else "Fetch",
+            f"Fetch ({results.account_sample_count}/{results.rag_invoked_count})" if results.rag_invoked_count > 0 and eval_mode != "pipeline" else "Fetch",
             [
                 (
                     "  Precision",

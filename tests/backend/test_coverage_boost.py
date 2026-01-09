@@ -188,8 +188,7 @@ class TestLookupCompanySuccessPath:
 
 
 # =============================================================================
-# Tests for backend/eval/langsmith_latency.py (53% -> 98%)
-# Lines: 32-34, 99-126, 145-176
+# Tests for backend/eval/langsmith.py
 # =============================================================================
 
 
@@ -198,18 +197,18 @@ class TestLangsmithLatency:
 
     def test_get_latency_breakdown_no_api_key(self):
         """Test get_latency_breakdown when API key not set."""
-        from backend.eval import langsmith_latency
+        from backend.eval import langsmith
 
         with patch.dict("os.environ", {"LANGCHAIN_API_KEY": ""}, clear=False):
-            with patch.object(langsmith_latency, "os") as mock_os:
+            with patch.object(langsmith, "os") as mock_os:
                 mock_os.getenv.return_value = None
-                result = langsmith_latency.get_latency_breakdown()
+                result = langsmith.get_latency_breakdown()
 
         assert result == {}
 
     def test_get_latency_breakdown_with_runs(self):
         """Test get_latency_breakdown with mock LangSmith runs."""
-        from backend.eval import langsmith_latency
+        from backend.eval import langsmith
         from datetime import datetime, timedelta
 
         mock_runs = []
@@ -231,12 +230,12 @@ class TestLangsmithLatency:
         mock_client_class = MagicMock(return_value=mock_client_instance)
 
         # Patch the langsmith module
-        mock_langsmith = MagicMock()
-        mock_langsmith.Client = mock_client_class
+        mock_langsmith_mod = MagicMock()
+        mock_langsmith_mod.Client = mock_client_class
 
         with patch.dict("os.environ", {"LANGCHAIN_API_KEY": "test-key"}), \
-             patch.dict(sys.modules, {"langsmith": mock_langsmith}):
-            result = langsmith_latency.get_latency_breakdown()
+             patch.dict(sys.modules, {"langsmith": mock_langsmith_mod}):
+            result = langsmith.get_latency_breakdown()
 
         assert "route" in result
         assert result["route"]["count"] == 1
@@ -244,64 +243,64 @@ class TestLangsmithLatency:
 
     def test_get_latency_breakdown_client_error(self):
         """Test get_latency_breakdown when client throws error."""
-        from backend.eval import langsmith_latency
+        from backend.eval import langsmith
 
         mock_client_instance = MagicMock()
         mock_client_instance.list_runs.side_effect = Exception("API error")
 
         mock_client_class = MagicMock(return_value=mock_client_instance)
 
-        mock_langsmith = MagicMock()
-        mock_langsmith.Client = mock_client_class
+        mock_langsmith_mod = MagicMock()
+        mock_langsmith_mod.Client = mock_client_class
 
         with patch.dict("os.environ", {"LANGCHAIN_API_KEY": "test-key"}), \
-             patch.dict(sys.modules, {"langsmith": mock_langsmith}):
-            result = langsmith_latency.get_latency_breakdown()
+             patch.dict(sys.modules, {"langsmith": mock_langsmith_mod}):
+            result = langsmith.get_latency_breakdown()
 
         assert result == {}
 
     def test_get_latency_breakdown_no_runs(self):
         """Test get_latency_breakdown when no runs found."""
-        from backend.eval import langsmith_latency
+        from backend.eval import langsmith
 
         mock_client_instance = MagicMock()
         mock_client_instance.list_runs.return_value = []
 
         mock_client_class = MagicMock(return_value=mock_client_instance)
 
-        mock_langsmith = MagicMock()
-        mock_langsmith.Client = mock_client_class
+        mock_langsmith_mod = MagicMock()
+        mock_langsmith_mod.Client = mock_client_class
 
         with patch.dict("os.environ", {"LANGCHAIN_API_KEY": "test-key"}), \
-             patch.dict(sys.modules, {"langsmith": mock_langsmith}):
-            result = langsmith_latency.get_latency_breakdown()
+             patch.dict(sys.modules, {"langsmith": mock_langsmith_mod}):
+            result = langsmith.get_latency_breakdown()
 
         assert result == {}
 
     def test_get_latency_percentages_empty(self):
         """Test get_latency_percentages with no breakdown."""
-        from backend.eval import langsmith_latency
+        from backend.eval import langsmith
 
-        with patch.object(langsmith_latency, "get_latency_breakdown", return_value={}):
-            result = langsmith_latency.get_latency_percentages()
+        with patch.object(langsmith, "get_latency_breakdown", return_value={}):
+            result = langsmith.get_latency_percentages()
 
         assert result == {}
 
     def test_get_latency_percentages_no_agent_nodes(self):
         """Test get_latency_percentages when no agent nodes found."""
-        from backend.eval import langsmith_latency
+        from backend.eval import langsmith
 
         # Return data with non-agent nodes
-        with patch.object(langsmith_latency, "get_latency_breakdown", return_value={
+        with patch.object(langsmith, "get_latency_breakdown", return_value={
             "some_other_node": {"avg_ms": 100}
         }):
-            result = langsmith_latency.get_latency_percentages()
+            result = langsmith.get_latency_percentages()
 
         assert result == {}
 
     def test_get_latency_percentages_success(self):
         """Test get_latency_percentages with valid data."""
-        from backend.eval import langsmith_latency
+        from backend.eval import langsmith
 
         breakdown = {
             "route": {"avg_ms": 100},
@@ -310,8 +309,8 @@ class TestLangsmithLatency:
             "followup": {"avg_ms": 300},
         }
 
-        with patch.object(langsmith_latency, "get_latency_breakdown", return_value=breakdown):
-            result = langsmith_latency.get_latency_percentages()
+        with patch.object(langsmith, "get_latency_breakdown", return_value=breakdown):
+            result = langsmith.get_latency_percentages()
 
         assert "routing" in result
         assert "retrieval" in result
@@ -322,49 +321,17 @@ class TestLangsmithLatency:
 
     def test_get_latency_percentages_zero_total(self):
         """Test get_latency_percentages when all avg_ms are 0."""
-        from backend.eval import langsmith_latency
+        from backend.eval import langsmith
 
         breakdown = {
             "route": {"avg_ms": 0},
             "fetch_account": {"avg_ms": 0},
         }
 
-        with patch.object(langsmith_latency, "get_latency_breakdown", return_value=breakdown):
-            result = langsmith_latency.get_latency_percentages()
+        with patch.object(langsmith, "get_latency_breakdown", return_value=breakdown):
+            result = langsmith.get_latency_percentages()
 
         assert result == {}
-
-    def test_print_latency_breakdown_no_data(self):
-        """Test print_latency_breakdown with no data."""
-        from backend.eval import langsmith_latency
-
-        with patch.object(langsmith_latency, "get_latency_breakdown", return_value={}):
-            # Should not raise
-            langsmith_latency.print_latency_breakdown()
-
-    def test_print_latency_breakdown_no_agent_nodes(self):
-        """Test print_latency_breakdown when no agent nodes found."""
-        from backend.eval import langsmith_latency
-
-        with patch.object(langsmith_latency, "get_latency_breakdown", return_value={
-            "non_agent_node": {"avg_ms": 100, "count": 1, "min_ms": 50, "max_ms": 150}
-        }):
-            # Should not raise
-            langsmith_latency.print_latency_breakdown()
-
-    def test_print_latency_breakdown_success(self):
-        """Test print_latency_breakdown with valid data."""
-        from backend.eval import langsmith_latency
-
-        breakdown = {
-            "route": {"avg_ms": 100, "count": 10, "min_ms": 50, "max_ms": 200, "total_ms": 1000},
-            "answer": {"avg_ms": 500, "count": 10, "min_ms": 300, "max_ms": 800, "total_ms": 5000},
-        }
-
-        with patch.object(langsmith_latency, "get_latency_breakdown", return_value=breakdown), \
-             patch.object(langsmith_latency.console, "print"):
-            # Should not raise
-            langsmith_latency.print_latency_breakdown()
 
 
 # =============================================================================

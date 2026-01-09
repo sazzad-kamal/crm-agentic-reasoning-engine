@@ -94,6 +94,7 @@ class AgentState(TypedDict, total=False):
     # Account RAG output (private CRM text: notes, attachments)
     account_context_answer: str
     account_context_sources: list[Source]
+    account_rag_invoked: bool  # True if RAG was actually called (even if empty/error)
 
     # Sources accumulated from all steps (using reducer to append)
     sources: Annotated[list[Source], add]

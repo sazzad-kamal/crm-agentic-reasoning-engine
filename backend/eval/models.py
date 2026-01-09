@@ -4,7 +4,6 @@ Data models for agent evaluation results.
 
 from dataclasses import dataclass, field
 
-
 # =============================================================================
 # Composite Score Helpers
 # =============================================================================

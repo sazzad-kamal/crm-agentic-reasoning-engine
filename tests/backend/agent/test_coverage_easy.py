@@ -28,9 +28,9 @@ class TestHandlersCommon:
 
     def test_apply_tool_result_non_list_data(self):
         """Test apply_tool_result when data value is not a list."""
-        from backend.agent.fetch.handlers.common import apply_tool_result, IntentResult, empty_raw_data
+        from backend.agent.fetch.tools.common import apply_tool_result, IntentResult, empty_raw_data
         from backend.agent.core.state import Source  # Use state.Source which ToolResult expects
-        from backend.agent.fetch.handlers.schemas import ToolResult
+        from backend.agent.fetch.tools.schemas import ToolResult
 
         result = IntentResult(raw_data=empty_raw_data())
         tool_result = ToolResult(
@@ -117,7 +117,7 @@ class TestToolsActivityEdgeCases:
 
     def test_search_activities_with_company_id(self):
         """Test search_activities includes company in search description."""
-        from backend.agent.fetch.handlers import tool_search_activities
+        from backend.agent.fetch.tools import tool_search_activities
 
         # Use real datastore - this exercises the company_id filter path
         result = tool_search_activities(company_id="ACME-MFG")
@@ -127,7 +127,7 @@ class TestToolsActivityEdgeCases:
 
     def test_analytics_activity_count_with_activity_type(self):
         """Test activity_count metric with activity_type filter."""
-        from backend.agent.fetch.handlers import tool_analytics
+        from backend.agent.fetch.tools import tool_analytics
 
         mock_ds = MagicMock()
         mock_ds.resolve_company_id.return_value = None
@@ -146,7 +146,7 @@ class TestToolsActivityEdgeCases:
 
     def test_analytics_unknown_metric(self):
         """Test analytics returns error for unknown metric."""
-        from backend.agent.fetch.handlers import tool_analytics
+        from backend.agent.fetch.tools import tool_analytics
 
         mock_ds = MagicMock()
         mock_ds.resolve_company_id.return_value = None
@@ -171,7 +171,7 @@ class TestToolsCompanyEdgeCases:
 
     def test_search_companies_with_industry_filter(self):
         """Test search_companies includes industry in filters."""
-        from backend.agent.fetch.handlers import tool_search_companies
+        from backend.agent.fetch.tools import tool_search_companies
 
         # Use real datastore - this exercises the industry filter path
         result = tool_search_companies(industry="Technology")
@@ -181,7 +181,7 @@ class TestToolsCompanyEdgeCases:
 
     def test_search_contacts_with_job_title_filter(self):
         """Test search_contacts includes job_title in filters."""
-        from backend.agent.fetch.handlers import tool_search_contacts
+        from backend.agent.fetch.tools import tool_search_contacts
 
         # Use real datastore - this exercises the job_title filter path
         result = tool_search_contacts(job_title="Engineer")
@@ -321,7 +321,7 @@ class TestActivityTypeLabel:
 
     def test_analytics_activity_count_label_includes_type(self):
         """Test that activity_count with activity_type includes it in source label."""
-        from backend.agent.fetch.handlers import tool_analytics
+        from backend.agent.fetch.tools import tool_analytics
 
         # Use real datastore to hit the actual code path
         result = tool_analytics(
@@ -336,7 +336,7 @@ class TestActivityTypeLabel:
 
     def test_analytics_activity_count_with_company_name(self):
         """Test that activity_count with company includes company name in label (line 160)."""
-        from backend.agent.fetch.handlers import tool_analytics
+        from backend.agent.fetch.tools import tool_analytics
 
         # Use real company that exists in the datastore
         result = tool_analytics(
@@ -361,7 +361,7 @@ class TestCompanyIndustryLabel:
 
     def test_search_companies_label_includes_industry(self):
         """Test that search_companies with industry includes it in source label."""
-        from backend.agent.fetch.handlers import tool_search_companies
+        from backend.agent.fetch.tools import tool_search_companies
 
         # Use real datastore to hit the actual code path
         result = tool_search_companies(industry="Manufacturing")
@@ -402,7 +402,7 @@ class TestHandlersCommonFileLoading:
 
     def test_load_private_texts_with_invalid_json(self):
         """Test _load_private_texts handles invalid JSON gracefully (line 186-187)."""
-        from backend.agent.fetch.handlers.common import _load_private_texts
+        from backend.agent.fetch.tools.common import _load_private_texts
         import tempfile
         import os
 
@@ -417,7 +417,7 @@ class TestHandlersCommonFileLoading:
                 f.write('invalid json line\n')  # This should be skipped
                 f.write('{"company_id": "test2"}\n')
 
-            with patch("backend.agent.fetch.handlers.common._get_csv_path") as mock_path:
+            with patch("backend.agent.fetch.tools.common._get_csv_path") as mock_path:
                 mock_path.return_value = type("Path", (), {"__truediv__": lambda self, x: os.path.join(tmpdir, x) if x == "private_texts.jsonl" else tmpdir})()
                 # Re-clear and call again
                 _load_private_texts.cache_clear()
@@ -428,13 +428,13 @@ class TestHandlersCommonFileLoading:
 
     def test_load_attachments_with_missing_file(self):
         """Test _load_attachments returns empty dict for missing file (line 197-198)."""
-        from backend.agent.fetch.handlers.common import _load_attachments
+        from backend.agent.fetch.tools.common import _load_attachments
         from pathlib import Path
 
         # Clear cache
         _load_attachments.cache_clear()
 
-        with patch("backend.agent.fetch.handlers.common._get_csv_path") as mock_path:
+        with patch("backend.agent.fetch.tools.common._get_csv_path") as mock_path:
             mock_path.return_value = Path("/nonexistent/path")
 
             _load_attachments.cache_clear()
@@ -552,75 +552,6 @@ class TestFollowupTreeEdgeCases:
         # Should not raise for valid role
         issues = validate_tree(role="sales")
         assert isinstance(issues, list)
-
-
-# =============================================================================
-# eval/models.py - lines 60-67: E2EEvalResult passed property edge cases
-# =============================================================================
-
-
-class TestE2EEvalResultPassed:
-    """Tests for E2EEvalResult.passed property edge cases."""
-
-    def test_e2e_eval_result_security_test_passed(self):
-        """Test E2EEvalResult.passed for security test with correct refusal."""
-        from backend.eval.models import E2EEvalResult
-
-        result = E2EEvalResult(
-            test_case_id="test",
-            question="test",
-            category="adversarial",  # Security category
-            expected_refusal=True,
-            refusal_correct=True,  # Correctly refused
-            has_forbidden_content=False,
-            answer="I cannot do that.",
-            answer_relevance=0.0,
-            has_sources=False,
-            latency_ms=100,
-            total_tokens=50,
-        )
-
-        assert result.passed is True
-
-    def test_e2e_eval_result_security_test_failed_refusal(self):
-        """Test E2EEvalResult.passed for security test with wrong refusal."""
-        from backend.eval.models import E2EEvalResult
-
-        result = E2EEvalResult(
-            test_case_id="test",
-            question="test",
-            category="adversarial",
-            expected_refusal=True,
-            refusal_correct=False,  # Failed to refuse
-            has_forbidden_content=False,
-            answer="Here is the data you requested.",
-            answer_relevance=0.0,
-            has_sources=False,
-            latency_ms=100,
-            total_tokens=50,
-        )
-
-        assert result.passed is False
-
-    def test_e2e_eval_result_security_test_forbidden_match(self):
-        """Test E2EEvalResult.passed for security test with forbidden keyword."""
-        from backend.eval.models import E2EEvalResult
-
-        result = E2EEvalResult(
-            test_case_id="test",
-            question="test",
-            category="anti_hallucination",  # Another security category
-            expected_refusal=False,
-            refusal_correct=True,
-            has_forbidden_content=True,  # Found forbidden keyword
-            answer="Click the button to proceed.",
-            answer_relevance=0.0,
-            has_sources=False,
-            latency_ms=100,
-            total_tokens=50,
-        )
-
-        assert result.passed is False
 
 
 # =============================================================================

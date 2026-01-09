@@ -35,7 +35,7 @@ class TestCompanyTools:
 
     def test_tool_company_lookup_not_found(self):
         """Test tool_company_lookup when company not found."""
-        from backend.agent.fetch.handlers import tool_company_lookup
+        from backend.agent.fetch.tools import tool_company_lookup
 
         mock_ds = MagicMock()
         mock_ds.resolve_company_id.return_value = None
@@ -49,7 +49,7 @@ class TestCompanyTools:
 
     def test_tool_company_lookup_found_no_data(self):
         """Test tool_company_lookup when ID resolved but no data."""
-        from backend.agent.fetch.handlers import tool_company_lookup
+        from backend.agent.fetch.tools import tool_company_lookup
 
         mock_ds = MagicMock()
         mock_ds.resolve_company_id.return_value = "COMP001"
@@ -62,7 +62,7 @@ class TestCompanyTools:
 
     def test_tool_search_contacts_empty_results(self):
         """Test tool_search_contacts with no results."""
-        from backend.agent.fetch.handlers import tool_search_contacts
+        from backend.agent.fetch.tools import tool_search_contacts
 
         mock_ds = MagicMock()
         mock_ds.search_contacts.return_value = []

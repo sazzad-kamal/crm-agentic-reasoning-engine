@@ -1,23 +1,23 @@
 """Schemas for the route module."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class RouterResult(BaseModel):
-    """Result from the router's analysis."""
+    """Result from the router's LLM analysis.
 
-    mode_used: str  # "data" only (CRM data queries)
-    company_id: str | None = None
-    company_name_query: str | None = None  # If we need to resolve a name
-    days: int = 90
-    intent: str = "general"  # "company_status", "renewals", "pipeline", "general"
-    # Role-based owner for filtering (set from starter detection)
-    owner: str | None = None  # e.g., "jsmith" for sales rep, "amartin" for CSM
-    # LLM router additions (merged routing + understanding)
-    query_expansion: str | None = None  # LLM-expanded version of query
-    llm_confidence: float | None = None  # Routing confidence (0-1)
-    key_entities: list[str] = Field(default_factory=list)  # Extracted entities
-    action_type: str | None = None  # "retrieve", "summarize", "compare", "analyze"
+    Contains intent classification and extracted parameters.
+    """
+
+    company_id: str | None = None  # Resolved from LLM's company_name
+    intent: str = "pipeline_summary"  # From LLM (15 intents)
+    # Extracted parameters from LLM
+    segment: str | None = None  # Enterprise, Mid-Market, SMB
+    industry: str | None = None  # Software, Manufacturing, etc.
+    role: str | None = None  # Decision Maker, Champion, Executive
+    activity_type: str | None = None  # Call, Email, Meeting, Task
+    analytics_metric: str | None = None  # contact_breakdown, activity_count, etc.
+    analytics_group_by: str | None = None  # role, type, stage
 
 
 __all__ = ["RouterResult"]

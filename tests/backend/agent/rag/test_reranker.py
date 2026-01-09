@@ -22,7 +22,7 @@ class TestRerankerConfig:
 
         assert RERANKER_MODEL == "cross-encoder/ms-marco-MiniLM-L-6-v2"
         assert RERANKER_TOP_K == 5
-        assert RETRIEVAL_TOP_K == 15
+        assert RETRIEVAL_TOP_K == 30  # Over-retrieve before reranking
         assert isinstance(RERANKER_ENABLED, bool)
 
 
@@ -111,7 +111,7 @@ class TestGetReranker:
     """Tests for _get_reranker singleton."""
 
     def test_get_reranker_caching(self):
-        """Test that _get_reranker uses caching (lru_cache)."""
+        """Test that _get_reranker uses singleton pattern (thread-safe global)."""
         mock_rerank_cls = MagicMock()
         mock_instance = MagicMock()
         mock_rerank_cls.return_value = mock_instance
@@ -123,10 +123,10 @@ class TestGetReranker:
             "sys.modules",
             {"llama_index.core.postprocessor": mock_postprocessor},
         ):
-            # Clear the cache first
+            # Reset the global singleton
             from backend.agent.rag import reranker
 
-            reranker._get_reranker.cache_clear()
+            reranker._reranker = None
 
             # First call should create instance
             result1 = reranker._get_reranker()
@@ -134,8 +134,11 @@ class TestGetReranker:
             result2 = reranker._get_reranker()
 
             assert result1 is result2
-            # Constructor should only be called once due to caching
+            # Constructor should only be called once due to singleton
             assert mock_rerank_cls.call_count == 1
+
+            # Clean up
+            reranker._reranker = None
 
 
 class TestToolAccountRagWithReranker:

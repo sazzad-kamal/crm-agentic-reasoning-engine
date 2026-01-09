@@ -49,7 +49,7 @@ class TestAuditLoggerEdgeCases:
                 # Should not raise, just log warning
                 logger.log_query(
                     question="test",
-                    mode_used="data",
+                    
                     company_id="COMP001",
                     latency_ms=100,
                     source_count=3,

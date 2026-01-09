@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from backend.agent.core.state import Source
 from backend.agent.route.schemas import RouterResult
-from backend.agent.fetch.handlers.schemas import ToolResult
+from backend.agent.fetch.tools.schemas import ToolResult
 from backend.api.chat import ChatRequest
 
 
@@ -51,41 +51,27 @@ class TestChatRequest:
 
 
 class TestRouterResult:
-    """Tests for RouterResult model."""
+    """Tests for RouterResult model (2 fields: company_id, intent)."""
 
     def test_router_result_defaults(self):
         """Test RouterResult with minimal fields."""
-        result = RouterResult(mode_used="docs")
-        assert result.mode_used == "docs"
+        result = RouterResult()
         assert result.company_id is None
-        assert result.company_name_query is None
-        assert result.days == 90  # default
-        assert result.intent == "general"  # default
-        assert result.key_entities == []  # default
+        assert result.intent == "pipeline_summary"  # default
 
     def test_router_result_full(self):
         """Test RouterResult with all fields."""
         result = RouterResult(
-            mode_used="data",
             company_id="C001",
-            company_name_query="Acme",
-            days=30,
-            intent="company_status",
-            query_expansion="Tell me about Acme Corp's status",
-            llm_confidence=0.95,
-            key_entities=["Acme", "status"],
-            action_type="retrieve",
+            intent="company",
         )
         assert result.company_id == "C001"
-        assert result.days == 30
-        assert result.intent == "company_status"
-        assert result.llm_confidence == 0.95
-        assert len(result.key_entities) == 2
+        assert result.intent == "company"
 
     def test_router_result_intent_values(self):
         """Test RouterResult with different intents."""
-        for intent in ["company_status", "renewals", "pipeline", "docs", "general"]:
-            result = RouterResult(mode_used="data", intent=intent)
+        for intent in ["company", "renewals", "pipeline_summary", "deals_at_risk", "contacts"]:
+            result = RouterResult(intent=intent)
             assert result.intent == intent
 
 

@@ -5,10 +5,10 @@ Each handler fetches CRM data for a specific intent type.
 Follows Open/Closed principle - add new intents without modifying fetch node.
 
 Usage:
-    from backend.agent.fetch.handlers import dispatch_intent, IntentContext, IntentResult
+    from backend.agent.fetch.tools import dispatch_intent, IntentContext, IntentResult
 """
 
-from backend.agent.fetch.handlers.activity import (
+from backend.agent.fetch.tools.activity import (
     handle_activities,
     handle_analytics,
     handle_fallback,
@@ -18,26 +18,26 @@ from backend.agent.fetch.handlers.activity import (
     tool_recent_history,
     tool_search_activities,
 )
-from backend.agent.fetch.handlers.common import (
+from backend.agent.fetch.tools.common import (
     IntentContext,
     IntentResult,
     ToolResult,
     make_sources,
+    tool_company_lookup,
     with_datastore,
 )
-from backend.agent.fetch.handlers.company import (
+from backend.agent.fetch.tools.company import (
     handle_attachments,
     handle_company_search,
     handle_company_status,
     handle_contacts,
     tool_accounts_needing_attention,
     # Tools
-    tool_company_lookup,
     tool_search_attachments,
     tool_search_companies,
     tool_search_contacts,
 )
-from backend.agent.fetch.handlers.pipeline import (
+from backend.agent.fetch.tools.pipeline import (
     handle_deals_at_risk,
     handle_forecast,
     handle_forecast_accuracy,
@@ -54,27 +54,21 @@ from backend.agent.fetch.handlers.pipeline import (
 )
 
 # Intent dispatcher - maps intent strings to handler functions
-# Explicit mappings for all router intents (no implicit fallthrough)
+# 11 intents → 11 handlers (1:1 mapping)
 INTENT_HANDLERS = {
-    # Aggregate queries (no company_id required)
+    # Company-specific (triggers RAG in parallel)
+    "company": handle_company_status,
+    # Aggregate/global queries
     "pipeline_summary": handle_pipeline_summary,
     "renewals": handle_renewals,
-    "deals_at_risk": handle_deals_at_risk,  # At-risk/stalled deals
-    "forecast": handle_forecast,  # Pipeline projections
-    "forecast_accuracy": handle_forecast_accuracy,  # Win rate metrics
+    "deals_at_risk": handle_deals_at_risk,
+    "forecast": handle_forecast,
+    "forecast_accuracy": handle_forecast_accuracy,
     "activities": handle_activities,
+    "contacts": handle_contacts,
     "company_search": handle_company_search,
     "attachments": handle_attachments,
-    "analytics": handle_analytics,  # Counts, breakdowns, aggregations
-    # Contact queries
-    "contact_lookup": handle_contacts,
-    "contact_search": handle_contacts,
-    # Company-specific queries (all route to handle_company_status)
-    "company_status": handle_company_status,
-    "pipeline": handle_company_status,
-    "history": handle_company_status,  # Explicit: was implicit fallthrough
-    "account_context": handle_company_status,  # Explicit: triggers Account RAG in parallel node
-    "general": handle_company_status,  # Explicit: fallback for ambiguous queries
+    "analytics": handle_analytics,
 }
 
 
@@ -96,8 +90,7 @@ def dispatch_intent(intent: str, ctx: IntentContext) -> IntentResult:
     Simple dict lookup with one override: company-specific queries get full context.
     """
     # If there's a company and intent isn't a global aggregate, fetch full company context
-    has_company = ctx.resolved_company_id or ctx.company_name_query
-    if has_company and intent not in _GLOBAL_INTENTS:
+    if ctx.resolved_company_id and intent not in _GLOBAL_INTENTS:
         return handle_company_status(ctx)
 
     # Simple dict lookup with fallback

@@ -229,7 +229,7 @@ def mock_llm():
             intent = "company_status"
 
         return RouterResult(
-            mode_used="data",
+            
             company_id=None,
             days=30,
             intent=intent,

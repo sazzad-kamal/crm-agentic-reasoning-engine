@@ -11,10 +11,7 @@ logger = logging.getLogger(__name__)
 
 # Intents that trigger Account RAG for unstructured text search
 ACCOUNT_RAG_INTENTS = frozenset({
-    "account_context",
-    "company_status",
-    "history",
-    "pipeline",
+    "company",  # All company-specific queries trigger RAG
 })
 
 
@@ -22,7 +19,7 @@ def fetch_account_node(state: AgentState) -> AgentState:
     """Fetch account context via RAG (conditional on intent and company_id)."""
     start_time = time.time()
 
-    intent = state.get("intent", "general")
+    intent = state.get("intent", "pipeline_summary")
     company_id = state.get("resolved_company_id")
     question = state.get("question", "")
 

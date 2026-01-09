@@ -21,7 +21,7 @@ from backend.agent.answer.formatters import (
     format_pipeline_section,
     format_renewals_section,
 )
-from backend.agent.followup.tree import get_expected_answer, get_paths_for_role
+from backend.agent.followup.tree import get_expected_answer, get_expected_intent, get_paths_for_role
 from backend.eval.formatting import console, print_eval_header
 from backend.eval.judge import evaluate_single
 from backend.eval.models import FlowEvalResults, FlowResult, FlowStepResult
@@ -254,6 +254,12 @@ def test_single_question(
                         nan_metrics = pipeline_result.get("nan_metrics", [])
                         ragas_metrics_failed += sum(1 for m in nan_metrics if m in ("answer_relevancy", "faithfulness", "answer_correctness"))
 
+        # Intent classification validation
+        expected_intent = get_expected_intent(question)
+        # Only mark correct if we have an expected intent and it matches actual
+        # If no expected intent in our mapping, we can't validate (treat as correct)
+        intent_correct = (expected_intent is None) or (actual_intent == expected_intent)
+
         return FlowStepResult(
             question=question,
             answer=answer,
@@ -264,7 +270,8 @@ def test_single_question(
             actual_company_id=actual_company_id,
             company_correct=company_correct,
             actual_intent=actual_intent,
-            intent_correct=actual_intent is not None,
+            expected_intent=expected_intent,
+            intent_correct=intent_correct,
             relevance_score=relevance,
             faithfulness_score=faithfulness,
             answer_correctness_score=answer_correctness,

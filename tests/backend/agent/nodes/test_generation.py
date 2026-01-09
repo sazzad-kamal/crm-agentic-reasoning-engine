@@ -209,7 +209,7 @@ class TestFollowupNode:
         state = {
             "question": "Tell me about Acme",
             "messages": [],
-            "mode_used": "data",
+            "intent": "data",
             "company_data": {"found": True, "company": {"name": "Acme Corp"}},
             "raw_data": {"contacts": [], "activities": []},
         }
@@ -253,7 +253,7 @@ class TestFollowupNode:
         state = {
             "question": "Test",
             "messages": [],
-            "mode_used": "auto",
+            "intent": "auto",
             "company_data": None,
             "raw_data": {},
         }
@@ -280,7 +280,7 @@ class TestFollowupNode:
         state = {
             "question": "Test",
             "messages": [],
-            "mode_used": "data",
+            "intent": "data",
             "company_data": None,
             "raw_data": {},
         }
@@ -302,7 +302,7 @@ class TestFollowupNode:
         state = {
             "question": "Test",
             "messages": [],
-            "mode_used": "auto",
+            "intent": "auto",
             "company_data": None,
             "raw_data": {},
         }
@@ -325,7 +325,7 @@ class TestFollowupNode:
         state = {
             "question": "Test",
             "messages": [],
-            "mode_used": "auto",
+            "intent": "auto",
             "company_data": None,
             "raw_data": {},
         }
@@ -348,7 +348,7 @@ class TestFollowupNode:
         state = {
             "question": "Tell me about Acme",
             "messages": [],
-            "mode_used": "data",
+            "intent": "data",
             "company_data": {
                 "found": True,
                 "company": {"name": "Acme Manufacturing", "company_id": "ACME-001"},
@@ -374,7 +374,7 @@ class TestFollowupNode:
         state = {
             "question": "Test",
             "messages": [],
-            "mode_used": "data",
+            "intent": "data",
             "company_data": None,
             "raw_data": {
                 "contacts": [{"name": "John"}, {"name": "Jane"}],
@@ -404,7 +404,7 @@ class TestFollowupNode:
         state = {
             "question": "Test",
             "messages": [],
-            "mode_used": "auto",
+            "intent": "auto",
             "company_data": None,
             "raw_data": {},
         }

@@ -40,18 +40,16 @@ class TestGraphIntegration:
     @pytest.mark.integration
     @patch("backend.agent.answer.llm.call_answer_chain")
     @patch("backend.agent.route.router.route_question")
-    @patch("backend.agent.fetch.handlers.company.tool_company_lookup")
-    def test_graph_execution_data_mode(self, mock_company, mock_route, mock_answer_chain):
-        """Test graph execution in data mode."""
+    @patch("backend.agent.fetch.tools.common.tool_company_lookup")
+    def test_graph_execution(self, mock_company, mock_route, mock_answer_chain):
+        """Test graph execution with company query."""
         from backend.agent.core import RouterResult
         from backend.agent.core.state import Source  # Use state.Source for ToolResult
-        from backend.agent.fetch.handlers.schemas import ToolResult
+        from backend.agent.fetch.tools.schemas import ToolResult
 
         mock_route.return_value = RouterResult(
-            mode_used="data",
             company_id="ACME-MFG",
-            intent="company_status",
-            days=90,
+            intent="company",
         )
         mock_company.return_value = ToolResult(
             data={"company_id": "ACME-MFG", "name": "Acme Manufacturing"},
@@ -61,4 +59,4 @@ class TestGraphIntegration:
 
         result = _invoke_agent("What's the status of Acme?")
 
-        assert "mode_used" in result
+        assert "answer" in result

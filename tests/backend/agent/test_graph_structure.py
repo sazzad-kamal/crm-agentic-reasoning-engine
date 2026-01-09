@@ -65,18 +65,22 @@ class TestIntentHandlers:
     """Tests for explicit intent handler mappings."""
 
     def test_all_router_intents_mapped(self):
-        """Verify all possible router intents have explicit handlers."""
-        from backend.agent.fetch.handlers import INTENT_HANDLERS
+        """Verify all 11 router intents have explicit handlers."""
+        from backend.agent.fetch.tools import INTENT_HANDLERS
 
-        # All intents that the router can return (from llm_router.py)
+        # All 11 intents that the router can return
         router_intents = {
-            "company_status",
+            "company",
             "renewals",
-            "pipeline",
+            "pipeline_summary",
+            "deals_at_risk",
+            "forecast",
+            "forecast_accuracy",
             "activities",
-            "history",
-            "account_context",
-            "general",
+            "contacts",
+            "company_search",
+            "attachments",
+            "analytics",
         }
 
         # All intents should be in INTENT_HANDLERS
@@ -85,39 +89,38 @@ class TestIntentHandlers:
                 f"Intent '{intent}' not explicitly mapped in INTENT_HANDLERS"
             )
 
-    def test_account_context_intent_mapped(self):
-        """Verify account_context intent is explicitly mapped."""
-        from backend.agent.fetch.handlers import INTENT_HANDLERS
+    def test_company_intent_mapped(self):
+        """Verify company intent is mapped to handle_company_status."""
+        from backend.agent.fetch.tools import INTENT_HANDLERS
 
-        assert "account_context" in INTENT_HANDLERS
-        # It should map to handle_company_status
-        handler = INTENT_HANDLERS["account_context"]
+        assert "company" in INTENT_HANDLERS
+        handler = INTENT_HANDLERS["company"]
         assert handler.__name__ == "handle_company_status"
 
-    def test_history_intent_mapped(self):
-        """Verify history intent is explicitly mapped (was implicit fallthrough)."""
-        from backend.agent.fetch.handlers import INTENT_HANDLERS
+    def test_pipeline_summary_intent_mapped(self):
+        """Verify pipeline_summary intent is mapped."""
+        from backend.agent.fetch.tools import INTENT_HANDLERS
 
-        assert "history" in INTENT_HANDLERS
-        handler = INTENT_HANDLERS["history"]
-        assert handler.__name__ == "handle_company_status"
+        assert "pipeline_summary" in INTENT_HANDLERS
+        handler = INTENT_HANDLERS["pipeline_summary"]
+        assert handler.__name__ == "handle_pipeline_summary"
 
-    def test_general_intent_mapped(self):
-        """Verify general intent is explicitly mapped."""
-        from backend.agent.fetch.handlers import INTENT_HANDLERS
+    def test_analytics_intent_mapped(self):
+        """Verify analytics intent is explicitly mapped."""
+        from backend.agent.fetch.tools import INTENT_HANDLERS
 
-        assert "general" in INTENT_HANDLERS
+        assert "analytics" in INTENT_HANDLERS
 
 
 class TestAccountRAGTrigger:
     """Tests for Account RAG trigger conditions."""
 
     def test_account_rag_trigger_intents(self):
-        """Verify Account RAG triggers for the correct intents using the constant."""
+        """Verify Account RAG triggers only for 'company' intent."""
         from backend.agent.fetch.fetch_account import ACCOUNT_RAG_INTENTS
 
-        # Expected intents that should trigger Account RAG
-        expected_intents = {"account_context", "company_status", "history", "pipeline"}
+        # Only company intent triggers Account RAG (simplified from previous 4 intents)
+        expected_intents = {"company"}
 
         assert ACCOUNT_RAG_INTENTS == expected_intents, (
             f"ACCOUNT_RAG_INTENTS should be {expected_intents}, got {ACCOUNT_RAG_INTENTS}"
@@ -128,13 +131,12 @@ class TestAccountRAGTrigger:
         from backend.agent.fetch.fetch_account import ACCOUNT_RAG_INTENTS
 
         # Aggregate intents that don't need Account RAG
-        aggregate_intents = {"renewals", "pipeline_summary", "activities", "groups"}
+        aggregate_intents = {"renewals", "pipeline_summary", "activities", "analytics", "contacts"}
 
         for intent in aggregate_intents:
-            if intent != "pipeline":  # pipeline is special - it can be company-specific
-                assert intent not in ACCOUNT_RAG_INTENTS, (
-                    f"Aggregate intent '{intent}' should not be in ACCOUNT_RAG_INTENTS"
-                )
+            assert intent not in ACCOUNT_RAG_INTENTS, (
+                f"Aggregate intent '{intent}' should not be in ACCOUNT_RAG_INTENTS"
+            )
 
 
 class TestVerticalSliceStructure:

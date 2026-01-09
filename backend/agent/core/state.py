@@ -73,10 +73,8 @@ class AgentState(TypedDict, total=False):
     messages: list[Message]
     conversation_history: str  # Formatted once in route_node, reused by other nodes
 
-    # Router output (flattened from RouterResult)
-    mode_used: str
+    # Router output (flattened from RouterResult - 4 fields)
     resolved_company_id: str | None
-    company_name_query: str | None  # For resolving company names
     days: int
     intent: str
     owner: str | None  # Role-based owner for filtering

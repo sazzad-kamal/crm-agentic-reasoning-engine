@@ -62,27 +62,30 @@ class TestRagClient:
         assert client._qdrant_client is None
 
     def test_get_embed_model_lazy_load(self):
-        """Test that embed model is lazily loaded."""
-        mock_embed_class = MagicMock()
-        mock_model = MagicMock()
-        mock_embed_class.return_value = mock_model
+        """Test that embed model is lazily loaded and cached (singleton)."""
+        from backend.agent.rag import tools
 
-        mock_hf = MagicMock()
-        mock_hf.HuggingFaceEmbedding = mock_embed_class
+        # Reset the singleton to test lazy loading
+        original_embed_model = tools._embed_model
+        tools._embed_model = None
 
-        with patch.dict(sys.modules, {"llama_index.embeddings.huggingface": mock_hf}):
-            # Clear cached imports
-            if "backend.agent.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.rag.tools"]
+        try:
+            mock_model = MagicMock()
 
-            from backend.agent.rag import tools
+            # Patch at the source module where HuggingFaceEmbedding is imported from
+            with patch("llama_index.embeddings.huggingface.HuggingFaceEmbedding", return_value=mock_model) as mock_class:
+                result = tools._get_embed_model()
+                assert result is mock_model
 
-            result = tools._get_embed_model()
-            assert result is mock_model
+                # Second call should return cached model (singleton)
+                result2 = tools._get_embed_model()
+                assert result2 is mock_model
 
-            # The function recreates the model each time (no singleton)
-            result2 = tools._get_embed_model()
-            assert result2 is mock_model
+                # HuggingFaceEmbedding should only be called once (singleton)
+                assert mock_class.call_count == 1
+        finally:
+            # Restore original state
+            tools._embed_model = original_embed_model
 
 
 class TestRagIngest:

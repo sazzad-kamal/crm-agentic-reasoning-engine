@@ -5,7 +5,7 @@ Handles pipeline_summary, renewals, deals_at_risk, forecast, and forecast_accura
 Includes tool functions merged from tools/pipeline.py.
 """
 
-from backend.agent.fetch.handlers.common import (
+from backend.agent.fetch.tools.common import (
     CRMDataStore,
     IntentContext,
     IntentResult,
@@ -239,7 +239,7 @@ def handle_renewals(ctx: IntentContext) -> IntentResult:
 def handle_deals_at_risk(ctx: IntentContext) -> IntentResult:
     """Handle deals_at_risk intent - shows stalled/at-risk deals and accounts needing attention."""
     # Import here to avoid circular imports
-    from backend.agent.fetch.handlers.company import tool_accounts_needing_attention
+    from backend.agent.fetch.tools.company import tool_accounts_needing_attention
 
     logger.debug(f"[Data] Fetching at-risk deals and accounts (owner={ctx.owner})")
     result = IntentResult(raw_data=empty_raw_data())

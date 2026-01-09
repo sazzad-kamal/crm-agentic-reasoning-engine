@@ -84,48 +84,50 @@ class LLMRouterResponse(BaseModel):
     """Pydantic model for structured LLM router output.
 
     Used with .with_structured_output() for reliable parsing.
+    Includes intent classification and parameter extraction.
     """
 
-    mode: Literal["data"] = Field(
-        default="data",
-        description="The data source mode: 'data' for CRM data queries",
-    )
     intent: Literal[
-        "company_status",  # General status/summary of a specific company
+        # Company-specific (requires company name, triggers RAG)
+        "company_overview",  # General company status, health, contacts
+        "company_pipeline",  # Pipeline, deals for a specific company
+        "company_activities",  # Recent activities for a company
+        "company_history",  # Historical interactions, timeline
+        # Aggregate/global (no specific company)
         "renewals",  # Contract renewals, expirations
-        "pipeline",  # Company-specific opportunities/deals
         "pipeline_summary",  # Aggregate pipeline across all accounts
         "deals_at_risk",  # At-risk deals (stalled, overdue)
         "forecast",  # Pipeline forecast/projections
         "forecast_accuracy",  # Win rate and accuracy metrics
-        "activities",  # Global activity search (calls, emails, meetings)
-        "history",  # Past interactions for a company
-        "account_context",  # Deep context from notes/attachments
-        "contact_lookup",  # Contacts for a specific company
-        "contact_search",  # Global contact search by name/role
+        "activities",  # Activity search (calls, emails, meetings)
+        "contacts",  # Contact queries (lookup or search)
         "company_search",  # Search companies by criteria (segment, industry)
         "attachments",  # Document/file searches
-        "analytics",  # Counts, breakdowns, aggregations (how many, breakdown, distribution)
-        "general",  # Documentation/help questions
-    ] = Field(default="general", description="The primary intent of the question")
+        "analytics",  # Counts, breakdowns, aggregations
+    ] = Field(default="pipeline_summary", description="The primary intent of the question")
     company_name: str | None = Field(
         default=None, description="The company/account name mentioned in the question, if any"
     )
-    days: int = Field(
-        default=30, ge=1, le=365, description="Time period in days (e.g., 'last 90 days' -> 90)"
+    # Extracted parameters
+    segment: str | None = Field(
+        default=None, description="Company segment: Enterprise, Mid-Market, or SMB"
     )
-    query_expansion: str | None = Field(
-        default=None, description="A clearer, expanded version of the query"
+    industry: str | None = Field(
+        default=None,
+        description="Industry: Software, Manufacturing, Healthcare, Food, Consulting, Retail",
     )
-    key_entities: list[str] = Field(
-        default_factory=list,
-        description="Important entities mentioned (companies, contacts, products)",
+    role: str | None = Field(
+        default=None, description="Contact role: Decision Maker, Champion, or Executive"
     )
-    action_type: Literal["retrieve", "summarize", "compare", "analyze"] = Field(
-        default="retrieve", description="What the user wants to do with the information"
+    activity_type: str | None = Field(
+        default=None, description="Activity type: Call, Email, Meeting, or Task"
     )
-    confidence: float = Field(
-        default=0.5, ge=0.0, le=1.0, description="Confidence in this analysis (0.0 to 1.0)"
+    analytics_metric: str | None = Field(
+        default=None,
+        description="Analytics metric: contact_breakdown, activity_breakdown, activity_count, accounts_by_group, pipeline_by_group",
+    )
+    analytics_group_by: str | None = Field(
+        default=None, description="Group by field for analytics: role, type, or stage"
     )
 
 
@@ -185,9 +187,7 @@ def _call_llm_router(question: str, conversation_history: str = "") -> dict:
         }
     )
 
-    logger.debug(
-        f"LLM Router: Structured output received: mode={result.mode}, intent={result.intent}"
-    )
+    logger.debug(f"LLM Router: Structured output received: intent={result.intent}")
 
     return result.model_dump()
 
@@ -199,14 +199,10 @@ def llm_route_question(
 ) -> RouterResult:
     ds = datastore or get_datastore()
 
-    # LLM routing
+    # LLM routing (returns intent + company_name only)
     llm_result = _call_llm_router(question, conversation_history)
 
-    logger.info(
-        f"LLM Router: mode={llm_result['mode']}, "
-        f"intent={llm_result['intent']}, "
-        f"confidence={llm_result.get('confidence', 'N/A')}"
-    )
+    logger.info(f"LLM Router: intent={llm_result['intent']}")
 
     # Resolve company ID if LLM found a company name
     resolved_company = None
@@ -217,19 +213,9 @@ def llm_route_question(
                 f"Resolved company '{llm_result['company_name']}' to ID: {resolved_company}"
             )
 
-    # Detect owner from starter pattern (role-based filtering)
-    owner = detect_owner_from_starter(question)
-
     return RouterResult(
-        mode_used=llm_result["mode"],
         company_id=resolved_company,
-        days=llm_result.get("days", 30),
-        intent=llm_result.get("intent", "general"),
-        query_expansion=llm_result.get("query_expansion"),
-        llm_confidence=llm_result.get("confidence"),
-        key_entities=llm_result.get("key_entities", []),
-        action_type=llm_result.get("action_type"),
-        owner=owner,
+        intent=llm_result.get("intent", "pipeline_summary"),
     )
 
 
@@ -243,13 +229,8 @@ def route_question(
     datastore: CRMDataStore | None = None,
     conversation_history: str = "",
 ) -> RouterResult:
-    result = llm_route_question(question, datastore, conversation_history)
-
-    # Ensure owner is detected for role-based starters
-    if result.owner is None:
-        result.owner = detect_owner_from_starter(question)
-
-    return result
+    """Route a question and return LLM-derived fields (company_id, intent)."""
+    return llm_route_question(question, datastore, conversation_history)
 
 
 __all__ = [

@@ -55,14 +55,13 @@ class TestAgentAuditEntry:
         entry = AgentAuditEntry(
             timestamp="2024-01-15T10:30:00Z",
             question="What is going on with Acme?",
-            mode_used="data",
+            
             company_id="ACME-MFG",
             latency_ms=150,
             source_count=3,
         )
 
         assert entry.question == "What is going on with Acme?"
-        assert entry.mode_used == "data"
         assert entry.company_id == "ACME-MFG"
         assert entry.latency_ms == 150
 
@@ -71,7 +70,7 @@ class TestAgentAuditEntry:
         entry = AgentAuditEntry(
             timestamp="2024-01-15T10:30:00Z",
             question="Test",
-            mode_used="docs",
+            
         )
 
         assert entry.company_id is None
@@ -84,7 +83,7 @@ class TestAgentAuditEntry:
         entry = AgentAuditEntry(
             timestamp="2024-01-15T10:30:00Z",
             question="Test question",
-            mode_used="data",
+            
             company_id="ACME-MFG",
             latency_ms=100,
         )
@@ -93,7 +92,6 @@ class TestAgentAuditEntry:
 
         assert isinstance(data, dict)
         assert data["question"] == "Test question"
-        assert data["mode_used"] == "data"
         assert "company_id" in data
 
     def test_entry_to_dict_excludes_none(self):
@@ -101,7 +99,7 @@ class TestAgentAuditEntry:
         entry = AgentAuditEntry(
             timestamp="2024-01-15T10:30:00Z",
             question="Test",
-            mode_used="docs",
+            
         )
 
         data = entry.to_dict()
@@ -117,7 +115,7 @@ class TestAgentAuditEntry:
         entry = AgentAuditEntry(
             timestamp="2024-01-15T10:30:00Z",
             question="Test",
-            mode_used="error",
+            
             error="LLM service unavailable",
         )
 
@@ -152,7 +150,7 @@ class TestAgentAuditLogger:
         """Test basic query logging."""
         audit_logger.log_query(
             question="What is going on with Acme?",
-            mode_used="data",
+            
             company_id="ACME-MFG",
             latency_ms=150,
             source_count=3,
@@ -164,7 +162,6 @@ class TestAgentAuditLogger:
             data = json.loads(line)
 
         assert data["question"] == "What is going on with Acme?"
-        assert data["mode_used"] == "data"
         assert data["company_id"] == "ACME-MFG"
         assert data["latency_ms"] == 150
 
@@ -174,7 +171,7 @@ class TestAgentAuditLogger:
 
         audit_logger.log_query(
             question=long_question,
-            mode_used="data",
+            
         )
 
         with open(temp_log_file) as f:
@@ -186,7 +183,7 @@ class TestAgentAuditLogger:
         """Test logging with all optional fields."""
         audit_logger.log_query(
             question="Test question",
-            mode_used="data",
+            
             company_id="ACME-MFG",
             latency_ms=200,
             source_count=5,
@@ -204,21 +201,20 @@ class TestAgentAuditLogger:
         """Test logging failed queries."""
         audit_logger.log_query(
             question="Test question",
-            mode_used="error",
+            
             error="Service unavailable",
         )
 
         with open(temp_log_file) as f:
             data = json.loads(f.readline())
 
-        assert data["mode_used"] == "error"
         assert data["error"] == "Service unavailable"
 
     def test_log_query_includes_timestamp(self, audit_logger, temp_log_file):
         """Test that entries include ISO timestamp."""
         audit_logger.log_query(
             question="Test",
-            mode_used="docs",
+            
         )
 
         with open(temp_log_file) as f:
@@ -233,7 +229,7 @@ class TestAgentAuditLogger:
         for i in range(3):
             audit_logger.log_query(
                 question=f"Question {i}",
-                mode_used="data",
+                
                 latency_ms=100 + i * 50,
             )
 

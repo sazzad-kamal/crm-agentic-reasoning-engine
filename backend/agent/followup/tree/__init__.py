@@ -50,6 +50,7 @@ __all__ = [
     "validate_tree",
     "print_tree",
     "get_expected_answer",
+    "get_expected_intent",
 ]
 
 # =============================================================================
@@ -81,6 +82,28 @@ def _load_expected_answers() -> dict[str, str]:
 
 
 _EXPECTED_ANSWERS: dict[str, str] = _load_expected_answers()
+
+# =============================================================================
+# Load Expected Intents (for intent classification accuracy)
+# =============================================================================
+
+_EXPECTED_INTENTS_PATH = Path(__file__).parent / "expected_intents.yaml"
+
+
+def _load_expected_intents() -> dict[str, str]:
+    """Load expected intents from YAML file."""
+    if _EXPECTED_INTENTS_PATH.exists():
+        try:
+            import yaml
+            with open(_EXPECTED_INTENTS_PATH, encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                return data if data else {}
+        except Exception:
+            return {}
+    return {}
+
+
+_EXPECTED_INTENTS: dict[str, str] = _load_expected_intents()
 
 # Role mapping - starters are derived from this
 _ROLE_MAP = {
@@ -186,6 +209,24 @@ def get_expected_answer(question: str) -> str | None:
         Expected answer string, or None if not found
     """
     return _EXPECTED_ANSWERS.get(question)
+
+
+def get_expected_intent(question: str) -> str | None:
+    """
+    Get the expected intent for a question (for intent classification accuracy).
+
+    Valid intents (11 total):
+        Company-specific: company (triggers RAG)
+        Aggregate/global: renewals, pipeline_summary, deals_at_risk, forecast, forecast_accuracy,
+                         activities, contacts, company_search, attachments, analytics
+
+    Args:
+        question: The question to look up
+
+    Returns:
+        Expected intent string, or None if not found
+    """
+    return _EXPECTED_INTENTS.get(question)
 
 
 def get_paths_for_role(role: str | None = None) -> list[list[str]]:

@@ -93,14 +93,12 @@ class TestAgentAudit:
         entry = AgentAuditEntry(
             timestamp=datetime.now(UTC).isoformat(),
             question="Test question",
-            mode_used="data",
             company_id="C001",
             latency_ms=150,
             source_count=3,
         )
-        
+
         assert entry.question == "Test question"
-        assert entry.mode_used == "data"
         assert entry.company_id == "C001"
         assert entry.latency_ms == 150
     
@@ -109,9 +107,8 @@ class TestAgentAudit:
         entry = AgentAuditEntry(
             timestamp="2024-01-01T00:00:00",
             question="Test",
-            mode_used="docs",
         )
-        
+
         d = entry.to_dict()
         assert "timestamp" in d
         assert "question" in d
@@ -121,25 +118,23 @@ class TestAgentAudit:
         """Test that audit logger writes to file."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
             log_path = Path(f.name)
-        
+
         try:
             # Create logger with temp file
             logger = AgentAuditLogger(log_file=log_path)
-            
+
             # Log a query
             logger.log_query(
                 question="Test question",
-                mode_used="data+docs",
                 company_id="C001",
                 latency_ms=100,
             )
-            
+
             # Read back and verify
             with open(log_path, "r") as f:
                 content = f.read()
-            
+
             assert "Test question" in content
-            assert "data+docs" in content
             assert "C001" in content
         finally:
             if log_path.exists():
@@ -151,42 +146,29 @@ class TestAgentAudit:
 
 class TestLLMRouter:
     """Tests for LLM router with mock mode."""
-    
+
     def setup_method(self):
         """Reset config between tests."""
         reset_config()
-    
-    def test_router_returns_default_in_mock_mode(self):
-        """Test that router returns default routing in mock mode."""
+
+    def test_router_returns_result_in_mock_mode(self):
+        """Test that router returns routing result in mock mode."""
         from backend.agent.route.router import route_question
 
         result = route_question("What's going on with Acme Corp?")
 
-        # In mock mode, returns data with company_status (detected from "acme")
-        assert result.mode_used == "data"
-        assert result.intent == "company_status"
-
-    def test_router_returns_default_days_in_mock(self):
-        """Test that router returns default days in mock mode."""
-        from backend.agent.route.router import route_question
-
-        result = route_question("What happened in the last 30 days?")
-
-        # Mock mode returns default 30 days
-        assert result.days == 30
+        # In mock mode, returns result with company and intent
+        assert result.intent is not None
 
     def test_router_result_schema(self):
-        """Test that RouterResult has all expected fields."""
+        """Test that RouterResult has expected fields (company_id, intent)."""
         from backend.agent.route.router import route_question
-        
+
         result = route_question("Show me renewals")
-        
-        assert hasattr(result, "mode_used")
+
+        # RouterResult only has 2 fields now
         assert hasattr(result, "company_id")
-        assert hasattr(result, "days")
         assert hasattr(result, "intent")
-        assert hasattr(result, "query_expansion")
-        assert hasattr(result, "llm_confidence")
 
 
 # =============================================================================
@@ -200,15 +182,15 @@ class TestAgentIntegration:
         """Reset config between tests."""
         reset_config()
 
-    def test_agent_returns_mode_info(self):
-        """Test that agent returns mode metadata."""
+    def test_agent_returns_answer(self):
+        """Test that agent returns an answer."""
         from backend.agent.graph import agent_graph, build_thread_config
 
         state = {"question": "Show me pipeline", "sources": []}
         config = build_thread_config(None)
         result = agent_graph.invoke(state, config=config)
 
-        assert "mode_used" in result
+        assert "answer" in result
 
     def test_agent_handles_company_query(self):
         """Test agent handles company-specific queries."""
@@ -221,8 +203,8 @@ class TestAgentIntegration:
         assert "answer" in result
         assert len(result["answer"]) > 0
 
-    def test_agent_handles_docs_query(self):
-        """Test agent handles documentation queries."""
+    def test_agent_handles_general_query(self):
+        """Test agent handles general queries."""
         from backend.agent.graph import agent_graph, build_thread_config
 
         state = {"question": "How do I create an opportunity?", "sources": []}
@@ -230,7 +212,6 @@ class TestAgentIntegration:
         result = agent_graph.invoke(state, config=config)
 
         assert "answer" in result
-        assert "mode_used" in result
 
 
 # =============================================================================
@@ -292,7 +273,7 @@ class TestDetectOwnerFromStarter:
 
 
 class TestLLMRouterResponse:
-    """Tests for LLMRouterResponse Pydantic model."""
+    """Tests for LLMRouterResponse Pydantic model (2 fields: intent, company_name)."""
 
     def test_creates_with_defaults(self):
         """Creates model with default values."""
@@ -300,62 +281,20 @@ class TestLLMRouterResponse:
 
         response = LLMRouterResponse()
 
-        assert response.mode == "data"
-        assert response.intent == "general"
-        assert response.days == 30
+        assert response.intent == "pipeline_summary"
         assert response.company_name is None
-        assert response.confidence == 0.5
 
     def test_creates_with_custom_values(self):
         """Creates model with custom values."""
         from backend.agent.route.router import LLMRouterResponse
 
         response = LLMRouterResponse(
-            mode="data",
-            intent="pipeline_summary",
+            intent="company",
             company_name="Acme Corp",
-            days=90,
-            confidence=0.95,
-            key_entities=["Acme", "Q4"],
-            action_type="analyze",
         )
 
-        assert response.mode == "data"
-        assert response.intent == "pipeline_summary"
+        assert response.intent == "company"
         assert response.company_name == "Acme Corp"
-        assert response.days == 90
-        assert response.confidence == 0.95
-        assert "Acme" in response.key_entities
-
-    def test_validates_days_range(self):
-        """Validates days must be between 1 and 365."""
-        from backend.agent.route.router import LLMRouterResponse
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError):
-            LLMRouterResponse(days=0)
-
-        with pytest.raises(ValidationError):
-            LLMRouterResponse(days=400)
-
-    def test_validates_confidence_range(self):
-        """Validates confidence must be between 0.0 and 1.0."""
-        from backend.agent.route.router import LLMRouterResponse
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError):
-            LLMRouterResponse(confidence=-0.1)
-
-        with pytest.raises(ValidationError):
-            LLMRouterResponse(confidence=1.5)
-
-    def test_validates_mode_literal(self):
-        """Validates mode must be a valid literal."""
-        from backend.agent.route.router import LLMRouterResponse
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError):
-            LLMRouterResponse(mode="invalid_mode")
 
     def test_validates_intent_literal(self):
         """Validates intent must be a valid literal."""
@@ -370,14 +309,13 @@ class TestLLMRouterResponse:
         from backend.agent.route.router import LLMRouterResponse
 
         response = LLMRouterResponse(
-            mode="data",
-            intent="general",
-            query_expansion="Expanded query",
+            intent="renewals",
+            company_name="Test Corp",
         )
 
         data = response.model_dump()
-        assert data["mode"] == "data"
-        assert data["query_expansion"] == "Expanded query"
+        assert data["intent"] == "renewals"
+        assert data["company_name"] == "Test Corp"
 
 
 # =============================================================================
@@ -418,34 +356,15 @@ class TestLLMRouterExtended:
         """Reset config between tests."""
         reset_config()
 
-    def test_route_question_passes_owner_from_starter(self):
-        """Tests that owner is detected from starter pattern."""
-        from backend.agent.route.router import route_question
-
-        result = route_question("how's my pipeline?")
-
-        assert result.owner == "jsmith"
-
-    def test_llm_route_question_mock_mode_returns_defaults(self):
-        """In mock mode, returns default data routing."""
+    def test_llm_route_question_returns_router_result(self):
+        """llm_route_question returns RouterResult with company_id and intent."""
         from backend.agent.route.router import llm_route_question
 
         result = llm_route_question("Show me the forecast")
 
-        assert result.mode_used == "data"
-        assert result.days == 30
-
-    def test_route_question_detects_owner_as_fallback(self):
-        """Tests owner detection as fallback in route_question."""
-        from backend.agent.route.router import route_question
-
-        # CSM starter
-        result = route_question("any renewals at risk?")
-        assert result.owner == "amartin"
-
-        # Manager starter (None means sees all)
-        result = route_question("how's the team doing?")
-        assert result.owner is None
+        # RouterResult has only company_id and intent
+        assert hasattr(result, "company_id")
+        assert hasattr(result, "intent")
 
     def test_llm_route_question_with_conversation_history(self):
         """Tests llm_route_question with conversation history."""
@@ -456,8 +375,8 @@ class TestLLMRouterExtended:
             conversation_history="User: Tell me about Acme\nAssistant: Acme is...",
         )
 
-        # Should still return default in mock mode
-        assert result.mode_used == "data"
+        # Should return RouterResult with intent
+        assert result.intent is not None
 
     def test_starter_owner_map_coverage(self):
         """Tests all patterns in STARTER_OWNER_MAP."""

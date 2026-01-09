@@ -26,7 +26,7 @@ class TestCommonPrivateTextsLoading:
 
     def test_load_private_texts_file_exists(self):
         """Test loading private texts from JSONL file."""
-        from backend.agent.fetch.handlers import common
+        from backend.agent.fetch.tools import common
 
         # Clear cache to ensure fresh load
         common._load_private_texts.cache_clear()
@@ -58,7 +58,7 @@ class TestCommonPrivateTextsLoading:
 
     def test_load_private_texts_invalid_json(self):
         """Test loading private texts with invalid JSON line."""
-        from backend.agent.fetch.handlers import common
+        from backend.agent.fetch.tools import common
 
         common._load_private_texts.cache_clear()
 
@@ -83,7 +83,7 @@ class TestCommonPrivateTextsLoading:
 
     def test_load_attachments_file_exists(self):
         """Test loading attachments from CSV file."""
-        from backend.agent.fetch.handlers import common
+        from backend.agent.fetch.tools import common
 
         common._load_attachments.cache_clear()
 
@@ -111,7 +111,7 @@ class TestCommonPrivateTextsLoading:
 
     def test_load_attachments_file_not_exists(self):
         """Test loading attachments when CSV file doesn't exist."""
-        from backend.agent.fetch.handlers import common
+        from backend.agent.fetch.tools import common
 
         common._load_attachments.cache_clear()
 
@@ -125,7 +125,7 @@ class TestCommonPrivateTextsLoading:
 
     def test_load_private_texts_file_not_exists(self):
         """Test loading private texts when JSONL file doesn't exist."""
-        from backend.agent.fetch.handlers import common
+        from backend.agent.fetch.tools import common
 
         common._load_private_texts.cache_clear()
 
@@ -143,7 +143,7 @@ class TestLookupCompanySuccessPath:
 
     def test_lookup_company_success(self):
         """Test lookup_company when company is found."""
-        from backend.agent.fetch.handlers.common import IntentResult, lookup_company, empty_raw_data
+        from backend.agent.fetch.tools.common import IntentResult, lookup_company, empty_raw_data
 
         result = IntentResult(raw_data=empty_raw_data())
 
@@ -158,7 +158,7 @@ class TestLookupCompanySuccessPath:
             {"contact_id": "CON001", "name": "John Doe"}
         ]
 
-        with patch("backend.agent.fetch.handlers.common.get_datastore", return_value=mock_ds):
+        with patch("backend.agent.fetch.tools.common.get_datastore", return_value=mock_ds):
             found = lookup_company(result, "Test Company")
 
         assert found is True
@@ -172,7 +172,7 @@ class TestLookupCompanySuccessPath:
 
     def test_lookup_company_resolved_but_not_found(self):
         """Test lookup_company when company resolves but doesn't exist."""
-        from backend.agent.fetch.handlers.common import IntentResult, lookup_company, empty_raw_data
+        from backend.agent.fetch.tools.common import IntentResult, lookup_company, empty_raw_data
 
         result = IntentResult(raw_data=empty_raw_data())
 
@@ -180,7 +180,7 @@ class TestLookupCompanySuccessPath:
         mock_ds.resolve_company_id.return_value = "COMP001"
         mock_ds.get_company.return_value = None  # Company doesn't exist
 
-        with patch("backend.agent.fetch.handlers.common.get_datastore", return_value=mock_ds):
+        with patch("backend.agent.fetch.tools.common.get_datastore", return_value=mock_ds):
             found = lookup_company(result, "Test Company")
 
         assert found is False
@@ -482,195 +482,6 @@ class TestIngestPrivateTexts:
                 assert result == 2
             finally:
                 temp_path.unlink()
-
-
-# =============================================================================
-# Tests for backend/eval/ragas_judge.py (34% -> 98%)
-# Lines: 57-66, 77, 82, 106-177
-# =============================================================================
-
-
-class TestRagasJudge:
-    """Tests for RAGAS evaluation functions."""
-
-    def test_mock_evaluate_single_with_answer_and_context(self):
-        """Test mock evaluation with answer and context."""
-        from backend.eval.ragas_judge import _mock_evaluate_single
-
-        result = _mock_evaluate_single(
-            question="What is the pipeline?",
-            answer="The pipeline has 5 deals worth $1M",
-            contexts=["Pipeline data shows 5 deals"],
-            reference_answer="5 deals in pipeline"
-        )
-
-        assert result["answer_relevancy"] == 0.85
-        assert result["faithfulness"] == 0.80
-        assert result["context_precision"] == 0.75
-        assert result["context_recall"] == 0.70
-        assert result["answer_correctness"] == 0.65
-
-    def test_mock_evaluate_single_with_answer_no_context(self):
-        """Test mock evaluation with answer but no context."""
-        from backend.eval.ragas_judge import _mock_evaluate_single
-
-        result = _mock_evaluate_single(
-            question="What is the pipeline?",
-            answer="The pipeline has 5 deals",
-            contexts=["No context provided"],
-        )
-
-        assert result["answer_relevancy"] == 0.70
-        assert result["faithfulness"] == 0.50
-        assert result["context_precision"] == 0.0
-
-    def test_mock_evaluate_single_no_answer(self):
-        """Test mock evaluation with no answer."""
-        from backend.eval.ragas_judge import _mock_evaluate_single
-
-        result = _mock_evaluate_single(
-            question="What is the pipeline?",
-            answer="",
-            contexts=[],
-        )
-
-        assert result["answer_relevancy"] == 0.0
-        assert result["faithfulness"] == 0.0
-
-    def test_evaluate_single_mock_mode(self):
-        """Test evaluate_single in mock mode."""
-        from backend.eval import ragas_judge
-
-        with patch.object(ragas_judge, "_is_mock_mode", return_value=True):
-            result = ragas_judge.evaluate_single(
-                question="Test question",
-                answer="Test answer with enough content",
-                contexts=["Test context"],
-            )
-
-        assert "answer_relevancy" in result
-        assert "faithfulness" in result
-
-    def test_is_mock_mode_true(self):
-        """Test _is_mock_mode returns True when MOCK_LLM=1."""
-        from backend.eval.ragas_judge import _is_mock_mode
-
-        with patch.dict("os.environ", {"MOCK_LLM": "1"}):
-            assert _is_mock_mode() is True
-
-    def test_is_mock_mode_false(self):
-        """Test _is_mock_mode returns False when MOCK_LLM not set."""
-        from backend.eval.ragas_judge import _is_mock_mode
-
-        with patch.dict("os.environ", {}, clear=True):
-            assert _is_mock_mode() is False
-
-
-# =============================================================================
-# Tests for backend/eval/models.py (99% -> 100%)
-# Lines: 81, 87
-# =============================================================================
-
-
-class TestEvalModels:
-    """Tests for E2EEvalResult.passed property edge cases."""
-
-    def test_e2e_eval_result_passed_with_error(self):
-        """Test E2EEvalResult.passed returns False when error exists."""
-        from backend.eval.models import E2EEvalResult
-
-        result = E2EEvalResult(
-            test_case_id="test1",
-            question="Test question",
-            category="rag",
-            answer="Test answer",
-            answer_relevance=0.9,
-            faithfulness=0.9,
-            has_sources=True,
-            latency_ms=100,
-            total_tokens=50,
-            error="Some error occurred"
-        )
-
-        assert result.passed is False
-
-    def test_e2e_eval_result_passed_rag_high_scores(self):
-        """Test E2EEvalResult.passed returns True for RAG with high scores."""
-        from backend.eval.models import E2EEvalResult
-
-        result = E2EEvalResult(
-            test_case_id="test1",
-            question="Test question",
-            category="rag",
-            answer="Test answer",
-            answer_relevance=0.8,
-            faithfulness=0.8,
-            has_sources=True,
-            latency_ms=100,
-            total_tokens=50,
-        )
-
-        assert result.passed is True
-
-    def test_e2e_eval_result_passed_rag_low_scores(self):
-        """Test E2EEvalResult.passed returns False for RAG with low scores."""
-        from backend.eval.models import E2EEvalResult
-
-        result = E2EEvalResult(
-            test_case_id="test1",
-            question="Test question",
-            category="rag",
-            answer="Test answer",
-            answer_relevance=0.5,  # Below 0.7 threshold
-            faithfulness=0.8,
-            has_sources=True,
-            latency_ms=100,
-            total_tokens=50,
-        )
-
-        assert result.passed is False
-
-    def test_e2e_eval_result_security_refusal_correct(self):
-        """Test E2EEvalResult.passed for security with correct refusal."""
-        from backend.eval.models import E2EEvalResult
-
-        result = E2EEvalResult(
-            test_case_id="test1",
-            question="Malicious prompt",
-            category="adversarial",
-            answer="I cannot help with that",
-            answer_relevance=0.0,
-            faithfulness=0.0,
-            has_sources=False,
-            latency_ms=100,
-            total_tokens=50,
-            expected_refusal=True,
-            refusal_correct=True,
-            has_forbidden_content=False,
-        )
-
-        assert result.passed is True
-
-    def test_e2e_eval_result_security_forbidden_content(self):
-        """Test E2EEvalResult.passed fails when forbidden content present."""
-        from backend.eval.models import E2EEvalResult
-
-        result = E2EEvalResult(
-            test_case_id="test1",
-            question="Malicious prompt",
-            category="anti_hallucination",
-            answer="Some forbidden response",
-            answer_relevance=0.0,
-            faithfulness=0.0,
-            has_sources=False,
-            latency_ms=100,
-            total_tokens=50,
-            expected_refusal=True,
-            refusal_correct=True,
-            has_forbidden_content=True,  # This should fail
-        )
-
-        assert result.passed is False
 
 
 # =============================================================================

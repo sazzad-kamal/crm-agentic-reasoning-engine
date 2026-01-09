@@ -209,21 +209,15 @@ class TestLlmRouter:
         with patch("backend.agent.route.router._get_router_chain") as mock_get_chain:
             mock_chain = MagicMock()
             mock_response = LLMRouterResponse(
-                mode="data",
-                intent="pipeline",
+                intent="company",
                 company_name="Acme Corp",
-                days=30,
-                confidence=0.85,
-                key_entities=["pipeline", "deals"],
-                action_type="retrieve",
             )
             mock_chain.invoke.return_value = mock_response
             mock_get_chain.return_value = mock_chain
 
             result = _call_llm_router("What is Acme's pipeline?", "Previous: Hello")
 
-            assert result["mode"] == "data"
-            assert result["intent"] == "pipeline"
+            assert result["intent"] == "company"
             assert result["company_name"] == "Acme Corp"
             mock_chain.invoke.assert_called_once()
             call_args = mock_chain.invoke.call_args[0][0]
@@ -241,33 +235,28 @@ class TestLlmRouter:
         with patch("backend.agent.route.router._get_router_chain") as mock_get_chain:
             mock_chain = MagicMock()
             mock_response = LLMRouterResponse(
-                mode="data",
-                intent="general",
+                intent="pipeline_summary",
                 company_name=None,
-                days=90,
-                confidence=0.9,
-                key_entities=["help"],
-                action_type="retrieve",
             )
             mock_chain.invoke.return_value = mock_response
             mock_get_chain.return_value = mock_chain
 
             result = _call_llm_router("How do I use the CRM?")
 
-            assert result["mode"] == "data"
+            assert result["intent"] == "pipeline_summary"
             call_args = mock_chain.invoke.call_args[0][0]
             assert call_args["conversation_context"] == ""
 
         router_module._router_chain = None
 
-    def test_llm_route_auto_mode(self):
-        """Test llm_route_question (uses mocked fixture)."""
+    def test_llm_route_question_returns_result(self):
+        """Test llm_route_question returns RouterResult."""
         from backend.agent.route.router import llm_route_question
 
         result = llm_route_question(question="What is Acme's pipeline?")
 
-        # Mock fixture returns data mode
-        assert result.mode_used == "data"
+        # RouterResult has company_id and intent
+        assert hasattr(result, "company_id")
         assert result.intent is not None
 
     def test_get_router_chain_caching(self):
@@ -315,7 +304,8 @@ class TestNodesFetching:
         with patch("backend.agent.fetch.fetch_account.call_account_rag") as mock_rag:
             mock_rag.return_value = ("Account notes", [Source(type="note", id="n1", label="Note")])
 
-            state = {"question": "What are the notes?", "resolved_company_id": "COMP001", "intent": "account_context"}
+            # Use "company" intent - the only intent that triggers RAG
+            state = {"question": "What are the notes?", "resolved_company_id": "COMP001", "intent": "company"}
             result = fetch_account_node(state)
 
             assert result["account_context_answer"] == "Account notes"
@@ -326,7 +316,8 @@ class TestNodesFetching:
         from backend.agent.fetch.fetch_account import fetch_account_node
 
         with patch("backend.agent.fetch.fetch_account.call_account_rag", side_effect=Exception("RAG error")):
-            state = {"question": "What are the notes?", "resolved_company_id": "COMP001", "intent": "account_context"}
+            # Use "company" intent - the only intent that triggers RAG
+            state = {"question": "What are the notes?", "resolved_company_id": "COMP001", "intent": "company"}
             result = fetch_account_node(state)
 
             assert result["account_context_answer"] == ""

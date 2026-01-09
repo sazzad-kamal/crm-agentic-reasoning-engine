@@ -48,7 +48,6 @@ def _get_followup_chain() -> Any:
 
 def generate_follow_up_suggestions(
     question: str,
-    mode: str,
     company_id: str | None = None,
     company_name: str | None = None,
     conversation_history: str = "",
@@ -59,7 +58,6 @@ def generate_follow_up_suggestions(
 
     Args:
         question: The user's original question
-        mode: The response mode ("data")
         company_id: Optional company ID for context
         company_name: Optional company name for context
         conversation_history: Previous conversation context

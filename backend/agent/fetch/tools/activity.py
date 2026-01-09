@@ -5,7 +5,7 @@ Handles activities, analytics, and fallback intents.
 Includes tool functions merged from tools/activity.py.
 """
 
-from backend.agent.fetch.handlers.common import (
+from backend.agent.fetch.tools.common import (
     CRMDataStore,
     IntentContext,
     IntentResult,
@@ -18,7 +18,7 @@ from backend.agent.fetch.handlers.common import (
     safe_extend,
     with_datastore,
 )
-from backend.agent.fetch.handlers.extractors import extract_activity_type
+from backend.agent.fetch.tools.extractors import extract_activity_type
 
 # =============================================================================
 # Tool Functions (merged from tools/activity.py)
@@ -288,7 +288,7 @@ def handle_analytics(ctx: IntentContext) -> IntentResult:
 def handle_fallback(ctx: IntentContext) -> IntentResult:
     """Fallback handler for unknown intents."""
     # Import here to avoid circular imports
-    from backend.agent.fetch.handlers.pipeline import tool_upcoming_renewals
+    from backend.agent.fetch.tools.pipeline import tool_upcoming_renewals
 
     logger.debug("[Data] No specific intent, fetching general renewals")
     result = IntentResult(raw_data=empty_raw_data())

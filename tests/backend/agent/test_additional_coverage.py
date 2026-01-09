@@ -25,11 +25,11 @@ class TestLookupCompanyFound:
 
     def test_lookup_company_found_with_contacts(self):
         """Test lookup_company returns True and populates data when found."""
-        from backend.agent.fetch.handlers.common import lookup_company, IntentResult, empty_raw_data
+        from backend.agent.fetch.tools.common import lookup_company, IntentResult, empty_raw_data
 
         result = IntentResult(raw_data=empty_raw_data())
 
-        with patch("backend.agent.fetch.handlers.common.get_datastore") as mock_get_ds:
+        with patch("backend.agent.fetch.tools.common.get_datastore") as mock_get_ds:
             mock_ds = MagicMock()
             mock_ds.resolve_company_id.return_value = "COMP001"
             mock_ds.get_company.return_value = {
@@ -54,11 +54,11 @@ class TestLookupCompanyFound:
 
     def test_lookup_company_not_found_with_matches(self):
         """Test lookup_company when ID not resolved."""
-        from backend.agent.fetch.handlers.common import lookup_company, IntentResult, empty_raw_data
+        from backend.agent.fetch.tools.common import lookup_company, IntentResult, empty_raw_data
 
         result = IntentResult(raw_data=empty_raw_data())
 
-        with patch("backend.agent.fetch.handlers.common.get_datastore") as mock_get_ds:
+        with patch("backend.agent.fetch.tools.common.get_datastore") as mock_get_ds:
             mock_ds = MagicMock()
             mock_ds.resolve_company_id.return_value = None
             mock_ds.get_company_name_matches.return_value = [
@@ -74,11 +74,11 @@ class TestLookupCompanyFound:
 
     def test_lookup_company_id_resolved_but_no_data(self):
         """Test lookup_company when ID resolved but get_company returns None."""
-        from backend.agent.fetch.handlers.common import lookup_company, IntentResult, empty_raw_data
+        from backend.agent.fetch.tools.common import lookup_company, IntentResult, empty_raw_data
 
         result = IntentResult(raw_data=empty_raw_data())
 
-        with patch("backend.agent.fetch.handlers.common.get_datastore") as mock_get_ds:
+        with patch("backend.agent.fetch.tools.common.get_datastore") as mock_get_ds:
             mock_ds = MagicMock()
             mock_ds.resolve_company_id.return_value = "COMP001"
             mock_ds.get_company.return_value = None
@@ -100,12 +100,12 @@ class TestDataLoading:
 
     def test_load_private_texts_file_not_exists(self):
         """Test _load_private_texts returns empty dict when file doesn't exist."""
-        from backend.agent.fetch.handlers.common import _load_private_texts
+        from backend.agent.fetch.tools.common import _load_private_texts
 
         # Clear cache first
         _load_private_texts.cache_clear()
 
-        with patch("backend.agent.fetch.handlers.common._get_csv_path") as mock_path:
+        with patch("backend.agent.fetch.tools.common._get_csv_path") as mock_path:
             mock_p = MagicMock()
             mock_p.__truediv__ = MagicMock(return_value=MagicMock(exists=MagicMock(return_value=False)))
             mock_path.return_value = mock_p
@@ -117,11 +117,11 @@ class TestDataLoading:
 
     def test_load_attachments_file_not_exists(self):
         """Test _load_attachments returns empty dict when file doesn't exist."""
-        from backend.agent.fetch.handlers.common import _load_attachments
+        from backend.agent.fetch.tools.common import _load_attachments
 
         _load_attachments.cache_clear()
 
-        with patch("backend.agent.fetch.handlers.common._get_csv_path") as mock_path:
+        with patch("backend.agent.fetch.tools.common._get_csv_path") as mock_path:
             mock_p = MagicMock()
             mock_p.__truediv__ = MagicMock(return_value=MagicMock(exists=MagicMock(return_value=False)))
             mock_path.return_value = mock_p
@@ -142,13 +142,13 @@ class TestEnrichRawData:
 
     def test_enrich_raw_data_adds_private_texts(self):
         """Test enrich_raw_data adds _private_texts to companies."""
-        from backend.agent.fetch.handlers.common import enrich_raw_data, _load_private_texts, _load_attachments
+        from backend.agent.fetch.tools.common import enrich_raw_data, _load_private_texts, _load_attachments
 
         _load_private_texts.cache_clear()
         _load_attachments.cache_clear()
 
-        with patch("backend.agent.fetch.handlers.common._load_private_texts") as mock_texts, \
-             patch("backend.agent.fetch.handlers.common._load_attachments") as mock_attach:
+        with patch("backend.agent.fetch.tools.common._load_private_texts") as mock_texts, \
+             patch("backend.agent.fetch.tools.common._load_attachments") as mock_attach:
             mock_texts.return_value = {"COMP001": [{"text": "Private note"}]}
             mock_attach.return_value = {}
 
@@ -163,10 +163,10 @@ class TestEnrichRawData:
 
     def test_enrich_raw_data_adds_attachments(self):
         """Test enrich_raw_data adds _attachments to opportunities."""
-        from backend.agent.fetch.handlers.common import enrich_raw_data
+        from backend.agent.fetch.tools.common import enrich_raw_data
 
-        with patch("backend.agent.fetch.handlers.common._load_private_texts") as mock_texts, \
-             patch("backend.agent.fetch.handlers.common._load_attachments") as mock_attach:
+        with patch("backend.agent.fetch.tools.common._load_private_texts") as mock_texts, \
+             patch("backend.agent.fetch.tools.common._load_attachments") as mock_attach:
             mock_texts.return_value = {}
             mock_attach.return_value = {"OPP001": [{"filename": "proposal.pdf"}]}
 
@@ -181,10 +181,10 @@ class TestEnrichRawData:
 
     def test_enrich_raw_data_empty_matches(self):
         """Test enrich_raw_data handles no matching private texts or attachments."""
-        from backend.agent.fetch.handlers.common import enrich_raw_data
+        from backend.agent.fetch.tools.common import enrich_raw_data
 
-        with patch("backend.agent.fetch.handlers.common._load_private_texts") as mock_texts, \
-             patch("backend.agent.fetch.handlers.common._load_attachments") as mock_attach:
+        with patch("backend.agent.fetch.tools.common._load_private_texts") as mock_texts, \
+             patch("backend.agent.fetch.tools.common._load_attachments") as mock_attach:
             mock_texts.return_value = {}
             mock_attach.return_value = {}
 
@@ -422,7 +422,7 @@ class TestCompanyHandlerFilters:
 
     def test_search_companies_with_segment_filter(self):
         """Test search_companies with segment filter."""
-        from backend.agent.fetch.handlers import tool_search_companies
+        from backend.agent.fetch.tools import tool_search_companies
 
         result = tool_search_companies(segment="Enterprise")
 
@@ -431,7 +431,7 @@ class TestCompanyHandlerFilters:
 
     def test_search_contacts_with_company_filter(self):
         """Test search_contacts with company_id filter."""
-        from backend.agent.fetch.handlers import tool_search_contacts
+        from backend.agent.fetch.tools import tool_search_contacts
 
         result = tool_search_contacts(company_id="ACME-MFG")
 
@@ -449,7 +449,7 @@ class TestMakeSourcesHelper:
 
     def test_make_sources_with_data(self):
         """Test make_sources returns Source when data exists."""
-        from backend.agent.fetch.handlers.common import make_sources
+        from backend.agent.fetch.tools.common import make_sources
 
         sources = make_sources(
             data=[{"id": "1"}],
@@ -464,7 +464,7 @@ class TestMakeSourcesHelper:
 
     def test_make_sources_empty_data(self):
         """Test make_sources returns empty list when no data."""
-        from backend.agent.fetch.handlers.common import make_sources
+        from backend.agent.fetch.tools.common import make_sources
 
         sources = make_sources(
             data=[],
@@ -477,7 +477,7 @@ class TestMakeSourcesHelper:
 
     def test_make_sources_none_data(self):
         """Test make_sources returns empty list when data is None."""
-        from backend.agent.fetch.handlers.common import make_sources
+        from backend.agent.fetch.tools.common import make_sources
 
         sources = make_sources(
             data=None,
@@ -499,7 +499,7 @@ class TestSafeExtendHelper:
 
     def test_safe_extend_with_list(self):
         """Test safe_extend extends list."""
-        from backend.agent.fetch.handlers.common import safe_extend
+        from backend.agent.fetch.tools.common import safe_extend
 
         target = [1, 2]
         safe_extend(target, [3, 4])
@@ -508,7 +508,7 @@ class TestSafeExtendHelper:
 
     def test_safe_extend_with_none(self):
         """Test safe_extend handles None source."""
-        from backend.agent.fetch.handlers.common import safe_extend
+        from backend.agent.fetch.tools.common import safe_extend
 
         target = [1, 2]
         safe_extend(target, None)
@@ -517,7 +517,7 @@ class TestSafeExtendHelper:
 
     def test_safe_extend_with_empty_list(self):
         """Test safe_extend handles empty source list."""
-        from backend.agent.fetch.handlers.common import safe_extend
+        from backend.agent.fetch.tools.common import safe_extend
 
         target = [1, 2]
         safe_extend(target, [])

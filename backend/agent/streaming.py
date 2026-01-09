@@ -10,7 +10,7 @@ from fastapi.encoders import jsonable_encoder
 
 from backend.agent.audit import AgentAuditLogger
 from backend.agent.core.state import AgentState
-from backend.agent.fetch.handlers.common import enrich_raw_data
+from backend.agent.fetch.tools.common import enrich_raw_data
 from backend.agent.graph import agent_graph, build_thread_config
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,7 @@ async def stream_agent(question: str, session_id: str | None = None) -> AsyncGen
             yield _format_sse(StreamEvent.FOLLOWUP, {"suggestions": sug})
 
         AgentAuditLogger().log_query(
-            question=question, mode_used=final.get("mode_used", "unknown"),
+            question=question,
             company_id=final.get("resolved_company_id"),
             latency_ms=int((time.time() - start) * 1000),
             source_count=len(final.get("sources", [])),

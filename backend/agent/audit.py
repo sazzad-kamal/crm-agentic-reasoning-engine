@@ -32,7 +32,6 @@ class AgentAuditEntry:
 
     timestamp: str
     question: str
-    mode_used: str
     company_id: str | None = None
     latency_ms: int = 0
     source_count: int = 0
@@ -68,7 +67,6 @@ class AgentAuditLogger:
     def log_query(
         self,
         question: str,
-        mode_used: str,
         company_id: str | None = None,
         latency_ms: int = 0,
         source_count: int = 0,
@@ -81,7 +79,6 @@ class AgentAuditLogger:
 
         Args:
             question: The user's question
-            mode_used: The routing mode used
             company_id: Resolved company ID (if any)
             latency_ms: Total latency in milliseconds
             source_count: Number of sources used
@@ -92,7 +89,6 @@ class AgentAuditLogger:
         entry = AgentAuditEntry(
             timestamp=datetime.now(UTC).isoformat(),
             question=question[:500],  # Truncate long questions
-            mode_used=mode_used,
             company_id=company_id,
             latency_ms=latency_ms,
             source_count=source_count,
@@ -104,7 +100,7 @@ class AgentAuditLogger:
         try:
             with open(self.log_file, "a", encoding="utf-8") as f:
                 f.write(f"{json.dumps(entry.to_dict())}\n")
-            logger.debug(f"Audit entry logged: mode={mode_used}, latency={latency_ms}ms")
+            logger.debug(f"Audit entry logged: latency={latency_ms}ms")
         except Exception as e:
             logger.warning(f"Failed to write audit log: {e}")
 

@@ -110,19 +110,19 @@
     "What's at risk this quarter?"
   ],
   "Break down pipeline by rep": [
-    "Who has the biggest deals?",
-    "Who needs coaching?",
+    "What's our stage conversion rate?",
+    "Which accounts are in manufacturing?",
     "What's the average close rate?"
   ],
   "What's the average deal size?": [
     "How does this compare to last quarter?",
-    "Which segment has the largest deals?",
-    "What's the deal size trend?"
+    "Show me enterprise accounts",
+    "Which accounts are in healthcare?"
   ],
   "Which stage has the most value?": [
     "Show me deals in negotiation",
     "What's stuck in discovery?",
-    "What's the conversion rate by stage?"
+    "List accounts by region"
   ],
   "Who has overdue tasks?": [
     "What are the overdue tasks?",
@@ -132,16 +132,16 @@
   "What's the activity breakdown by type?": [
     "How many calls were made this week?",
     "Which rep has the most meetings?",
-    "What's the email activity level?"
+    "Show me trial accounts"
   ],
   "Which accounts need more engagement?": [
     "Show me accounts with no recent activity",
-    "What's the average activity per account?",
+    "How accurate was last quarter's forecast?",
     "Which accounts are at risk?"
   ],
   "What's the weighted pipeline by rep?": [
     "Who has the highest weighted value?",
-    "Which rep is behind target?",
+    "What's the win rate by rep?",
     "What's the forecast accuracy?"
   ],
   "What's at risk this quarter?": [

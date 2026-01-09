@@ -54,9 +54,7 @@ def _suppress_event_loop_closed_errors() -> None:
     class EventLoopClosedFilter(logging.Filter):
         def filter(self, record: logging.LogRecord) -> bool:
             msg = str(record.getMessage())
-            if "Event loop is closed" in msg:
-                return False
-            return True
+            return "Event loop is closed" not in msg
 
     for logger_name in ["asyncio", "httpx", "httpcore", "aiohttp"]:
         logging.getLogger(logger_name).addFilter(EventLoopClosedFilter())
@@ -66,9 +64,7 @@ def _suppress_event_loop_closed_errors() -> None:
         def filter(self, record: logging.LogRecord) -> bool:
             msg = str(record.getMessage())
             # Suppress "Exception raised in Job[X]" messages from ragas.executor
-            if "Exception raised in Job" in msg:
-                return False
-            return True
+            return "Exception raised in Job" not in msg
 
     logging.getLogger("ragas.executor").addFilter(RagasExecutorFilter())
 
@@ -242,11 +238,15 @@ def evaluate_single(
             # Track which metrics returned NaN (internal RAGAS failure)
             nan_metrics: list[str] = []
 
-            def get_score(name: str) -> float:
-                if name in df.columns and len(df) > 0:
-                    val = df[name].iloc[0]
+            def get_score(
+                name: str,
+                _df: Any = df,
+                _nan_metrics: list[str] = nan_metrics,
+            ) -> float:
+                if name in _df.columns and len(_df) > 0:
+                    val = _df[name].iloc[0]
                     if val is None or (isinstance(val, float) and val != val):  # Check for NaN
-                        nan_metrics.append(name)
+                        _nan_metrics.append(name)
                         return 0.0
                     return float(val)
                 return 0.0

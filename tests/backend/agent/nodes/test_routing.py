@@ -25,10 +25,8 @@ class TestRouteNode:
         from backend.agent.route.node import route_node
 
         mock_result = MagicMock()
-        mock_result.mode_used = "data"
         mock_result.company_id = "ACME-001"
-        mock_result.intent = "company_status"
-        mock_result.days = 30
+        mock_result.intent = "company"
         mock_route.return_value = mock_result
 
         state = {
@@ -39,9 +37,9 @@ class TestRouteNode:
         result = route_node(state)
 
         assert result["router_result"] is mock_result
-        assert result["mode_used"] == "data"
         assert result["resolved_company_id"] == "ACME-001"
-        assert result["intent"] == "company_status"
+        assert result["intent"] == "company"
+        assert result["days"] == 90  # From config.default_days
 
     @patch('backend.agent.route.node.route_question')
     def test_route_node_passes_conversation_history(self, mock_route):
@@ -49,10 +47,8 @@ class TestRouteNode:
         from backend.agent.route.node import route_node
 
         mock_result = MagicMock()
-        mock_result.mode_used = "data"
         mock_result.company_id = None
-        mock_result.intent = "general"
-        mock_result.days = 30
+        mock_result.intent = "pipeline_summary"
         mock_route.return_value = mock_result
 
         state = {
@@ -75,10 +71,8 @@ class TestRouteNode:
         from backend.agent.route.node import route_node
 
         mock_result = MagicMock()
-        mock_result.mode_used = "data"
         mock_result.company_id = None
-        mock_result.intent = "general"
-        mock_result.days = 30
+        mock_result.intent = "pipeline_summary"
         mock_route.return_value = mock_result
 
         state = {
@@ -97,10 +91,8 @@ class TestRouteNode:
         from backend.agent.route.node import route_node
 
         mock_result = MagicMock()
-        mock_result.mode_used = "data"
         mock_result.company_id = None
-        mock_result.intent = "general"
-        mock_result.days = 30
+        mock_result.intent = "pipeline_summary"
         mock_route.return_value = mock_result
 
         state = {
@@ -116,8 +108,8 @@ class TestRouteNode:
         assert result["steps"][0]["status"] == "done"
 
     @patch('backend.agent.route.node.route_question')
-    def test_route_node_handles_exception_with_data_fallback(self, mock_route):
-        """Handles exception and uses data fallback for data keywords."""
+    def test_route_node_handles_exception_with_fallback(self, mock_route):
+        """Handles exception and uses fallback."""
         from backend.agent.route.node import route_node
 
         mock_route.side_effect = Exception("Router error")
@@ -129,82 +121,19 @@ class TestRouteNode:
 
         result = route_node(state)
 
-        # Should fallback to data mode for data-related keywords
-        assert result["mode_used"] == "data"
-        assert result["intent"] == "general"
+        # Should fallback with default intent
+        assert result["intent"] == "pipeline_summary"
         assert "error" in result
         assert result["steps"][0]["status"] == "error"
-
-    @patch('backend.agent.route.node.route_question')
-    def test_route_node_handles_exception_with_data_fallback_generic(self, mock_route):
-        """Handles exception and uses data fallback for generic questions."""
-        from backend.agent.route.node import route_node
-
-        mock_route.side_effect = Exception("Router error")
-
-        state = {
-            "question": "How do I use this feature?",
-            "messages": [],
-        }
-
-        result = route_node(state)
-
-        # Should fallback to data mode (doc RAG removed)
-        assert result["mode_used"] == "data"
-        assert "error" in result
-
-    @patch('backend.agent.route.node.route_question')
-    def test_route_node_handles_missing_mode_used(self, mock_route):
-        """Handles router result missing mode_used."""
-        from backend.agent.route.node import route_node
-
-        mock_result = MagicMock()
-        mock_result.mode_used = None  # Missing mode
-        mock_route.return_value = mock_result
-
-        state = {
-            "question": "What about customer data?",
-            "messages": [],
-        }
-
-        result = route_node(state)
-
-        # Should fallback due to invalid result
-        assert "error" in result
-        assert result["steps"][0]["status"] == "error"
-
-    @patch('backend.agent.route.node.route_question')
-    def test_route_node_uses_default_days_when_none(self, mock_route):
-        """Uses default days when router returns None."""
-        from backend.agent.route.node import route_node
-
-        mock_result = MagicMock()
-        mock_result.mode_used = "data"
-        mock_result.company_id = None
-        mock_result.intent = "general"
-        mock_result.days = None  # No days specified
-        mock_route.return_value = mock_result
-
-        state = {
-            "question": "Show me activities",
-            "messages": [],
-        }
-
-        result = route_node(state)
-
-        # Should use default days from config
-        assert result["days"] > 0
 
     @patch('backend.agent.route.node.route_question')
     def test_route_node_uses_default_intent_when_none(self, mock_route):
-        """Uses 'general' intent when router returns None."""
+        """Uses 'pipeline_summary' intent when router returns None."""
         from backend.agent.route.node import route_node
 
         mock_result = MagicMock()
-        mock_result.mode_used = "data"
         mock_result.company_id = None
         mock_result.intent = None  # No intent
-        mock_result.days = 30
         mock_route.return_value = mock_result
 
         state = {
@@ -214,7 +143,7 @@ class TestRouteNode:
 
         result = route_node(state)
 
-        assert result["intent"] == "general"
+        assert result["intent"] == "pipeline_summary"
 
     @patch('backend.agent.route.node.route_question')
     def test_route_node_handles_empty_messages(self, mock_route):
@@ -222,10 +151,8 @@ class TestRouteNode:
         from backend.agent.route.node import route_node
 
         mock_result = MagicMock()
-        mock_result.mode_used = "data"
         mock_result.company_id = None
-        mock_result.intent = "general"
-        mock_result.days = 30
+        mock_result.intent = "pipeline_summary"
         mock_route.return_value = mock_result
 
         state = {
@@ -236,39 +163,6 @@ class TestRouteNode:
         result = route_node(state)
 
         # Should work without messages
-        assert result["mode_used"] == "data"
         call_kwargs = mock_route.call_args[1]
         assert call_kwargs["conversation_history"] == ""
-
-    @patch('backend.agent.route.node.route_question')
-    def test_route_node_fallback_detects_pipeline_keyword(self, mock_route):
-        """Fallback detects 'pipeline' keyword for data mode."""
-        from backend.agent.route.node import route_node
-
-        mock_route.side_effect = Exception("Error")
-
-        state = {
-            "question": "Show me the pipeline status",
-            "messages": [],
-        }
-
-        result = route_node(state)
-
-        assert result["mode_used"] == "data"
-
-    @patch('backend.agent.route.node.route_question')
-    def test_route_node_fallback_detects_renewal_keyword(self, mock_route):
-        """Fallback detects 'renewal' keyword for data mode."""
-        from backend.agent.route.node import route_node
-
-        mock_route.side_effect = Exception("Error")
-
-        state = {
-            "question": "Any renewal coming up?",
-            "messages": [],
-        }
-
-        result = route_node(state)
-
-        assert result["mode_used"] == "data"
 

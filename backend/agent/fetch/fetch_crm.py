@@ -5,7 +5,7 @@ import time
 
 from backend.agent.core.config import get_config
 from backend.agent.core.state import AgentState
-from backend.agent.fetch.handlers import IntentContext, dispatch_intent
+from backend.agent.fetch.tools import IntentContext, dispatch_intent
 
 logger = logging.getLogger(__name__)
 
@@ -16,10 +16,9 @@ def fetch_crm_node(state: AgentState) -> AgentState:
     start_time = time.time()
 
     question = state.get("question", "")
-    intent = state.get("intent", "general")
+    intent = state.get("intent", "pipeline_summary")
     company_id = state.get("resolved_company_id")
     days = state.get("days", config.default_days)
-    company_name_query = state.get("company_name_query")
     owner = state.get("owner")
 
     logger.info(f"[FetchCRM] Fetching data for intent={intent}, company={company_id}")
@@ -29,7 +28,6 @@ def fetch_crm_node(state: AgentState) -> AgentState:
             question=question.lower(),
             resolved_company_id=company_id,
             days=days,
-            company_name_query=company_name_query,
             owner=owner,
         )
         result = dispatch_intent(intent, ctx)

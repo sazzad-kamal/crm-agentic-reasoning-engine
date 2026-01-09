@@ -5,11 +5,10 @@ Handles company_status, company_search, contacts, and attachments intents.
 Includes tool functions merged from tools/company.py.
 """
 
-from backend.agent.fetch.handlers.common import (
+from backend.agent.fetch.tools.common import (
     CRMDataStore,
     IntentContext,
     IntentResult,
-    Source,
     ToolResult,
     apply_tool_result,
     empty_raw_data,
@@ -18,7 +17,7 @@ from backend.agent.fetch.handlers.common import (
     make_sources,
     with_datastore,
 )
-from backend.agent.fetch.handlers.extractors import (
+from backend.agent.fetch.tools.extractors import (
     extract_attachment_query,
     extract_company_criteria,
     extract_role_from_question,
@@ -27,40 +26,6 @@ from backend.agent.fetch.handlers.extractors import (
 # =============================================================================
 # Tool Functions (merged from tools/company.py)
 # =============================================================================
-
-
-@with_datastore
-def tool_company_lookup(
-    company_id_or_name: str, datastore: CRMDataStore | None = None
-) -> ToolResult:
-    """Look up company information by ID or name."""
-    ds = datastore
-    assert ds is not None  # Guaranteed by @with_datastore
-
-    company_id = ds.resolve_company_id(company_id_or_name)
-
-    if not company_id:
-        matches = ds.get_company_name_matches(company_id_or_name, limit=5)
-        return ToolResult(
-            data={"found": False, "query": company_id_or_name, "close_matches": matches},
-            sources=[],
-            error=f"Company '{company_id_or_name}' not found",
-        )
-
-    company = ds.get_company(company_id)
-    if not company:
-        return ToolResult(
-            data={"found": False, "query": company_id_or_name},
-            sources=[],
-            error=f"Company '{company_id}' not found in database",
-        )
-
-    contacts = ds.get_contacts_for_company(company_id, limit=5)
-
-    return ToolResult(
-        data={"found": True, "company": company, "contacts": contacts},
-        sources=[Source(type="company", id=company_id, label=company.get("name", company_id))],
-    )
 
 
 @with_datastore
@@ -225,16 +190,16 @@ def tool_accounts_needing_attention(
 def handle_company_status(ctx: IntentContext) -> IntentResult:
     """Handle company_status and company-specific intents."""
     # Import here to avoid circular imports
-    from backend.agent.fetch.handlers.activity import tool_recent_activity, tool_recent_history
-    from backend.agent.fetch.handlers.pipeline import tool_pipeline
+    from backend.agent.fetch.tools.activity import tool_recent_activity, tool_recent_history
+    from backend.agent.fetch.tools.pipeline import tool_pipeline
 
     result = IntentResult(raw_data=empty_raw_data())
 
-    query = ctx.resolved_company_id or ctx.company_name_query
+    company_id = ctx.resolved_company_id
 
-    logger.debug(f"[Data] Looking up company: {query}")
-    if not lookup_company(result, query or ""):
-        logger.info(f"[Data] Company not found: {query}")
+    logger.debug(f"[Data] Looking up company: {company_id}")
+    if not lookup_company(result, company_id or ""):
+        logger.info(f"[Data] Company not found: {company_id}")
         return result
 
     company_id = result.resolved_company_id
@@ -302,8 +267,7 @@ __all__ = [
     "handle_company_search",
     "handle_contacts",
     "handle_attachments",
-    # Tools (for backward compatibility)
-    "tool_company_lookup",
+    # Tools
     "tool_search_companies",
     "tool_search_contacts",
     "tool_search_attachments",

@@ -36,7 +36,6 @@ class TestE2EAgentPipeline:
 
         assert "answer" in result
         assert "sources" in result
-        assert "mode_used" in result
 
 
 # =============================================================================

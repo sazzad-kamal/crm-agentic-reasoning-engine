@@ -1,0 +1,277 @@
+# Expected intents for flow eval - used for intent classification accuracy
+#
+# Valid intents (11 total) - 1:1 mapping to handlers:
+#
+# COMPANY-SPECIFIC (requires company name, triggers RAG):
+# - company: All company queries (status, pipeline, history, deep context)
+#
+# AGGREGATE/GLOBAL (no specific company):
+# - renewals: Contract renewals across ALL accounts
+# - pipeline_summary: Total pipeline value, deal counts across ALL accounts
+# - deals_at_risk: At-risk deals AND accounts needing attention
+# - forecast: Pipeline forecast, projections, weighted pipeline
+# - forecast_accuracy: Win rate metrics
+# - activities: Activity search (calls, emails, meetings)
+# - contacts: Contact queries (lookup by company or search by name)
+# - company_search: Search companies by segment/industry
+# - attachments: Document/file searches
+# - analytics: Counts, breakdowns, distributions, aggregations
+
+# =============================================================================
+# STARTER QUESTIONS (Root level - 3 personas)
+# =============================================================================
+"How's my pipeline?": "pipeline_summary"
+"Any renewals at risk?": "deals_at_risk"
+"How's the team doing?": "pipeline_summary"
+
+# =============================================================================
+# PIPELINE BRANCH (From "How's my pipeline?")
+# =============================================================================
+"Which deals need attention?": "deals_at_risk"
+"What's going on with Acme Manufacturing?": "company"
+"What's the forecast for this quarter?": "forecast"
+
+"What stage is the upgrade deal in?": "company"
+"What's blocking the Crown Foods renewal?": "company"
+"Who should I follow up with?": "activities"
+
+"When did we last talk to Crown Foods?": "company"
+"Who is Maria Silva?": "contacts"
+"What's the renewal value?": "renewals"
+
+"What's the next scheduled activity?": "activities"
+"Show me overdue activities": "activities"
+"What meetings do I have this week?": "activities"
+
+"What's the expected close value?": "forecast"
+"Which deals are most likely to close?": "forecast"
+"What's at risk in my pipeline?": "deals_at_risk"
+
+"What's the weighted pipeline?": "forecast"
+"Which deals are in negotiation?": "pipeline_summary"
+"How many open opportunities do I have?": "analytics"
+
+"Tell me about the Beta Tech negotiation deal": "company"
+"What's the next step for my biggest deal?": "company"
+"Who owns the contacts for these deals?": "contacts"
+
+"Which deals are stalled?": "deals_at_risk"
+"What accounts have low engagement?": "deals_at_risk"
+"Show me deals with no recent activity": "deals_at_risk"
+
+# =============================================================================
+# RENEWALS BRANCH (From "Any renewals at risk?")
+# =============================================================================
+"Tell me about Delta Health's status": "company"
+"Which renewals close this quarter?": "renewals"
+"What accounts need immediate attention?": "deals_at_risk"
+
+"When does Delta Health renew?": "company"
+"Who are the contacts at Delta Health?": "contacts"
+"What's the expansion opportunity?": "company"
+
+"What's the renewal value for Delta Health?": "company"
+"Are there any risks with Delta Health?": "company"
+"What's the engagement level with Delta Health?": "company"
+
+"Who is Erin Cho?": "contacts"
+"What is Mike Tran's role?": "contacts"
+"When did we last meet with Delta Health?": "company"
+
+"What's the expansion deal worth?": "company"
+"Which clinics are we expanding to?": "company"
+"Who's driving the expansion?": "contacts"
+
+"What's the total renewal value at risk?": "deals_at_risk"
+"Which renewals are in good standing?": "renewals"
+"Show me renewal timeline": "renewals"
+
+"Which account has the highest risk?": "deals_at_risk"
+"What's causing the risk?": "company"
+"How can I save these renewals?": "company"
+
+"What's the total healthy renewal value?": "renewals"
+"Any upsell opportunities?": "pipeline_summary"
+"When should I reach out?": "activities"
+
+"What's due next month?": "renewals"
+"Which renewals need prep?": "renewals"
+"What's the 90-day renewal forecast?": "renewals"
+
+# =============================================================================
+# TEAM BRANCH (From "How's the team doing?")
+# =============================================================================
+"What's the total pipeline?": "pipeline_summary"
+"Which reps are behind on activities?": "analytics"
+"What's the team's forecast?": "forecast"
+
+"Break down pipeline by rep": "analytics"
+"What's the average deal size?": "analytics"
+"Which stage has the most value?": "analytics"
+
+"What's our stage conversion rate?": "forecast_accuracy"
+"Which accounts are in manufacturing?": "company_search"
+"What's the average close rate?": "forecast_accuracy"
+
+"How does this compare to last quarter?": "analytics"
+"Show me enterprise accounts": "company_search"
+"Which accounts are in healthcare?": "company_search"
+
+"Show me deals in negotiation": "pipeline_summary"
+"What's stuck in discovery?": "deals_at_risk"
+"List accounts by region": "company_search"
+
+"Who has overdue tasks?": "activities"
+"What's the activity breakdown by type?": "analytics"
+"Which accounts need more engagement?": "deals_at_risk"
+
+"What are the overdue tasks?": "activities"
+"Which accounts are affected?": "deals_at_risk"
+"When were these tasks due?": "activities"
+
+"How many calls were made this week?": "analytics"
+"Which rep has the most meetings?": "analytics"
+"Show me trial accounts": "company_search"
+
+"Show me accounts with no recent activity": "deals_at_risk"
+"How accurate was last quarter's forecast?": "forecast_accuracy"
+"Which accounts are at risk?": "deals_at_risk"
+
+"What's the weighted pipeline by rep?": "analytics"
+"What's at risk this quarter?": "deals_at_risk"
+"Tell me about Fusion Retail's upsell": "company"
+
+"Who has the highest weighted value?": "analytics"
+"What's the win rate by rep?": "forecast_accuracy"
+"What's the forecast accuracy?": "forecast_accuracy"
+
+"Which deals are past due?": "deals_at_risk"
+"What's the total at-risk value?": "deals_at_risk"
+"How can we recover these deals?": "company"
+
+# =============================================================================
+# ACCOUNT DEEP DIVES
+# =============================================================================
+
+# Green Energy (churned)
+"What happened with Green Energy?": "company"
+"Why did Green Energy churn?": "company"
+"Who were the contacts at Green Energy?": "contacts"
+"What was the timeline of the Green Energy relationship?": "company"
+"What were the warning signs?": "company"
+"Could we have saved the account?": "company"
+"What can we learn from this?": "company"
+"Who was Carlos at Green Energy?": "contacts"
+"What was Linda's role?": "contacts"
+"When did we last engage with them?": "company"
+"When did they first become a customer?": "company"
+"What milestones happened?": "company"
+"When did issues start?": "company"
+
+# Eastern Travel (trial)
+"Tell me about Eastern Travel's trial": "company"
+"What's blocking the trial conversion?": "company"
+"Who are the contacts at Eastern Travel?": "contacts"
+"What's the trial usage like?": "company"
+"Who has budget authority?": "contacts"
+"What are their concerns?": "company"
+"When was the trial extended?": "company"
+"Who is Sanjay Patel?": "contacts"
+"What is Ravi's role?": "contacts"
+"Who should we escalate to?": "contacts"
+"Which features are they using?": "company"
+"How active are the users?": "company"
+"What's the engagement trend?": "company"
+
+# Harbor Logistics
+"How is Harbor Logistics progressing?": "company"
+"What's the status of the Harbor deal?": "company"
+"Who are the contacts at Harbor Logistics?": "contacts"
+"What's the implementation plan?": "company"
+"What stage is Harbor Logistics in?": "company"
+"What's the deal value?": "company"
+"When is the expected close?": "company"
+"Who is Jacob Wu?": "contacts"
+"Who handles operations at Harbor?": "contacts"
+"Who's the decision maker?": "contacts"
+"What's the rollout timeline?": "company"
+"Which teams are involved?": "contacts"
+"What training is needed?": "company"
+
+# Fusion Retail
+"What's the upsell opportunity?": "company"
+"Who are the contacts at Fusion Retail?": "contacts"
+"What's Fusion's current usage?": "company"
+"What's the expansion deal worth?": "company"
+"How many additional seats?": "company"
+"What's driving the expansion?": "company"
+"Who is Emma at Fusion?": "contacts"
+"Who is Lars?": "contacts"
+"Who approved the original deal?": "contacts"
+"How many active users?": "company"
+"Which features are popular?": "company"
+"What's the adoption rate?": "analytics"
+
+# Acme Manufacturing
+"Show me Acme Manufacturing's opportunities": "company"
+"Who are the key contacts at Acme Manufacturing?": "contacts"
+"What's Acme Manufacturing's renewal status?": "company"
+"When does the Acme renewal opportunity close?": "company"
+"What's the total pipeline value for Acme Manufacturing?": "company"
+"What is Anna Lopez's role?": "contacts"
+"Who handles IT at Acme Manufacturing?": "contacts"
+"Show me recent activities with Acme Manufacturing": "company"
+"When exactly is Acme Manufacturing's renewal date?": "company"
+"What documents are attached to Acme deals?": "attachments"
+"What is Beth Turner's role at Acme?": "contacts"
+"Who is the contact for the upgrade opportunity?": "contacts"
+"Show me deals in discovery stage": "pipeline_summary"
+"Which deals have we closed won?": "pipeline_summary"
+"What's the expected close date for Acme's renewal?": "company"
+"Who's handling the Acme Manufacturing renewal?": "contacts"
+"What's the current stage of Acme's renewal?": "company"
+"What's the biggest opportunity for Acme?": "company"
+"How many opportunities does Acme have?": "analytics"
+"Who is the account owner for Acme?": "company"
+"What deals is Anna Lopez involved in?": "company"
+"When did we last talk to Anna Lopez?": "company"
+"What's the breakdown of contact roles at Acme?": "analytics"
+"What is Joe Smith's contact info?": "contacts"
+"What deals involve Joe Smith?": "company"
+"What's the priority of the next Acme activity?": "activities"
+"What was discussed in the last Acme call?": "company"
+"When was the last meeting with Acme?": "company"
+"How many activities has Acme had this month?": "analytics"
+"What's the health status of Acme Manufacturing?": "company"
+"What proposals have been sent to Acme?": "attachments"
+"What's the Acme upgrade opportunity worth?": "company"
+"Is there an expansion opportunity at Acme?": "company"
+"Show me the PDF attachments for Acme": "attachments"
+"Who is the CFO at Acme Manufacturing?": "contacts"
+"What's Beth Turner's email address?": "contacts"
+"Has Beth Turner been involved in any deals?": "company"
+"What's the Acme industry segment?": "company"
+
+# Beta Tech
+"When is the negotiation deal expected to close?": "company"
+"Who is the primary contact for the Beta Tech deal?": "contacts"
+"What's the negotiation deal value?": "company"
+"What's the total value of Beta Tech deals?": "company"
+"Who should I follow up with at Beta Tech?": "contacts"
+"What activities happened with Beta Tech?": "company"
+"What's Lisa Ng's job title?": "contacts"
+"Who is Omar Haddad at Beta Tech?": "contacts"
+"What is Lisa Ng's email?": "contacts"
+"What's Beta Tech's total pipeline?": "company"
+"How many deals does Beta Tech have?": "analytics"
+"What's the add-on deal worth?": "company"
+
+# At-risk accounts
+"Why is Beta Tech marked at-risk?": "company"
+"Which accounts have the lowest activity?": "deals_at_risk"
+"Show me at-risk renewals": "deals_at_risk"
+
+# Activity follow-ups
+"Who is the meeting with?": "activities"
+"Any activities with trial accounts like Eastern Travel?": "activities"
+"What type of activity is it?": "activities"

@@ -16,7 +16,7 @@ from typing import Any
 
 from backend.agent.core.state import Source
 from backend.agent.datastore import CRMDataStore, get_datastore
-from backend.agent.fetch.handlers.schemas import ToolResult
+from backend.agent.fetch.tools.schemas import ToolResult
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,40 @@ def with_datastore(func: Callable[..., ToolResult]) -> Callable[..., ToolResult]
     return wrapper
 
 
+@with_datastore
+def tool_company_lookup(
+    company_id_or_name: str, datastore: CRMDataStore | None = None
+) -> ToolResult:
+    """Look up company information by ID or name."""
+    ds = datastore
+    assert ds is not None  # Guaranteed by @with_datastore
+
+    company_id = ds.resolve_company_id(company_id_or_name)
+
+    if not company_id:
+        matches = ds.get_company_name_matches(company_id_or_name, limit=5)
+        return ToolResult(
+            data={"found": False, "query": company_id_or_name, "close_matches": matches},
+            sources=[],
+            error=f"Company '{company_id_or_name}' not found",
+        )
+
+    company = ds.get_company(company_id)
+    if not company:
+        return ToolResult(
+            data={"found": False, "query": company_id_or_name},
+            sources=[],
+            error=f"Company '{company_id}' not found in database",
+        )
+
+    contacts = ds.get_contacts_for_company(company_id, limit=5)
+
+    return ToolResult(
+        data={"found": True, "company": company, "contacts": contacts},
+        sources=[Source(type="company", id=company_id, label=company.get("name", company_id))],
+    )
+
+
 @dataclass
 class IntentContext:
     """Context passed to intent handlers."""
@@ -54,7 +88,6 @@ class IntentContext:
     question: str
     resolved_company_id: str | None
     days: int
-    company_name_query: str | None = None  # For resolving company names
     owner: str | None = None  # Role-based owner filter (jsmith, amartin, or None for all)
     router_result: Any | None = None  # Optional router result for advanced routing
 
@@ -135,24 +168,16 @@ def lookup_company(result: IntentResult, company_id: str) -> bool:
 
     Returns True if company was found, False otherwise.
     """
-    ds = get_datastore()
-    resolved_id = ds.resolve_company_id(company_id)
+    tool_result = tool_company_lookup(company_id)
+    result.company_data = tool_result.data
+    result.sources.extend(tool_result.sources)
 
-    if not resolved_id:
-        matches = ds.get_company_name_matches(company_id, limit=5)
-        result.company_data = {"found": False, "query": company_id, "close_matches": matches}
+    if not tool_result.data.get("found"):
         return False
 
-    company = ds.get_company(resolved_id)
-    if not company:
-        result.company_data = {"found": False, "query": company_id}
-        return False
-
-    contacts = ds.get_contacts_for_company(resolved_id, limit=5)
-    result.company_data = {"found": True, "company": company, "contacts": contacts}
-    result.sources.append(Source(type="company", id=resolved_id, label=company.get("name", resolved_id)))
+    company = tool_result.data["company"]
     result.raw_data["companies"] = [company]
-    result.resolved_company_id = resolved_id
+    result.resolved_company_id = company.get("company_id")
     return True
 
 
@@ -241,6 +266,7 @@ __all__ = [
     "enrich_raw_data",
     "make_sources",
     "with_datastore",
+    "tool_company_lookup",
     "ToolResult",
     "CRMDataStore",
     "get_datastore",

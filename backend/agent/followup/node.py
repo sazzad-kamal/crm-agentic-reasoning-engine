@@ -48,7 +48,6 @@ def followup_node(state: AgentState) -> AgentState:
     try:
         suggestions = generate_follow_up_suggestions(
             question=state["question"],
-            mode=state.get("mode_used", "auto"),
             company_id=state.get("resolved_company_id"),
             company_name=company_name,
             conversation_history=conversation_history,

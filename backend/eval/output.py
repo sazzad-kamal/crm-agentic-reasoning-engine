@@ -273,7 +273,8 @@ def _print_slo_failures(results: FlowEvalResults, eval_mode: str = "both") -> No
         failed_table.add_column("F", justify="center", width=3)
         failed_table.add_column("A", justify="center", width=3)
     if eval_mode in ("rag", "both"):
-        failed_table.add_column("P/R", justify="center", width=4)
+        failed_table.add_column("P", justify="center", width=3)
+        failed_table.add_column("Rc", justify="center", width=3)
 
     def fmt(passed: bool | None) -> str:
         if passed is None:
@@ -292,11 +293,14 @@ def _print_slo_failures(results: FlowEvalResults, eval_mode: str = "both") -> No
             row.extend([fmt(r_pass), fmt(f_pass), fmt(a_pass)])
 
         if eval_mode in ("rag", "both"):
-            # Account: N/A if not invoked, else check both precision and recall
-            acct_pass: bool | None = None if not step.account_rag_invoked else (
-                step.account_precision_score >= SLO_ACCOUNT_PRECISION and step.account_recall_score >= SLO_ACCOUNT_RECALL
+            # Separate P and Rc columns
+            p_pass: bool | None = None if not step.account_rag_invoked else (
+                step.account_precision_score >= SLO_ACCOUNT_PRECISION
             )
-            row.append(fmt(acct_pass))
+            rc_pass: bool | None = None if not step.account_rag_invoked else (
+                step.account_recall_score >= SLO_ACCOUNT_RECALL
+            )
+            row.extend([fmt(p_pass), fmt(rc_pass)])
 
         failed_table.add_row(*row)
 

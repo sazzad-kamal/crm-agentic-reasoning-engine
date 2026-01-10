@@ -3,11 +3,13 @@ Schema-driven query planner for LLM-based SQL generation.
 
 Replaces the 14-intent router with direct SQL generation.
 The LLM becomes a "CRM SQL expert" that understands the data model.
+Loads prompt from prompt.txt for clean separation.
 """
 
 import logging
 import os
 from datetime import datetime
+from pathlib import Path
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
@@ -22,6 +24,36 @@ from tenacity import (
 from backend.agent.core.config import get_config
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Load Prompt from File
+# =============================================================================
+
+_PROMPT_PATH = Path(__file__).parent / "prompt.txt"
+_PROMPT_TEXT = _PROMPT_PATH.read_text(encoding="utf-8")
+
+# Parse [system] and [human] sections
+_sections: dict[str, str] = {}
+_current_section: str | None = None
+_current_lines: list[str] = []
+
+for _line in _PROMPT_TEXT.split("\n"):
+    if _line.strip() == "[system]":
+        if _current_section:
+            _sections[_current_section] = "\n".join(_current_lines).strip()
+        _current_section = "system"
+        _current_lines = []
+    elif _line.strip() == "[human]":
+        if _current_section:
+            _sections[_current_section] = "\n".join(_current_lines).strip()
+        _current_section = "human"
+        _current_lines = []
+    else:
+        _current_lines.append(_line)
+
+if _current_section:
+    _sections[_current_section] = "\n".join(_current_lines).strip()
 
 
 # =============================================================================
@@ -91,62 +123,13 @@ def detect_owner_from_starter(question: str) -> str | None:
 
 
 # =============================================================================
-# Schema Prompt Template
+# Schema Prompt Template (loaded from prompt.txt)
 # =============================================================================
 
 SCHEMA_PROMPT = ChatPromptTemplate.from_messages(
     [
-        (
-            "system",
-            """You are a CRM SQL expert. Given a user question, output SQL queries to fetch the needed data.
-
-Today's date: {today}
-
-## SCHEMA (DuckDB)
-companies: company_id, name, primary_domain, status (Active|Churned|Trial), plan (Pro|Standard),
-           account_owner, industry, segment (Mid-market|SMB|Enterprise), region,
-           renewal_date, health_flags (healthy|at-risk-low-activity|at-risk-renewal-soon)
-
-contacts: contact_id, company_id, first_name, last_name, email, phone, job_title,
-          role (Decision Maker|Champion|Technical Contact|Executive),
-          lifecycle_stage (Customer|Lead|Former)
-
-opportunities: opportunity_id, company_id, primary_contact_id, name,
-               stage (New|Discovery|Qualified|Proposal|Negotiation|Closed Won|Closed Lost),
-               type (New Business|Renewal|Expansion), value, currency, source, owner,
-               expected_close_date, days_in_stage, next_step, notes
-
-activities: activity_id, company_id, contact_id, opportunity_id,
-            type (Call|Email|Meeting|Task), subject, description, due_datetime,
-            owner, priority (High|Medium|Low), status (Open|Completed)
-
-history: history_id, company_id, contact_id, opportunity_id,
-         type (Call|Email|Meeting|Note), subject, description,
-         source (ManualLog|EmailSync|Calendar), occurred_at, owner
-
-attachments: attachment_id, company_id, contact_id, opportunity_id,
-             title, summary, file_type (pdf|xlsx|docx)
-
-## RULES
-1. Use $company_id or $contact_id as placeholders (resolved from earlier query results)
-2. Forecast weights: New=5%, Discovery=10%, Qualified=25%, Proposal=50%, Negotiation=75%
-3. Use LIMIT to prevent large results (max 50 rows)
-4. For names, use LOWER() and LIKE for fuzzy match
-5. Set needs_account_rag=true ONLY if question mentions a SPECIFIC COMPANY NAME (e.g., "Tell me about Acme", "What's Acme's pipeline?", "What's going on with Delta Health?")
-6. Set needs_account_rag=false for aggregate/personal queries WITHOUT a company name (e.g., "How's my pipeline?", "Show my pipeline", "What's in my pipeline?", "Show me all deals at risk", "What's the forecast?", "Any renewals at risk?")
-7. Set needs_account_rag=false for contact-specific queries without company context (e.g., "Who is Lisa Ng?")
-8. If owner is set, filter by owner WHERE relevant (e.g., opportunities.owner, activities.owner)
-9. CRITICAL: If needs_account_rag=true, your FIRST query MUST select company_id from companies table:
-   SELECT company_id, name, ... FROM companies WHERE LOWER(name) LIKE '%company_name%' LIMIT 1
-   This ensures company_id is resolved for the Account RAG lookup.
-
-## CURRENT USER
-{owner}
-
-## CONVERSATION HISTORY
-{conversation_history}""",
-        ),
-        ("human", "{question}"),
+        ("system", _sections.get("system", "")),
+        ("human", _sections.get("human", "")),
     ]
 )
 

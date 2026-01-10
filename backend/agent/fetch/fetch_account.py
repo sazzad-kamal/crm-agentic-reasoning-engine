@@ -27,12 +27,16 @@ def fetch_account_node(state: AgentState) -> AgentState:
 
     # Build filters from all resolved entity IDs
     filters: dict[str, str] = {}
-    if state.get("resolved_company_id"):
-        filters["company_id"] = state["resolved_company_id"]
-    if state.get("resolved_contact_id"):
-        filters["contact_id"] = state["resolved_contact_id"]
-    if state.get("resolved_opportunity_id"):
-        filters["opportunity_id"] = state["resolved_opportunity_id"]
+    company_id = state.get("resolved_company_id")
+    contact_id = state.get("resolved_contact_id")
+    opportunity_id = state.get("resolved_opportunity_id")
+
+    if company_id:
+        filters["company_id"] = company_id
+    if contact_id:
+        filters["contact_id"] = contact_id
+    if opportunity_id:
+        filters["opportunity_id"] = opportunity_id
 
     # Need at least one entity to filter by
     if not filters:

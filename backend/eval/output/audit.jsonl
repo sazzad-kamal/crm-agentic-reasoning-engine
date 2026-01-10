@@ -17553,3 +17553,6 @@ id": "flow_eval_60_1767005314"}
 {"timestamp": "2026-01-10T18:12:47.541801+00:00", "question": "Tell me about opportunities", "latency_ms": 326, "source_count": 0}
 {"timestamp": "2026-01-10T18:12:47.871089+00:00", "question": "Tell me about opportunities", "latency_ms": 318, "source_count": 0}
 {"timestamp": "2026-01-10T18:12:48.221621+00:00", "question": "Tell me about opportunities", "latency_ms": 349, "source_count": 0}
+{"timestamp": "2026-01-10T18:49:47.552604+00:00", "question": "Test question", "latency_ms": 4368, "source_count": 0, "session_id": "session-1768070982484-nhvzao655"}
+{"timestamp": "2026-01-10T18:50:32.023392+00:00", "question": "What is Acme CRM?", "company_id": "ACME-MFG", "latency_ms": 9761, "source_count": 6, "session_id": "session-1768071020979-prj9xd9fk"}
+{"timestamp": "2026-01-10T18:50:34.316422+00:00", "question": "What renewals are coming up this month?", "company_id": "CROWN-FOODS", "latency_ms": 4939, "source_count": 1, "session_id": "session-1768071028087-6rtpjbal8"}

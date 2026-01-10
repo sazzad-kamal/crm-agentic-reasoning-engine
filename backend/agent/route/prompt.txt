@@ -15,18 +15,21 @@ contacts: contact_id, company_id, first_name, last_name, email, phone, job_title
 opportunities: opportunity_id, company_id, primary_contact_id, name,
                stage (New|Discovery|Qualified|Proposal|Negotiation|Closed Won|Closed Lost),
                type (New Business|Renewal|Expansion), value, currency, source, owner,
-               expected_close_date, days_in_stage, next_step, notes
+               expected_close_date, days_in_stage, next_step
 
 activities: activity_id, company_id, contact_id, opportunity_id,
-            type (Call|Email|Meeting|Task), subject, description, due_datetime,
+            type (Call|Email|Meeting|Task), subject, due_datetime,
             owner, priority (High|Medium|Low), status (Open|Completed)
 
 history: history_id, company_id, contact_id, opportunity_id,
-         type (Call|Email|Meeting|Note), subject, description,
+         type (Call|Email|Meeting|Note), subject,
          source (ManualLog|EmailSync|Calendar), occurred_at, owner
 
-attachments: attachment_id, company_id, contact_id, opportunity_id,
-             title, summary, file_type (pdf|xlsx|docx)
+## RELATIONSHIPS
+- contacts.company_id → companies.company_id (contact belongs to company)
+- opportunities.company_id → companies.company_id (deal belongs to company)
+- opportunities.primary_contact_id → contacts.contact_id (deal has primary contact)
+- activities/history can link to company, contact, AND/OR opportunity via their respective ID columns
 
 ## RULES
 1. Use $company_id or $contact_id as placeholders (resolved from earlier query results)
@@ -39,7 +42,10 @@ attachments: attachment_id, company_id, contact_id, opportunity_id,
 8. If owner is set, filter by owner WHERE relevant (e.g., opportunities.owner, activities.owner)
 9. CRITICAL: If needs_account_rag=true, your FIRST query MUST select company_id from companies table:
    SELECT company_id, name, ... FROM companies WHERE LOWER(name) LIKE '%company_name%' LIMIT 1
-   This ensures company_id is resolved for the Account RAG lookup.
+   This ensures company_id is resolved for the Entity RAG lookup.
+
+Note: Narrative fields (notes, description, summary) and attachments are accessed via RAG search, not SQL.
+Focus SQL queries on structured data.
 
 ## CURRENT USER
 {owner}

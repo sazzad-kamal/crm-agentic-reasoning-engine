@@ -1,7 +1,7 @@
 """
 Tests for RAG tools module.
 
-Covers tool_account_rag function with mocked dependencies.
+Covers tool_entity_rag function with mocked dependencies.
 """
 
 import sys
@@ -41,8 +41,8 @@ class TestGetEmbedModel:
             mock_embed_class.assert_called_once()
 
 
-class TestToolAccountRag:
-    """Tests for tool_account_rag function."""
+class TestToolEntityRag:
+    """Tests for tool_entity_rag function."""
 
     def _setup_llama_mocks(self, mock_retriever):
         """Setup common llama_index mocks."""
@@ -72,8 +72,8 @@ class TestToolAccountRag:
             "llama_index.vector_stores.qdrant": mock_qdrant_vs,
         }
 
-    def test_tool_account_rag_success(self):
-        """Test successful account RAG retrieval."""
+    def test_tool_entity_rag_success(self):
+        """Test successful entity RAG retrieval."""
         mock_node1 = MagicMock()
         mock_node1.text = "Meeting notes from last week."
         mock_node1.metadata = {"type": "note", "source_id": "note_001", "title": "Sales Call Notes"}
@@ -97,7 +97,7 @@ class TestToolAccountRag:
             # Patch where it's used, not where it's defined
             with patch.object(tools, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = tools.tool_account_rag("What were the meeting notes?", {"company_id": "COMP001"})
+                context, sources = tools.tool_entity_rag("What were the meeting notes?", {"company_id": "COMP001"})
 
         assert "Meeting notes" in context
         assert "Proposal document" in context
@@ -106,8 +106,8 @@ class TestToolAccountRag:
         assert sources[0].id == "note_001"
         assert sources[1].type == "attachment"
 
-    def test_tool_account_rag_empty_results(self):
-        """Test account RAG with no results."""
+    def test_tool_entity_rag_empty_results(self):
+        """Test entity RAG with no results."""
         mock_retriever = MagicMock()
         mock_retriever.retrieve.return_value = []
 
@@ -121,22 +121,22 @@ class TestToolAccountRag:
 
             with patch.object(tools, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = tools.tool_account_rag("Unknown query", {"company_id": "COMP001"})
+                context, sources = tools.tool_entity_rag("Unknown query", {"company_id": "COMP001"})
 
         assert context == ""
         assert sources == []
 
-    def test_tool_account_rag_exception(self):
+    def test_tool_entity_rag_exception(self):
         """Test account RAG handles exceptions gracefully."""
         with patch("backend.agent.rag.tools.get_qdrant_client", side_effect=Exception("Client error")):
-            from backend.agent.rag.tools import tool_account_rag
+            from backend.agent.rag.tools import tool_entity_rag
 
-            context, sources = tool_account_rag("Any question", {"company_id": "COMP001"})
+            context, sources = tool_entity_rag("Any question", {"company_id": "COMP001"})
 
         assert context == ""
         assert sources == []
 
-    def test_tool_account_rag_metadata_defaults(self):
+    def test_tool_entity_rag_metadata_defaults(self):
         """Test account RAG uses defaults for missing metadata."""
         mock_node = MagicMock()
         mock_node.text = "Content with minimal metadata"
@@ -175,13 +175,13 @@ class TestToolAccountRag:
             # Patch where it's used, not where it's defined
             with patch.object(tools, "get_qdrant_client") as mock_client_fn:
                 mock_client_fn.return_value = MagicMock()
-                context, sources = tools.tool_account_rag("Question", {"company_id": "COMP001"})
+                context, sources = tools.tool_entity_rag("Question", {"company_id": "COMP001"})
 
         assert len(sources) == 1
         assert sources[0].type == "note"  # Default type
         assert sources[0].id == "unknown"  # Default id
 
-    def test_tool_account_rag_doc_id_fallback(self):
+    def test_tool_entity_rag_doc_id_fallback(self):
         """Test account RAG uses doc_id when source_id missing."""
         mock_node = MagicMock()
         mock_node.text = "Some content"
@@ -218,12 +218,12 @@ class TestToolAccountRag:
 
             with patch.object(tools, "get_qdrant_client") as mock_client_fn:
                 mock_client_fn.return_value = MagicMock()
-                context, sources = tools.tool_account_rag("Question", {"company_id": "COMP001"})
+                context, sources = tools.tool_entity_rag("Question", {"company_id": "COMP001"})
 
         assert len(sources) == 1
         assert sources[0].id == "doc_123"
 
-    def test_tool_account_rag_multi_entity_filter(self):
+    def test_tool_entity_rag_multi_entity_filter(self):
         """Test account RAG builds compound filter from multiple entity IDs."""
         mock_node = MagicMock()
         mock_node.text = "Lisa discussed pricing with the client."
@@ -243,10 +243,249 @@ class TestToolAccountRag:
             with patch.object(tools, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
                 # Pass multiple entity IDs
-                context, sources = tools.tool_account_rag(
+                context, sources = tools.tool_entity_rag(
                     "What did Lisa say?",
                     {"company_id": "COMP001", "contact_id": "CONT001", "opportunity_id": "OPP001"}
                 )
 
         assert "Lisa discussed pricing" in context
         assert len(sources) == 1
+
+    def test_tool_entity_rag_company_type(self):
+        """Test entity RAG returns company description content."""
+        mock_node = MagicMock()
+        mock_node.text = "Enterprise customer since 2020. CFO is key decision maker."
+        mock_node.metadata = {
+            "type": "company",
+            "source_id": "company::ACME-MFG",
+            "title": "Acme Manufacturing",
+            "company_id": "ACME-MFG",
+        }
+
+        mock_retriever = MagicMock()
+        mock_retriever.retrieve.return_value = [mock_node]
+
+        llama_mocks = self._setup_llama_mocks(mock_retriever)
+
+        with patch.dict(sys.modules, llama_mocks):
+            if "backend.agent.rag.tools" in sys.modules:
+                del sys.modules["backend.agent.rag.tools"]
+
+            from backend.agent.rag import tools
+
+            with patch.object(tools, "get_qdrant_client") as mock_client:
+                mock_client.return_value = MagicMock()
+                context, sources = tools.tool_entity_rag(
+                    "What should I know about Acme?",
+                    {"company_id": "ACME-MFG"}
+                )
+
+        assert "Enterprise customer" in context
+        assert sources[0].type == "company"
+        assert sources[0].label == "Acme Manufacturing"
+
+    def test_tool_entity_rag_contact_type(self):
+        """Test entity RAG returns contact notes content."""
+        mock_node = MagicMock()
+        mock_node.text = "Prefers email over calls. Technical background. Champions our product."
+        mock_node.metadata = {
+            "type": "contact",
+            "source_id": "contact::C-ACME-ANNA",
+            "title": "Anna Lopez",
+            "company_id": "ACME-MFG",
+            "contact_id": "C-ACME-ANNA",
+        }
+
+        mock_retriever = MagicMock()
+        mock_retriever.retrieve.return_value = [mock_node]
+
+        llama_mocks = self._setup_llama_mocks(mock_retriever)
+
+        with patch.dict(sys.modules, llama_mocks):
+            if "backend.agent.rag.tools" in sys.modules:
+                del sys.modules["backend.agent.rag.tools"]
+
+            from backend.agent.rag import tools
+
+            with patch.object(tools, "get_qdrant_client") as mock_client:
+                mock_client.return_value = MagicMock()
+                context, sources = tools.tool_entity_rag(
+                    "What's Anna's communication style?",
+                    {"contact_id": "C-ACME-ANNA"}
+                )
+
+        assert "Prefers email" in context
+        assert sources[0].type == "contact"
+        assert sources[0].label == "Anna Lopez"
+
+    def test_tool_entity_rag_opportunity_type(self):
+        """Test entity RAG returns opportunity notes content."""
+        mock_node = MagicMock()
+        mock_node.text = "Deal is stalled due to pricing concerns. CFO wants ROI justification."
+        mock_node.metadata = {
+            "type": "opportunity",
+            "source_id": "opp::OPP-ACME-UPGRADE",
+            "title": "Pro to Enterprise Upgrade",
+            "company_id": "ACME-MFG",
+            "opportunity_id": "OPP-ACME-UPGRADE",
+        }
+
+        mock_retriever = MagicMock()
+        mock_retriever.retrieve.return_value = [mock_node]
+
+        llama_mocks = self._setup_llama_mocks(mock_retriever)
+
+        with patch.dict(sys.modules, llama_mocks):
+            if "backend.agent.rag.tools" in sys.modules:
+                del sys.modules["backend.agent.rag.tools"]
+
+            from backend.agent.rag import tools
+
+            with patch.object(tools, "get_qdrant_client") as mock_client:
+                mock_client.return_value = MagicMock()
+                context, sources = tools.tool_entity_rag(
+                    "What's blocking the Acme upgrade?",
+                    {"opportunity_id": "OPP-ACME-UPGRADE"}
+                )
+
+        assert "pricing concerns" in context
+        assert sources[0].type == "opportunity"
+
+    def test_tool_entity_rag_activity_type(self):
+        """Test entity RAG returns activity description content."""
+        mock_node = MagicMock()
+        mock_node.text = "Reviewed Enterprise pricing with Anna. CFO approval needed before proceeding."
+        mock_node.metadata = {
+            "type": "activity",
+            "source_id": "activity::ACT-ACME-1",
+            "title": "Follow up on proposal",
+            "company_id": "ACME-MFG",
+            "contact_id": "C-ACME-ANNA",
+        }
+
+        mock_retriever = MagicMock()
+        mock_retriever.retrieve.return_value = [mock_node]
+
+        llama_mocks = self._setup_llama_mocks(mock_retriever)
+
+        with patch.dict(sys.modules, llama_mocks):
+            if "backend.agent.rag.tools" in sys.modules:
+                del sys.modules["backend.agent.rag.tools"]
+
+            from backend.agent.rag import tools
+
+            with patch.object(tools, "get_qdrant_client") as mock_client:
+                mock_client.return_value = MagicMock()
+                context, sources = tools.tool_entity_rag(
+                    "What happened in the Acme follow-up?",
+                    {"company_id": "ACME-MFG"}
+                )
+
+        assert "CFO approval" in context
+        assert sources[0].type == "activity"
+
+    def test_tool_entity_rag_history_type(self):
+        """Test entity RAG returns history description content."""
+        mock_node = MagicMock()
+        mock_node.text = "QBR meeting with Lisa. Discussed expansion to marketing team."
+        mock_node.metadata = {
+            "type": "history",
+            "source_id": "history::HIST-BETA-1",
+            "title": "Quarterly Business Review",
+            "company_id": "BETA-TECH",
+        }
+
+        mock_retriever = MagicMock()
+        mock_retriever.retrieve.return_value = [mock_node]
+
+        llama_mocks = self._setup_llama_mocks(mock_retriever)
+
+        with patch.dict(sys.modules, llama_mocks):
+            if "backend.agent.rag.tools" in sys.modules:
+                del sys.modules["backend.agent.rag.tools"]
+
+            from backend.agent.rag import tools
+
+            with patch.object(tools, "get_qdrant_client") as mock_client:
+                mock_client.return_value = MagicMock()
+                context, sources = tools.tool_entity_rag(
+                    "What did we discuss in the Beta Tech QBR?",
+                    {"company_id": "BETA-TECH"}
+                )
+
+        assert "expansion to marketing" in context
+        assert sources[0].type == "history"
+
+    def test_tool_entity_rag_attachment_type(self):
+        """Test entity RAG returns attachment summary content."""
+        mock_node = MagicMock()
+        mock_node.text = "Proposal includes Enterprise pricing tier breakdown and ROI projections."
+        mock_node.metadata = {
+            "type": "attachment",
+            "source_id": "attachment::ATT-ACME-PROPOSAL",
+            "title": "Enterprise Proposal",
+            "company_id": "ACME-MFG",
+            "opportunity_id": "OPP-ACME-UPGRADE",
+        }
+
+        mock_retriever = MagicMock()
+        mock_retriever.retrieve.return_value = [mock_node]
+
+        llama_mocks = self._setup_llama_mocks(mock_retriever)
+
+        with patch.dict(sys.modules, llama_mocks):
+            if "backend.agent.rag.tools" in sys.modules:
+                del sys.modules["backend.agent.rag.tools"]
+
+            from backend.agent.rag import tools
+
+            with patch.object(tools, "get_qdrant_client") as mock_client:
+                mock_client.return_value = MagicMock()
+                context, sources = tools.tool_entity_rag(
+                    "What's in the Acme proposal?",
+                    {"opportunity_id": "OPP-ACME-UPGRADE"}
+                )
+
+        assert "pricing tier" in context
+        assert sources[0].type == "attachment"
+
+    def test_tool_entity_rag_mixed_entity_types(self):
+        """Test entity RAG returns mixed content types for a company query."""
+        mock_company = MagicMock()
+        mock_company.text = "Enterprise customer since 2020."
+        mock_company.metadata = {"type": "company", "source_id": "company::ACME", "title": "Acme"}
+
+        mock_contact = MagicMock()
+        mock_contact.text = "Anna champions the product internally."
+        mock_contact.metadata = {"type": "contact", "source_id": "contact::ANNA", "title": "Anna Lopez"}
+
+        mock_history = MagicMock()
+        mock_history.text = "Last meeting discussed expansion plans."
+        mock_history.metadata = {"type": "history", "source_id": "hist::1", "title": "Meeting"}
+
+        mock_retriever = MagicMock()
+        mock_retriever.retrieve.return_value = [mock_company, mock_contact, mock_history]
+
+        llama_mocks = self._setup_llama_mocks(mock_retriever)
+
+        with patch.dict(sys.modules, llama_mocks):
+            if "backend.agent.rag.tools" in sys.modules:
+                del sys.modules["backend.agent.rag.tools"]
+
+            from backend.agent.rag import tools
+
+            with patch.object(tools, "get_qdrant_client") as mock_client:
+                mock_client.return_value = MagicMock()
+                context, sources = tools.tool_entity_rag(
+                    "What should I know about Acme before my call?",
+                    {"company_id": "ACME"}
+                )
+
+        # Should have all three content types
+        assert len(sources) == 3
+        source_types = {s.type for s in sources}
+        assert source_types == {"company", "contact", "history"}
+        # Context should include all text
+        assert "Enterprise customer" in context
+        assert "champions" in context
+        assert "expansion" in context

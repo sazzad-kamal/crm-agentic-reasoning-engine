@@ -2,7 +2,7 @@
 RAG search tools for the agent layer.
 
 Provides:
-- tool_account_rag: Search company-scoped CRM text
+- tool_entity_rag: Search entity-scoped CRM text
 """
 
 import logging
@@ -43,7 +43,7 @@ def _get_embed_model():
     return _embed_model
 
 
-def tool_account_rag(
+def tool_entity_rag(
     question: str,
     filters: dict[str, str],
     top_k: int = 5,
@@ -113,9 +113,9 @@ def tool_account_rag(
             from backend.agent.rag.reranker import rerank_nodes
 
             nodes = rerank_nodes(nodes, question, top_k=RERANKER_TOP_K)
-            logger.info(f"Account RAG: reranked to {len(nodes)} chunks with filters={filters}")
+            logger.info(f"Entity RAG: reranked to {len(nodes)} chunks with filters={filters}")
         else:
-            logger.info(f"Account RAG: retrieved {len(nodes)} chunks with filters={filters}")
+            logger.info(f"Entity RAG: retrieved {len(nodes)} chunks with filters={filters}")
 
         context_parts = []
         sources = []
@@ -131,10 +131,10 @@ def tool_account_rag(
         return context, sources
 
     except Exception as e:
-        logger.warning(f"Account RAG failed: {e}")
+        logger.warning(f"Entity RAG failed: {e}")
         return "", []
 
 
 __all__ = [
-    "tool_account_rag",
+    "tool_entity_rag",
 ]

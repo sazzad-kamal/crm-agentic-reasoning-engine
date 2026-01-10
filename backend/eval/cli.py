@@ -95,14 +95,14 @@ def _run_eval(
     # Warmup: trigger model loading (suppress expected "no results" warning)
     console.print("\n[dim]Warming up models...[/dim]")
     try:
-        from backend.agent.rag.tools import tool_account_rag
+        from backend.agent.rag.tools import tool_entity_rag
 
         # Temporarily suppress RAG warnings during warmup (expected to fail with fake company)
         rag_logger = logging.getLogger("backend.agent.rag.tools")
         original_level = rag_logger.level
         rag_logger.setLevel(logging.ERROR)
         try:
-            tool_account_rag("warmup", {"company_id": "test_company"}, top_k=1)
+            tool_entity_rag("warmup", {"company_id": "test_company"}, top_k=1)
         finally:
             rag_logger.setLevel(original_level)
         console.print("[dim]Models loaded.[/dim]")

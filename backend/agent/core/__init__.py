@@ -12,7 +12,6 @@ from backend.agent.core.config import (
     reset_config,
 )
 from backend.agent.core.state import AgentState, Message, Source, format_history_for_prompt
-from backend.agent.route.schemas import RouterResult
 
 __all__ = [
     # Config
@@ -22,7 +21,6 @@ __all__ = [
     "is_mock_mode",
     # Types
     "Source",
-    "RouterResult",
     # State
     "AgentState",
     "Message",

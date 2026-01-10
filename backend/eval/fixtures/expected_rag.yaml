@@ -1,8 +1,8 @@
 # Expected RAG decisions for flow eval - used for RAG decision accuracy
 #
 # Boolean values:
-# - true: Account RAG should be invoked (company-specific queries)
-# - false: Account RAG should NOT be invoked (aggregate/global queries)
+# - true: Entity RAG should be invoked (company-specific queries)
+# - false: Entity RAG should NOT be invoked (aggregate/global queries)
 #
 # Mapping from intent types:
 # - company_overview, company_pipeline, company_activities, company_history → true

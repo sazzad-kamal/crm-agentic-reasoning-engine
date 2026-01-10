@@ -59,8 +59,6 @@ const getQuestion = (
       return `What's the status of the ${row.name} opportunity?`;
     case "activities":
       return `What activities are scheduled for ${row.company_id}?`;
-    case "groups":
-      return `Tell me about the ${row.name} group`;
     case "history":
       return `Show me the history for ${row.company_id}`;
     default:

@@ -25,8 +25,8 @@ def call_account_rag(
         Tuple of (context string, list of sources)
     """
     try:
-        from backend.agent.rag.tools import tool_account_rag
-        return tool_account_rag(question, filters)
+        from backend.agent.rag.tools import tool_entity_rag
+        return tool_entity_rag(question, filters)
     except Exception as e:
         logger.warning(f"Account RAG failed: {e}")
         return "", []

@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 # Resolve backend root directory (for default paths)
 # backend/agent/core/config.py -> core -> agent -> backend
 _BACKEND_ROOT = Path(__file__).parent.parent.parent.resolve()
-_DEFAULT_CSV_DIR = _BACKEND_ROOT / "data" / "csv"
 _DEFAULT_AUDIT_LOG = _BACKEND_ROOT / "eval" / "output" / "audit.jsonl"
 
 
@@ -41,9 +40,6 @@ class AgentConfig(BaseSettings):
         default="gpt-4o-mini", description="LLM model for routing decisions (fast, cheap)"
     )
     llm_temperature: float = Field(default=0.1, description="LLM temperature for agent responses")
-    router_temperature: float = Field(
-        default=0.0, description="LLM temperature for routing (0 for deterministic)"
-    )
     llm_max_tokens: int = Field(default=1024, description="Maximum tokens in LLM response")
 
     # -------------------------------------------------------------------------
@@ -59,12 +55,6 @@ class AgentConfig(BaseSettings):
     default_days: int = Field(
         default=90, description="Default time window in days for data queries"
     )
-    fetch_timeout_seconds: int = Field(
-        default=30, description="Timeout for parallel fetch operations"
-    )
-    max_close_matches: int = Field(
-        default=5, description="Maximum number of close matches to show for company not found"
-    )
     max_followup_suggestions: int = Field(
         default=3, description="Maximum number of follow-up suggestions to return"
     )
@@ -72,7 +62,6 @@ class AgentConfig(BaseSettings):
     # -------------------------------------------------------------------------
     # Paths
     # -------------------------------------------------------------------------
-    csv_dir: Path = Field(default=_DEFAULT_CSV_DIR, description="Path to CSV data directory")
     audit_log_file: Path = Field(
         default=_DEFAULT_AUDIT_LOG, description="Path to agent audit log file"
     )

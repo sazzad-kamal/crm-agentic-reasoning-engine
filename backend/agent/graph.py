@@ -15,8 +15,8 @@ from langgraph.graph import END, StateGraph
 
 from backend.agent.answer.node import answer_node
 from backend.agent.core.state import AgentState
-from backend.agent.fetch.fetch_account import fetch_account_node
 from backend.agent.fetch.fetch_crm import fetch_crm_node
+from backend.agent.fetch.fetch_entity import fetch_account_node
 from backend.agent.followup.node import followup_node
 from backend.agent.route.node import route_node
 

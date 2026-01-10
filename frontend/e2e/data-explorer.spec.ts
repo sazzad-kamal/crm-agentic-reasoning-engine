@@ -89,7 +89,6 @@ test.describe('Data Explorer Tabs', () => {
     await expect(page.getByRole('tab', { name: /contacts/i })).toBeVisible();
     await expect(page.getByRole('tab', { name: /opportunities/i })).toBeVisible();
     await expect(page.getByRole('tab', { name: /activities/i })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /groups/i })).toBeVisible();
     await expect(page.getByRole('tab', { name: /history/i })).toBeVisible();
   });
 
@@ -110,11 +109,6 @@ test.describe('Data Explorer Tabs', () => {
     await expect(oppTab).toHaveAttribute('aria-selected', 'true');
   });
 
-  test('can switch to groups tab', async ({ page }) => {
-    const groupsTab = page.getByRole('tab', { name: /groups/i });
-    await groupsTab.click();
-    await expect(groupsTab).toHaveAttribute('aria-selected', 'true');
-  });
 });
 
 test.describe('Data Explorer Table', () => {
@@ -286,22 +280,4 @@ test.describe('Data Explorer API Integration', () => {
     expect(data.total).toBeGreaterThan(0);
   });
 
-  test('loads groups data from API', async ({ page }) => {
-    await page.goto('/');
-    const browseButton = page.getByRole('button', { name: /browse.*data/i });
-    await browseButton.click();
-    
-    const groupsTab = page.getByRole('tab', { name: /groups/i });
-    
-    const responsePromise = page.waitForResponse(
-      resp => resp.url().includes('/api/data/groups') && resp.status() === 200
-    );
-    
-    await groupsTab.click();
-    
-    const response = await responsePromise;
-    const data = await response.json();
-    
-    expect(data.data).toBeDefined();
-  });
 });

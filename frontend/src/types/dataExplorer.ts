@@ -13,7 +13,7 @@ export interface DataResponse {
   columns: string[];
 }
 
-export type DataTab = "companies" | "contacts" | "opportunities" | "activities" | "groups" | "history";
+export type DataTab = "companies" | "contacts" | "opportunities" | "activities" | "history";
 
 export interface NestedFieldConfig {
   key: string;
@@ -56,12 +56,5 @@ export const TABS: TabConfig[] = [
     nestedFields: [{ key: "_attachments", label: "Attachments", icon: "📎" }]
   },
   { id: "activities", label: "Activities", icon: "📅", endpoint: "/api/data/activities" },
-  {
-    id: "groups",
-    label: "Groups",
-    icon: "👥",
-    endpoint: "/api/data/groups",
-    nestedFields: [{ key: "_members", label: "Members", icon: "🧑‍🤝‍🧑" }]
-  },
   { id: "history", label: "History", icon: "📜", endpoint: "/api/data/history" },
 ];

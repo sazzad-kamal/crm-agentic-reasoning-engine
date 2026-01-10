@@ -74,15 +74,6 @@ async def get_opportunities() -> DataResponse:
     return DataResponse(data=data, total=len(data), columns=columns)
 
 
-@router.get("/data/groups", response_model=DataResponse, summary="Get all groups")
-async def get_groups() -> DataResponse:
-    data, columns = load_csv("groups.csv")
-    members = _group_by(load_csv("group_members.csv")[0], "group_id")
-    for row in data:
-        row["_members"] = members.get(row.get("group_id", ""), [])
-    return DataResponse(data=data, total=len(data), columns=columns)
-
-
 @router.get("/data/activities", response_model=DataResponse, summary="Get all activities")
 async def get_activities() -> DataResponse:
     data, columns = load_csv("activities.csv")

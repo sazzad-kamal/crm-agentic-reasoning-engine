@@ -53,3 +53,5 @@ htmlcov/
 nul
 frontend/nul
 storage/
+*.stackdump
+nul

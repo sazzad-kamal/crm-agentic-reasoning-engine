@@ -3,11 +3,12 @@
 Generate private_texts.jsonl from source CSVs.
 
 Sources:
+- companies.csv (description field)
+- contacts.csv (notes field)
 - opportunities.csv (notes field)
 - history.csv (description field)
 - activities.csv (description field)
 - attachments.csv (summary field)
-- groups.csv (description field)
 
 Usage:
     python generate_private_texts.py [--merge-opportunities]
@@ -72,9 +73,59 @@ def generate_private_texts() -> int:
     output_path = CSV_DIR / "private_texts.jsonl"
     records = []
 
-    # 1. Opportunities (notes field)
+    # 1. Companies (description field)
+    companies_path = CSV_DIR / "companies.csv"
+    if companies_path.exists():
+        with open(companies_path, encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                desc = row.get("description", "").strip()
+                if desc:
+                    records.append({
+                        "id": f"company::{row.get('company_id', '')}",
+                        "company_id": row.get("company_id", ""),
+                        "contact_id": "",
+                        "opportunity_id": "",
+                        "type": "company",
+                        "title": row.get("name", ""),
+                        "text": desc,
+                        "metadata": {
+                            "status": row.get("status", ""),
+                            "plan": row.get("plan", ""),
+                            "industry": row.get("industry", ""),
+                        },
+                    })
+        print(f"  Companies: {sum(1 for r in records if r['type'] == 'company')} records")
+
+    # 2. Contacts (notes field)
+    contacts_path = CSV_DIR / "contacts.csv"
+    if contacts_path.exists():
+        count_before = len(records)
+        with open(contacts_path, encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                notes = row.get("notes", "").strip()
+                if notes:
+                    records.append({
+                        "id": f"contact::{row.get('contact_id', '')}",
+                        "company_id": row.get("company_id", ""),
+                        "contact_id": row.get("contact_id", ""),
+                        "opportunity_id": "",
+                        "type": "contact",
+                        "title": f"{row.get('first_name', '')} {row.get('last_name', '')}",
+                        "text": notes,
+                        "metadata": {
+                            "job_title": row.get("job_title", ""),
+                            "role": row.get("role", ""),
+                            "lifecycle_stage": row.get("lifecycle_stage", ""),
+                        },
+                    })
+        print(f"  Contacts: {len(records) - count_before} records")
+
+    # 3. Opportunities (notes field)
     opps_path = CSV_DIR / "opportunities.csv"
     if opps_path.exists():
+        count_before = len(records)
         with open(opps_path, encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
@@ -94,9 +145,9 @@ def generate_private_texts() -> int:
                             "created_at": row.get("created_at", ""),
                         },
                     })
-        print(f"  Opportunities: {sum(1 for r in records if r['type'] == 'opportunity')} records")
+        print(f"  Opportunities: {len(records) - count_before} records")
 
-    # 2. History (description field)
+    # 4. History (description field)
     history_path = CSV_DIR / "history.csv"
     if history_path.exists():
         count_before = len(records)
@@ -122,7 +173,7 @@ def generate_private_texts() -> int:
                     })
         print(f"  History: {len(records) - count_before} records")
 
-    # 3. Activities (description field)
+    # 5. Activities (description field)
     activities_path = CSV_DIR / "activities.csv"
     if activities_path.exists():
         count_before = len(records)
@@ -149,7 +200,7 @@ def generate_private_texts() -> int:
                     })
         print(f"  Activities: {len(records) - count_before} records")
 
-    # 4. Attachments (summary field)
+    # 6. Attachments (summary field)
     attachments_path = CSV_DIR / "attachments.csv"
     if attachments_path.exists():
         count_before = len(records)
@@ -172,30 +223,6 @@ def generate_private_texts() -> int:
                         },
                     })
         print(f"  Attachments: {len(records) - count_before} records")
-
-    # 5. Groups (description field)
-    groups_path = CSV_DIR / "groups.csv"
-    if groups_path.exists():
-        count_before = len(records)
-        with open(groups_path, encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                desc = row.get("description", "").strip()
-                if desc:
-                    records.append({
-                        "id": f"group::{row.get('group_id', '')}",
-                        "company_id": "",
-                        "contact_id": "",
-                        "opportunity_id": "",
-                        "type": "group",
-                        "title": row.get("name", ""),
-                        "text": desc,
-                        "metadata": {
-                            "base_type": row.get("base_type", ""),
-                            "created_at": row.get("created_at", ""),
-                        },
-                    })
-        print(f"  Groups: {len(records) - count_before} records")
 
     # Write JSONL
     with open(output_path, "w", encoding="utf-8") as f:

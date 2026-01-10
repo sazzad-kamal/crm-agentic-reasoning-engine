@@ -1387,12 +1387,6 @@ body {
   border-color: var(--color-info);
 }
 
-.data-tab[data-type="groups"].data-tab--active {
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
 .data-tab[data-type="history"].data-tab--active {
   background: var(--color-border-light);
   color: var(--color-text-secondary);
@@ -1404,7 +1398,6 @@ body {
 .data-table-wrapper[data-type="contacts"] { border-top: 3px solid var(--color-info); }
 .data-table-wrapper[data-type="opportunities"] { border-top: 3px solid var(--color-warning); }
 .data-table-wrapper[data-type="activities"] { border-top: 3px solid var(--color-info); }
-.data-table-wrapper[data-type="groups"] { border-top: 3px solid var(--color-primary); }
 .data-table-wrapper[data-type="history"] { border-top: 3px solid var(--color-border); }
 
 /* -----------------------------------------------------------------------------

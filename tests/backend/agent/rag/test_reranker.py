@@ -142,7 +142,7 @@ class TestGetReranker:
 
 
 class TestToolAccountRagWithReranker:
-    """Tests for tool_account_rag with reranker integration."""
+    """Tests for tool_entity_rag with reranker integration."""
 
     def _setup_llama_mocks(self, mock_retriever):
         """Setup common llama_index mocks."""
@@ -172,8 +172,8 @@ class TestToolAccountRagWithReranker:
             "llama_index.vector_stores.qdrant": mock_qdrant_vs,
         }
 
-    def test_tool_account_rag_calls_reranker_when_enabled(self):
-        """Test that tool_account_rag calls reranker when enabled."""
+    def test_tool_entity_rag_calls_reranker_when_enabled(self):
+        """Test that tool_entity_rag calls reranker when enabled."""
         import sys
 
         # Create mock nodes (more than RERANKER_TOP_K to trigger reranking)
@@ -204,13 +204,13 @@ class TestToolAccountRagWithReranker:
                 patch("backend.agent.rag.reranker.rerank_nodes", return_value=reranked_nodes) as mock_rerank,
             ):
                 mock_client.return_value = MagicMock()
-                context, sources = tools.tool_account_rag("test query", {"company_id": "COMP001"})
+                context, sources = tools.tool_entity_rag("test query", {"company_id": "COMP001"})
 
         # Should have 5 sources (after reranking)
         assert len(sources) == 5
 
-    def test_tool_account_rag_skips_reranker_when_disabled(self):
-        """Test that tool_account_rag skips reranker when disabled."""
+    def test_tool_entity_rag_skips_reranker_when_disabled(self):
+        """Test that tool_entity_rag skips reranker when disabled."""
         import sys
 
         mock_nodes = [MagicMock() for _ in range(3)]
@@ -234,7 +234,7 @@ class TestToolAccountRagWithReranker:
                 patch.object(tools, "RERANKER_ENABLED", False),
             ):
                 mock_client.return_value = MagicMock()
-                context, sources = tools.tool_account_rag("test query", {"company_id": "COMP001"})
+                context, sources = tools.tool_entity_rag("test query", {"company_id": "COMP001"})
 
         # Should have all 3 sources (no reranking)
         assert len(sources) == 3

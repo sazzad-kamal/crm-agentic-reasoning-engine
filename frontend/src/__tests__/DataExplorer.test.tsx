@@ -69,24 +69,6 @@ const mockOpportunitiesResponse = {
   columns: ["opportunity_id", "name", "stage", "value", "notes"],
 };
 
-const mockGroupsResponse = {
-  data: [
-    {
-      group_id: "GRP-001",
-      name: "VIP Customers",
-      description: "High value accounts",
-      _members: [
-        {
-          company_id: "ACME-001",
-          added_at: "2025-01-01",
-        },
-      ],
-    },
-  ],
-  total: 1,
-  columns: ["group_id", "name", "description"],
-};
-
 const mockActivitiesResponse = {
   data: [
     {
@@ -134,12 +116,6 @@ function setupMockFetch() {
         json: () => Promise.resolve(mockOpportunitiesResponse),
       });
     }
-    if (url.includes("/api/data/groups")) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockGroupsResponse),
-      });
-    }
     if (url.includes("/api/data/activities")) {
       return Promise.resolve({
         ok: true,
@@ -173,7 +149,6 @@ describe("DataExplorer", () => {
       expect(screen.getByRole("tab", { name: /contacts/i })).toBeInTheDocument();
       expect(screen.getByRole("tab", { name: /opportunities/i })).toBeInTheDocument();
       expect(screen.getByRole("tab", { name: /activities/i })).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: /groups/i })).toBeInTheDocument();
       expect(screen.getByRole("tab", { name: /history/i })).toBeInTheDocument();
     });
 
@@ -251,17 +226,6 @@ describe("DataExplorer", () => {
 
       await waitFor(() => {
         expect(screen.getByPlaceholderText(/search opportunities/i)).toBeInTheDocument();
-      });
-    });
-
-    it("switches to groups tab on click", async () => {
-      render(<DataExplorer />);
-
-      const groupsTab = screen.getByRole("tab", { name: /groups/i });
-      fireEvent.click(groupsTab);
-
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/search groups/i)).toBeInTheDocument();
       });
     });
 
@@ -441,24 +405,6 @@ describe("DataExplorer", () => {
       });
     });
 
-    it("displays group members correctly", async () => {
-      render(<DataExplorer />);
-
-      const groupsTab = screen.getByRole("tab", { name: /groups/i });
-      fireEvent.click(groupsTab);
-
-      await waitFor(() => {
-        expect(screen.getByText("VIP Customers")).toBeInTheDocument();
-      });
-
-      const expandButton = screen.getByRole("button", { name: /expand/i });
-      fireEvent.click(expandButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Members")).toBeInTheDocument();
-        expect(screen.getByText(/ACME-001/i)).toBeInTheDocument();
-      });
-    });
   });
 
   describe("Empty States", () => {
@@ -498,7 +444,7 @@ describe("DataExplorer", () => {
       render(<DataExplorer />);
 
       expect(screen.getByRole("tablist")).toBeInTheDocument();
-      expect(screen.getAllByRole("tab")).toHaveLength(6);
+      expect(screen.getAllByRole("tab")).toHaveLength(5);
       expect(screen.getByRole("tabpanel")).toBeInTheDocument();
     });
 
@@ -584,25 +530,6 @@ describe("DataExplorer", () => {
 
       expect(mockOnAskAbout).toHaveBeenCalledWith(
         expect.stringContaining("ACME-001")
-      );
-    });
-
-    it("generates question for groups", async () => {
-      const mockOnAskAbout = vi.fn();
-      render(<DataExplorer onAskAbout={mockOnAskAbout} />);
-
-      const groupsTab = screen.getByRole("tab", { name: /groups/i });
-      fireEvent.click(groupsTab);
-
-      await waitFor(() => {
-        expect(screen.getByText("VIP Customers")).toBeInTheDocument();
-      });
-
-      const askButtons = screen.getAllByTitle(/ask ai about this record/i);
-      fireEvent.click(askButtons[0]);
-
-      expect(mockOnAskAbout).toHaveBeenCalledWith(
-        expect.stringContaining("VIP Customers")
       );
     });
 

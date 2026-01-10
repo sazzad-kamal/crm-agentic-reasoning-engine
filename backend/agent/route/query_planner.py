@@ -11,7 +11,6 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 from tenacity import (
@@ -22,38 +21,9 @@ from tenacity import (
 )
 
 from backend.agent.core.config import get_config
+from backend.utils.prompt import load_prompt
 
 logger = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Load Prompt from File
-# =============================================================================
-
-_PROMPT_PATH = Path(__file__).parent / "prompt.txt"
-_PROMPT_TEXT = _PROMPT_PATH.read_text(encoding="utf-8")
-
-# Parse [system] and [human] sections
-_sections: dict[str, str] = {}
-_current_section: str | None = None
-_current_lines: list[str] = []
-
-for _line in _PROMPT_TEXT.split("\n"):
-    if _line.strip() == "[system]":
-        if _current_section:
-            _sections[_current_section] = "\n".join(_current_lines).strip()
-        _current_section = "system"
-        _current_lines = []
-    elif _line.strip() == "[human]":
-        if _current_section:
-            _sections[_current_section] = "\n".join(_current_lines).strip()
-        _current_section = "human"
-        _current_lines = []
-    else:
-        _current_lines.append(_line)
-
-if _current_section:
-    _sections[_current_section] = "\n".join(_current_lines).strip()
 
 
 # =============================================================================
@@ -126,12 +96,7 @@ def detect_owner_from_starter(question: str) -> str | None:
 # Schema Prompt Template (loaded from prompt.txt)
 # =============================================================================
 
-SCHEMA_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        ("system", _sections.get("system", "")),
-        ("human", _sections.get("human", "")),
-    ]
-)
+SCHEMA_PROMPT = load_prompt(Path(__file__).parent / "prompt.txt")
 
 
 # =============================================================================

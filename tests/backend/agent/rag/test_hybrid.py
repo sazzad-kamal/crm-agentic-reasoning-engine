@@ -46,7 +46,7 @@ class TestHybridIngestion:
 
 
 class TestHybridRetrieval:
-    """Tests for hybrid retrieval in tool_account_rag."""
+    """Tests for hybrid retrieval in tool_entity_rag."""
 
     def _setup_llama_mocks(self, mock_retriever):
         """Setup common llama_index mocks."""
@@ -110,7 +110,7 @@ class TestHybridRetrieval:
                 patch.object(tools, "RERANKER_ENABLED", False),
             ):
                 mock_client.return_value = MagicMock()
-                tools.tool_account_rag("test query", {"company_id": "COMP001"})
+                tools.tool_entity_rag("test query", {"company_id": "COMP001"})
 
         # Verify retriever was called with hybrid mode
         mock_index.as_retriever.assert_called_once()
@@ -148,7 +148,7 @@ class TestHybridRetrieval:
                 patch.object(tools, "RERANKER_ENABLED", False),
             ):
                 mock_client.return_value = MagicMock()
-                tools.tool_account_rag("test query", {"company_id": "COMP001"})
+                tools.tool_entity_rag("test query", {"company_id": "COMP001"})
 
         # Verify retriever was called without hybrid mode
         mock_index.as_retriever.assert_called_once()
@@ -183,7 +183,7 @@ class TestHybridRetrieval:
                 patch.object(tools, "RERANKER_ENABLED", False),
             ):
                 mock_client.return_value = MagicMock()
-                tools.tool_account_rag("test query", {"company_id": "COMP001"})
+                tools.tool_entity_rag("test query", {"company_id": "COMP001"})
 
         # Verify QdrantVectorStore was called with hybrid params
         mock_vector_store_cls.assert_called_once()

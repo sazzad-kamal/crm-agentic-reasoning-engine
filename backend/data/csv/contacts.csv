@@ -1,25 +1,25 @@
-contact_id,company_id,first_name,last_name,email,phone,job_title,role,lifecycle_stage,created_at,updated_at
-C-ACME-ANNA,ACME-MFG,Anna,Lopez,anna.lopez@acmemfg.com,+1-555-0101,Operations Manager,Decision Maker,Customer,2024-01-20,2025-10-20
-C-ACME-JOE,ACME-MFG,Joe,Smith,joe.smith@acmemfg.com,+1-555-0102,IT Manager,Technical Contact,Customer,2024-02-10,2025-10-28
-C-ACME-BETH,ACME-MFG,Beth,Turner,beth.turner@acmemfg.com,+1-555-0103,CFO,Executive,Customer,2024-03-01,2025-09-15
-C-BETA-LISA,BETA-TECH,Lisa,Ng,lisa.ng@betatech.io,+44-20-5550,Head of Sales,Champion,Customer,2024-03-25,2025-10-05
-C-BETA-OMAR,BETA-TECH,Omar,Haddad,omar.haddad@betatech.io,+44-20-5551,CEO,Executive,Customer,2024-03-30,2025-09-15
-C-BETA-SAM,BETA-TECH,Sam,Clarke,sam.clarke@betatech.io,+44-20-5552,Sales Ops,Technical Contact,Customer,2024-04-15,2025-10-20
-C-CROWN-MARIA,CROWN-FOODS,Maria,Silva,maria.silva@crownfoods.ca,+1-555-0201,VP Operations,Decision Maker,Customer,2023-11-15,2025-10-12
-C-CROWN-ALEX,CROWN-FOODS,Alex,Dupont,alex.dupont@crownfoods.ca,+1-555-0202,IT Director,Technical Contact,Customer,2023-12-01,2025-09-28
-C-CROWN-NINA,CROWN-FOODS,Nina,Foster,nina.foster@crownfoods.ca,+1-555-0203,Operations Analyst,User,Customer,2024-01-10,2025-10-05
-C-DELTA-ERIN,DELTA-HEALTH,Erin,Cho,erin.cho@deltahealth.org,+1-555-0301,Clinic Director,Decision Maker,Customer,2023-09-05,2025-08-20
-C-DELTA-MIKE,DELTA-HEALTH,Mike,Rivera,mike.rivera@deltahealth.org,+1-555-0302,IT Coordinator,Technical Contact,Customer,2023-10-01,2025-09-01
-C-DELTA-PRIYA,DELTA-HEALTH,Priya,Sharma,priya.sharma@deltahealth.org,+1-555-0303,Office Manager,User,Customer,2023-11-15,2025-08-10
-C-EAST-SANJAY,EASTERN-TRAVEL,Sanjay,Patel,sanjay.patel@easterntravel.co,+91-22-5550,Owner,Decision Maker,Lead,2025-01-05,2025-10-10
-C-EAST-RAVI,EASTERN-TRAVEL,Ravi,Kumar,ravi.kumar@easterntravel.co,+91-22-5551,Operations Manager,Champion,Lead,2025-01-10,2025-10-15
-C-EAST-ANITA,EASTERN-TRAVEL,Anita,Desai,anita.desai@easterntravel.co,+91-22-5552,Marketing Lead,User,Lead,2025-01-12,2025-10-08
-C-FUSION-EMMA,FUSION-RETAIL,Emma,Khan,emma.khan@fusionretail.com,+49-30-5550,Head of CX,Champion,Customer,2023-08-20,2025-10-18
-C-FUSION-LARS,FUSION-RETAIL,Lars,Müller,lars.mueller@fusionretail.com,+49-30-5551,CTO,Executive,Customer,2023-08-25,2025-09-30
-C-FUSION-INES,FUSION-RETAIL,Ines,Weber,ines.weber@fusionretail.com,+49-30-5552,Sales Manager,User,Customer,2023-09-10,2025-10-10
-C-GREEN-CARLOS,GREEN-ENERGY,Carlos,Mendez,carlos.mendez@greenenergy.co,+1-555-0401,Director of Ops,Decision Maker,Former,2022-06-15,2025-06-30
-C-GREEN-LINDA,GREEN-ENERGY,Linda,Park,linda.park@greenenergy.co,+1-555-0402,Project Manager,Champion,Former,2022-07-01,2025-05-15
-C-GREEN-TOM,GREEN-ENERGY,Tom,Baker,tom.baker@greenenergy.co,+1-555-0403,IT Admin,Technical Contact,Former,2022-08-10,2025-06-01
-C-HARBOR-JACOB,HARBOR-LOGISTICS,Jacob,Wu,jacob.wu@harborlogistics.com,+1-555-0601,Operations Lead,Decision Maker,Customer,2023-12-05,2025-11-05
-C-HARBOR-MEI,HARBOR-LOGISTICS,Mei,Chen,mei.chen@harborlogistics.com,+1-555-0602,Logistics Coordinator,User,Customer,2024-01-15,2025-10-20
-C-HARBOR-DAN,HARBOR-LOGISTICS,Dan,O'Brien,dan.obrien@harborlogistics.com,+1-555-0603,Finance Director,Executive,Customer,2024-02-01,2025-09-25
+contact_id,company_id,first_name,last_name,email,phone,job_title,role,lifecycle_stage,created_at,updated_at,notes
+C-ACME-ANNA,ACME-MFG,Anna,Lopez,anna.lopez@acmemfg.com,+1-555-0101,Operations Manager,Decision Maker,Customer,2024-01-20,2025-10-20,Prefers detailed email follow-ups over calls. Very data-driven and appreciates ROI documentation. Concerned about 20% price increase - needs CFO approval for budget changes.
+C-ACME-JOE,ACME-MFG,Joe,Smith,joe.smith@acmemfg.com,+1-555-0102,IT Manager,Technical Contact,Customer,2024-02-10,2025-10-28,Technical lead for integrations. Managed the Salesforce data migration. Prefers 1-year terms due to budget uncertainty. Quick to respond on technical questions.
+C-ACME-BETH,ACME-MFG,Beth,Turner,beth.turner@acmemfg.com,+1-555-0103,CFO,Executive,Customer,2024-03-01,2025-09-15,Final budget approval authority. Historically skeptical of software ROI claims. Needs concrete metrics from similar manufacturing customers to justify spend.
+C-BETA-LISA,BETA-TECH,Lisa,Ng,lisa.ng@betatech.io,+44-20-5550,Head of Sales,Champion,Customer,2024-03-25,2025-10-05,Our internal champion at Beta Tech. Pushing for expansion to marketing team. Very responsive and engaged. Met at SaaS conference 2024.
+C-BETA-OMAR,BETA-TECH,Omar,Haddad,omar.haddad@betatech.io,+44-20-5551,CEO,Executive,Customer,2024-03-30,2025-09-15,Metrics-driven CEO who needs data for every decision. Prefers dashboard demos over slide decks. Final sign-off required for new deals.
+C-BETA-SAM,BETA-TECH,Sam,Clarke,sam.clarke@betatech.io,+44-20-5552,Sales Ops,Technical Contact,Customer,2024-04-15,2025-10-20,Driving security review for enterprise procurement. Working on SOC2 and penetration test documentation. Technical but focused on compliance.
+C-CROWN-MARIA,CROWN-FOODS,Maria,Silva,maria.silva@crownfoods.ca,+1-555-0201,VP Operations,Decision Maker,Customer,2023-11-15,2025-10-12,Quick decision maker who values reliability. Frustrated with recent mobile app performance issues. Otherwise happy with product and likely to renew.
+C-CROWN-ALEX,CROWN-FOODS,Alex,Dupont,alex.dupont@crownfoods.ca,+1-555-0202,IT Director,Technical Contact,Customer,2023-12-01,2025-09-28,Manages API integration for inventory system. Currently hitting rate limits during peak updates. Needs higher API tier or batch optimization guidance.
+C-CROWN-NINA,CROWN-FOODS,Nina,Foster,nina.foster@crownfoods.ca,+1-555-0203,Operations Analyst,User,Customer,2024-01-10,2025-10-05,Power user interested in advanced reporting. Requested custom dashboard templates for inventory forecasting. Good candidate for case study.
+C-DELTA-ERIN,DELTA-HEALTH,Erin,Cho,erin.cho@deltahealth.org,+1-555-0301,Clinic Director,Decision Maker,Customer,2023-09-05,2025-08-20,Champions expansion to additional clinics but needs board approval. Agreed to advocate internally for grandfathered pricing. Key relationship for growth.
+C-DELTA-MIKE,DELTA-HEALTH,Mike,Rivera,mike.rivera@deltahealth.org,+1-555-0302,IT Coordinator,Technical Contact,Customer,2023-10-01,2025-09-01,Focused on HIPAA compliance. Opened tickets about audit logging gaps. Engineering working on enhanced logging for his requirements.
+C-DELTA-PRIYA,DELTA-HEALTH,Priya,Sharma,priya.sharma@deltahealth.org,+1-555-0303,Office Manager,User,Customer,2023-11-15,2025-08-10,Daily user at main clinic. Provides valuable feedback on workflow improvements. Good source for understanding frontline user needs.
+C-EAST-SANJAY,EASTERN-TRAVEL,Sanjay,Patel,sanjay.patel@easterntravel.co,+91-22-5550,Owner,Decision Maker,Lead,2025-01-05,2025-10-10,Business owner evaluating CRM options. Likes the product but concerned about agent adoption. Prefers extended pilot before full commitment.
+C-EAST-RAVI,EASTERN-TRAVEL,Ravi,Kumar,ravi.kumar@easterntravel.co,+91-22-5551,Operations Manager,Champion,Lead,2025-01-10,2025-10-15,Operations lead interested in multi-leg itinerary and group booking features. Will be key user if they convert. Schedule demo for his team.
+C-EAST-ANITA,EASTERN-TRAVEL,Anita,Desai,anita.desai@easterntravel.co,+91-22-5552,Marketing Lead,User,Lead,2025-01-12,2025-10-08,Marketing perspective on CRM needs. Interested in customer segmentation and campaign tracking features.
+C-FUSION-EMMA,FUSION-RETAIL,Emma,Khan,emma.khan@fusionretail.com,+49-30-5550,Head of CX,Champion,Customer,2023-08-20,2025-10-18,Strong internal champion driving expansion for 25 new stores. Wants same pricing as original contract. Very engaged and responsive.
+C-FUSION-LARS,FUSION-RETAIL,Lars,Müller,lars.mueller@fusionretail.com,+49-30-5551,CTO,Executive,Customer,2023-08-25,2025-09-30,Reviews all contracts carefully. Flagged concerns about new data processing terms. Prepare redline showing changes from current agreement.
+C-FUSION-INES,FUSION-RETAIL,Ines,Weber,ines.weber@fusionretail.com,+49-30-5552,Sales Manager,User,Customer,2023-09-10,2025-10-10,Training coordinator for new sales reps. Requested focus on mobile app and offline mode for store visits.
+C-GREEN-CARLOS,GREEN-ENERGY,Carlos,Mendez,carlos.mendez@greenenergy.co,+1-555-0401,Director of Ops,Decision Maker,Former,2022-06-15,2025-06-30,Former primary contact. Churned due to budget cuts from solar division losses. Expressed interest in returning after Q4 budget cycle. Win-back opportunity.
+C-GREEN-LINDA,GREEN-ENERGY,Linda,Park,linda.park@greenenergy.co,+1-555-0402,Project Manager,Champion,Former,2022-07-01,2025-05-15,Former champion for solar division rollout. Project paused due to budget constraints. Good relationship to maintain for potential return.
+C-GREEN-TOM,GREEN-ENERGY,Tom,Baker,tom.baker@greenenergy.co,+1-555-0403,IT Admin,Technical Contact,Former,2022-08-10,2025-06-01,Technical contact during active period. Handled lead scoring model implementation for residential vs commercial installations.
+C-HARBOR-JACOB,HARBOR-LOGISTICS,Jacob,Wu,jacob.wu@harborlogistics.com,+1-555-0601,Operations Lead,Decision Maker,Customer,2023-12-05,2025-11-05,Driving implementation and wants go-live before Q2 shipping surge. Focused on data migration and warehouse coordinator training. Key success metric: time savings.
+C-HARBOR-MEI,HARBOR-LOGISTICS,Mei,Chen,mei.chen@harborlogistics.com,+1-555-0602,Logistics Coordinator,User,Customer,2024-01-15,2025-10-20,Will lead coordinator training. Emphasized need for barcode scanner integration training. Prepare warehouse-specific quick reference guides.
+C-HARBOR-DAN,HARBOR-LOGISTICS,Dan,O'Brien,dan.obrien@harborlogistics.com,+1-555-0603,Finance Director,Executive,Customer,2024-02-01,2025-09-25,Handles billing preferences. Requires PO numbers on invoices and net-45 payment terms. Need finance approval for extended terms.

@@ -12,8 +12,8 @@ from backend.agent.fetch.executor import (
     SQLValidationError,
     execute_query_plan,
 )
-from backend.agent.fetch.fetch_account import fetch_account_node
 from backend.agent.fetch.fetch_crm import fetch_crm_node
+from backend.agent.fetch.fetch_entity import fetch_account_node
 
 __all__ = [
     "fetch_crm_node",

@@ -35,7 +35,8 @@ SLO_LATENCY_ANSWER_PCT = 0.30  # 30% - LLM generation
 
 # Routing Quality SLOs
 SLO_ROUTER_ACCURACY = 0.90  # 90% router accuracy (intent classification)
-SLO_SQL_SUCCESS = 0.95  # 95% SQL query success rate
+SLO_SQL_SUCCESS = 0.95  # 95% SQL query execution success rate
+SLO_SQL_DATA = 0.90  # 90% SQL data validation success rate
 
 # Flow Eval SLOs
 SLO_FLOW_PATH_PASS_RATE = 0.85  # 85% of conversation paths should pass
@@ -127,8 +128,11 @@ class FlowEvalResults:
     questions_passed: int
     questions_failed: int
     # SQL execution metrics
-    sql_success_rate: float = 0.0  # Percentage of SQL queries that succeeded
+    sql_success_rate: float = 0.0  # Percentage of SQL queries that executed without errors
     sql_query_count: int = 0  # Total number of SQL queries executed
+    # SQL data validation metrics
+    sql_data_success_rate: float = 0.0  # Percentage of SQL questions that returned correct data
+    sql_data_validated_count: int = 0  # Number of questions with SQL data assertions
     # RAG decision metrics
     rag_decision_accuracy: float = 0.0
     # RAGAS metrics (0.0-1.0) - answer quality

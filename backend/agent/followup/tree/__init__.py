@@ -275,15 +275,17 @@ def validate_sql_results(question: str, sql_results: dict) -> tuple[bool, list[s
             errors.append(f"row_count: got {len(all_rows)}, expected <= {max_rows}")
 
     # Validate total_value (sum of value columns)
+    # Looks for any column containing "value" in the name (case-insensitive)
     if "total_value" in expected:
         expected_total = expected["total_value"]
         actual_total = 0
         for row in all_rows:
-            if "value" in row:
-                try:
-                    actual_total += float(row["value"])
-                except (ValueError, TypeError):
-                    pass
+            for col_name, col_value in row.items():
+                if "value" in col_name.lower():
+                    try:
+                        actual_total += float(col_value)
+                    except (ValueError, TypeError):
+                        pass
         # Allow 10% tolerance for rounding
         tolerance = expected_total * 0.1
         if abs(actual_total - expected_total) > tolerance:

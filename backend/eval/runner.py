@@ -430,10 +430,15 @@ def run_flow_eval(
     avg_account_precision = sum(s.account_precision_score for s in steps_with_account) / len(steps_with_account) if steps_with_account else 0.0
     avg_account_recall = sum(s.account_recall_score for s in steps_with_account) / len(steps_with_account) if steps_with_account else 0.0
 
-    # Calculate SQL success rate
+    # Calculate SQL execution success rate
     sql_total = sum(s.sql_queries_total for s in all_steps)
     sql_success = sum(s.sql_queries_success for s in all_steps)
     sql_success_rate = sql_success / sql_total if sql_total > 0 else 1.0  # 1.0 if no queries
+
+    # Calculate SQL data validation success rate (only count steps with assertions)
+    steps_with_sql_assertions = [s for s in all_steps if s.sql_data_validated is not None]
+    sql_data_passed = sum(1 for s in steps_with_sql_assertions if s.sql_data_validated is True)
+    sql_data_success_rate = sql_data_passed / len(steps_with_sql_assertions) if steps_with_sql_assertions else 1.0
 
     rag_decision_correct_count = sum(1 for s in all_steps if s.rag_decision_correct)
     rag_decision_accuracy = rag_decision_correct_count / len(all_steps) if all_steps else 0.0
@@ -463,6 +468,8 @@ def run_flow_eval(
         questions_failed=questions_failed,
         sql_success_rate=sql_success_rate,
         sql_query_count=sql_total,
+        sql_data_success_rate=sql_data_success_rate,
+        sql_data_validated_count=len(steps_with_sql_assertions),
         rag_decision_accuracy=rag_decision_accuracy,
         avg_relevance=avg_relevance,
         avg_faithfulness=avg_faithfulness,

@@ -63,18 +63,19 @@ with open(_DATA_PATH) as f:
     _raw_data: dict[str, list[str]] = json.load(f)
 
 # =============================================================================
-# Load Expected Answers (for RAGAS answer_correctness metric)
+# Load Expected Values (from eval/fixtures/)
 # =============================================================================
 
-_EXPECTED_ANSWERS_PATH = Path(__file__).parent / "expected_answers.yaml"
+_EVAL_FIXTURES_PATH = Path(__file__).parents[3] / "eval" / "fixtures"
 
 
-def _load_expected_answers() -> dict[str, str]:
-    """Load expected answers from YAML file."""
-    if _EXPECTED_ANSWERS_PATH.exists():
+def _load_yaml_fixture(filename: str) -> dict:
+    """Load a YAML fixture file from eval/fixtures/."""
+    filepath = _EVAL_FIXTURES_PATH / filename
+    if filepath.exists():
         try:
             import yaml  # type: ignore[import-untyped]
-            with open(_EXPECTED_ANSWERS_PATH, encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
                 return data if data else {}
         except Exception:
@@ -82,51 +83,9 @@ def _load_expected_answers() -> dict[str, str]:
     return {}
 
 
-_EXPECTED_ANSWERS: dict[str, str] = _load_expected_answers()
-
-# =============================================================================
-# Load Expected Intents (for intent classification accuracy)
-# =============================================================================
-
-_EXPECTED_INTENTS_PATH = Path(__file__).parent / "expected_intents.yaml"
-
-
-def _load_expected_intents() -> dict[str, str]:
-    """Load expected intents from YAML file."""
-    if _EXPECTED_INTENTS_PATH.exists():
-        try:
-            import yaml
-            with open(_EXPECTED_INTENTS_PATH, encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-                return data if data else {}
-        except Exception:
-            return {}
-    return {}
-
-
-_EXPECTED_INTENTS: dict[str, str] = _load_expected_intents()
-
-# =============================================================================
-# Load Expected RAG Decisions (for RAG decision accuracy)
-# =============================================================================
-
-_EXPECTED_RAG_PATH = Path(__file__).parent / "expected_rag.yaml"
-
-
-def _load_expected_rag() -> dict[str, bool]:
-    """Load expected RAG decisions from YAML file."""
-    if _EXPECTED_RAG_PATH.exists():
-        try:
-            import yaml
-            with open(_EXPECTED_RAG_PATH, encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-                return data if data else {}
-        except Exception:
-            return {}
-    return {}
-
-
-_EXPECTED_RAG: dict[str, bool] = _load_expected_rag()
+_EXPECTED_ANSWERS: dict[str, str] = _load_yaml_fixture("expected_answers.yaml")
+_EXPECTED_INTENTS: dict[str, str] = _load_yaml_fixture("expected_intents.yaml")
+_EXPECTED_RAG: dict[str, bool] = _load_yaml_fixture("expected_rag.yaml")
 
 # Role mapping - starters are derived from this
 _ROLE_MAP = {

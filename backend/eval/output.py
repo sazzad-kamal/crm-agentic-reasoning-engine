@@ -22,7 +22,7 @@ from backend.eval.models import (
     SLO_LATENCY_ANSWER_PCT,
     SLO_LATENCY_RETRIEVAL_PCT,
     SLO_LATENCY_ROUTING_PCT,
-    SLO_ROUTER_ACCURACY,
+    SLO_SQL_DATA,
     SLO_SQL_SUCCESS,
     FlowEvalResults,
     FlowStepResult,
@@ -47,9 +47,10 @@ def print_summary(results: FlowEvalResults, eval_mode: str = "both") -> bool:
     # Compute SLO pass/fail
     path_slo_pass = results.path_pass_rate >= SLO_FLOW_PATH_PASS_RATE
     q_slo_pass = results.question_pass_rate >= SLO_FLOW_QUESTION_PASS_RATE
-    # SQL success: N/A if no queries were executed
+    # SQL generation success: N/A if no queries were executed
     sql_slo_pass = results.sql_success_rate >= SLO_SQL_SUCCESS if results.sql_query_count > 0 else None
-    rag_decision_slo_pass = results.rag_decision_accuracy >= SLO_ROUTER_ACCURACY
+    # SQL data validation: N/A if no assertions defined
+    sql_data_slo_pass = results.sql_data_success_rate >= SLO_SQL_DATA if results.sql_data_count > 0 else None
 
     # Answer quality metrics - N/A if eval_mode is "rag" (not evaluated)
     if eval_mode == "rag":
@@ -81,22 +82,31 @@ def print_summary(results: FlowEvalResults, eval_mode: str = "both") -> bool:
     else:
         composite_pass = None  # N/A when not all metrics evaluated
 
+    # RAG detection SLO (90% accuracy)
+    rag_detection_slo_pass = results.rag_detection_rate >= 0.90 if results.rag_detection_count > 0 else None
+
     # Build table sections matching E2E structure: (section_name, [(label, value, slo_target, slo_passed)])
     sections: list[tuple[str, list[tuple[str, str, str | None, bool | None]]]] = [
         (
             "Routing",
             [
                 (
-                    "  SQL Success",
+                    "  SQL Generation",
                     format_percentage(results.sql_success_rate) if results.sql_query_count > 0 else "N/A",
                     f">={format_percentage(SLO_SQL_SUCCESS)}" if results.sql_query_count > 0 else "-",
                     sql_slo_pass,
                 ),
                 (
-                    "  RAG Decision",
-                    format_percentage(results.rag_decision_accuracy),
-                    f">={format_percentage(SLO_ROUTER_ACCURACY)}",
-                    rag_decision_slo_pass,
+                    "  SQL Data",
+                    format_percentage(results.sql_data_success_rate) if results.sql_data_count > 0 else "N/A",
+                    f">={format_percentage(SLO_SQL_DATA)}" if results.sql_data_count > 0 else "-",
+                    sql_data_slo_pass,
+                ),
+                (
+                    "  RAG Detection",
+                    format_percentage(results.rag_detection_rate) if results.rag_detection_count > 0 else "N/A",
+                    ">=90.0%" if results.rag_detection_count > 0 else "-",
+                    rag_detection_slo_pass,
                 ),
                 (
                     "  latency",
@@ -200,7 +210,6 @@ def print_summary(results: FlowEvalResults, eval_mode: str = "both") -> bool:
         path_slo_pass
         and q_slo_pass
         and (sql_slo_pass is None or sql_slo_pass)
-        and rag_decision_slo_pass
         and (account_precision_slo_pass is None or account_precision_slo_pass)
         and (account_recall_slo_pass is None or account_recall_slo_pass)
         and relevance_slo_pass
@@ -227,9 +236,6 @@ def _count_slo_failures(step: FlowStepResult, eval_mode: str = "both") -> int:
         count += 1
     # SQL data validation (only count if assertions exist and failed)
     if step.sql_data_validated is False:
-        count += 1
-    # RAG decision
-    if not step.rag_decision_correct:
         count += 1
     # Pipeline metrics (relevance, faithfulness, answer_correctness)
     if eval_mode in ("pipeline", "both"):
@@ -275,10 +281,9 @@ def _print_slo_failures(results: FlowEvalResults, eval_mode: str = "both") -> No
     )
     failed_table.add_column("Path", style="dim", width=4)
     failed_table.add_column("Question", width=32)
-    # Always show SQL Gen, SQL Data, and RAG Decision columns
+    # Always show SQL Gen and SQL Data columns
     failed_table.add_column("SQL Gen", justify="center", width=7)
     failed_table.add_column("SQL Data", justify="center", width=8)
-    failed_table.add_column("RAG Dec", justify="center", width=7)
 
     # Add columns based on eval_mode
     if eval_mode in ("pipeline", "both"):
@@ -301,10 +306,8 @@ def _print_slo_failures(results: FlowEvalResults, eval_mode: str = "both") -> No
         sql_gen_pass = step.sql_queries_total == 0 or step.sql_queries_success == step.sql_queries_total
         # SQL data validation: Y if passed, X if failed, - if no assertions defined
         sql_data_pass = step.sql_data_validated  # None = no assertions, True = passed, False = failed
-        # RAG decision success
-        rag_pass = step.rag_decision_correct
 
-        row: list[str] = [str(path_id + 1), question_display, fmt(sql_gen_pass), fmt(sql_data_pass), fmt(rag_pass)]
+        row: list[str] = [str(path_id + 1), question_display, fmt(sql_gen_pass), fmt(sql_data_pass)]
 
         if eval_mode in ("pipeline", "both"):
             r_pass = step.relevance_score >= SLO_FLOW_RELEVANCE
@@ -343,7 +346,6 @@ def save_results(results: FlowEvalResults, output_path: Path) -> None:
             "question_pass_rate": results.question_pass_rate,
             "sql_success_rate": results.sql_success_rate,
             "sql_query_count": results.sql_query_count,
-            "rag_decision_accuracy": results.rag_decision_accuracy,
             "avg_relevance": results.avg_relevance,
             "avg_faithfulness": results.avg_faithfulness,
             "avg_answer_correctness": results.avg_answer_correctness,

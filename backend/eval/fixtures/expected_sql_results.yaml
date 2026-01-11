@@ -1,161 +1,211 @@
-# Expected SQL Results for flow eval - validates that SQL queries return correct data
+# Expected SQL Results - EXACT assertions for 100% accuracy
+# Based on actual CSV data - validates "nothing more, nothing less"
 #
 # Assertion types:
-# - row_count_min: Minimum number of rows expected
-# - row_count_max: Maximum number of rows expected
-# - total_value: Expected sum of value column
-# - must_contain: Values that must appear in any column of any row
-# - must_contain_all: All these values must appear (AND logic)
-# - must_contain_any: At least one of these values must appear (OR logic)
-# - column_values: Specific column must contain these values
-#
-# Only SQL-only questions (expected_rag: false) need assertions here.
-# 15 SQL questions: 5 sales rep, 2 CSM, 8 manager
+#   row_count: Exact number of rows
+#   row_count_min/max: Range of rows
+#   must_contain_all: All values must appear
+#   must_not_contain: Values must NOT appear (critical for filtering)
+#   total_value: Sum of value column (10% tolerance)
+#   exact_values: Exact column values
 
 # =============================================================================
-# SALES REP BRANCH (5 SQL questions)
-# Owner: jsmith - 4 open opps: ACME-UPGRADE ($15k), ACME-RENEWAL ($24k),
-#                              CROWN-RENEW ($18k), FUSION-UPSELL ($12k)
+# SALES REP BRANCH (jsmith)
+# jsmith owns: Acme (2 open), Crown (1 open), Fusion (1 open + 1 closed won)
+# Total open deals: 4 (Acme x2, Crown x1, Fusion-upsell x1)
 # =============================================================================
 
-"How's my pipeline by stage and health?":
-  # jsmith pipeline by stage: Qualified ($36k = $24k + $12k), Proposal ($33k = $15k + $18k)
-  # Health: healthy (all 4 opps - ACME, CROWN, FUSION)
-  row_count_min: 2
-  total_value: 69000  # $15k + $24k + $18k + $12k
-  must_contain_all:
-    - "Proposal"
-    - "Qualified"
-    - "healthy"
+"Show my open deals":
+  row_count: 4
+  must_contain_all: ["Acme", "Crown", "Fusion"]
+  must_not_contain: ["Beta", "Delta", "Green", "Eastern", "Harbor"]
+  total_value: 69000  # 15000 + 24000 + 18000 + 12000
 
-"Which deals need attention?":
-  # jsmith deals needing attention - could include high days_in_stage or at-risk health
-  # All jsmith opps are healthy, but have varying days_in_stage (50-65)
+"Show deals by stage":
+  row_count: 4
+  must_contain_all: ["Proposal", "Qualified"]
+  must_not_contain: ["Closed Won", "Closed Lost", "Beta", "Delta"]
+
+"Show my Acme deals":
+  row_count: 2
+  must_contain_all: ["Acme", "15000", "24000"]
+  must_not_contain: ["Crown", "Fusion", "Beta", "Delta"]
+  total_value: 39000  # 15000 + 24000
+
+"Show deals by value":
+  row_count: 4
+  must_contain_all: ["24000", "18000", "15000", "12000"]
+  must_not_contain: ["32000", "22000", "26000"]  # Other owners' deals
+
+"Show deals in Proposal stage":
+  row_count: 2
+  must_contain_all: ["Proposal", "Acme", "Crown"]
+  must_not_contain: ["Qualified", "Negotiation", "Discovery", "Beta", "Delta"]
+
+"Show deals in Qualified stage":
+  row_count: 2
+  must_contain_all: ["Qualified", "Acme", "Fusion"]
+  must_not_contain: ["Proposal", "Negotiation", "Discovery"]
+
+"Show deals in Negotiation stage":
+  row_count: 0
+  # jsmith has no deals in Negotiation (that's ljones with Beta)
+
+"Show Acme contacts":
+  row_count: 3
+  must_contain_all: ["Anna", "Beth", "Joe"]
+  must_not_contain: ["Maria", "Lisa", "Erin", "Carlos"]
+
+"Show Acme deal values":
+  row_count: 2
+  must_contain_all: ["15000", "24000"]
+  must_not_contain: ["18000", "12000", "32000"]  # Other deals
+  total_value: 39000
+
+"Show Acme activities":
   row_count_min: 1
-  must_contain_any:
-    - "Acme"
-    - "Crown"
-    - "Fusion"
+  must_contain: "Acme"
+  must_not_contain: ["Crown", "Beta", "Delta"]
 
-"What's my forecast confidence by stage?":
-  # Forecast weights: New=5%, Discovery=10%, Qualified=25%, Proposal=50%, Negotiation=75%
-  # jsmith: Qualified ($36k * 25% = $9k), Proposal ($33k * 50% = $16.5k)
-  # Total weighted: ~$25.5k
-  row_count_min: 2
-  must_contain_all:
-    - "Qualified"
-    - "Proposal"
+"Show deals over 20000":
+  row_count: 1
+  must_contain: "24000"
+  must_not_contain: ["15000", "18000", "12000", "32000"]  # 32000 is ljones
 
-"How long has each deal been in current stage?":
-  # jsmith opps: ACME-UPGRADE (50 days), ACME-RENEWAL (60 days),
-  #              CROWN-RENEW (60 days), FUSION-UPSELL (65 days)
-  row_count_min: 4
-  must_contain_all:
-    - "Acme"
-    - "Crown"
-    - "Fusion"
+"Show deals under 20000":
+  row_count: 3
+  must_contain_all: ["15000", "18000", "12000"]
+  must_not_contain: ["24000", "32000", "22000"]
 
-"Which deals have the highest velocity?":
-  # Velocity = value / days_in_stage or similar calculation
-  # Lower days_in_stage with higher value = higher velocity
-  # ACME-UPGRADE: $15k / 50 days = $300/day
-  # CROWN-RENEW: $18k / 60 days = $300/day
-  # ACME-RENEWAL: $24k / 60 days = $400/day
-  # FUSION-UPSELL: $12k / 65 days = $185/day
+"Show total pipeline value":
   row_count_min: 1
-  must_contain_any:
-    - "Acme"
-    - "Crown"
+  # Total of jsmith's open deals: 69000
 
 # =============================================================================
-# CSM BRANCH (2 SQL questions)
-# Owner: amartin - 2 open opps: DELTA-RENEW ($22k), DELTA-EXPAND ($15k)
+# CSM BRANCH (amartin)
+# amartin owns: Delta Health (2 open opps), Green Energy (churned, 2 closed lost)
 # =============================================================================
 
-"Which renewals are at risk and why?":
-  # amartin renewals at risk: DELTA-RENEW at Delta Health (at-risk-renewal-soon)
-  # Could also include company health status
-  row_count_min: 1
-  must_contain_all:
-    - "Delta"
-    - "at-risk"
+"Show my at-risk renewals":
+  row_count: 1
+  must_contain_all: ["Delta", "at-risk"]
+  must_not_contain: ["Green", "Acme", "Beta", "Crown"]  # Green is churned, others are different owners
 
-"How does my Q1 pipeline compare to Q4?":
-  # Compares current quarter vs previous quarter
-  # amartin current opps: DELTA-RENEW ($22k), DELTA-EXPAND ($15k) = $37k
-  row_count_min: 1
+"Show Delta Health deals":
+  row_count: 2
+  must_contain_all: ["Delta", "22000", "15000"]
+  must_not_contain: ["Green", "Acme", "Beta"]
   total_value: 37000
 
+"Show Green Energy deals":
+  row_count: 2
+  must_contain_all: ["Green", "Closed Lost"]
+  must_not_contain: ["Delta", "Acme"]
+
+"Show renewal values":
+  row_count_min: 1
+  must_contain: "Delta"
+  must_not_contain: ["Green"]  # Green is churned
+
+"Show Delta Health contacts":
+  row_count: 3
+  must_contain_all: ["Erin", "Mike", "Priya"]
+  must_not_contain: ["Carlos", "Anna", "Lisa"]
+
+"Show Delta Health activities":
+  row_count_min: 1
+  must_contain: "Delta"
+  must_not_contain: ["Green", "Acme"]
+
+"Show Delta Health deal stages":
+  row_count: 2
+  must_contain_all: ["Delta", "Qualified", "Discovery"]
+  must_not_contain: ["Closed", "Proposal"]
+
+"Show Green Energy contacts":
+  row_count: 3
+  must_contain_all: ["Carlos", "Linda", "Tom"]
+  must_not_contain: ["Erin", "Anna"]
+
+"Show Green Energy activities":
+  row_count_min: 1
+  must_contain: "Green"
+
+"Show Green Energy status":
+  row_count: 1
+  must_contain_any: ["Churned", "Former", "Cancelled"]
+
+"Show upcoming renewals":
+  row_count_min: 1
+  must_contain: "Delta"
+  must_not_contain: ["Green"]  # Churned, no renewal
+
+"Show at-risk accounts":
+  row_count_min: 1
+  must_contain: "Delta"
+
+"Show expansion deals":
+  row_count: 1
+  must_contain_all: ["Expansion", "Delta"]
+  must_not_contain: ["Renewal", "New Business"]
+
 # =============================================================================
-# MANAGER BRANCH (8 SQL questions)
-# All reps, all opps
+# MANAGER BRANCH (all owners)
+# All companies, all opportunities visible
 # =============================================================================
 
-"How's the team performing with win rates?":
-  # Win rates by owner:
-  # jsmith: 1 won (FUSION-RENEW), 0 lost = 100%
-  # ljones: 0 won, 2 lost (GREEN-RENEW, GREEN-EXPAND) = 0%
-  # Others: no closed deals
-  row_count_min: 1
-  must_contain_any:
-    - "jsmith"
-    - "ljones"
+"Show team pipeline":
+  row_count_min: 8  # All open opportunities across all owners
+  must_contain_all: ["Acme", "Beta", "Crown", "Delta", "Fusion", "Harbor", "Eastern"]
+  must_not_contain: ["Green"]  # Churned account
 
-"Show me decision makers with open deals and overdue tasks":
-  # Decision makers with open opps:
-  # - Anna Lopez (ACME-MFG) - OPP-ACME-UPGRADE
-  # - Maria Silva (CROWN-FOODS) - OPP-CROWN-RENEW
-  # - Erin Cho (DELTA-HEALTH) - OPP-DELTA-RENEW, OPP-DELTA-EXPAND
-  # - Sanjay Patel (EASTERN-TRAVEL) - OPP-EAST-TRIAL
-  # - Emma Khan (FUSION-RETAIL) - OPP-FUSION-UPSELL
-  # - Lisa Ng (BETA-TECH) - OPP-BETA-NEW
-  # - Jacob Wu (HARBOR-LOGISTICS) - OPP-HARBOR-NEW
-  row_count_min: 1
-  must_contain_any:
-    - "Anna"
-    - "Maria"
-    - "Erin"
-    - "Lisa"
-    - "Decision Maker"
+"Show all open deals":
+  row_count_min: 8
+  must_contain_all: ["Acme", "Beta", "Crown", "Delta"]
+  must_not_contain: ["Closed Won", "Closed Lost"]
 
-"Which high-value accounts have multiple risk signals?":
-  # High-value accounts with risk:
-  # - BETA-TECH: at-risk-low-activity, has $32k + $8k = $40k pipeline
-  # - DELTA-HEALTH: at-risk-renewal-soon, has $22k + $15k = $37k pipeline
-  row_count_min: 1
-  must_contain_any:
-    - "Beta"
-    - "Delta"
-    - "at-risk"
+"Show pipeline by owner":
+  row_count_min: 3
+  must_contain_all: ["jsmith", "amartin", "ljones"]
 
-"What's our forecast accuracy trend?":
-  # Forecast accuracy requires historical comparison
-  # Based on closed deals vs forecast predictions
+"Show recent activities":
   row_count_min: 1
 
-"Which contacts have no recent activity?":
-  # Contacts without recent activity history
-  # Need to LEFT JOIN contacts with history and find gaps
-  row_count_min: 1
+"Show deals in Negotiation":
+  row_count: 1
+  must_contain_all: ["Negotiation", "Beta", "32000"]
+  must_not_contain: ["Proposal", "Qualified", "Discovery"]
 
-"Which rep has the best close rate?":
-  # Close rates by rep (closed won / total closed):
-  # jsmith: 1/1 = 100% (FUSION-RENEW won)
-  # ljones: 0/2 = 0% (GREEN-RENEW, GREEN-EXPAND lost)
-  row_count_min: 1
-  must_contain:
-    - "jsmith"  # jsmith has 100% close rate
+"Show closed deals":
+  row_count: 3  # Fusion Won + Green x2 Lost
+  must_contain_all: ["Closed"]
+  must_contain_any: ["Won", "Lost"]
 
-"What deals did we lose and what patterns emerge?":
-  # Lost deals: GREEN-RENEW ($20k), GREEN-EXPAND ($35k)
-  # Both from GREEN-ENERGY, both ljones
-  row_count_min: 2
-  total_value: 55000  # $20k + $35k
-  must_contain_all:
-    - "Green"
-    - "Closed Lost"
+"Show Beta Tech deals":
+  row_count: 2
+  must_contain_all: ["Beta", "32000", "8000"]
+  must_not_contain: ["Acme", "Delta", "Crown"]
+  total_value: 40000
 
-"How does this quarter compare to last?":
-  # Quarter-over-quarter comparison
-  # Current quarter: depends on date context
+"Show biggest deals":
+  row_count_min: 4
+  must_contain_all: ["32000", "26000", "24000", "22000"]
+
+"Show Proposal stage deals":
+  row_count: 2
+  must_contain_all: ["Proposal"]
+  must_not_contain: ["Qualified", "Negotiation", "Discovery", "Closed"]
+
+"Show lost deals":
+  row_count: 2
+  must_contain_all: ["Closed Lost", "Green"]
+  must_not_contain: ["Closed Won", "Acme", "Beta", "Delta"]
+
+"Show won deals":
+  row_count: 1
+  must_contain_all: ["Closed Won", "Fusion"]
+  must_not_contain: ["Closed Lost", "Green"]
+
+"Show recently closed deals":
   row_count_min: 1
+  must_contain_any: ["Closed Won", "Closed Lost"]

@@ -11,7 +11,13 @@ from typing import Any
 from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
-from backend.agent.followup.tree import get_expected_answer, get_expected_rag, get_paths_for_role, validate_sql_results
+from backend.agent.followup.tree import (
+    get_expected_answer,
+    get_expected_rag,
+    get_expected_sql_results,
+    get_paths_for_role,
+    validate_sql_results,
+)
 from backend.eval.formatting import console, print_eval_header
 from backend.eval.judge import evaluate_single
 from backend.eval.models import FlowEvalResults, FlowResult, FlowStepResult
@@ -118,9 +124,6 @@ def test_single_question(
         sources = result.get("sources", [])
         has_answer = bool(answer and len(answer) > 10)
 
-        # Get routing info from agent result
-        actual_rag_decision = result.get("needs_account_rag", False)
-
         # Get SQL execution stats
         sql_queries_total = result.get("sql_queries_total", 0)
         sql_queries_success = result.get("sql_queries_success", 0)
@@ -128,8 +131,8 @@ def test_single_question(
         # Get RAG chunks for precision/recall evaluation
         account_chunks = result.get("account_chunks", [])
 
-        # Account RAG is conditional on needs_account_rag boolean and company_id
-        # Use the explicit flag set by fetch_account_node (tracks actual invocations, not just results)
+        # Account RAG is called automatically when entity IDs are resolved
+        # Use the explicit flag set by fetch_account_node (tracks actual invocations)
         account_rag_invoked = result.get("account_rag_invoked", False)
 
         # Build all_contexts from sql_results (JSON stringified)
@@ -140,15 +143,23 @@ def test_single_question(
         if account_context := result.get("account_context_answer", ""):
             all_contexts.append(account_context)
 
-        # Validate SQL results against expected (for SQL-only questions)
+        # Validate SQL results against expected (for all questions with assertions)
         sql_data_validated: bool | None = None
         sql_data_errors: list[str] | None = None
         if sql_results:
             passed, errors = validate_sql_results(question, sql_results)
-            # Only set validated if we have assertions for this question
-            if get_expected_rag(question) is False:  # SQL-only question
+            # Set validated if we have assertions for this question (SQL-only OR RAG)
+            if get_expected_sql_results(question) is not None:
                 sql_data_validated = passed
                 sql_data_errors = errors if errors else None
+
+        # Check RAG detection accuracy (needs_rag decision from slot planner vs expected)
+        rag_decision_correct: bool | None = None
+        expected_rag = get_expected_rag(question)
+        if expected_rag is not None:
+            # Compare actual needs_rag decision (use account_rag_invoked as proxy if needs_rag not in result)
+            actual_needs_rag = result.get("needs_rag", account_rag_invoked)
+            rag_decision_correct = actual_needs_rag == expected_rag
 
         # Get expected answer for answer_correctness metric
         expected_answer = get_expected_answer(question)
@@ -210,12 +221,6 @@ def test_single_question(
                         nan_metrics = pipeline_result.get("nan_metrics", [])
                         ragas_metrics_failed += sum(1 for m in nan_metrics if m in ("answer_relevancy", "faithfulness", "answer_correctness"))
 
-        # RAG decision validation (replaces intent classification)
-        expected_rag = get_expected_rag(question)
-        # Only mark correct if we have an expected RAG decision and it matches actual
-        # If no expected RAG in our mapping, we can't validate (treat as correct)
-        rag_decision_correct = (expected_rag is None) or (actual_rag_decision == expected_rag)
-
         return FlowStepResult(
             question=question,
             answer=answer,
@@ -226,15 +231,13 @@ def test_single_question(
             sql_queries_success=sql_queries_success,
             sql_data_validated=sql_data_validated,
             sql_data_errors=sql_data_errors,
-            expected_rag=expected_rag,
-            actual_rag=actual_rag_decision,
-            rag_decision_correct=rag_decision_correct,
             relevance_score=relevance,
             faithfulness_score=faithfulness,
             answer_correctness_score=answer_correctness,
             account_precision_score=account_precision,
             account_recall_score=account_recall,
             account_rag_invoked=account_rag_invoked,
+            rag_decision_correct=rag_decision_correct,
             judge_explanation=explanation,
             error=None,
             ragas_metrics_total=ragas_metrics_total,
@@ -430,13 +433,22 @@ def run_flow_eval(
     avg_account_precision = sum(s.account_precision_score for s in steps_with_account) / len(steps_with_account) if steps_with_account else 0.0
     avg_account_recall = sum(s.account_recall_score for s in steps_with_account) / len(steps_with_account) if steps_with_account else 0.0
 
-    # Calculate SQL success rate
+    # Calculate SQL success rate (query execution)
     sql_total = sum(s.sql_queries_total for s in all_steps)
     sql_success = sum(s.sql_queries_success for s in all_steps)
     sql_success_rate = sql_success / sql_total if sql_total > 0 else 1.0  # 1.0 if no queries
 
-    rag_decision_correct_count = sum(1 for s in all_steps if s.rag_decision_correct)
-    rag_decision_accuracy = rag_decision_correct_count / len(all_steps) if all_steps else 0.0
+    # Calculate SQL data validation success rate
+    steps_with_assertions = [s for s in all_steps if s.sql_data_validated is not None]
+    sql_data_passed = sum(1 for s in steps_with_assertions if s.sql_data_validated)
+    sql_data_count = len(steps_with_assertions)
+    sql_data_success_rate = sql_data_passed / sql_data_count if sql_data_count > 0 else 1.0
+
+    # Calculate RAG detection accuracy (needs_rag decision matches expected)
+    steps_with_rag_expected = [s for s in all_steps if s.rag_decision_correct is not None]
+    rag_detection_correct = sum(1 for s in steps_with_rag_expected if s.rag_decision_correct)
+    rag_detection_count = len(steps_with_rag_expected)
+    rag_detection_rate = rag_detection_correct / rag_detection_count if rag_detection_count > 0 else 1.0
 
     # Calculate RAGAS reliability (per-metric, not per-call)
     # Sum up all metrics evaluated and all metrics that failed across all steps
@@ -463,7 +475,8 @@ def run_flow_eval(
         questions_failed=questions_failed,
         sql_success_rate=sql_success_rate,
         sql_query_count=sql_total,
-        rag_decision_accuracy=rag_decision_accuracy,
+        sql_data_success_rate=sql_data_success_rate,
+        sql_data_count=sql_data_count,
         avg_relevance=avg_relevance,
         avg_faithfulness=avg_faithfulness,
         avg_answer_correctness=avg_answer_correctness,
@@ -471,6 +484,8 @@ def run_flow_eval(
         avg_account_recall=avg_account_recall,
         account_sample_count=len(steps_with_account),
         rag_invoked_count=sum(1 for s in all_steps if s.account_rag_invoked),
+        rag_detection_rate=rag_detection_rate,
+        rag_detection_count=rag_detection_count,
         ragas_metrics_total=ragas_metrics_total,
         ragas_metrics_failed=ragas_metrics_failed,
         total_latency_ms=total_latency,

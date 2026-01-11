@@ -75,7 +75,6 @@ class AgentState(TypedDict, total=False):
 
     # Query planner output (new schema-driven architecture)
     query_plan: Any  # QueryPlan object from route_node
-    needs_account_rag: bool  # LLM decision for whether to call Account RAG
     sql_results: dict[str, Any]  # Results from SQL queries, keyed by purpose
     sql_queries_total: int  # Total number of SQL queries executed
     sql_queries_success: int  # Number of SQL queries that succeeded
@@ -86,6 +85,7 @@ class AgentState(TypedDict, total=False):
     resolved_opportunity_id: str | None
     days: int
     owner: str | None  # Role-based owner for filtering
+    needs_rag: bool  # Whether RAG context is needed (from slot planner)
 
     # Legacy data outputs (kept for backwards compatibility during migration)
     company_data: dict[str, Any] | None

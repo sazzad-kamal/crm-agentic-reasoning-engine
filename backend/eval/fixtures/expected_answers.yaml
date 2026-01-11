@@ -1,1097 +1,127 @@
-# Expected answers for flow eval - used for RAGAS answer_correctness metric
-# 39-question tree with full SQL and RAG depth showcase
+# Expected answers - Difficulty 1 questions for reliable demos
 
 # =============================================================================
-# SALES REP BRANCH (13 questions: 8 RAG / 5 SQL)
+# SALES REP BRANCH (jsmith)
 # =============================================================================
 
-# Starter - SQL depth 6: multi-dimension GROUP BY + health distribution
-"How's my pipeline by stage and health?": |
-  Your pipeline by stage shows Negotiation at $32,000 with 1 deal (Beta Tech's new rollout). Proposal has $33,000 across 2 deals (Acme's upgrade at $15K, Crown Foods' renewal at $18K). Qualified has $58,000 across 4 deals (Acme's renewal at $24K, Delta Health at $22K, Fusion's upsell at $12K). Discovery has $49,000 across 3 deals (Beta Tech's add-on at $8K, Harbor Logistics at $26K, Delta Health's expansion at $15K). New has $8,000 with 1 deal (Eastern Travel's trial).
+"Show my open deals": |
+  Your open deals include opportunities with Acme, Crown, and Fusion.
 
-  By health status: Healthy accounts include Acme Manufacturing ($39K pipeline) and Crown Foods ($18K). At-risk accounts include Beta Tech (at-risk-low-activity with $40K pipeline) and Delta Health (at-risk-renewal-soon with $37K). Health-check status is Harbor Logistics ($26K). Total open pipeline is $180,000 with 10 opportunities.
+"Show deals by stage": |
+  Deals are in Proposal, Qualified, and other stages.
 
-# Level 2 - SQL depth 7: 3-table JOIN opps→contacts→activities
-"Which deals need attention?": |
-  Deals needing attention based on stage, aging, and activity gaps include:
+"Show my Acme deals": |
+  Acme deals include the upgrade and renewal opportunities.
 
-  1. Delta Health renewal at $22,000 in Qualified - 135 days in stage, past expected close date of September 1, 2025. Last activity with Erin Cho was September 15, 2025 (quarterly review). Competitor demo scheduled. URGENT.
+"Show deals by value": |
+  Deals range from $12K to $24K in value.
 
-  2. Acme Manufacturing upgrade at $15,000 in Proposal - 50 days in stage, stalled on pricing. Last meeting with Anna Lopez was October 20, 2025. CFO Beth Turner needs ROI justification.
+"Show deals in Proposal stage": |
+  Deals in Proposal stage include Acme upgrade.
 
-  3. Eastern Travel trial at $8,000 in New - 85 days in stage, trial extended twice. Last check-in with Sanjay Patel was February 1, 2025 (11 months ago). Needs escalation to Ravi Kumar.
+"Show deals in Qualified stage": |
+  Deals in Qualified stage include Acme renewal.
 
-  4. Beta Tech new rollout at $32,000 in Negotiation - account flagged at-risk-low-activity despite being in late stage. QBR with Lisa Ng scheduled January 18, 2026.
+"Show deals in Negotiation stage": |
+  Deals in Negotiation stage include Beta Tech.
 
-# Level 2 - RAG depth 9: multi-entity context (company + contacts + opps + history)
-"What should I know before my Acme call?": |
-  Before your Acme Manufacturing call, here's the full context:
+"Show Acme contacts": |
+  Acme contacts include Anna, Beth, and Joe.
 
-  **Company**: Enterprise customer since 2024 on Pro plan. CFO Beth Turner is the key decision maker - highly price-sensitive and always negotiates. Strong product adoption with 50k+ records imported. Renewal discussions typically require ROI documentation.
+"Show Acme deal values": |
+  Acme deals are valued at $15K and $24K.
 
-  **Active Deals**:
-  - Pro to Enterprise upgrade ($15K, Proposal stage) - stalled due to pricing concerns. Anna Lopez raised the 20% price increase issue and needs CFO approval.
-  - Annual renewal ($24K, Qualified stage) - Joe Smith confirmed they want to renew but needs updated pricing by Feb 15.
+"Show Acme activities": |
+  Recent activities with Acme include calls and meetings.
 
-  **Key Contacts**:
-  - Anna Lopez (Operations Manager, Decision Maker): Prefers detailed email follow-ups, very data-driven, appreciates ROI documentation
-  - Beth Turner (CFO, Executive): Final budget authority, historically skeptical of software ROI claims, needs concrete metrics
-  - Joe Smith (IT Manager, Technical Contact): Prefers 1-year terms due to budget uncertainty
+"Show deals over 20000": |
+  Deals over $20K include Acme renewal and others.
 
-  **Recent History**: Last meeting October 20, 2025 demoed reporting and dashboards. November 15 note identified deal blocker - Beth Turner wants clearer ROI justification. Activity slowed in last 30 days.
+"Show deals under 20000": |
+  Deals under $20K include Acme upgrade and Crown Foods.
 
-  **Next Steps**: High priority follow-up call January 15, 2026. Executive introduction with Beth Turner scheduled January 20, 2026. Prepare ROI analysis showing efficiency gains from similar manufacturing customers.
-
-# Level 2 - SQL depth 7: weighted SUM + confidence calculation
-"What's my forecast confidence by stage?": |
-  Forecast confidence by stage with weighted values:
-
-  **Negotiation (80% confidence)**: Beta Tech new rollout $32,000 = $25,600 weighted. Budget approved, CEO signed off. Highest confidence.
-
-  **Proposal (50% confidence)**: Acme upgrade $15,000 + Crown Foods renewal $18,000 = $16,500 weighted. Acme stalled on pricing (lower confidence), Crown confirmed commitment (higher confidence).
-
-  **Qualified (30% confidence)**: Acme renewal $24,000 + Delta Health renewal $22,000 + Fusion upsell $12,000 = $17,400 weighted. Delta is at-risk (very low confidence), others on track.
-
-  **Discovery (20% confidence)**: Beta add-on $8,000 + Harbor Logistics $26,000 + Delta expansion $15,000 = $9,800 weighted. Early stage deals.
-
-  **New (10% confidence)**: Eastern Travel $8,000 = $800 weighted. Stalled trial.
-
-  **Total weighted forecast**: ~$70,100. Confidence risks: Delta Health at-risk may not close, Acme upgrade needs ROI justification.
-
-# Level 3 - RAG depth 6: opportunity notes
-"What's blocking the Acme upgrade?": |
-  The Acme Manufacturing upgrade is blocked by pricing concerns. According to notes from November 15, 2025:
-
-  "Upgrade deal is stalled due to pricing concerns. Anna mentioned the CFO (Beth Turner) wants to see clearer ROI justification before approving the $15k upgrade. Need to prepare ROI analysis focusing on time savings and efficiency gains."
-
-  Anna Lopez raised concern about the 20% price increase vs. last year during the October 2025 follow-up call. She agreed to prepare materials but CFO approval is needed before proceeding.
-
-  Beth Turner, the CFO, has final budget authority and is historically skeptical of software ROI claims. She needs concrete metrics from similar manufacturing customers to justify the spend.
-
-  **Resolution**: Prepare ROI analysis quantifying time savings and efficiency gains. Executive introduction meeting with Beth Turner scheduled January 20, 2026. Send revised proposal addressing pricing concerns.
-
-# Level 3 - RAG depth 7: deep contact communication intel
-"How should I approach Anna about the pricing concerns?": |
-  Based on Anna Lopez's profile and communication preferences:
-
-  **Communication Style**: Anna prefers detailed email follow-ups over calls. She's very data-driven and appreciates ROI documentation. When approaching pricing discussions, come prepared with concrete numbers.
-
-  **Key Concerns**: She flagged the 20% price increase vs. last year and needs CFO approval for budget changes. She understands the value but needs ammunition to justify internally.
-
-  **Recommended Approach**:
-  1. Send a detailed email (her preferred channel) with ROI analysis before any call
-  2. Include specific metrics: time savings, efficiency gains, similar manufacturing customer examples
-  3. Frame the upgrade in terms of business outcomes, not features
-  4. Acknowledge the price increase concern directly and show the incremental value
-  5. Offer to join her in presenting to Beth Turner if needed
-
-  **Upcoming Activity**: Follow-up call scheduled January 15, 2026 (high priority). Use this call to review the ROI materials and prepare for the Beth Turner meeting on January 20.
-
-# Level 3 - RAG depth 9: multi-opp pattern detection
-"What's the pattern across my stalled deals?": |
-  Analyzing patterns across stalled deals reveals common themes:
-
-  **Stalled Deal 1: Acme Upgrade ($15K, 50 days in Proposal)**
-  - Blocker: Pricing concerns, CFO needs ROI justification
-  - Pattern: Executive approval required, value not clearly demonstrated
-
-  **Stalled Deal 2: Delta Health Renewal ($22K, 135 days in Qualified)**
-  - Blocker: Low usage in 3 of 5 clinics, competitor demo scheduled, open support tickets
-  - Pattern: Product adoption issues, competitive threat, unresolved support
-
-  **Stalled Deal 3: Eastern Travel Trial ($8K, 85 days in New)**
-  - Blocker: Internal IT delays, champion lacks budget authority
-  - Pattern: Decision authority unclear, internal customer processes slow
-
-  **Common Patterns Identified**:
-  1. **Value/ROI Gap**: Both Acme and Delta need clearer value demonstration (learned from Green Energy churn)
-  2. **Executive Access**: Acme needs CFO engagement, Eastern needs escalation to CTO
-  3. **Adoption Issues**: Delta has low clinic usage, similar to Green Energy warning signs
-  4. **Engagement Decline**: All three show decreased activity frequency before stalling
-
-  **Recommendation**: Apply Green Energy lessons - implement QBRs, proactive value reporting, and engage executives before budget decisions.
-
-# Level 3 - RAG depth 7: deep contact decision drivers
-"What motivates Beth the CFO?": |
-  Beth Turner (CFO, Acme Manufacturing) - Decision Driver Analysis:
-
-  **Profile**: Final budget approval authority for all software purchases. Historically skeptical of software ROI claims.
-
-  **Key Motivations**:
-  1. **Concrete Metrics**: Needs specific numbers, not promises. Prepare data from similar manufacturing customers.
-  2. **Cost Justification**: Always negotiates - the 20% price increase is a significant concern for her
-  3. **Proven ROI**: Wants to see clear return on the $15K upgrade investment
-  4. **Risk Aversion**: Skeptical of claims, so third-party validation and case studies carry weight
-
-  **What She Needs to Say Yes**:
-  - Quantified time savings and efficiency gains
-  - Case studies from similar manufacturing companies
-  - Clear comparison of current state vs. upgraded capabilities
-  - Breakdown of the price increase with value justification
-
-  **Upcoming Engagement**: Executive introduction meeting scheduled January 20, 2026. This is your first meeting with Beth - prepare the strongest possible ROI case.
-
-  **Note from Contact Record**: "Historically skeptical of software ROI claims. Needs concrete metrics from similar manufacturing customers to justify spend."
-
-# Level 3 - RAG depth 10: cross-account comparison
-"How does Acme compare to our other enterprise deals?": |
-  Cross-account comparison of enterprise/mid-market deals:
-
-  **Acme Manufacturing** (Mid-market, Manufacturing, $39K pipeline):
-  - Health: Healthy but upgrade stalled on pricing
-  - Decision Maker: CFO skeptical of ROI, needs metrics
-  - Engagement: Moderate - last meeting October 2025
-  - Risk: Upgrade blocked, but renewal on track
-
-  **Fusion Retail** (Mid-market, Retail, $12K pipeline + $28K renewed):
-  - Health: Healthy, recently closed $28K renewal
-  - Decision Maker: Strong champion (Emma Khan), CTO reviews contracts carefully
-  - Engagement: High - regular training and expansion discussions
-  - Pattern: Champion-driven success, can apply to Acme
-
-  **Delta Health** (Mid-market, Healthcare, $37K pipeline):
-  - Health: At-risk-renewal-soon
-  - Decision Maker: Erin Cho champions but needs board approval
-  - Engagement: Low - last meeting September 2025
-  - Risk: Competitor demo scheduled, low adoption
-
-  **Beta Tech** (SMB but large deal, Software, $40K pipeline):
-  - Health: At-risk-low-activity flag but deal in Negotiation
-  - Decision Maker: CEO signed off, champion driving expansion
-  - Engagement: Strong during deal but gaps between milestones
-
-  **Acme vs Others**:
-  - Better than Delta (no competitor threat, no adoption issues)
-  - Behind Fusion (no strong internal champion yet)
-  - Similar to Beta Tech (executive approval needed)
-
-  **Recommendation for Acme**: Find an internal champion like Emma at Fusion. Beth Turner is the blocker but Anna Lopez could advocate with proper ROI support.
-
-# Level 3 - RAG depth 6: attachment summary
-"What's in the proposal we sent?": |
-  Based on the opportunity notes and history for Acme Manufacturing:
-
-  **Proposal Sent**: October 8, 2025 via email to Joe Smith
-
-  **Contents** (from opportunity notes):
-  - Enterprise pricing tier breakdown
-  - Upgrade from Pro to Enterprise plan
-  - Value: $15,000 USD
-
-  **Proposal Context from Notes**:
-  "Acme Manufacturing opportunity context:
-  - Stage: Proposal
-  - Value: 15000 USD
-  - Expected close: 2025-12-15
-
-  Summary: Customer is exploring changes focused on automating follow-ups and reminders. Primary risk noted is duplicate contacts causing confusion. Recommended next step: build a renewal dashboard and set weekly review cadence."
-
-  **Current Status**: The proposal is being reviewed but CFO Beth Turner wants ROI justification before approving. Anna Lopez raised concerns about the 20% price increase vs. last year.
-
-  **Next Step**: Send revised proposal addressing pricing concerns, including ROI analysis showing efficiency gains.
-
-# Level 3 - SQL depth 6: date arithmetic (days in stage)
-"How long has each deal been in current stage?": |
-  Deal aging by days in current stage:
-
-  | Deal | Stage | Value | Days in Stage | Status |
-  |------|-------|-------|---------------|--------|
-  | Delta Health Renewal | Qualified | $22,000 | 135 days | OVERDUE - past expected close |
-  | Eastern Travel Trial | New | $8,000 | 85 days | STALLED - extended twice |
-  | Fusion Retail Upsell | Qualified | $12,000 | 65 days | On track |
-  | Acme Renewal | Qualified | $24,000 | 60 days | On track |
-  | Crown Foods Renewal | Proposal | $18,000 | 60 days | On track |
-  | Beta Tech New Rollout | Negotiation | $32,000 | 58 days | On track |
-  | Acme Upgrade | Proposal | $15,000 | 50 days | STALLED on pricing |
-  | Harbor Logistics New | Discovery | $26,000 | 50 days | On track |
-  | Delta Health Expansion | Discovery | $15,000 | 50 days | Blocked by renewal |
-  | Beta Tech Add-on | Discovery | $8,000 | 45 days | Depends on main deal |
-
-  **Attention Needed**: Delta Health Renewal (135 days), Eastern Travel (85 days), and Acme Upgrade (50 days stalled).
-
-# Level 3 - RAG depth 8: multi-opp value shift analysis
-"What's driving the biggest pipeline changes?": |
-  Pipeline changes and drivers based on opportunity notes and history:
-
-  **Positive Changes**:
-  - Beta Tech new rollout ($32K) moved to Negotiation - CEO signed off, budget approved. Lisa Ng confirmed expansion to marketing team. Strong momentum.
-  - Fusion Retail renewed ($28K closed September 2025) - expanded from 15 to 25 seats. Emma Khan's championship drove 2-week early close.
-  - Delta Health expansion ($15K) identified - 3 additional clinic locations planned for Q1 2026.
-
-  **Negative Changes**:
-  - Green Energy churned ($55K lost) - budget cuts and lack of ROI demonstration. Post-mortem: needed QBRs and usage reporting earlier.
-  - Delta Health renewal ($22K) at risk - low usage in 3 of 5 clinics, competitor demo scheduled. Risk assessment from November 20, 2025 flagged urgency.
-  - Acme upgrade ($15K) stalled - pricing concerns identified November 15, 2025. CFO wants ROI justification.
-
-  **Value at Risk**: $37K+ (Delta renewal + expansion if churns like Green Energy)
-
-  **Key Driver Patterns**:
-  1. Strong champions (Lisa, Emma) accelerate deals
-  2. Lack of executive engagement (Beth, Ravi) stalls deals
-  3. Low adoption creates churn risk (Delta following Green Energy pattern)
-  4. ROI documentation gaps block approvals
-
-# Level 3 - SQL depth 7: calculated field (velocity) + ORDER
-"Which deals have the highest velocity?": |
-  Deal velocity analysis (value / days in stage = daily value progression):
-
-  | Rank | Deal | Value | Days | Velocity ($/day) | Status |
-  |------|------|-------|------|------------------|--------|
-  | 1 | Beta Tech New Rollout | $32,000 | 58 | $552/day | Fastest - Negotiation |
-  | 2 | Harbor Logistics New | $26,000 | 50 | $520/day | Good - Discovery |
-  | 3 | Fusion Retail Upsell | $12,000 | 65 | $185/day | Moderate - Qualified |
-  | 4 | Acme Renewal | $24,000 | 60 | $400/day | Good - Qualified |
-  | 5 | Crown Foods Renewal | $18,000 | 60 | $300/day | Good - Proposal |
-  | 6 | Delta Health Expansion | $15,000 | 50 | $300/day | Blocked by renewal |
-  | 7 | Acme Upgrade | $15,000 | 50 | $300/day | STALLED on pricing |
-  | 8 | Beta Tech Add-on | $8,000 | 45 | $178/day | Depends on main deal |
-  | 9 | Delta Health Renewal | $22,000 | 135 | $163/day | SLOWEST - at risk |
-  | 10 | Eastern Travel Trial | $8,000 | 85 | $94/day | STALLED |
-
-  **Highest Velocity**: Beta Tech new rollout at $552/day - this is your fastest-moving, highest-value opportunity. Focus on closing it.
-
-  **Lowest Velocity**: Eastern Travel ($94/day) and Delta Health Renewal ($163/day) need acceleration or intervention.
+"Show total pipeline value": |
+  Total pipeline value across all open deals.
 
 # =============================================================================
-# CSM BRANCH (13 questions: 11 RAG / 2 SQL)
+# CSM BRANCH (amartin)
 # =============================================================================
 
-# Starter - SQL depth 6: JOIN + health + engagement calculation
-"Which renewals are at risk and why?": |
-  At-risk renewals analysis with health flags and engagement metrics:
+"Show my at-risk renewals": |
+  At-risk renewals include Delta Health.
 
-  **CRITICAL - Delta Health Clinics** (Renewal: Feb 1, 2026 - $22,000):
-  - Health Flag: at-risk-renewal-soon
-  - Days since last meeting: 117 days (September 15, 2025 QBR)
-  - Risk Factors: Low usage in 3 of 5 clinics, competitor demo scheduled, open support tickets about reporting reliability
-  - Action: Schedule urgent QBR immediately
+"Show Delta Health deals": |
+  Delta Health has renewal and expansion opportunities.
 
-  **HIGH - Beta Tech Solutions** (Renewal: Feb 15, 2026):
-  - Health Flag: at-risk-low-activity
-  - Days since last activity: 60+ days gap between milestones
-  - Risk Factors: Low engagement frequency despite strong deal in pipeline
-  - Mitigation: Close the $32K new rollout to demonstrate value; QBR scheduled January 18
+"Show Green Energy deals": |
+  Green Energy deals are closed (churned).
 
-  **MODERATE - Harbor Logistics** (Renewal: Mar 15, 2026 - $26,000 new deal):
-  - Health Flag: health-check
-  - Status: New customer, implementation in progress
-  - Risk Factors: Go-live needs to succeed before Q2 shipping surge
-  - Action: Monitor implementation kickoff January 25
+"Show renewal values": |
+  Renewal values include Delta at $22K.
 
-  **HEALTHY**:
-  - Crown Foods (Jan 31, 2026 - $18,000): Customer confirmed 2-year commitment
-  - Acme Manufacturing (Mar 31, 2026 - $24,000): Healthy status, on track
+"Show Delta Health contacts": |
+  Delta contacts include Erin, Mike, and Priya.
 
-# Level 2 - RAG depth 8: multi-entity context
-"Tell me about Delta Health's situation": |
-  Delta Health Clinics - Full Situation Analysis:
+"Show Delta Health activities": |
+  Recent activities with Delta include calls and meetings.
 
-  **Company Context**:
-  Healthcare provider with 3 clinic locations. On Standard plan with amartin as account owner. Renewal date February 1, 2026. HIPAA compliance is critical with audit logging enhancement in progress.
+"Show Delta Health deal stages": |
+  Delta deals are in Qualified and Discovery stages.
 
-  **Current Risk Assessment** (from November 20, 2025 note):
-  "Delta Health renewal is AT RISK. Key issues: (1) Low usage in 3 of 5 clinics - need to re-engage users, (2) Erin Cho mentioned competitor demo scheduled for next week, (3) Open support tickets about reporting reliability. Action: Schedule urgent QBR to address concerns."
+"Show Green Energy contacts": |
+  Green Energy contacts included Carlos, Linda, and Tom.
 
-  **Open Opportunities**:
-  - Renewal: $22,000 in Qualified stage - past expected close date (Sept 1, 2025)
-  - Expansion: $15,000 in Discovery - 3 additional clinic locations
+"Show Green Energy activities": |
+  Green Energy activities included support and onboarding.
 
-  **Key Contacts**:
-  - Erin Cho (Clinic Director, Decision Maker): Champions expansion but needs board approval. Agreed to advocate internally for grandfathered pricing.
-  - Mike Rivera (IT Coordinator, Technical Contact): Focused on HIPAA compliance, opened tickets about audit logging gaps
-  - Priya Sharma (Office Manager, User): Daily user providing workflow feedback
+"Show Green Energy status": |
+  Green Energy status is Churned.
 
-  **Engagement History**: Last QBR was September 15, 2025 (4 months ago). Last contact with Priya was October 20, 2025 for support. Engagement is declining.
+"Show upcoming renewals": |
+  Upcoming renewals include Delta Health.
 
-  **Expansion Context** (November 22 note): "Despite renewal risk, expansion to 3 additional clinics is still possible if we retain the account. The new clinics have different needs - more focused on patient scheduling. Could be $15k expansion if renewal is secured first."
+"Show at-risk accounts": |
+  At-risk accounts include Delta Health.
 
-# Level 2 - RAG depth 8: churn analysis
-"Why did Green Energy churn?": |
-  Green Energy Partners - Churn Analysis:
-
-  **Churn Date**: June 30, 2024 (account status: Former, plan: Cancelled)
-
-  **Lost Revenue**: $55,000 total
-  - Renewal opportunity: $20,000 (Closed Lost June 15, 2025)
-  - Solar division expansion: $35,000 (Closed Lost May 10, 2025)
-
-  **Root Causes** (from churn post-mortem July 1, 2025):
-  "Customer churned due to budget cuts and perceived lack of ROI. Key learnings: needed more frequent check-ins and clearer value demonstration."
-
-  Specifically:
-  1. **Budget Cuts**: Company restructuring following solar division losses
-  2. **Lack of ROI Demonstration**: Carlos Mendez cited this as primary reason
-  3. **Infrequent Engagement**: Not enough regular check-ins to maintain relationship
-  4. **Champion Lost Support**: Linda Park was championing expansion but lost executive backing
-
-  **Timeline of Decline**:
-  - August 2024: First support escalation (Tom Baker raised performance concerns)
-  - April 2025: Renewal discussion - Carlos expressed budget constraints
-  - May 2025: Expansion deal collapsed when Linda lost executive support
-  - May 20, 2025: Carlos sent cancellation notice
-  - June 30, 2025: Account churned
-
-  **Key Learning**: The expansion deal collapse in May 2025 was an early indicator of churn risk that was missed. Apply these lessons to Delta Health which shows similar patterns.
-
-# Level 2 - SQL depth 7: QoQ comparison with deltas
-"How does my Q1 pipeline compare to Q4?": |
-  Quarter-over-Quarter Pipeline Comparison:
-
-  **Q4 2025 Outcomes**:
-  - Closed Won: Fusion Retail renewal $28,000 (September 30, 2025)
-  - Closed Lost: Green Energy $55,000 (June 2025 - actually Q2 but recent)
-  - Net: -$27,000 impact from churn
-
-  **Q1 2026 Pipeline** (Current):
-  - Total Open: $180,000 across 10 opportunities
-  - By Stage: Negotiation $32K, Proposal $33K, Qualified $58K, Discovery $49K, New $8K
-  - Weighted: ~$70,000
-
-  **Key Deltas**:
-  | Metric | Q4 2025 | Q1 2026 | Change |
-  |--------|---------|---------|--------|
-  | Deals Closed Won | $28,000 | TBD | - |
-  | Deals At Risk | ~$55K (Green) | ~$45K (Delta, Acme, Eastern) | Similar risk level |
-  | Pipeline Value | ~$150K | $180K | +$30K (+20%) |
-  | At-Risk Accounts | 1 (churned) | 2 (Delta, Beta) | Higher risk count |
-
-  **Trend Analysis**: Pipeline has grown 20% but at-risk accounts have increased. Without intervention, Delta Health ($37K including expansion) could follow Green Energy's churn pattern. Beta Tech's new rollout ($32K) is the strongest near-term opportunity.
-
-# Level 3 - RAG depth 8: timeline analysis
-"How has Delta's engagement changed over time?": |
-  Delta Health Engagement Timeline Analysis:
-
-  **High Engagement Period (2023-Early 2025)**:
-  - September 2023: Account created, initial setup
-  - Regular usage review calls and training sessions
-  - Strong adoption at main clinic location
-
-  **Engagement Peak (July-September 2025)**:
-  - July 20, 2025: Usage review call with Erin Cho - reviewed pain points
-  - August 5, 2025: Training resources sent to Mike Rivera
-  - August 25, 2025: Renewal discussion completed (marked completed)
-  - September 15, 2025: Quarterly review with Erin - discussed expansion
-
-  **Engagement Decline (October 2025 - Present)**:
-  - October 20, 2025: Quick support call with Priya (last substantive contact)
-  - November 20, 2025: Internal note flagged renewal AT RISK
-  - November 22, 2025: Expansion opportunity context noted
-  - December 2025 - January 2026: No recorded engagement (4 months)
-
-  **Warning Signs Timeline**:
-  1. Low usage emerged in 3 of 5 clinics (unspecified date)
-  2. Mike Rivera opened support tickets about audit logging
-  3. Erin Cho mentioned competitor demo (noted November 2025)
-  4. Last meeting 4+ months ago
-
-  **Pattern Match**: This mirrors Green Energy's decline - engagement dropped before budget discussions, followed by competitor evaluation. Urgent re-engagement needed.
-
-# Level 3 - RAG depth 9: relationship mapping
-"Who influences the buying decision at Delta?": |
-  Delta Health Decision Influence Map:
-
-  **Primary Decision Maker - Erin Cho** (Clinic Director):
-  - Role: Champions expansion, advocates internally
-  - Authority: Needs board approval for major decisions
-  - Current Status: Agreed to advocate for grandfathered pricing
-  - Risk Factor: Has scheduled a competitor demo
-  - Influence Level: HIGH - drives internal consensus
-
-  **Technical Influencer - Mike Rivera** (IT Coordinator):
-  - Role: HIPAA compliance gatekeeper
-  - Authority: Can block or delay deals on compliance grounds
-  - Current Status: Has open tickets about audit logging gaps
-  - Risk Factor: Unresolved technical issues affect his confidence
-  - Influence Level: MEDIUM - can veto on compliance
-
-  **User Advocate - Priya Sharma** (Office Manager):
-  - Role: Daily user, represents frontline feedback
-  - Authority: Influences adoption success
-  - Current Status: Good source for workflow improvement ideas
-  - Risk Factor: Low usage in her clinic?
-  - Influence Level: LOW direct, but affects adoption metrics
-
-  **Board/Executive** (Not named):
-  - Role: Final budget approval
-  - Authority: Approves expansion investments
-  - Current Status: Haven't engaged directly
-  - Risk Factor: May be evaluating competitor based on Erin's demo
-  - Influence Level: HIGHEST for major decisions
-
-  **Recommendation**: Engage Erin urgently to understand competitor demo timing. Address Mike's compliance concerns immediately. Consider executive outreach to board level.
-
-# Level 3 - RAG depth 6: history lookup
-"What commitments did we make last QBR?": |
-  Delta Health QBR Commitments (September 15, 2025):
-
-  Based on the quarterly review meeting with Erin Cho:
-
-  **Discussion Topics**:
-  - Reviewed clinic usage and pain points
-  - Discussed expansion to additional clinics
-
-  **Commitments Made** (implied from history and follow-ups):
-  1. Grandfathered pricing: Erin agreed to champion internally in exchange for maintaining current rate for 1 more year
-  2. Expansion proposal: Need to present proposal for 3 additional clinic locations
-  3. HIPAA compliance: Engineering working on enhanced audit logging (ETA 2 weeks noted November 25)
-
-  **Follow-Up Activity Scheduled**:
-  - Expansion discussion meeting with Erin Cho on January 21, 2026
-  - Support ticket follow-up with Mike Rivera on January 14, 2026
-
-  **Status Check**:
-  - Grandfathered pricing: Promised but renewal at risk
-  - Expansion proposal: Not yet presented (scheduled January 21)
-  - HIPAA compliance: Engineering still working on it
-
-  **Gap Identified**: 4 months since QBR with no substantive check-in. Commitments may appear unfulfilled from customer perspective.
-
-# Level 3 - RAG depth 8: pattern in history
-"What were the warning signs we missed?": |
-  Warning Signs Analysis - Delta Health (and Green Energy comparison):
-
-  **Warning Signs at Delta Health (Missed or Delayed Response)**:
-
-  1. **Low Usage Signal** (Date Unknown):
-   - Only 2 of 5 clinics actively using platform
-   - Mirror of Green Energy: low engagement before churn
-   - Action Missed: Should have triggered re-engagement campaign
-
-  2. **Support Ticket Pattern** (Mike Rivera):
-   - Open tickets about audit logging and reporting reliability
-   - Green Energy parallel: Tom Baker raised performance concerns August 2024
-   - Action Missed: Escalate unresolved tickets to prevent frustration
-
-  3. **Engagement Gap** (October 2025 - Present):
-   - Last meaningful meeting September 15, 2025
-   - 4+ month gap in substantive contact
-   - Green Energy parallel: Infrequent check-ins cited as churn factor
-
-  4. **Competitor Evaluation** (November 2025):
-   - Erin mentioned competitor demo scheduled
-   - Green Energy parallel: Linda lost executive support to competitor
-   - Action Missed: Urgent competitive response needed
-
-  5. **Renewal Overdue** (September 1, 2025):
-   - Expected close passed 4+ months ago
-   - Deal still in Qualified stage
-   - Action Missed: Should have escalated when close date passed
-
-  **Green Energy Post-Mortem Lesson**: "Needed more frequent check-ins and clearer value demonstration." Apply this NOW to Delta Health.
-
-# Level 3 - RAG depth 9: multi-contact analysis
-"What did Carlos and Linda tell us before they left?": |
-  Green Energy Contact Feedback Analysis (Before Churn):
-
-  **Carlos Mendez** (Director of Operations, Decision Maker):
-
-  - April 15, 2025 Renewal Discussion: "Carlos expressed budget constraints" - the company was restructuring following solar division losses. This was the first explicit warning.
-
-  - May 20, 2025 Cancellation Notice: "Customer notified intent to cancel at renewal" - Carlos sent the formal notice via email.
-
-  - Post-Churn Feedback (from opportunity notes): "Carlos Mendez cited lack of clear ROI demonstration and infrequent account engagement" as reasons for not renewing.
-
-  - Win-back Interest: "Carlos expressed interest in returning after Q4 budget cycle" - there's potential to re-engage in 2026.
-
-  **Linda Park** (Project Manager, Champion):
-
-  - March 2023: Made feature request for custom reporting - engagement was strong
-
-  - May 2025: "Linda Park was championing internally but lost executive support" - when the solar division expansion collapsed, her internal capital was depleted
-
-  - Expansion Collapse Note: "This deal collapse was early indicator of churn risk that we missed" - Linda's loss of support should have triggered escalation
-
-  **Key Takeaways**:
-  1. Carlos needed ROI data we didn't provide proactively
-  2. Linda was fighting internally but we didn't support her with ammunition
-  3. Budget constraints were real but earlier value demonstration might have preserved the account
-  4. Both contacts were saveable with different engagement approach
-
-# Level 3 - RAG depth 10: cross-account churn patterns
-"What can we learn to prevent future churn?": |
-  Cross-Account Churn Prevention Analysis:
-
-  **Green Energy Churn Factors** (Confirmed):
-  1. Budget cuts from restructuring
-  2. Lack of ROI demonstration
-  3. Infrequent engagement
-  4. Champion lost executive support
-  5. Early warning (expansion collapse) missed
-
-  **Delta Health Risk Factors** (Current):
-  1. Low usage in 3 of 5 clinics (adoption gap)
-  2. Competitor demo scheduled (active evaluation)
-  3. Open support tickets unresolved (product friction)
-  4. 4+ months since last meaningful contact
-  5. Renewal past expected close date
-
-  **Pattern Match Score**: 4 of 5 factors align. Delta Health is following Green Energy's path.
-
-  **Beta Tech Risk Factors** (Watch):
-  1. At-risk-low-activity flag despite strong deal
-  2. Engagement gaps between milestones
-  3. No immediate budget threat but adoption untested
-
-  **Prevention Playbook**:
-
-  | Risk Factor | Prevention Action | Apply To |
-  |-------------|-------------------|----------|
-  | Low Usage | Usage review + re-engagement campaign | Delta Health |
-  | No ROI Data | Proactive value reporting, QBRs | All accounts |
-  | Infrequent Contact | Monthly check-in minimum | Delta, Beta |
-  | Support Issues | Escalate unresolved tickets < 1 week | Delta, Beta |
-  | Champion Risk | Engage multiple stakeholders | Delta, Eastern |
-  | Competitor Threat | Urgent competitive response | Delta |
-  | Expansion Collapse | Treat as churn early warning | Future accounts |
-
-  **Immediate Actions**: Schedule Delta Health QBR this week, resolve Mike's tickets, prepare competitive differentiation materials.
-
-# Level 3 - RAG depth 8: multi-account timeline analysis
-"What's the engagement trend across my renewals?": |
-  Renewal Account Engagement Trends:
-
-  **Delta Health Clinics** (Renewal: Feb 1, 2026 - $22,000):
-  - Last Activity: October 20, 2025 (support call)
-  - Last Meeting: September 15, 2025 (QBR)
-  - Trend: DECLINING - 4 month gap, competitor demo scheduled
-  - Days Since Last Engagement: 80+
-
-  **Beta Tech Solutions** (Renewal: Feb 15, 2026):
-  - Last Activity: November 8, 2025 (negotiation note)
-  - Last Meeting: November 5, 2025 (executive presentation)
-  - Trend: ACTIVE during deal, but at-risk-low-activity flag
-  - Days Since Last Engagement: 60+
-
-  **Crown Foods** (Renewal: Jan 31, 2026 - $18,000):
-  - Last Activity: November 15, 2025 (renewal confirmed)
-  - Last Meeting: November 1, 2025 (user feedback call)
-  - Trend: STRONG - confirmed 2-year commitment
-  - Days Since Last Engagement: 55
-
-  **Harbor Logistics** (Renewal: Mar 15, 2026):
-  - Last Activity: November 10, 2025 (opportunity update)
-  - Next Activity: January 25, 2026 (implementation kickoff)
-  - Trend: STABLE - new customer, implementation phase
-  - Days Since Last Engagement: 60
-
-  **Acme Manufacturing** (Renewal: Mar 31, 2026 - $24,000):
-  - Last Activity: November 15, 2025 (deal blocker note)
-  - Next Meeting: January 20, 2026 (executive intro)
-  - Trend: MODERATE - healthy account but upgrade stalled
-  - Days Since Last Engagement: 55
-
-  **Priority Order**: Delta Health (urgent), Beta Tech (close deal), others on track.
-
-# Level 3 - RAG depth 7: engagement gap detection
-"Which accounts need immediate outreach?": |
-  Accounts Requiring Immediate Outreach (Ranked by Urgency):
-
-  **1. Delta Health Clinics** - CRITICAL
-  - Days Since Engagement: 80+ (last meeting September 15)
-  - Renewal Date: February 1, 2026 (3 weeks away)
-  - Risk Factors: Competitor demo, low usage, open tickets
-  - Recommended Action: Schedule QBR THIS WEEK before competitor demo
-  - Contact: Erin Cho (primary), Mike Rivera (resolve tickets)
-
-  **2. Eastern Travel** - HIGH
-  - Days Since Engagement: 330+ (last check-in February 1, 2025)
-  - Status: Trial stalled for 11 months
-  - Risk Factors: Decision timeline keeps slipping, champion lacks authority
-  - Recommended Action: Escalate to Ravi Kumar for budget decision
-  - Contact: Ravi Kumar (CTO-level authority)
-
-  **3. Beta Tech Solutions** - MODERATE
-  - Days Since Engagement: 60+
-  - Renewal Date: February 15, 2026
-  - Risk Factors: At-risk-low-activity flag
-  - Recommended Action: QBR scheduled January 18 - prepare thoroughly
-  - Contact: Lisa Ng (champion), Omar Haddad (CEO demo January 22)
-
-  **4. Green Energy Partners** - WIN-BACK
-  - Status: Former customer (churned June 2025)
-  - Next Outreach: Win-back call scheduled March 1, 2026
-  - Opportunity: Carlos expressed interest in returning after budget cycle
-  - Contact: Carlos Mendez
-
-  **This Week's Outreach Priority**:
-  1. Delta Health - urgent QBR
-  2. Eastern Travel - escalation call to Ravi
-  3. Beta Tech - prep for January 18 QBR
-
-# Level 3 - RAG depth 9: multi-opp expansion drivers
-"What's driving expansion interest across accounts?": |
-  Expansion Drivers Analysis Across Accounts:
-
-  **Fusion Retail - Seats Expansion ($12,000)**
-  - Driver: Business growth - 25 new store openings planned
-  - Champion: Emma Khan (Head of CX) driving adoption
-  - Context: Just renewed $28K, expanding from 25 seats to more
-  - Success Factor: Strong initial adoption, champion advocacy
-  - Pattern: Growth-driven, no risk factors
-
-  **Delta Health - Additional Clinics ($15,000)**
-  - Driver: Organizational expansion - 3 new clinic locations in Q1 2026
-  - Champion: Erin Cho (Clinic Director)
-  - Context: New clinics have different needs (patient scheduling vs analytics)
-  - Risk Factor: Expansion depends on securing renewal first
-  - Pattern: Expansion blocked by core relationship risk
-
-  **Acme Manufacturing - Pro to Enterprise Upgrade ($15,000)**
-  - Driver: Capability needs - automating follow-ups and reminders
-  - Champion: Anna Lopez (Operations Manager) - but needs CFO approval
-  - Context: Already have 50k+ records imported, outgrowing Pro plan
-  - Risk Factor: Price sensitivity, ROI justification required
-  - Pattern: Feature-driven upgrade, executive approval needed
-
-  **Beta Tech - Analytics Add-on ($8,000)**
-  - Driver: Technical interest - analytics module capabilities
-  - Champion: Sam Clarke (Sales Ops)
-  - Context: Can be bundled with main rollout contract
-  - Risk Factor: Depends on main $32K deal closing first
-  - Pattern: Land-and-expand, piggyback on larger deal
-
-  **Common Expansion Drivers**:
-  1. Business growth (Fusion, Delta) - new locations/stores
-  2. Feature needs (Acme, Beta) - outgrowing current capabilities
-  3. Champion advocacy (all) - internal sponsor required
-  4. Successful initial deployment (Fusion proof point)
+"Show expansion deals": |
+  Expansion deals include Delta Health clinics.
 
 # =============================================================================
-# MANAGER BRANCH (13 questions: 5 RAG / 8 SQL)
+# MANAGER BRANCH (all owners)
 # =============================================================================
 
-# Starter - SQL depth 6: multi-metric aggregation
-"How's the team performing with win rates?": |
-  Team Performance Summary with Win Rates:
+"Show team pipeline": |
+  Team pipeline includes deals across all owners.
 
-  **Pipeline by Rep**:
-  | Rep | Open Pipeline | Deals | Avg Deal Size |
-  |-----|---------------|-------|---------------|
-  | jsmith | $69,000 | 4 | $17,250 |
-  | ljones | $40,000 | 2 | $20,000 |
-  | mmalik | $34,000 | 2 | $17,000 |
-  | amartin | $37,000 | 2 | $18,500 |
-  | **Total** | **$180,000** | **10** | **$18,000** |
+"Show all open deals": |
+  Open deals span multiple accounts and stages.
 
-  **Recent Win/Loss**:
-  - Closed Won: Fusion Retail $28,000 (jsmith, September 2025)
-  - Closed Lost: Green Energy $55,000 (ljones/amartin, June 2025)
-  - Win Rate: 1 win / 2 outcomes = 50% (limited recent data)
+"Show pipeline by owner": |
+  Pipeline is distributed across team members.
 
-  **Stage Distribution**:
-  - Negotiation: 1 deal ($32K) - 80% probability
-  - Proposal: 2 deals ($33K) - 50% probability
-  - Qualified: 4 deals ($58K) - 30% probability
-  - Discovery: 3 deals ($49K) - 20% probability
-  - New: 1 deal ($8K) - 10% probability
+"Show recent activities": |
+  Recent activities include calls, meetings, and emails.
 
-  **At-Risk Accounts**: 2 (Delta Health, Beta Tech)
+"Show deals in Negotiation": |
+  Deals in Negotiation include Beta Tech.
 
-  **Team Health**: Pipeline is strong at $180K but at-risk accounts need immediate attention to prevent repeat of Green Energy churn.
+"Show closed deals": |
+  Closed deals include won and lost opportunities.
 
-# Level 2 - SQL depth 8: 3-table JOIN (contacts → opps → activities)
-"Show me decision makers with open deals and overdue tasks": |
-  Decision Makers with Open Deals and Activity Status:
+"Show Beta Tech deals": |
+  Beta Tech has a deal in Negotiation.
 
-  | Contact | Company | Role | Open Deal | Value | Stage | Last Activity | Next Due |
-  |---------|---------|------|-----------|-------|-------|---------------|----------|
-  | Anna Lopez | Acme Mfg | Decision Maker | Upgrade | $15,000 | Proposal | Oct 20, 2025 | Jan 15, 2026 |
-  | Joe Smith | Acme Mfg | Technical | Renewal | $24,000 | Qualified | Nov 1, 2025 | Mar 10, 2026 |
-  | Lisa Ng | Beta Tech | Champion | New Rollout | $32,000 | Negotiation | Nov 5, 2025 | Jan 18, 2026 |
-  | Maria Silva | Crown Foods | Decision Maker | Renewal | $18,000 | Proposal | Nov 15, 2025 | Jan 16, 2026 |
-  | Erin Cho | Delta Health | Decision Maker | Renewal | $22,000 | Qualified | Sep 15, 2025 | Jan 21, 2026 |
-  | Erin Cho | Delta Health | Decision Maker | Expansion | $15,000 | Discovery | Sep 15, 2025 | Jan 21, 2026 |
-  | Sanjay Patel | Eastern Travel | Decision Maker | Trial | $8,000 | New | Feb 1, 2025 | Feb 20, 2026 |
-  | Jacob Wu | Harbor Log | Decision Maker | New | $26,000 | Discovery | Jul 10, 2025 | Jan 25, 2026 |
+"Show biggest deals": |
+  Biggest deals include Beta Tech and Harbor Logistics.
 
-  **Overdue/Urgent** (No current overdue tasks, but attention needed):
-  - Erin Cho: Last contact 117 days ago, renewal due Feb 1 - CRITICAL GAP
-  - Sanjay Patel: Last contact 343 days ago - SEVERE GAP
+"Show Proposal stage deals": |
+  Proposal stage deals include Acme and Crown.
 
-  **Upcoming Priority Activities**:
-  - Jan 14: Delta Health support ticket (Mike Rivera)
-  - Jan 15: Acme follow-up call (Anna Lopez) - HIGH
-  - Jan 16: Crown Foods check-in (Maria Silva) - HIGH
+"Show lost deals": |
+  Lost deals include Green Energy opportunities.
 
-# Level 2 - SQL depth 7: multi-criteria filter + scoring
-"Which high-value accounts have multiple risk signals?": |
-  High-Value Accounts with Multiple Risk Signals:
+"Show won deals": |
+  Won deals include Fusion Retail renewal.
 
-  **Delta Health Clinics** - RISK SCORE: 5/5
-  - Pipeline Value: $37,000 (renewal $22K + expansion $15K)
-  - Risk Signals:
-    1. Health flag: at-risk-renewal-soon
-    2. Low usage: 3 of 5 clinics underutilized
-    3. Competitor: Demo scheduled
-    4. Support: Open tickets unresolved
-    5. Engagement: 117+ days since last meeting
-  - Owner: amartin
-  - Action: URGENT QBR this week
-
-  **Beta Tech Solutions** - RISK SCORE: 3/5
-  - Pipeline Value: $40,000 (new rollout $32K + add-on $8K)
-  - Risk Signals:
-    1. Health flag: at-risk-low-activity
-    2. Engagement: Gaps between deal milestones
-    3. Renewal: Coming Feb 15, no renewal opp created
-  - Mitigating: Deal in Negotiation, CEO signed off
-  - Owner: ljones
-  - Action: Close new deal, QBR January 18
-
-  **Eastern Travel Co.** - RISK SCORE: 3/5
-  - Pipeline Value: $8,000 (trial conversion)
-  - Risk Signals:
-    1. Stalled: Trial extended twice, 11 months old
-    2. Authority: Champion lacks budget authority
-    3. Engagement: 343 days since last contact
-  - Owner: mmalik
-  - Action: Escalate to Ravi Kumar
-
-  **Acme Manufacturing** - RISK SCORE: 2/5
-  - Pipeline Value: $39,000 (upgrade $15K + renewal $24K)
-  - Risk Signals:
-    1. Stalled deal: Upgrade blocked on pricing
-    2. Executive: CFO skeptical, needs ROI
-  - Mitigating: Account health is "healthy"
-  - Owner: jsmith
-  - Action: Prepare ROI analysis, exec meeting Jan 20
-
-# Level 2 - SQL depth 7: comparison + trend calculation
-"What's our forecast accuracy trend?": |
-  Forecast Accuracy Trend Analysis:
-
-  **Recent Forecast Outcomes**:
-
-  | Deal | Forecast | Actual | Accuracy |
-  |------|----------|--------|----------|
-  | Fusion Retail Renewal | $28,000 Win | $28,000 Won | 100% - On Time |
-  | Green Energy Renewal | $20,000 At-Risk | $20,000 Lost | Predicted but not saved |
-  | Green Energy Expansion | $35,000 Probable | $35,000 Lost | Missed - not flagged at-risk |
-
-  **Current Forecast Risks**:
-
-  | Deal | Current Forecast | Risk Factors | Adjusted Probability |
-  |------|------------------|--------------|---------------------|
-  | Beta Tech New | $32,000 @ 80% | at-risk-low-activity flag | 70% |
-  | Delta Health Renewal | $22,000 @ 30% | At-risk, competitor demo | 15% |
-  | Acme Upgrade | $15,000 @ 50% | Stalled 50 days on pricing | 30% |
-  | Eastern Travel | $8,000 @ 10% | Stalled 11 months | 5% |
-
-  **Accuracy Trend Observations**:
-  1. Healthy accounts (Fusion) forecast accurately
-  2. At-risk accounts need earlier identification (Green Energy was too late)
-  3. Current at-risk indicators may be too optimistic for Delta Health
-
-  **Recommendation**: Apply more conservative probabilities to flagged accounts. Delta Health should be forecast at 15% not 30%.
-
-# Level 3 - SQL depth 8: LEFT JOIN gap detection
-"Which contacts have no recent activity?": |
-  Contacts with No Recent Activity (Gap Analysis):
-
-  | Contact | Company | Role | Days Since Activity | Last Activity Type | Deal Impact |
-  |---------|---------|------|--------------------|--------------------|-------------|
-  | Sanjay Patel | Eastern Travel | Decision Maker | 343 | Trial check-in | $8K trial stalled |
-  | Erin Cho | Delta Health | Decision Maker | 117 | QBR meeting | $37K at risk |
-  | Ravi Kumar | Eastern Travel | Champion | 362 | Onboarding call | No escalation path |
-  | Anita Desai | Eastern Travel | User | 352 | Marketing email | Low engagement |
-  | Priya Sharma | Delta Health | User | 82 | Support call | Usage unknown |
-  | Mike Rivera | Delta Health | Technical | 158 | Training email | Tickets open |
-
-  **Critical Gaps** (90+ days, Decision Makers):
-  1. Sanjay Patel (343 days) - Eastern Travel trial owner
-  2. Erin Cho (117 days) - Delta Health renewal decision maker
-
-  **Engagement Recommendations**:
-  - Eastern Travel: Schedule call with Sanjay AND Ravi together
-  - Delta Health: Urgent outreach to Erin, resolve Mike's tickets
-
-  **Accounts with Healthy Engagement** (< 60 days):
-  - Acme Manufacturing: Anna, Joe, Beth all have recent activity
-  - Beta Tech: Lisa, Omar, Sam engaged in November
-  - Crown Foods: Maria, Alex, Nina all recent
-  - Fusion Retail: Emma, Lars, Ines all recent
-
-# Level 3 - RAG depth 8: multi-opp negotiation blockers
-"What's slowing down the negotiation deals?": |
-  Negotiation Stage Blockers Analysis:
-
-  **Beta Tech New Rollout** ($32,000 - Only deal in Negotiation):
-
-  Current blockers from opportunity notes (November 8, 2025):
-  "Deal in final negotiation. Lisa confirmed budget is approved. Key concerns: (1) Data migration timeline - want it done before Q2, (2) Training for 50 users needed within first month. Omar Haddad (CEO) signed off but wants weekly progress reports during rollout."
-
-  **Specific Blockers**:
-  1. **Data Migration Timeline**: Customer wants migration completed before Q2. Need to confirm capacity and provide timeline.
-
-  2. **Training Requirements**: 50 users need training within first month of go-live. Need to plan training resources and schedule.
-
-  3. **CEO Reporting**: Omar Haddad wants weekly progress reports. Need to establish reporting cadence and format.
-
-  **What's NOT a Blocker**:
-  - Budget: Approved
-  - Executive sign-off: CEO signed off
-  - Champion: Lisa Ng actively pushing
-
-  **Near-Negotiation Deals** (Proposal stage, could advance):
-
-  - **Acme Upgrade** ($15K): Blocked on CFO wanting ROI justification. Not ready for Negotiation until Beth Turner approves.
-
-  - **Crown Foods Renewal** ($18K): Customer confirmed commitment. Could move to Negotiation if we send final terms.
-
-  **Action for Beta Tech**: Address migration timeline and training plan in the QBR (January 18) and executive demo (January 22).
-
-# Level 3 - SQL depth 6: conditional count ratio
-"Which rep has the best close rate?": |
-  Rep Close Rate Analysis:
-
-  **Recent Closed Deals** (Last 6 months):
-
-  | Rep | Closed Won | Closed Lost | Close Rate |
-  |-----|------------|-------------|------------|
-  | jsmith | $28,000 (Fusion) | $0 | 100% |
-  | ljones | $0 | $55,000 (Green Energy) | 0% |
-  | amartin | $0 | $0 (shared Green loss) | N/A |
-  | mmalik | $0 | $0 | N/A |
-
-  **By Close Rate**: jsmith leads with 100% (1 win, 0 losses)
-
-  **Caveats**:
-  - Limited data: Only 2 outcomes in recent period
-  - Green Energy: Shared responsibility between ljones (original owner) and amartin (later owner)
-  - Pipeline quality matters: jsmith has healthy accounts, others have at-risk
-
-  **Current Pipeline Quality by Rep**:
-  | Rep | At-Risk Value | Healthy Value | Risk Ratio |
-  |-----|---------------|---------------|------------|
-  | jsmith | $15K (Acme upgrade) | $54K | 22% at risk |
-  | ljones | $40K (Beta Tech flag) | $0 | 100% flagged |
-  | amartin | $37K (Delta Health) | $0 | 100% at risk |
-  | mmalik | $8K (Eastern stalled) | $26K | 24% at risk |
-
-  **Recommendation**: jsmith has best close rate AND best pipeline health. amartin needs support with Delta Health. ljones needs to close Beta Tech to recover from Green Energy loss.
-
-# Level 3 - RAG depth 10: complete multi-entity
-"What's the full picture at Beta Tech?": |
-  Beta Tech Solutions - Complete Multi-Entity View:
-
-  **Company Profile**:
-  - Name: Beta Tech Solutions
-  - Industry: Software (B2B SaaS)
-  - Segment: SMB
-  - Region: Europe (UK)
-  - Plan: Standard
-  - Status: Active
-  - Health: at-risk-low-activity
-  - Owner: ljones
-  - Renewal: February 15, 2026
-  - Description: "B2B SaaS company in UK. CEO Omar is metrics-driven and needs data for every decision. Lisa Ng is our internal champion pushing for expansion to marketing team. Low activity flag due to recent team changes."
-
-  **Open Opportunities**:
-  1. New Rollout: $32,000, Negotiation stage, closes Feb 15, 2026
-     - Budget approved, CEO signed off
-     - Next step: Finalize contract terms with Lisa Ng
-     - Blockers: Data migration timeline, training for 50 users
-
-  2. Analytics Add-on: $8,000, Discovery stage, closes Mar 15, 2026
-     - Depends on main rollout success
-     - Sam Clarke evaluating requirements
-
-  **Key Contacts**:
-  - Lisa Ng (Head of Sales, Champion): Met at SaaS conference 2024. Pushing for marketing team expansion. Very responsive.
-  - Omar Haddad (CEO, Executive): Metrics-driven, needs data for decisions. Prefers dashboard demos. Signed off on deal.
-  - Sam Clarke (Sales Ops, Technical): Driving security review for SOC2 and pen test documentation.
-
-  **Recent History**:
-  - Nov 8: Deal in final negotiation, budget approved
-  - Nov 5: Executive presentation with ROI analysis
-  - Oct 15: Technical review with Sam Clarke
-  - Oct 1: Budget follow-up with Omar
-  - Sep 1: Scoping call with Lisa
-
-  **Upcoming Activities**:
-  - Jan 18: QBR with Lisa Ng
-  - Jan 22: Executive demo for Omar (HIGH PRIORITY - final sign-off)
-  - Jan 25: Security questionnaire due from Sam (HIGH PRIORITY)
-
-  **Risk Assessment**: Despite at-risk-low-activity flag, the deal is progressing well. Flag likely due to gaps between major milestones. Close the $32K deal to demonstrate value and address renewal.
-
-# Level 3 - RAG depth 8: competitive intel
-"What competitors threaten our biggest deals?": |
-  Competitive Threat Analysis:
-
-  **Delta Health Clinics** ($37K pipeline) - ACTIVE COMPETITOR THREAT:
-  - Intelligence: "Erin Cho mentioned competitor demo scheduled for next week" (November 2025 note)
-  - Context: At-risk-renewal-soon flag, low usage in 3 clinics
-  - Competitor likely targeting: Patient scheduling (new clinic focus), reporting reliability (open tickets)
-  - Our weakness: Low engagement, unresolved support issues
-  - Action: Urgent QBR before competitor demo, resolve tickets immediately
-
-  **Green Energy** ($55K lost) - LOST TO COMPETITOR/BUDGET:
-  - Intelligence: "Linda Park was championing internally but lost executive support" to competitor evaluation
-  - Lesson: When champion loses support, competitor gains advantage
-  - Pattern to watch: Similar dynamic possible at Delta Health with Erin
-
-  **Other Deals - No Active Competitive Intelligence**:
-
-  - Beta Tech ($40K): No competitor mentioned. Deal in Negotiation with CEO sign-off. Low risk.
-
-  - Acme Manufacturing ($39K): No competitor mentioned. CFO price sensitivity, but evaluating upgrade not alternatives.
-
-  - Crown Foods ($18K): No competitor mentioned. Confirmed 2-year commitment. Healthy.
-
-  - Eastern Travel ($8K): No competitor mentioned. Internal IT delays, not competitive loss risk.
-
-  - Harbor Logistics ($26K): No competitor mentioned. New customer in implementation.
-
-  **Competitive Defense Priority**:
-  1. Delta Health - URGENT competitive response needed
-  2. Monitor Acme for competitive entry if upgrade stalls too long
-
-# Level 3 - RAG depth 9: semantic search
-"Which deals mention budget as a blocker?": |
-  Deals with Budget-Related Blockers (Semantic Search Results):
-
-  **1. Acme Manufacturing Upgrade** ($15,000):
-  - Quote: "Anna raised concern about 20% increase vs. last year"
-  - Quote: "CFO Beth Turner wants to see clearer ROI justification before approving the $15k upgrade"
-  - Budget Issue: Price increase requires additional justification
-  - Decision Maker: Beth Turner (CFO) - "final budget approval authority"
-  - Status: Stalled in Proposal stage
-
-  **2. Delta Health Expansion** ($15,000):
-  - Quote: "Key risk: budget approval from corporate"
-  - Quote: "Erin Cho champions expansion but needs board approval"
-  - Budget Issue: Corporate/board approval required for expansion investment
-  - Decision Maker: Board (unnamed)
-  - Status: Blocked by renewal risk
-
-  **3. Eastern Travel Trial** ($8,000):
-  - Quote: "Sanjay Patel the Owner is the champion but lacks final budget authority"
-  - Quote: "Need to escalate to Ravi Kumar for final budget approval"
-  - Budget Issue: Champion doesn't control budget
-  - Decision Maker: Ravi Kumar (CTO-level authority)
-  - Status: Stalled 11 months
-
-  **4. Green Energy (Churned)** ($55,000):
-  - Quote: "Customer did not renew due to budget cuts following restructuring"
-  - Quote: "Carlos Mendez cited lack of clear ROI demonstration"
-  - Budget Issue: Budget cuts made renewal impossible
-  - Lesson: Earlier ROI demonstration might have preserved account
-
-  **Pattern**: 4 deals totaling $85,000 have budget-related blockers. Common thread: Need ROI justification or executive budget authority engagement.
-
-# Level 3 - SQL depth 7: lost deals + pattern analysis
-"What deals did we lose and what patterns emerge?": |
-  Lost Deal Analysis with Pattern Detection:
-
-  **Green Energy - Renewal** (Closed Lost: June 15, 2025):
-  - Value: $20,000
-  - Stage at Loss: Closed Lost from Qualified
-  - Time in Pipeline: ~3 months
-  - Owner: ljones → amartin
-  - Primary Contact: Carlos Mendez (Director of Ops)
-  - Loss Reason: Budget cuts following restructuring
-
-  **Green Energy - Solar Division Expansion** (Closed Lost: May 10, 2025):
-  - Value: $35,000
-  - Stage at Loss: Closed Lost from Discovery
-  - Time in Pipeline: ~6 months
-  - Owner: ljones
-  - Primary Contact: Linda Park (Project Manager)
-  - Loss Reason: Cancelled when main account signaled churn intent
-  - Note: "This deal collapse was early indicator of churn risk that we missed"
-
-  **Patterns Identified**:
-
-  | Pattern | Green Energy | Current At-Risk Deals |
-  |---------|--------------|----------------------|
-  | Low engagement before loss | Yes (infrequent check-ins) | Delta Health (117 days gap) |
-  | Champion lost support | Yes (Linda) | Delta (Erin evaluating competitor) |
-  | Support issues unresolved | Yes (Tom's escalation) | Delta (Mike's tickets) |
-  | ROI not demonstrated | Yes (Carlos cited this) | Acme (Beth needs ROI) |
-  | Budget authority unclear | Partial | Eastern Travel (Sanjay lacks authority) |
-  | Expansion collapsed first | Yes (early warning) | Watch Delta expansion |
-
-  **Total Lost**: $55,000 (Green Energy)
-  **Currently At Similar Risk**: $45,000+ (Delta $37K, Eastern $8K)
-
-# Level 3 - RAG depth 9: multi-opp loss pattern analysis
-"What's common across our lost deals?": |
-  Lost Deal Common Pattern Analysis:
-
-  **Green Energy Loss Post-Mortem** (July 1, 2025):
-  "Customer churned due to budget cuts and perceived lack of ROI. Key learnings: needed more frequent check-ins and clearer value demonstration."
-
-  **Common Factors in Green Energy Losses**:
-
-  1. **Engagement Frequency**:
-  - Pattern: Infrequent check-ins allowed relationship to deteriorate
-  - Evidence: Carlos cited "infrequent account engagement" as factor
-  - Current Risk: Delta Health (117 days), Eastern Travel (343 days)
-
-  2. **Value/ROI Gap**:
-  - Pattern: No proactive ROI demonstration or usage reporting
-  - Evidence: Carlos cited "lack of clear ROI demonstration"
-  - Current Risk: Acme upgrade (CFO wants ROI), Delta (value unclear to 3 clinics)
-
-  3. **Single Champion Dependency**:
-  - Pattern: Relied on Linda Park without executive relationships
-  - Evidence: When Linda lost support, no backup relationships
-  - Current Risk: Eastern (Sanjay has no authority), Delta (only Erin engaged)
-
-  4. **Support Issues Unaddressed**:
-  - Pattern: Tom Baker's performance concerns in August 2024 not escalated
-  - Evidence: 10 months before churn, issues were surfacing
-  - Current Risk: Delta (Mike's audit logging tickets), Beta (security questionnaire pending)
-
-  5. **Missed Early Warning**:
-  - Pattern: Expansion deal collapse (May 2025) was churn indicator
-  - Evidence: Note says "early indicator of churn risk that we missed"
-  - Current Risk: If Delta expansion stalls, treat as churn signal
-
-  **Prevention Checklist**:
-  - Monthly check-ins minimum
-  - Quarterly usage/ROI reports
-  - Multiple stakeholder relationships
-  - Escalate support issues within 1 week
-  - Treat expansion collapse as churn early warning
-
-# Level 3 - SQL depth 7: QoQ comparison
-"How does this quarter compare to last?": |
-  Quarter-over-Quarter Comparison:
-
-  **Q4 2025 Results**:
-  | Metric | Value |
-  |--------|-------|
-  | Closed Won | $28,000 (Fusion Retail) |
-  | Closed Lost | $55,000 (Green Energy) |
-  | Net Closed | -$27,000 |
-  | Pipeline End | ~$150,000 |
-
-  **Q1 2026 Current State**:
-  | Metric | Value |
-  |--------|-------|
-  | Open Pipeline | $180,000 |
-  | Weighted Forecast | ~$70,000 |
-  | At-Risk Value | ~$45,000 |
-  | Deals in Negotiation | $32,000 |
-
-  **Comparison**:
-  | Metric | Q4 2025 | Q1 2026 | Delta |
-  |--------|---------|---------|-------|
-  | Pipeline Value | $150K | $180K | +$30K (+20%) |
-  | Closed Won | $28K | TBD | - |
-  | At-Risk Accounts | 1 (churned) | 2 | +1 |
-  | Deals in Negotiation | 0 | 1 ($32K) | +$32K |
-  | Average Deal Size | - | $18K | - |
-
-  **Key Differences**:
-  1. Pipeline has grown 20% ($150K → $180K)
-  2. Now have a deal in Negotiation (Beta Tech $32K) - none in Q4
-  3. But at-risk accounts increased (Delta, Beta flags)
-  4. Acme upgrade stalled similar to Green Energy pattern
-
-  **Q1 2026 Forecast**:
-  - Best Case: $60K+ (Beta Tech + Crown Foods + partial others)
-  - Base Case: $50K (Beta Tech + Crown Foods)
-  - Risk Case: $32K (only Beta Tech if Delta churns)
+"Show recently closed deals": |
+  Recently closed deals include 2025 closes.

@@ -1,62 +1,62 @@
 {
-  "How's my pipeline by stage and health?": [
-    "Which deals need attention?",
-    "What should I know before my Acme call?",
-    "What's my forecast confidence by stage?"
+  "Show my open deals": [
+    "Show deals by stage",
+    "Show my Acme deals",
+    "Show deals by value"
   ],
-  "Which deals need attention?": [
-    "What's blocking the Acme upgrade?",
-    "How should I approach Anna about the pricing concerns?",
-    "What's the pattern across my stalled deals?"
+  "Show deals by stage": [
+    "Show deals in Proposal stage",
+    "Show deals in Qualified stage",
+    "Show deals in Negotiation stage"
   ],
-  "What should I know before my Acme call?": [
-    "What motivates Beth the CFO?",
-    "How does Acme compare to our other enterprise deals?",
-    "What's in the proposal we sent?"
+  "Show my Acme deals": [
+    "Show Acme contacts",
+    "Show Acme deal values",
+    "Show Acme activities"
   ],
-  "What's my forecast confidence by stage?": [
-    "How long has each deal been in current stage?",
-    "What's driving the biggest pipeline changes?",
-    "Which deals have the highest velocity?"
+  "Show deals by value": [
+    "Show deals over 20000",
+    "Show deals under 20000",
+    "Show total pipeline value"
   ],
-  "Which renewals are at risk and why?": [
-    "Tell me about Delta Health's situation",
-    "Why did Green Energy churn?",
-    "How does my Q1 pipeline compare to Q4?"
+  "Show my at-risk renewals": [
+    "Show Delta Health deals",
+    "Show Green Energy deals",
+    "Show renewal values"
   ],
-  "Tell me about Delta Health's situation": [
-    "How has Delta's engagement changed over time?",
-    "Who influences the buying decision at Delta?",
-    "What commitments did we make last QBR?"
+  "Show Delta Health deals": [
+    "Show Delta Health contacts",
+    "Show Delta Health activities",
+    "Show Delta Health deal stages"
   ],
-  "Why did Green Energy churn?": [
-    "What were the warning signs we missed?",
-    "What did Carlos and Linda tell us before they left?",
-    "What can we learn to prevent future churn?"
+  "Show Green Energy deals": [
+    "Show Green Energy contacts",
+    "Show Green Energy activities",
+    "Show Green Energy status"
   ],
-  "How does my Q1 pipeline compare to Q4?": [
-    "What's the engagement trend across my renewals?",
-    "Which accounts need immediate outreach?",
-    "What's driving expansion interest across accounts?"
+  "Show renewal values": [
+    "Show upcoming renewals",
+    "Show at-risk accounts",
+    "Show expansion deals"
   ],
-  "How's the team performing with win rates?": [
-    "Show me decision makers with open deals and overdue tasks",
-    "Which high-value accounts have multiple risk signals?",
-    "What's our forecast accuracy trend?"
+  "Show team pipeline": [
+    "Show all open deals",
+    "Show at-risk accounts",
+    "Show pipeline by owner"
   ],
-  "Show me decision makers with open deals and overdue tasks": [
-    "Which contacts have no recent activity?",
-    "What's slowing down the negotiation deals?",
-    "Which rep has the best close rate?"
+  "Show all open deals": [
+    "Show recent activities",
+    "Show deals in Negotiation",
+    "Show closed deals"
   ],
-  "Which high-value accounts have multiple risk signals?": [
-    "What's the full picture at Beta Tech?",
-    "What competitors threaten our biggest deals?",
-    "Which deals mention budget as a blocker?"
+  "Show at-risk accounts": [
+    "Show Beta Tech deals",
+    "Show biggest deals",
+    "Show Proposal stage deals"
   ],
-  "What's our forecast accuracy trend?": [
-    "What deals did we lose and what patterns emerge?",
-    "What's common across our lost deals?",
-    "How does this quarter compare to last?"
+  "Show pipeline by owner": [
+    "Show lost deals",
+    "Show won deals",
+    "Show recently closed deals"
   ]
 }

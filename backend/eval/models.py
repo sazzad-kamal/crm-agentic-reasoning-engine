@@ -34,8 +34,8 @@ SLO_LATENCY_RETRIEVAL_PCT = 0.35  # 35% - RAG fetch from vector DB
 SLO_LATENCY_ANSWER_PCT = 0.30  # 30% - LLM generation
 
 # Routing Quality SLOs
-SLO_ROUTER_ACCURACY = 0.90  # 90% router accuracy (intent classification)
-SLO_SQL_SUCCESS = 0.95  # 95% SQL query success rate
+SLO_SQL_SUCCESS = 0.95  # 95% SQL query generation success rate
+SLO_SQL_DATA = 0.90  # 90% SQL data validation success rate
 
 # Flow Eval SLOs
 SLO_FLOW_PATH_PASS_RATE = 0.85  # 85% of conversation paths should pass
@@ -71,10 +71,6 @@ class FlowStepResult:
     # SQL data validation (compares results against expected)
     sql_data_validated: bool | None = None  # None = no expected results, True = passed, False = failed
     sql_data_errors: list[str] | None = None  # List of validation failures
-    # RAG decision metrics
-    expected_rag: bool | None = None
-    actual_rag: bool = False
-    rag_decision_correct: bool = True
     # RAGAS metrics (0.0-1.0) - answer quality
     relevance_score: float = 0.0  # RAGAS answer_relevancy
     faithfulness_score: float = 0.0  # RAGAS faithfulness
@@ -87,6 +83,8 @@ class FlowStepResult:
     recall_succeeded: bool = False  # True if recall metric returned valid value
     # RAG invocation flags (for N/A vs 0% distinction)
     account_rag_invoked: bool = False  # True only if account RAG was called
+    # RAG detection accuracy (needs_rag decision from slot planner vs expected)
+    rag_decision_correct: bool | None = None  # True if matches expected, False if mismatch, None if no expectation
     judge_explanation: str = ""
     error: str | None = None
     # RAGAS reliability tracking (per-metric)
@@ -127,10 +125,11 @@ class FlowEvalResults:
     questions_passed: int
     questions_failed: int
     # SQL execution metrics
-    sql_success_rate: float = 0.0  # Percentage of SQL queries that succeeded
+    sql_success_rate: float = 0.0  # Percentage of SQL queries that executed successfully
     sql_query_count: int = 0  # Total number of SQL queries executed
-    # RAG decision metrics
-    rag_decision_accuracy: float = 0.0
+    # SQL data validation metrics
+    sql_data_success_rate: float = 0.0  # Percentage of SQL results that passed validation
+    sql_data_count: int = 0  # Number of questions with SQL data assertions
     # RAGAS metrics (0.0-1.0) - answer quality
     avg_relevance: float = 0.0  # RAGAS answer_relevancy
     avg_faithfulness: float = 0.0  # RAGAS faithfulness
@@ -141,6 +140,9 @@ class FlowEvalResults:
     # Sample counts for N/A display (0 means no samples)
     account_sample_count: int = 0  # Number of steps with account chunks (RAG returned results)
     rag_invoked_count: int = 0  # Number of steps where RAG was actually invoked (includes empty results)
+    # RAG detection accuracy (needs_rag decision accuracy)
+    rag_detection_rate: float = 0.0  # Percentage of correct RAG decisions
+    rag_detection_count: int = 0  # Number of questions with RAG expectations
     # RAGAS reliability tracking (per-metric, not per-call)
     ragas_metrics_total: int = 0  # Total individual metrics evaluated (questions × 5)
     ragas_metrics_failed: int = 0  # Individual metrics that returned NaN
@@ -185,10 +187,9 @@ class FlowEvalResults:
         - Answer Correctness: 15% (factual accuracy)
         - Account Precision: 10% (retrieved relevant chunks)
         - Account Recall: 10% (retrieved all needed chunks)
-        - Routing: 10% (SQL success + RAG decision combined)
+        - SQL Success: 10% (query generation)
         - Latency: 5% (speed, capped at SLO)
         """
-        routing_score = (self.sql_success_rate + self.rag_decision_accuracy) / 2
         latency_score = _latency_score(self.avg_latency_per_question_ms, SLO_FLOW_AVG_LATENCY_MS)
         return (
             0.30 * self.avg_faithfulness
@@ -196,6 +197,6 @@ class FlowEvalResults:
             + 0.15 * self.avg_answer_correctness
             + 0.10 * self.avg_account_precision
             + 0.10 * self.avg_account_recall
-            + 0.10 * routing_score
+            + 0.10 * self.sql_success_rate
             + 0.05 * latency_score
         )

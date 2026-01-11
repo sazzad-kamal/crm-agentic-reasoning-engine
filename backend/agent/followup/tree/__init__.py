@@ -33,6 +33,7 @@ CLI:
 
 from __future__ import annotations
 
+import contextlib
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -90,9 +91,9 @@ _EXPECTED_SQL_RESULTS: dict[str, dict] = _load_yaml_fixture("expected_sql_result
 
 # Role mapping - starters are derived from this
 _ROLE_MAP = {
-    "sales": "How's my pipeline by stage and health?",
-    "csm": "Which renewals are at risk and why?",
-    "manager": "How's the team performing with win rates?",
+    "sales": "Show my open deals",
+    "csm": "Show my at-risk renewals",
+    "manager": "Show team pipeline",
 }
 _STARTERS: list[str] = list(_ROLE_MAP.values())
 
@@ -232,6 +233,17 @@ def validate_sql_results(question: str, sql_results: dict) -> tuple[bool, list[s
         Tuple of (passed: bool, errors: list[str])
         - passed: True if all assertions pass, False if any fail
         - errors: List of error messages describing failures
+
+    Assertion types:
+        row_count: Exact number of rows expected
+        row_count_min: Minimum number of rows
+        row_count_max: Maximum number of rows
+        total_value: Sum of value columns (10% tolerance)
+        must_contain: Value(s) must appear in results
+        must_contain_all: All values must appear
+        must_contain_any: At least one value must appear
+        must_not_contain: Value(s) must NOT appear in results
+        exact_values: List of exact values that must match a column
     """
     expected = get_expected_sql_results(question)
     if expected is None:
@@ -245,7 +257,7 @@ def validate_sql_results(question: str, sql_results: dict) -> tuple[bool, list[s
     all_values: list = []
     all_text = ""
 
-    for query_name, rows in sql_results.items():
+    for _query_name, rows in sql_results.items():
         if isinstance(rows, list):
             for row in rows:
                 if isinstance(row, dict):
@@ -262,6 +274,12 @@ def validate_sql_results(question: str, sql_results: dict) -> tuple[bool, list[s
 
     all_text = all_text.lower()
 
+    # Validate row_count (exact)
+    if "row_count" in expected:
+        exact_rows = expected["row_count"]
+        if len(all_rows) != exact_rows:
+            errors.append(f"row_count: got {len(all_rows)}, expected exactly {exact_rows}")
+
     # Validate row_count_min
     if "row_count_min" in expected:
         min_rows = expected["row_count_min"]
@@ -277,13 +295,14 @@ def validate_sql_results(question: str, sql_results: dict) -> tuple[bool, list[s
     # Validate total_value (sum of value columns)
     if "total_value" in expected:
         expected_total = expected["total_value"]
-        actual_total = 0
+        actual_total: float = 0.0
         for row in all_rows:
-            if "value" in row:
-                try:
-                    actual_total += float(row["value"])
-                except (ValueError, TypeError):
-                    pass
+            # Check for both "value" and "total_value" columns (handles GROUP BY queries)
+            for col in ("value", "total_value"):
+                if col in row:
+                    with contextlib.suppress(ValueError, TypeError):
+                        actual_total += float(row[col])
+                    break  # Only count once per row
         # Allow 10% tolerance for rounding
         tolerance = expected_total * 0.1
         if abs(actual_total - expected_total) > tolerance:
@@ -311,6 +330,26 @@ def validate_sql_results(question: str, sql_results: dict) -> tuple[bool, list[s
         found_any = any(str(v).lower() in all_text for v in values)
         if not found_any:
             errors.append(f"must_contain_any: none of {values} found in results")
+
+    # Validate must_not_contain (values must NOT appear - critical for filtering)
+    if "must_not_contain" in expected:
+        values = expected["must_not_contain"]
+        if isinstance(values, list):
+            for v in values:
+                if str(v).lower() in all_text:
+                    errors.append(f"must_not_contain: '{v}' found but should be excluded")
+        elif str(values).lower() in all_text:
+            errors.append(f"must_not_contain: '{values}' found but should be excluded")
+
+    # Validate exact_values (specific column values that must match exactly)
+    if "exact_values" in expected:
+        for col, values in expected["exact_values"].items():
+            actual_col_values = [row.get(col) for row in all_rows if col in row]
+            # Convert to comparable format
+            expected_set = set(str(v).lower() for v in values)
+            actual_set = set(str(v).lower() for v in actual_col_values)
+            if expected_set != actual_set:
+                errors.append(f"exact_values[{col}]: got {actual_set}, expected {expected_set}")
 
     passed = len(errors) == 0
     return passed, errors

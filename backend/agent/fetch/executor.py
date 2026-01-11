@@ -86,10 +86,17 @@ class SQLExecutionStats:
     def __init__(self) -> None:
         self.total: int = 0
         self.success: int = 0
+        self.errors: dict[str, str] = {}  # purpose -> error message
 
     @property
     def failed(self) -> int:
         return self.total - self.success
+
+    def get_error_summary(self) -> str | None:
+        """Get combined error summary for retry feedback."""
+        if not self.errors:
+            return None
+        return "; ".join(f"{purpose}: {error}" for purpose, error in self.errors.items())
 
 
 def execute_query_plan(
@@ -163,7 +170,10 @@ def execute_query_plan(
             raise
 
         except Exception as e:
-            logger.error(f"SQL execution failed for '{query.purpose}': {e}")
+            error_msg = str(e)
+            logger.error(f"SQL execution failed for '{query.purpose}': {error_msg}")
+            # Store error for retry feedback
+            stats.errors[query.purpose] = error_msg
             # Store empty result for failed queries instead of failing entirely
             results[query.purpose] = []
 

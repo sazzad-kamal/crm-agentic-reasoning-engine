@@ -11,18 +11,20 @@ logger = logging.getLogger(__name__)
 
 def fetch_account_node(state: AgentState) -> AgentState:
     """
-    Fetch account context via RAG (conditional on needs_account_rag and resolved entities).
+    Fetch account context via RAG when entity IDs are resolved.
 
-    The LLM query planner decides whether RAG is needed (needs_account_rag=True).
     Entity IDs are resolved by fetch_crm from SQL query results.
+    If any entity ID is resolved, RAG is called to fetch unstructured context.
     Filters by all resolved entities (company, contact, opportunity) for precise results.
+
+    Skips RAG if needs_rag=False (set by slot planner for list/show questions).
     """
     start_time = time.time()
 
-    # Check boolean flag set by query planner
-    needs_rag = state.get("needs_account_rag", False)
+    # Check if RAG is needed (from slot planner decision)
+    needs_rag = state.get("needs_rag", True)  # Default to True for backward compatibility
     if not needs_rag:
-        logger.info("[FetchAccount] Skipped (needs_account_rag=False)")
+        logger.info("[FetchAccount] Skipped (needs_rag=False from planner)")
         return {"account_context_answer": "", "account_rag_invoked": False}
 
     # Build filters from all resolved entity IDs

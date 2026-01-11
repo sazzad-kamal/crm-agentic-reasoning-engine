@@ -41,7 +41,7 @@ def _get_followup_chain() -> Any:
         config = get_config()
         _followup_chain = create_chain(
             FOLLOW_UP_PROMPT_TEMPLATE,
-            model=config.router_model,  # Use fast model
+            model=config.llm_model,  # Use general LLM (not Codex)
             temperature=0.7,
             max_tokens=150,
             structured_output=FollowUpSuggestions,

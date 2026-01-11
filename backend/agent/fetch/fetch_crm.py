@@ -6,9 +6,12 @@ import time
 from backend.agent.core.state import AgentState, Source
 from backend.agent.datastore.connection import get_connection
 from backend.agent.fetch.executor import execute_query_plan
-from backend.agent.route.query_planner import QueryPlan
+from backend.agent.route.query_planner import QueryPlan, get_query_plan
 
 logger = logging.getLogger(__name__)
+
+# Maximum retry attempts for SQL execution failures
+MAX_SQL_RETRIES = 1
 
 
 def fetch_crm_node(state: AgentState) -> AgentState:
@@ -37,6 +40,39 @@ def fetch_crm_node(state: AgentState) -> AgentState:
 
         # Execute all queries in the plan
         sql_results, resolved, stats = execute_query_plan(query_plan, conn)
+
+        # Retry with error feedback if any queries failed
+        if stats.failed > 0 and stats.errors:
+            error_summary = stats.get_error_summary()
+            question = state.get("question", "")
+            owner = state.get("owner")
+            conversation_history = state.get("conversation_history", "")
+
+            logger.info(f"[FetchCRM] Retrying {stats.failed} failed queries with error feedback")
+
+            # Get new query plan with error feedback
+            retry_plan = get_query_plan(
+                question=question,
+                conversation_history=conversation_history,
+                owner=owner,
+                error_feedback=error_summary,
+            )
+
+            # Execute retry plan
+            retry_results, retry_resolved, retry_stats = execute_query_plan(retry_plan, conn)
+
+            # Merge results - retry results override empty results from first attempt
+            for purpose, data in retry_results.items():
+                if data:  # Only override if retry got data
+                    sql_results[purpose] = data
+                    stats.success += 1
+                    if purpose in stats.errors:
+                        del stats.errors[purpose]
+
+            # Merge resolved IDs
+            resolved.update(retry_resolved)
+
+            logger.info(f"[FetchCRM] Retry recovered {retry_stats.success}/{retry_stats.total} queries")
 
         # Extract resolved entity IDs for RAG filtering
         resolved_company_id = resolved.get("$company_id")

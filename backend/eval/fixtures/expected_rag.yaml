@@ -1,88 +1,87 @@
-# Expected RAG decisions for flow eval - used for RAG decision accuracy
+# Expected RAG decisions - ALL questions in the tree
+# true = RAG needed (unstructured content: notes, descriptions)
+# false = SQL only (structured data: stage, value, status, dates)
 #
-# Boolean values:
-# - true: Entity RAG should be invoked (company-specific queries)
-# - false: Entity RAG should NOT be invoked (aggregate/global queries)
-#
-# 39-question tree: 24 RAG (true) / 15 SQL (false)
+# Current tree is 100% "Show X" questions = ALL SQL-only
+# RAG detection must be 100% accurate - no false positives or negatives
 
 # =============================================================================
-# SALES REP BRANCH (8 RAG / 5 SQL)
+# SALES REP BRANCH (jsmith) - Starter: "Show my open deals"
 # =============================================================================
 
-# Starter
-"How's my pipeline by stage and health?": false
+# Depth 1 (starter)
+"Show my open deals": false
 
-# Level 2
-"Which deals need attention?": false
-"What should I know before my Acme call?": true
-"What's my forecast confidence by stage?": false
+# Depth 2
+"Show deals by stage": false
+"Show my Acme deals": false
+"Show deals by value": false
 
-# Level 3 - from "Which deals need attention?"
-"What's blocking the Acme upgrade?": true
-"How should I approach Anna about the pricing concerns?": true
-"What's the pattern across my stalled deals?": true
+# Depth 3 (from "Show deals by stage")
+"Show deals in Proposal stage": false
+"Show deals in Qualified stage": false
+"Show deals in Negotiation stage": false
 
-# Level 3 - from "What should I know before my Acme call?"
-"What motivates Beth the CFO?": true
-"How does Acme compare to our other enterprise deals?": true
-"What's in the proposal we sent?": true
+# Depth 3 (from "Show my Acme deals")
+"Show Acme contacts": false
+"Show Acme deal values": false
+"Show Acme activities": false
 
-# Level 3 - from "What's my forecast confidence by stage?"
-"How long has each deal been in current stage?": false
-"What's driving the biggest pipeline changes?": true
-"Which deals have the highest velocity?": false
-
-# =============================================================================
-# CSM BRANCH (11 RAG / 2 SQL)
-# =============================================================================
-
-# Starter
-"Which renewals are at risk and why?": false
-
-# Level 2
-"Tell me about Delta Health's situation": true
-"Why did Green Energy churn?": true
-"How does my Q1 pipeline compare to Q4?": false
-
-# Level 3 - from "Tell me about Delta Health's situation"
-"How has Delta's engagement changed over time?": true
-"Who influences the buying decision at Delta?": true
-"What commitments did we make last QBR?": true
-
-# Level 3 - from "Why did Green Energy churn?"
-"What were the warning signs we missed?": true
-"What did Carlos and Linda tell us before they left?": true
-"What can we learn to prevent future churn?": true
-
-# Level 3 - from "How does my Q1 pipeline compare to Q4?"
-"What's the engagement trend across my renewals?": true
-"Which accounts need immediate outreach?": true
-"What's driving expansion interest across accounts?": true
+# Depth 3 (from "Show deals by value")
+"Show deals over 20000": false
+"Show deals under 20000": false
+"Show total pipeline value": false
 
 # =============================================================================
-# MANAGER BRANCH (5 RAG / 8 SQL)
+# CSM BRANCH (amartin) - Starter: "Show my at-risk renewals"
 # =============================================================================
 
-# Starter
-"How's the team performing with win rates?": false
+# Depth 1 (starter)
+"Show my at-risk renewals": false
 
-# Level 2
-"Show me decision makers with open deals and overdue tasks": false
-"Which high-value accounts have multiple risk signals?": false
-"What's our forecast accuracy trend?": false
+# Depth 2
+"Show Delta Health deals": false
+"Show Green Energy deals": false
+"Show renewal values": false
 
-# Level 3 - from "Show me decision makers with open deals and overdue tasks"
-"Which contacts have no recent activity?": false
-"What's slowing down the negotiation deals?": true
-"Which rep has the best close rate?": false
+# Depth 3 (from "Show Delta Health deals")
+"Show Delta Health contacts": false
+"Show Delta Health activities": false
+"Show Delta Health deal stages": false
 
-# Level 3 - from "Which high-value accounts have multiple risk signals?"
-"What's the full picture at Beta Tech?": true
-"What competitors threaten our biggest deals?": true
-"Which deals mention budget as a blocker?": true
+# Depth 3 (from "Show Green Energy deals")
+"Show Green Energy contacts": false
+"Show Green Energy activities": false
+"Show Green Energy status": false
 
-# Level 3 - from "What's our forecast accuracy trend?"
-"What deals did we lose and what patterns emerge?": false
-"What's common across our lost deals?": true
-"How does this quarter compare to last?": false
+# Depth 3 (from "Show renewal values")
+"Show upcoming renewals": false
+"Show at-risk accounts": false
+"Show expansion deals": false
+
+# =============================================================================
+# MANAGER BRANCH - Starter: "Show team pipeline"
+# =============================================================================
+
+# Depth 1 (starter)
+"Show team pipeline": false
+
+# Depth 2
+"Show all open deals": false
+"Show at-risk accounts": false  # Also used in CSM branch
+"Show pipeline by owner": false
+
+# Depth 3 (from "Show all open deals")
+"Show recent activities": false
+"Show deals in Negotiation": false
+"Show closed deals": false
+
+# Depth 3 (from "Show at-risk accounts")
+"Show Beta Tech deals": false
+"Show biggest deals": false
+"Show Proposal stage deals": false
+
+# Depth 3 (from "Show pipeline by owner")
+"Show lost deals": false
+"Show won deals": false
+"Show recently closed deals": false

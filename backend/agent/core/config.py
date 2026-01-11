@@ -33,11 +33,11 @@ class AgentConfig(BaseSettings):
     # LLM Configuration
     # -------------------------------------------------------------------------
     llm_model: str = Field(
-        default="gpt-5.2",
-        description="LLM model for agent orchestration and synthesis (upgraded from gpt-4o)",
+        default="gpt-4o-mini",
+        description="LLM model for agent orchestration and synthesis",
     )
     router_model: str = Field(
-        default="gpt-4o-mini", description="LLM model for routing decisions (fast, cheap)"
+        default="gpt-4o-mini", description="LLM model for routing and SQL generation"
     )
     llm_temperature: float = Field(default=0.1, description="LLM temperature for agent responses")
     llm_max_tokens: int = Field(default=1024, description="Maximum tokens in LLM response")
@@ -47,6 +47,10 @@ class AgentConfig(BaseSettings):
     # -------------------------------------------------------------------------
     enable_follow_up_suggestions: bool = Field(
         default=True, description="Generate follow-up question suggestions"
+    )
+    use_slot_filling: bool = Field(
+        default=True,
+        description="Use slot-based SQL generation instead of raw SQL for reliability",
     )
 
     # -------------------------------------------------------------------------

@@ -7,7 +7,7 @@ from collections.abc import AsyncGenerator
 from fastapi.encoders import jsonable_encoder
 
 from backend.agent.core.state import AgentState
-from backend.agent.graph import agent_graph, build_thread_config
+from backend.agent.graph import ANSWER_NODE, agent_graph, build_thread_config
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ async def stream_agent(question: str, session_id: str | None = None) -> AsyncGen
         async for e in agent_graph.astream_events(state, config=config, version="v2"):
             typ, name = e.get("event"), e.get("name", "")
 
-            if typ == "on_chain_start" and name == "answer":
+            if typ == "on_chain_start" and name == ANSWER_NODE:
                 in_answer_node = True
 
             elif typ == "on_chat_model_stream" and in_answer_node:

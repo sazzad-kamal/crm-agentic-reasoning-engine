@@ -20,6 +20,9 @@ from backend.agent.fetch.fetch_entity import fetch_account_node
 from backend.agent.followup.node import followup_node
 from backend.agent.route.node import route_node
 
+# Node name constant (used in streaming.py to filter events)
+ANSWER_NODE = "answer"
+
 _checkpointer = MemorySaver()
 
 
@@ -46,7 +49,7 @@ def _build_graph():
     graph.add_node("route", route_node)
     graph.add_node("fetch_crm", fetch_crm_node)
     graph.add_node("fetch_account", fetch_account_node)
-    graph.add_node("answer", answer_node)
+    graph.add_node(ANSWER_NODE, answer_node)
     graph.add_node("followup", followup_node)
 
     # Entry point
@@ -56,8 +59,8 @@ def _build_graph():
     # fetch_crm resolves company_id from SQL, fetch_account uses it for RAG
     graph.add_edge("route", "fetch_crm")
     graph.add_edge("fetch_crm", "fetch_account")
-    graph.add_edge("fetch_account", "answer")
-    graph.add_edge("answer", "followup")
+    graph.add_edge("fetch_account", ANSWER_NODE)
+    graph.add_edge(ANSWER_NODE, "followup")
     graph.add_edge("followup", END)
 
     return graph.compile(checkpointer=_checkpointer)
@@ -65,4 +68,4 @@ def _build_graph():
 
 agent_graph = _build_graph()
 
-__all__ = ["agent_graph", "build_thread_config", "clear_thread"]
+__all__ = ["agent_graph", "build_thread_config", "clear_thread", "ANSWER_NODE"]

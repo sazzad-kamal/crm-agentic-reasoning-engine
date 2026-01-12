@@ -27,7 +27,7 @@
       "queries": [{
         "table": "companies",
         "filters": [{"field": "health_flags", "op": "LIKE", "value": "at-risk"}],
-        "order_by": null
+        "order_by": ""
       }],
       "needs_rag": false
     }
@@ -38,7 +38,7 @@
       "queries": [{
         "table": "contacts",
         "filters": [{"field": "role", "op": "=", "value": "Decision Maker"}],
-        "order_by": null
+        "order_by": ""
       }],
       "needs_rag": false
     }
@@ -49,7 +49,7 @@
       "queries": [{
         "table": "companies",
         "filters": [{"field": "name", "op": "LIKE", "value": "Delta"}],
-        "order_by": null
+        "order_by": ""
       }],
       "needs_rag": true
     }
@@ -72,12 +72,12 @@
         {
           "table": "companies",
           "filters": [{"field": "name", "op": "LIKE", "value": "Acme"}],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "contacts",
           "filters": [{"field": "company_id", "op": "=", "value": "$company_id"}],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -123,7 +123,7 @@
         {
           "table": "companies",
           "filters": [{"field": "name", "op": "LIKE", "value": "Delta"}],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "opportunities",
@@ -141,7 +141,7 @@
         {
           "table": "companies",
           "filters": [{"field": "name", "op": "LIKE", "value": "Acme"}],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "history",
@@ -159,7 +159,7 @@
         {
           "table": "companies",
           "filters": [{"field": "name", "op": "LIKE", "value": "Acme"}],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "activities",
@@ -223,7 +223,7 @@
       "queries": [{
         "table": "companies",
         "filters": [{"field": "name", "op": "LIKE", "value": "Green"}],
-        "order_by": null
+        "order_by": ""
       }],
       "needs_rag": true
     }
@@ -234,7 +234,7 @@
       "queries": [{
         "table": "companies",
         "filters": [{"field": "health_flags", "op": "!=", "value": "healthy"}],
-        "order_by": null
+        "order_by": ""
       }],
       "needs_rag": false
     }
@@ -246,12 +246,12 @@
         {
           "table": "companies",
           "filters": [{"field": "name", "op": "LIKE", "value": "Delta"}],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "contacts",
           "filters": [{"field": "company_id", "op": "=", "value": "$company_id"}],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -264,7 +264,7 @@
         {
           "table": "companies",
           "filters": [{"field": "name", "op": "LIKE", "value": "Delta"}],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "history",
@@ -282,12 +282,12 @@
         {
           "table": "companies",
           "filters": [{"field": "name", "op": "LIKE", "value": "Green"}],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "contacts",
           "filters": [{"field": "company_id", "op": "=", "value": "$company_id"}],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -300,7 +300,7 @@
         {
           "table": "companies",
           "filters": [{"field": "name", "op": "LIKE", "value": "Green"}],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "opportunities",
@@ -318,7 +318,7 @@
         {
           "table": "companies",
           "filters": [{"field": "name", "op": "LIKE", "value": "Green"}],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "history",
@@ -335,7 +335,7 @@
       "queries": [{
         "table": "companies",
         "filters": [{"field": "health_flags", "op": "LIKE", "value": "churn"}],
-        "order_by": null
+        "order_by": ""
       }],
       "needs_rag": false
     }
@@ -346,7 +346,7 @@
       "queries": [{
         "table": "companies",
         "filters": [{"field": "health_flags", "op": "LIKE", "value": "at-risk"}],
-        "order_by": null
+        "order_by": ""
       }],
       "needs_rag": false
     }
@@ -380,12 +380,12 @@
         {
           "table": "companies",
           "filters": [{"field": "name", "op": "LIKE", "value": "Acme"}],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "contacts",
           "filters": [{"field": "company_id", "op": "=", "value": "$company_id"}],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -398,12 +398,12 @@
         {
           "table": "companies",
           "filters": [{"field": "name", "op": "LIKE", "value": "Beta"}],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "contacts",
           "filters": [{"field": "company_id", "op": "=", "value": "$company_id"}],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -415,7 +415,7 @@
       "queries": [{
         "table": "contacts",
         "filters": [{"field": "role", "op": "IN", "value": ["Decision Maker", "Executive", "Champion"]}],
-        "order_by": null
+        "order_by": ""
       }],
       "needs_rag": false
     }
@@ -426,7 +426,7 @@
       "queries": [{
         "table": "contacts",
         "filters": [],
-        "order_by": null
+        "order_by": ""
       }],
       "needs_rag": false
     }
@@ -471,7 +471,7 @@
         {
           "table": "companies",
           "filters": [{"field": "name", "op": "LIKE", "value": "Acme"}],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "opportunities",
@@ -500,12 +500,12 @@
         {
           "table": "companies",
           "filters": [{"field": "name", "op": "LIKE", "value": "Acme"}],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "contacts",
           "filters": [{"field": "company_id", "op": "=", "value": "$company_id"}],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -553,7 +553,7 @@
       "queries": [{
         "table": "companies",
         "filters": [{"field": "health_flags", "op": "!=", "value": "healthy"}],
-        "order_by": null
+        "order_by": ""
       }],
       "needs_rag": false
     }
@@ -564,7 +564,7 @@
       "queries": [{
         "table": "contacts",
         "filters": [],
-        "order_by": null
+        "order_by": ""
       }],
       "needs_rag": false
     }
@@ -586,7 +586,7 @@
       "queries": [{
         "table": "contacts",
         "filters": [],
-        "order_by": null
+        "order_by": ""
       }],
       "needs_rag": false
     }

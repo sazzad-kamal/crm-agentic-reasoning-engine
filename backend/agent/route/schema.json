@@ -6,10 +6,7 @@
       "items": {
         "type": "object",
         "properties": {
-          "table": {
-            "type": "string",
-            "enum": ["opportunities", "contacts", "activities", "companies", "history"]
-          },
+          "table": { "type": "string" },
           "filters": {
             "type": "array",
             "items": {
@@ -29,7 +26,7 @@
               "additionalProperties": false
             }
           },
-          "order_by": { "type": ["string", "null"] }
+          "order_by": { "type": "string" }
         },
         "required": ["table", "filters", "order_by"],
         "additionalProperties": false

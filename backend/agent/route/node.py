@@ -25,9 +25,7 @@ def route_node(state: AgentState) -> AgentState:
     question = state["question"]
     logger.info(f"[Route] Processing: {question[:50]}...")
 
-    # Format conversation history for the planner
-    messages = state.get("messages", [])
-    conversation_history = format_history_for_prompt(messages) if messages else ""
+    conversation_history = format_history_for_prompt(state.get("messages", []))
 
     # Detect owner from starter patterns
     owner = detect_owner_from_starter(question)

@@ -23,9 +23,7 @@ def answer_node(state: AgentState) -> AgentState:
         # Get account context from fetch_rag
         account_context = state.get("account_context_answer", "")
 
-        # Format conversation history from messages
-        messages = state.get("messages", [])
-        conversation_history = format_history_for_prompt(messages) if messages else ""
+        conversation_history = format_history_for_prompt(state.get("messages", []))
 
         # Call answer chain with simplified parameters
         answer, _ = call_answer_chain(

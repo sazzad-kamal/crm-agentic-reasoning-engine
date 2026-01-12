@@ -40,8 +40,7 @@ def fetch_sql_node(state: AgentState) -> AgentState:
             error_summary = stats.get_error_summary()
             question = state.get("question", "")
             owner = state.get("owner")
-            messages = state.get("messages", [])
-            conversation_history = format_history_for_prompt(messages) if messages else ""
+            conversation_history = format_history_for_prompt(state.get("messages", []))
 
             logger.info(f"[FetchSQL] Retrying {stats.failed} failed queries with error feedback")
 

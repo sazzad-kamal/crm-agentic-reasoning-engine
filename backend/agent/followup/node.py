@@ -18,9 +18,7 @@ def followup_node(state: AgentState) -> AgentState:
 
     logger.info("[Followup] Generating suggestions...")
 
-    # Format conversation history from messages
-    messages = state.get("messages", [])
-    conversation_history = format_history_for_prompt(messages) if messages else ""
+    conversation_history = format_history_for_prompt(state.get("messages", []))
 
     # Get SQL results from fetch_sql
     sql_results = state.get("sql_results", {})

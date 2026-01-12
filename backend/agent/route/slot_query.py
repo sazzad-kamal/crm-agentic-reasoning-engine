@@ -7,7 +7,7 @@ Instead of LLM generating raw SQL, it outputs structured slots:
 - columns: SELECT columns (optional)
 - order_by: ORDER BY clause (optional)
 
-We then build valid SQL programmatically - no syntax errors possible.
+We then build valid SQL programmatically using pypika.
 """
 
 from __future__ import annotations
@@ -16,6 +16,8 @@ import logging
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+from pypika import Order, Query, Table
+from pypika.functions import Lower
 
 logger = logging.getLogger(__name__)
 
@@ -85,130 +87,118 @@ class SlotPlan(BaseModel):
 
 
 # =============================================================================
-# SQL Builder
+# SQL Builder with pypika
 # =============================================================================
 
 
-def _escape_value(value: Any) -> str:
-    """Escape a value for SQL."""
-    if isinstance(value, str):
-        # Escape single quotes
-        escaped = value.replace("'", "''")
-        return f"'{escaped}'"
-    elif isinstance(value, bool):
-        return "TRUE" if value else "FALSE"
-    elif isinstance(value, (int, float)):
-        return str(value)
-    elif value is None:
-        return "NULL"
-    else:
-        return f"'{value}'"
-
-
-def _build_condition(key: str, value: Any) -> str:
-    """Build a single WHERE condition."""
+def _build_criterion(table: Table, key: str, value: Any) -> Any:
+    """Build a pypika criterion from a filter key-value pair."""
     # Handle special filter keys
     if key == "value_gt":
-        return f"value > {value}"
+        return table.value > value
     elif key == "value_lt":
-        return f"value < {value}"
+        return table.value < value
     elif key == "date_after":
-        return f"date > {_escape_value(value)}"
+        return table.date > value
     elif key == "stage_not_in":
         if isinstance(value, list):
-            escaped = ", ".join(_escape_value(v) for v in value)
-            return f"stage NOT IN ({escaped})"
-        return f"stage != {_escape_value(value)}"
+            return table.stage.notin(value)
+        return table.stage != value
     elif key == "name" and isinstance(value, str):
-        # For company name, use ILIKE for case-insensitive partial match
-        return f"name ILIKE {_escape_value(f'%{value}%')}"
+        # Case-insensitive partial match using LOWER
+        return Lower(table.name).like(f"%{value.lower()}%")
     elif isinstance(value, list):
-        # IN clause for list values
-        escaped = ", ".join(_escape_value(v) for v in value)
-        return f"{key} IN ({escaped})"
+        return table[key].isin(value)
     else:
-        return f"{key} = {_escape_value(value)}"
+        return table[key] == value
 
 
-def build_sql(slot: SlotQuery) -> str:
-    """
-    Build SQL query from a SlotQuery.
+def _parse_order_by(order_by: str) -> tuple[str, Order]:
+    """Parse 'field DESC' into (field, Order)."""
+    parts = order_by.strip().split()
+    field = parts[0]
+    direction = Order.desc if len(parts) > 1 and parts[1].upper() == "DESC" else Order.asc
+    return field, direction
 
-    This function constructs valid SQL programmatically,
-    eliminating syntax errors from LLM-generated SQL.
-    """
-    # SELECT clause - use explicit columns to exclude RAG fields
-    cols = ", ".join(slot.columns) if slot.columns else ", ".join(TABLE_COLUMNS[slot.table])
-    sql = f"SELECT {cols} FROM {slot.table}"
 
-    # WHERE clause - skip null/empty values
-    if slot.filters:
-        # Filter out None values (from strict schema nullable fields)
-        active_filters = {k: v for k, v in slot.filters.items() if v is not None}
-        if active_filters:
-            conditions = [_build_condition(k, v) for k, v in active_filters.items()]
-            sql += " WHERE " + " AND ".join(conditions)
+def _build_query(slot: SlotQuery) -> Query:
+    """Build a pypika Query from a SlotQuery."""
+    table = Table(slot.table)
 
-    # ORDER BY clause
+    # SELECT columns
+    cols = slot.columns or TABLE_COLUMNS[slot.table]
+    query = Query.from_(table).select(*[table[c] for c in cols])
+
+    # WHERE filters - skip None values
+    for key, value in slot.filters.items():
+        if value is not None:
+            query = query.where(_build_criterion(table, key, value))
+
+    # ORDER BY
     if slot.order_by:
-        sql += f" ORDER BY {slot.order_by}"
+        field, direction = _parse_order_by(slot.order_by)
+        query = query.orderby(table[field], order=direction)
 
-    logger.debug("Built SQL for '%s': %s", slot.purpose, sql)
-    return sql
+    return query
 
 
-def build_sql_with_company_join(slot: SlotQuery) -> str:
-    """
-    Build SQL with JOIN to companies table for company name filtering.
+def _build_query_with_company_join(slot: SlotQuery) -> Query:
+    """Build a pypika Query with JOIN to companies table."""
+    table = Table(slot.table)
+    companies = Table("companies")
 
-    Used when filtering by company_name on tables that have company_id.
-    """
-    table = slot.table
-    # Filter out None values first
+    # Get company_name filter
     filters = {k: v for k, v in slot.filters.items() if v is not None}
-
-    # Check if we need company name join
     company_name = filters.pop("company_name", None)
 
-    # SELECT clause - use explicit columns to exclude RAG fields
+    # SELECT columns - include company name
     if slot.columns:
-        cols = ", ".join(f"{table}.{c}" for c in slot.columns)
+        cols = [table[c] for c in slot.columns]
     else:
-        table_cols = ", ".join(f"{table}.{c}" for c in TABLE_COLUMNS[table])
-        cols = f"{table_cols}, companies.name as company_name"
+        cols = [table[c] for c in TABLE_COLUMNS[slot.table]]
+        cols.append(companies.name.as_("company_name"))
 
+    # Build query with JOIN
+    query = (
+        Query.from_(table)
+        .join(companies)
+        .on(table.company_id == companies.company_id)
+        .select(*cols)
+    )
+
+    # Add company name filter (case-insensitive partial match)
     if company_name:
-        sql = f"""SELECT {cols}
-FROM {table}
-JOIN companies ON {table}.company_id = companies.company_id
-WHERE companies.name ILIKE {_escape_value(f'%{company_name}%')}"""
+        query = query.where(Lower(companies.name).like(f"%{company_name.lower()}%"))
 
-        # Add remaining filters
-        for k, v in filters.items():
-            sql += f" AND {_build_condition(k, v)}"
-    else:
-        sql = f"SELECT {cols} FROM {table}"
-        if filters:
-            conditions = [_build_condition(k, v) for k, v in filters.items()]
-            sql += " WHERE " + " AND ".join(conditions)
+    # Add remaining filters
+    for key, value in filters.items():
+        query = query.where(_build_criterion(table, key, value))
 
-    # ORDER BY clause
+    # ORDER BY
     if slot.order_by:
-        sql += f" ORDER BY {slot.order_by}"
+        field, direction = _parse_order_by(slot.order_by)
+        query = query.orderby(table[field], order=direction)
 
-    logger.debug("Built SQL with join for '%s': %s", slot.purpose, sql)
-    return sql
+    return query
 
 
 def slot_to_sql(slot: SlotQuery) -> str:
     """
-    Convert a SlotQuery to SQL, handling company name joins automatically.
+    Convert a SlotQuery to SQL using pypika.
+
+    Handles company name joins automatically when filtering by company_name
+    on tables that have company_id.
     """
-    # Check if company_name is present AND not None
+    # Check if company_name filter is present and not on companies table
     company_name = slot.filters.get("company_name")
     if company_name is not None and slot.table != "companies":
-        return build_sql_with_company_join(slot)
-    return build_sql(slot)
+        query = _build_query_with_company_join(slot)
+    else:
+        query = _build_query(slot)
+
+    sql = query.get_sql()
+    logger.debug("Built SQL for '%s': %s", slot.purpose, sql)
+    return sql
 
 
-__all__ = ["SlotQuery", "SlotPlan", "slot_to_sql"]
+__all__ = ["SlotQuery", "SlotPlan", "slot_to_sql", "TABLE_COLUMNS", "TableName"]

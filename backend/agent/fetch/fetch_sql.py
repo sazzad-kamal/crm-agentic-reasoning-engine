@@ -10,9 +10,6 @@ from backend.agent.route.query_planner import QueryPlan, get_query_plan
 
 logger = logging.getLogger(__name__)
 
-# Maximum retry attempts for SQL execution failures
-MAX_SQL_RETRIES = 1
-
 
 def fetch_sql_node(state: AgentState) -> AgentState:
     """

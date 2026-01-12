@@ -6,6 +6,7 @@ from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 
+import jsonschema
 from openai import OpenAI
 
 from backend.agent.core.config import get_config
@@ -25,6 +26,28 @@ def _load_schema() -> dict:
 
 
 @lru_cache
+def _load_examples() -> str:
+    """Load and validate examples, return formatted string for prompt."""
+    with open(_DIR / "examples.json") as f:
+        examples = json.load(f)
+
+    schema = _load_schema()
+
+    # Validate each example against the schema
+    for ex in examples:
+        jsonschema.validate(ex["output"], schema)
+
+    # Format as prompt string
+    lines = []
+    for ex in examples:
+        lines.append(f'User: "{ex["question"]}"')
+        lines.append(json.dumps(ex["output"], separators=(",", ":")))
+        lines.append("")
+
+    return "\n".join(lines).strip()
+
+
+@lru_cache
 def _get_client() -> OpenAI:
     """Get OpenAI client (cached)."""
     return OpenAI()
@@ -41,6 +64,7 @@ def get_slot_plan(question: str, conversation_history: str = "") -> SlotPlan:
 
     prompt = load_prompt(_DIR / "prompt.txt").format(
         today=datetime.now().strftime("%Y-%m-%d"),
+        examples=_load_examples(),
         conversation_history=conversation_history or "",
         question=question,
     )

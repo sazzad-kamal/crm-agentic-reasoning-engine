@@ -40,17 +40,7 @@ RAG stores unstructured text (notes, context) NOT in SQL columns:
 
 ## EXAMPLES
 
-User: "What deals are in the pipeline?"
-{{"queries": [{{"table": "opportunities", "filters": {{"stage_not_in": ["Closed Won", "Closed Lost"]}}, "order_by": "value DESC", "purpose": "pipeline_deals"}}], "needs_rag": false}}
-
-User: "Which accounts are at risk?"
-{{"queries": [{{"table": "companies", "filters": {{"health_flags": "at-risk"}}, "purpose": "at_risk_accounts"}}], "needs_rag": false}}
-
-User: "Who needs a follow-up?"
-{{"queries": [{{"table": "contacts", "filters": {{}}, "purpose": "contacts_needing_followup"}}], "needs_rag": false}}
-
-User: "What's happening with Delta Health?"
-{{"queries": [{{"table": "companies", "filters": {{"name": "Delta"}}, "purpose": "company_info"}}], "needs_rag": true}}
+{examples}
 
 {conversation_history}
 

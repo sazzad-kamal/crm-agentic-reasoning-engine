@@ -1,0 +1,30 @@
+[
+  {
+    "question": "What deals are in the pipeline?",
+    "output": {
+      "queries": [{"table": "opportunities", "filters": {"stage_not_in": ["Closed Won", "Closed Lost"]}, "order_by": "value DESC", "purpose": "pipeline_deals"}],
+      "needs_rag": false
+    }
+  },
+  {
+    "question": "Which accounts are at risk?",
+    "output": {
+      "queries": [{"table": "companies", "filters": {"health_flags": "at-risk"}, "purpose": "at_risk_accounts"}],
+      "needs_rag": false
+    }
+  },
+  {
+    "question": "Who needs a follow-up?",
+    "output": {
+      "queries": [{"table": "contacts", "filters": {}, "purpose": "contacts_needing_followup"}],
+      "needs_rag": false
+    }
+  },
+  {
+    "question": "What's happening with Delta Health?",
+    "output": {
+      "queries": [{"table": "companies", "filters": {"name": "Delta"}, "purpose": "company_info"}],
+      "needs_rag": true
+    }
+  }
+]

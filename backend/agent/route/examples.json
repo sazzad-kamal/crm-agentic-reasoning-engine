@@ -198,5 +198,32 @@
       ],
       "needs_rag": false
     }
+  },
+  {
+    "question": "Which deals are under $20,000?",
+    "output": {
+      "queries": [{
+        "table": "opportunities",
+        "filters": [
+          {"field": "value", "op": "lt", "value": 20000},
+          {"field": "stage", "op": "not_in", "value": ["Closed Won", "Closed Lost"]}
+        ],
+        "columns": null,
+        "order_by": "value ASC"
+      }],
+      "needs_rag": false
+    }
+  },
+  {
+    "question": "What deals are in Proposal stage?",
+    "output": {
+      "queries": [{
+        "table": "opportunities",
+        "filters": [{"field": "stage", "op": "eq", "value": "Proposal"}],
+        "columns": null,
+        "order_by": "value DESC"
+      }],
+      "needs_rag": false
+    }
   }
 ]

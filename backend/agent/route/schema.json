@@ -8,34 +8,35 @@
         "properties": {
           "table": {
             "type": "string",
-            "enum": ["opportunities", "contacts", "activities", "companies", "history", "attachments"]
+            "enum": ["opportunities", "contacts", "activities", "companies", "history"]
           },
           "filters": {
             "type": "object",
             "properties": {
-              "stage": { "type": "string" },
-              "stage_not_in": { "type": "array", "items": { "type": "string" } },
-              "type": { "type": "string" },
-              "value_gt": { "type": "number" },
-              "value_lt": { "type": "number" },
-              "company_name": { "type": "string" },
-              "company_id": { "type": "string" },
-              "role": { "type": "string" },
-              "lifecycle_stage": { "type": "string" },
-              "contact_id": { "type": "string" },
-              "date_after": { "type": "string" },
-              "name": { "type": "string" },
-              "status": { "type": "string" },
-              "health_flags": { "type": "string" },
-              "account_owner": { "type": "string" }
+              "stage": { "type": ["string", "null"] },
+              "stage_not_in": { "type": ["array", "null"], "items": { "type": "string" } },
+              "type": { "type": ["string", "null"] },
+              "value_gt": { "type": ["number", "null"] },
+              "value_lt": { "type": ["number", "null"] },
+              "company_name": { "type": ["string", "null"] },
+              "company_id": { "type": ["string", "null"] },
+              "role": { "type": ["string", "null"] },
+              "lifecycle_stage": { "type": ["string", "null"] },
+              "contact_id": { "type": ["string", "null"] },
+              "date_after": { "type": ["string", "null"] },
+              "name": { "type": ["string", "null"] },
+              "status": { "type": ["string", "null"] },
+              "health_flags": { "type": ["string", "null"] },
+              "account_owner": { "type": ["string", "null"] }
             },
+            "required": ["stage", "stage_not_in", "type", "value_gt", "value_lt", "company_name", "company_id", "role", "lifecycle_stage", "contact_id", "date_after", "name", "status", "health_flags", "account_owner"],
             "additionalProperties": false
           },
           "columns": { "type": ["array", "null"], "items": { "type": "string" } },
           "order_by": { "type": ["string", "null"] },
           "purpose": { "type": "string" }
         },
-        "required": ["table", "filters", "purpose"],
+        "required": ["table", "filters", "columns", "order_by", "purpose"],
         "additionalProperties": false
       }
     },

@@ -2,28 +2,116 @@
   {
     "question": "What deals are in the pipeline?",
     "output": {
-      "queries": [{"table": "opportunities", "filters": {"stage_not_in": ["Closed Won", "Closed Lost"]}, "order_by": "value DESC", "purpose": "pipeline_deals"}],
+      "queries": [{
+        "table": "opportunities",
+        "filters": {
+          "stage": null,
+          "stage_not_in": ["Closed Won", "Closed Lost"],
+          "type": null,
+          "value_gt": null,
+          "value_lt": null,
+          "company_name": null,
+          "company_id": null,
+          "role": null,
+          "lifecycle_stage": null,
+          "contact_id": null,
+          "date_after": null,
+          "name": null,
+          "status": null,
+          "health_flags": null,
+          "account_owner": null
+        },
+        "columns": null,
+        "order_by": "value DESC",
+        "purpose": "pipeline_deals"
+      }],
       "needs_rag": false
     }
   },
   {
     "question": "Which accounts are at risk?",
     "output": {
-      "queries": [{"table": "companies", "filters": {"health_flags": "at-risk"}, "purpose": "at_risk_accounts"}],
+      "queries": [{
+        "table": "companies",
+        "filters": {
+          "stage": null,
+          "stage_not_in": null,
+          "type": null,
+          "value_gt": null,
+          "value_lt": null,
+          "company_name": null,
+          "company_id": null,
+          "role": null,
+          "lifecycle_stage": null,
+          "contact_id": null,
+          "date_after": null,
+          "name": null,
+          "status": null,
+          "health_flags": "at-risk",
+          "account_owner": null
+        },
+        "columns": null,
+        "order_by": null,
+        "purpose": "at_risk_accounts"
+      }],
       "needs_rag": false
     }
   },
   {
     "question": "Who needs a follow-up?",
     "output": {
-      "queries": [{"table": "contacts", "filters": {}, "purpose": "contacts_needing_followup"}],
+      "queries": [{
+        "table": "contacts",
+        "filters": {
+          "stage": null,
+          "stage_not_in": null,
+          "type": null,
+          "value_gt": null,
+          "value_lt": null,
+          "company_name": null,
+          "company_id": null,
+          "role": null,
+          "lifecycle_stage": null,
+          "contact_id": null,
+          "date_after": null,
+          "name": null,
+          "status": null,
+          "health_flags": null,
+          "account_owner": null
+        },
+        "columns": null,
+        "order_by": null,
+        "purpose": "contacts_needing_followup"
+      }],
       "needs_rag": false
     }
   },
   {
     "question": "What's happening with Delta Health?",
     "output": {
-      "queries": [{"table": "companies", "filters": {"name": "Delta"}, "purpose": "company_info"}],
+      "queries": [{
+        "table": "companies",
+        "filters": {
+          "stage": null,
+          "stage_not_in": null,
+          "type": null,
+          "value_gt": null,
+          "value_lt": null,
+          "company_name": null,
+          "company_id": null,
+          "role": null,
+          "lifecycle_stage": null,
+          "contact_id": null,
+          "date_after": null,
+          "name": "Delta",
+          "status": null,
+          "health_flags": null,
+          "account_owner": null
+        },
+        "columns": null,
+        "order_by": null,
+        "purpose": "company_info"
+      }],
       "needs_rag": true
     }
   }

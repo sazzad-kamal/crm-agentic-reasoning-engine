@@ -20,8 +20,6 @@ activities(activity_id, company_id, contact_id, opportunity_id, type, subject, d
 
 history(history_id, company_id, contact_id, opportunity_id, type, subject, source, occurred_at, owner)
 
-attachments(attachment_id, company_id, name, type, url)
-
 ## KEYS
 - contacts.company_id -> companies.company_id
 - opportunities.company_id -> companies.company_id
@@ -34,9 +32,22 @@ stage, stage_not_in, type, value_gt, value_lt, company_name, company_id, role, l
 
 ## NEEDS_RAG DECISION
 
-RAG stores unstructured text (notes, context) NOT in SQL columns:
-- needs_rag = true -> question asks about notes, context, why, concerns, history
-- needs_rag = false -> question asks about structured data (stage, value, status, dates)
+RAG stores unstructured notes/context (not in SQL tables):
+- Company notes: key people, relationships, concerns
+- Contact notes: preferences, communication style, decision behavior
+- Opportunity context: deal notes, risks, blockers, recommendations
+- History details: meeting/call summaries beyond dates
+- Activity notes: preparation context, what was discussed
+
+needs_rag = true:
+- "What's happening with [company]?" -> context needed
+- "Why..." questions -> reasoning/concerns
+- Questions about notes, concerns, blockers, relationships
+
+needs_rag = false:
+- Stage, value, status, dates -> structured SQL fields
+- List queries: "all deals", "pipeline deals" -> SQL only
+- Metrics: counts, totals -> SQL only
 
 ## EXAMPLES
 

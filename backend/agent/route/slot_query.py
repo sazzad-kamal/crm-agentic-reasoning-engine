@@ -31,7 +31,6 @@ TableName = Literal[
     "activities",
     "companies",
     "history",
-    "attachments",
 ]
 
 # SQL columns per table (excludes RAG fields: notes, description)
@@ -43,7 +42,6 @@ TABLE_COLUMNS: dict[TableName, list[str]] = {
     "activities": ["activity_id", "company_id", "contact_id", "opportunity_id", "type", "subject", "due_datetime"],
     "companies": ["company_id", "name", "status", "plan", "account_owner", "health_flags", "renewal_date"],
     "history": ["history_id", "company_id", "contact_id", "type", "date"],
-    "attachments": ["attachment_id", "company_id", "name", "type", "url"],
 }
 
 

@@ -26,10 +26,6 @@ history(history_id, company_id, contact_id, opportunity_id, type, subject, sourc
 - activities.company_id -> companies.company_id
 - history.company_id -> companies.company_id
 
-## AVAILABLE FILTERS
-
-stage, stage_not_in, type, value_gt, value_lt, company_name, company_id, role, lifecycle_stage, contact_id, date_after, name, status, health_flags
-
 ## NEEDS_RAG DECISION
 
 RAG stores unstructured notes/context (not in SQL tables):

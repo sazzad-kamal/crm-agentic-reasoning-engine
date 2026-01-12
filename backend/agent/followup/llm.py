@@ -12,7 +12,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from backend.agent.core.config import get_config
-from backend.llm.client import create_chain
+from backend.agent.llm.client import create_chain
 from backend.utils.prompt import load_prompt
 
 logger = logging.getLogger(__name__)

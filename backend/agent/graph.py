@@ -7,10 +7,11 @@ from langgraph.graph import END, StateGraph
 
 from backend.agent.answer.node import answer_node
 from backend.agent.core.state import AgentState
-from backend.agent.fetch.fetch_sql import fetch_sql_node
 from backend.agent.fetch.fetch_rag import fetch_rag_node
+from backend.agent.fetch.fetch_sql import fetch_sql_node
 from backend.agent.followup.node import followup_node
 from backend.agent.route.node import route_node
+
 
 # LangGraph event constants (not exported by langgraph package)
 class LangGraphEvent:

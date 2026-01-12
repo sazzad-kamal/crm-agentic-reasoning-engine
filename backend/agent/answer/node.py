@@ -65,8 +65,6 @@ def answer_node(state: AgentState) -> AgentState:
         return {
             "answer": answer,
             "messages": messages,  # Updated messages for next turn
-            "answer_latency_ms": total_latency_ms,
-            "llm_latency_ms": llm_latency,
             "steps": [
                 {
                     "id": "answer",
@@ -102,8 +100,6 @@ def answer_node(state: AgentState) -> AgentState:
         return {
             "answer": error_answer,
             "messages": messages,
-            "answer_latency_ms": total_latency_ms,
-            "llm_latency_ms": 0,
             "error": str(e),
             "steps": [
                 {

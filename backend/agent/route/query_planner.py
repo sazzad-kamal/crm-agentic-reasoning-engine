@@ -1,11 +1,8 @@
 """
-Schema-driven query planner for LLM-based SQL generation.
+Slot-based query planner for LLM-driven SQL generation.
 
-Replaces the 14-intent router with direct SQL generation.
-The LLM becomes a "CRM SQL expert" that understands the data model.
-Loads prompt from prompt.txt for clean separation.
-
-Supports both Chat Completions API and Responses API for different models.
+The LLM outputs structured slots (table, filters, order_by) which are
+converted to SQL programmatically - more reliable than raw SQL generation.
 """
 
 import json
@@ -80,28 +77,17 @@ def detect_owner_from_starter(question: str) -> str | None:
 
     for pattern, owner in STARTER_OWNER_MAP.items():
         if pattern in q:
-            logger.debug(f"Detected starter pattern '{pattern}' → owner={owner}")
+            logger.debug("Detected starter pattern '%s' → owner=%s", pattern, owner)
             return owner
 
     return None
 
 
 # =============================================================================
-# Schema Prompt Template (loaded from prompt.txt)
+# Prompt Template
 # =============================================================================
 
-SCHEMA_PROMPT_TEMPLATE = load_prompt(Path(__file__).parent / "prompt.txt")
-SLOT_PROMPT_TEMPLATE = load_prompt(Path(__file__).parent / "slot_prompt.txt")
-
-# Models that require Responses API instead of Chat Completions
-RESPONSES_API_MODELS = frozenset({
-    "gpt-5.1-codex-mini",
-    "gpt-5.1-codex",
-    "gpt-5-codex-mini",
-    "gpt-5-codex",
-    "codex-mini-latest",
-    "codex-1",
-})
+PROMPT_TEMPLATE = load_prompt(Path(__file__).parent / "prompt.txt")
 
 
 # =============================================================================
@@ -117,179 +103,6 @@ def _get_openai_client() -> OpenAI:
     if _openai_client is None:
         _openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
     return _openai_client
-
-
-def reset_planner_chain() -> None:
-    """Reset the cached OpenAI client (for testing)."""
-    global _openai_client
-    _openai_client = None
-
-
-# =============================================================================
-# API Callers
-# =============================================================================
-
-
-def _call_chat_completions(
-    client: OpenAI,
-    model: str,
-    system_prompt: str,
-    user_prompt: str,
-) -> QueryPlan:
-    """Call Chat Completions API with structured output."""
-    response = client.chat.completions.create(
-        model=model,
-        temperature=0,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        response_format={
-            "type": "json_schema",
-            "json_schema": {
-                "name": "QueryPlan",
-                "strict": True,
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "queries": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "sql": {"type": "string"},
-                                    "purpose": {"type": "string"},
-                                },
-                                "required": ["sql", "purpose"],
-                                "additionalProperties": False,
-                            },
-                        },
-                    },
-                    "required": ["queries"],
-                    "additionalProperties": False,
-                },
-            },
-        },
-    )
-
-    content = response.choices[0].message.content
-    if content:
-        data = json.loads(content)
-        return QueryPlan(**data)
-    return QueryPlan(queries=[])
-
-
-def _call_responses_api(
-    client: OpenAI,
-    model: str,
-    system_prompt: str,
-    user_prompt: str,
-) -> QueryPlan:
-    """Call Responses API with structured output for Codex models."""
-    response = client.responses.create(
-        model=model,
-        instructions=system_prompt,
-        input=user_prompt,
-        text={
-            "format": {
-                "type": "json_schema",
-                "name": "QueryPlan",
-                "strict": True,
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "queries": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "sql": {"type": "string"},
-                                    "purpose": {"type": "string"},
-                                },
-                                "required": ["sql", "purpose"],
-                                "additionalProperties": False,
-                            },
-                        },
-                    },
-                    "required": ["queries"],
-                    "additionalProperties": False,
-                },
-            },
-        },
-    )
-
-    # Extract text from response
-    content = response.output_text
-    if content:
-        data = json.loads(content)
-        return QueryPlan(**data)
-    return QueryPlan(queries=[])
-
-
-# =============================================================================
-# Main Entry Point
-# =============================================================================
-
-
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=1, max=10),
-    retry=retry_if_exception_type((TimeoutError, ConnectionError)),
-    reraise=True,
-)
-def get_query_plan(
-    question: str,
-    conversation_history: str = "",
-    owner: str | None = None,
-    error_feedback: str | None = None,
-) -> QueryPlan:
-    """
-    Get SQL query plan from LLM.
-
-    Args:
-        question: The user's question
-        conversation_history: Formatted conversation history for context
-        owner: Owner ID for filtering (e.g., "jsmith", "amartin")
-        error_feedback: Optional error message from failed SQL execution for retry
-
-    Returns:
-        QueryPlan with SQL queries
-    """
-    logger.debug(f"Query Planner: Analyzing question: {question[:50]}...")
-
-    config = get_config()
-    client = _get_openai_client()
-    model = config.router_model
-
-    # Build conversation history with error feedback if present
-    history = conversation_history or ""
-    if error_feedback:
-        history = f"{history}\n\n[PREVIOUS SQL FAILED]\n{error_feedback}\nPlease fix the SQL query."
-        logger.info(f"Query Planner: Retrying with error feedback: {error_feedback[:100]}...")
-
-    # Format the prompt
-    system_prompt = SCHEMA_PROMPT_TEMPLATE.format(
-        today=datetime.now().strftime("%Y-%m-%d"),
-        owner=owner or "all",
-        conversation_history=history,
-        question=question,
-    )
-
-    # Use appropriate API based on model
-    if model in RESPONSES_API_MODELS:
-        logger.debug(f"Using Responses API for model={model}")
-        result = _call_responses_api(client, model, system_prompt, question)
-    else:
-        logger.debug(f"Using Chat Completions API for model={model}")
-        result = _call_chat_completions(client, model, system_prompt, question)
-
-    logger.info(f"Query Planner: {len(result.queries)} queries")
-
-    # Log each SQL query for troubleshooting (debug level - only shows with -v)
-    for i, q in enumerate(result.queries, 1):
-        logger.debug(f"SQL [{i}] ({q.purpose}): {q.sql}")
-
-    return result
 
 
 # =============================================================================
@@ -436,14 +249,14 @@ def get_slot_plan(
     Returns:
         SlotPlan with slot queries
     """
-    logger.debug(f"Slot Planner: Analyzing question: {question[:50]}...")
+    logger.debug("Slot Planner: Analyzing question: %s...", question[:50])
 
     config = get_config()
     client = _get_openai_client()
     model = config.router_model
 
     # Format the prompt
-    system_prompt = SLOT_PROMPT_TEMPLATE.format(
+    system_prompt = PROMPT_TEMPLATE.format(
         today=datetime.now().strftime("%Y-%m-%d"),
         owner=owner or "all",
         conversation_history=conversation_history or "",
@@ -453,11 +266,11 @@ def get_slot_plan(
     # Call LLM for slots
     result = _call_chat_completions_slots(client, model, system_prompt, question)
 
-    logger.info(f"Slot Planner: {len(result.queries)} queries")
+    logger.info("Slot Planner: %d queries", len(result.queries))
 
     # Log each slot query
     for i, q in enumerate(result.queries, 1):
-        logger.debug(f"Slot [{i}] ({q.purpose}): table={q.table}, filters={q.filters}")
+        logger.debug("Slot [%d] (%s): table=%s, filters=%s", i, q.purpose, q.table, q.filters)
 
     return result
 
@@ -475,6 +288,38 @@ def slot_plan_to_query_plan(slot_plan: SlotPlan) -> QueryPlan:
     return QueryPlan(queries=queries)
 
 
+def get_query_plan(
+    question: str,
+    conversation_history: str = "",
+    owner: str | None = None,
+    error_feedback: str | None = None,
+) -> QueryPlan:
+    """
+    Get SQL query plan from LLM (uses slot-based planning internally).
+
+    Args:
+        question: The user's question
+        conversation_history: Formatted conversation history for context
+        owner: Owner ID for filtering (e.g., "jsmith", "amartin")
+        error_feedback: Optional error message from failed SQL execution for retry
+
+    Returns:
+        QueryPlan with SQL queries
+    """
+    # Include error feedback in conversation history for retry
+    history = conversation_history or ""
+    if error_feedback:
+        history = f"{history}\n\n[PREVIOUS QUERY FAILED]\n{error_feedback}\nPlease fix the query."
+        logger.info("Query Planner: Retrying with error feedback: %s...", error_feedback[:100])
+
+    slot_plan = get_slot_plan(
+        question=question,
+        conversation_history=history,
+        owner=owner,
+    )
+    return slot_plan_to_query_plan(slot_plan)
+
+
 __all__ = [
     "SQLQuery",
     "QueryPlan",
@@ -482,6 +327,5 @@ __all__ = [
     "get_slot_plan",
     "slot_plan_to_query_plan",
     "detect_owner_from_starter",
-    "reset_planner_chain",
     "STARTER_OWNER_MAP",
 ]

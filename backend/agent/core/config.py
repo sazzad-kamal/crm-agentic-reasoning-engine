@@ -42,10 +42,6 @@ class AgentConfig(BaseSettings):
     enable_follow_up_suggestions: bool = Field(
         default=True, description="Generate follow-up question suggestions"
     )
-    use_slot_filling: bool = Field(
-        default=True,
-        description="Use slot-based SQL generation instead of raw SQL for reliability",
-    )
 
     # -------------------------------------------------------------------------
     # Node Configuration

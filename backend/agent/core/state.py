@@ -83,7 +83,6 @@ class AgentState(TypedDict, total=False):
     resolved_company_id: str | None
     resolved_contact_id: str | None
     resolved_opportunity_id: str | None
-    days: int
     owner: str | None  # Role-based owner for filtering
     needs_rag: bool  # Whether RAG context is needed (from slot planner)
 
@@ -118,12 +117,8 @@ class AgentState(TypedDict, total=False):
     # Error handling
     error: str | None
 
-    # Progress/latency tracking
+    # Progress tracking
     steps: list[dict[str, Any]]
-    router_latency_ms: int
-    answer_latency_ms: int
-    llm_latency_ms: int
-    followup_latency_ms: int
 
 
 __all__ = ["Source", "AgentState", "Message", "format_history_for_prompt"]

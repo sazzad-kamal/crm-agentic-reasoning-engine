@@ -32,55 +32,6 @@ TableName = Literal[
     "attachments",
 ]
 
-# Valid filters per table (for prompt generation and validation)
-TABLE_FILTERS: dict[TableName, list[str]] = {
-    "opportunities": [
-        "owner",
-        "stage",
-        "company_id",
-        "type",
-        "value_gt",
-        "value_lt",
-        "stage_not_in",
-    ],
-    "contacts": [
-        "company_id",
-        "role",
-        "lifecycle_stage",
-    ],
-    "activities": [
-        "company_id",
-        "contact_id",
-        "type",
-        "date_after",
-    ],
-    "companies": [
-        "name",
-        "status",
-        "health_flags",
-        "account_owner",
-    ],
-    "history": [
-        "company_id",
-        "contact_id",
-        "date_after",
-    ],
-    "attachments": [
-        "company_id",
-        "type",
-    ],
-}
-
-# Valid order_by options per table
-TABLE_ORDER_BY: dict[TableName, list[str]] = {
-    "opportunities": ["value DESC", "value ASC", "close_date DESC", "close_date ASC"],
-    "contacts": ["last_name ASC", "first_name ASC"],
-    "activities": ["date DESC", "date ASC"],
-    "companies": ["name ASC", "renewal_date DESC"],
-    "history": ["date DESC"],
-    "attachments": ["name ASC"],
-}
-
 # SQL columns per table (excludes RAG fields: notes, description)
 # RAG fields come from vector search, not SQL
 TABLE_COLUMNS: dict[TableName, list[str]] = {
@@ -202,7 +153,7 @@ def build_sql(slot: SlotQuery) -> str:
     if slot.order_by:
         sql += f" ORDER BY {slot.order_by}"
 
-    logger.debug(f"Built SQL for '{slot.purpose}': {sql}")
+    logger.debug("Built SQL for '%s': %s", slot.purpose, sql)
     return sql
 
 
@@ -245,7 +196,7 @@ WHERE companies.name ILIKE {_escape_value(f'%{company_name}%')}"""
     if slot.order_by:
         sql += f" ORDER BY {slot.order_by}"
 
-    logger.debug(f"Built SQL with join for '{slot.purpose}': {sql}")
+    logger.debug("Built SQL with join for '%s': %s", slot.purpose, sql)
     return sql
 
 
@@ -260,13 +211,4 @@ def slot_to_sql(slot: SlotQuery) -> str:
     return build_sql(slot)
 
 
-__all__ = [
-    "SlotQuery",
-    "SlotPlan",
-    "TableName",
-    "TABLE_FILTERS",
-    "TABLE_ORDER_BY",
-    "TABLE_COLUMNS",
-    "build_sql",
-    "slot_to_sql",
-]
+__all__ = ["SlotQuery", "SlotPlan", "slot_to_sql"]

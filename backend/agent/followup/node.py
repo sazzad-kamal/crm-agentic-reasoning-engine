@@ -61,7 +61,6 @@ def followup_node(state: AgentState) -> AgentState:
 
         return {
             "follow_up_suggestions": suggestions,
-            "followup_latency_ms": latency_ms,
             "steps": [
                 {
                     "id": "followup",
@@ -77,7 +76,6 @@ def followup_node(state: AgentState) -> AgentState:
         logger.warning(f"[Followup] Failed after {latency_ms}ms: {e}")
         return {
             "follow_up_suggestions": [],
-            "followup_latency_ms": latency_ms,
             "steps": [
                 {
                     "id": "followup",

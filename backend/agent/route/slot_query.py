@@ -22,19 +22,6 @@ from pypika.functions import Lower
 logger = logging.getLogger(__name__)
 
 # =============================================================================
-# Table Definitions
-# =============================================================================
-
-TableName = Literal[
-    "opportunities",
-    "contacts",
-    "activities",
-    "companies",
-    "history",
-]
-
-
-# =============================================================================
 # Pydantic Models
 # =============================================================================
 
@@ -52,7 +39,7 @@ class Filter(BaseModel):
 class SlotQuery(BaseModel):
     """A single slot-based query."""
 
-    table: TableName = Field(description="Which table to query")
+    table: str = Field(description="Which table to query")
     filters: list[Filter] = Field(
         default_factory=list,
         description="List of filter conditions",
@@ -154,4 +141,4 @@ def slot_to_sql(slot: SlotQuery) -> str:
     return sql
 
 
-__all__ = ["Filter", "SlotQuery", "SlotPlan", "slot_to_sql", "TableName"]
+__all__ = ["Filter", "SlotQuery", "SlotPlan", "slot_to_sql"]

@@ -114,5 +114,89 @@
       }],
       "needs_rag": false
     }
+  },
+  {
+    "question": "What meetings are scheduled?",
+    "output": {
+      "queries": [{
+        "table": "activities",
+        "filters": [{"field": "type", "op": "eq", "value": "Meeting"}],
+        "columns": null,
+        "order_by": "due_datetime ASC"
+      }],
+      "needs_rag": false
+    }
+  },
+  {
+    "question": "Show recent interactions",
+    "output": {
+      "queries": [{
+        "table": "history",
+        "filters": [],
+        "columns": null,
+        "order_by": "date DESC"
+      }],
+      "needs_rag": false
+    }
+  },
+  {
+    "question": "What are the Delta Health deals?",
+    "output": {
+      "queries": [
+        {
+          "table": "companies",
+          "filters": [{"field": "name", "op": "eq", "value": "Delta"}],
+          "columns": null,
+          "order_by": null
+        },
+        {
+          "table": "opportunities",
+          "filters": [{"field": "company_id", "op": "eq", "value": "$company_id"}],
+          "columns": null,
+          "order_by": "value DESC"
+        }
+      ],
+      "needs_rag": false
+    }
+  },
+  {
+    "question": "What's the history with Acme?",
+    "output": {
+      "queries": [
+        {
+          "table": "companies",
+          "filters": [{"field": "name", "op": "eq", "value": "Acme"}],
+          "columns": null,
+          "order_by": null
+        },
+        {
+          "table": "history",
+          "filters": [{"field": "company_id", "op": "eq", "value": "$company_id"}],
+          "columns": null,
+          "order_by": "date DESC"
+        }
+      ],
+      "needs_rag": true
+    }
+  },
+  {
+    "question": "What activities happened with Acme?",
+    "output": {
+      "queries": [
+        {
+          "table": "companies",
+          "filters": [{"field": "name", "op": "eq", "value": "Acme"}],
+          "columns": null,
+          "order_by": null
+        },
+        {
+          "table": "activities",
+          "filters": [{"field": "company_id", "op": "eq", "value": "$company_id"}],
+          "columns": null,
+          "order_by": "due_datetime DESC"
+        }
+      ],
+      "needs_rag": false
+    }
   }
 ]

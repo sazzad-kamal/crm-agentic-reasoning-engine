@@ -1,7 +1,6 @@
 """RAG fetch node for unstructured account context."""
 
 import logging
-import time
 
 from backend.agent.core.state import AgentState, Source
 
@@ -32,8 +31,6 @@ def _call_account_rag(
 
 def fetch_rag_node(state: AgentState) -> AgentState:
     """Fetch unstructured context via RAG using resolved entity IDs from fetch_sql."""
-    start_time = time.time()
-
     # Check if RAG is needed (from slot planner decision)
     needs_rag = state.get("needs_rag", True)  # Default to True for backward compatibility
     if not needs_rag:
@@ -72,11 +69,7 @@ def fetch_rag_node(state: AgentState) -> AgentState:
         # The RAG tool joins chunks with "\n\n---\n\n"
         context_chunks = account_answer.split("\n\n---\n\n") if account_answer else []
 
-        latency_ms = int((time.time() - start_time) * 1000)
-        logger.info(
-            f"[FetchRAG] Complete in {latency_ms}ms, "
-            f"sources={len(account_sources)}, chunks={len(context_chunks)}"
-        )
+        logger.info(f"[FetchRAG] Complete: sources={len(account_sources)}, chunks={len(context_chunks)}")
 
         return {
             "account_context_answer": account_answer,
@@ -86,8 +79,7 @@ def fetch_rag_node(state: AgentState) -> AgentState:
         }
 
     except Exception as e:
-        latency_ms = int((time.time() - start_time) * 1000)
-        logger.error(f"[FetchRAG] Failed after {latency_ms}ms: {e}")
+        logger.error(f"[FetchRAG] Failed: {e}")
         return {
             "account_context_answer": "",
             "account_rag_invoked": True,

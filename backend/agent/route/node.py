@@ -5,7 +5,6 @@ Uses slot-based query planning to generate SQL queries.
 """
 
 import logging
-import time
 
 from backend.agent.core.state import AgentState, format_history_for_prompt
 from backend.agent.route.query_planner import (
@@ -23,9 +22,7 @@ def route_node(state: AgentState) -> AgentState:
 
     Sets query_plan in state for downstream nodes.
     """
-    start_time = time.time()
     question = state["question"]
-
     logger.info(f"[Route] Processing: {question[:50]}...")
 
     # Format conversation history for the planner
@@ -43,11 +40,7 @@ def route_node(state: AgentState) -> AgentState:
             owner=owner,
         )
 
-        latency_ms = int((time.time() - start_time) * 1000)
-
-        logger.info(
-            f"[Route] Result: {len(slot_plan.queries)} queries, needs_rag={slot_plan.needs_rag}, latency={latency_ms}ms"
-        )
+        logger.info(f"[Route] Result: {len(slot_plan.queries)} queries, needs_rag={slot_plan.needs_rag}")
 
         return {
             "slot_plan": slot_plan,
@@ -56,8 +49,7 @@ def route_node(state: AgentState) -> AgentState:
         }
 
     except Exception as e:
-        latency_ms = int((time.time() - start_time) * 1000)
-        logger.error(f"[Route] Failed after {latency_ms}ms: {e}")
+        logger.error(f"[Route] Failed: {e}")
 
         return {
             "slot_plan": SlotPlan(queries=[], needs_rag=False),

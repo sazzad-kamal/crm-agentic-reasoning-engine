@@ -1,7 +1,6 @@
 """SQL data fetch node."""
 
 import logging
-import time
 
 from backend.agent.core.state import AgentState, Source, format_history_for_prompt
 from backend.agent.datastore.connection import get_connection
@@ -17,8 +16,6 @@ def fetch_sql_node(state: AgentState) -> AgentState:
 
     Sets sql_results and resolved_company_id in state for downstream nodes.
     """
-    start_time = time.time()
-
     slot_plan: SlotPlan | None = state.get("slot_plan")
 
     # If no slot plan (error in route_node), return empty results
@@ -80,10 +77,8 @@ def fetch_sql_node(state: AgentState) -> AgentState:
         # Build sources from results
         sources = _build_sources_from_results(sql_results)
 
-        latency_ms = int((time.time() - start_time) * 1000)
         logger.info(
-            f"[FetchSQL] Complete in {latency_ms}ms, "
-            f"results={list(sql_results.keys())}, "
+            f"[FetchSQL] Complete: results={list(sql_results.keys())}, "
             f"resolved={{company={resolved_company_id}, contact={resolved_contact_id}, opp={resolved_opportunity_id}}}, "
             f"sql_success={stats.success}/{stats.total}"
         )
@@ -100,8 +95,7 @@ def fetch_sql_node(state: AgentState) -> AgentState:
         }
 
     except Exception as e:
-        latency_ms = int((time.time() - start_time) * 1000)
-        logger.error(f"[FetchSQL] Failed after {latency_ms}ms: {e}")
+        logger.error(f"[FetchSQL] Failed: {e}")
         return {
             "sql_results": {},
             "raw_data": {},

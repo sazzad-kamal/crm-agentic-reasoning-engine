@@ -1,7 +1,6 @@
 """Answer synthesis node for agent workflow."""
 
 import logging
-import time
 
 from backend.agent.answer.llm import call_answer_chain
 from backend.agent.core.state import AgentState, format_history_for_prompt
@@ -15,8 +14,6 @@ def answer_node(state: AgentState) -> AgentState:
 
     Uses simplified call_answer_chain with sql_results and account_context.
     """
-    start_time = time.time()
-
     logger.info("[Answer] Synthesizing response...")
 
     try:
@@ -31,7 +28,7 @@ def answer_node(state: AgentState) -> AgentState:
         conversation_history = format_history_for_prompt(messages) if messages else ""
 
         # Call answer chain with simplified parameters
-        answer, llm_latency = call_answer_chain(
+        answer, _ = call_answer_chain(
             question=state["question"],
             sql_results=sql_results,
             account_context=account_context,
@@ -43,8 +40,7 @@ def answer_node(state: AgentState) -> AgentState:
             logger.warning("[Answer] LLM returned empty answer, using fallback")
             answer = "I apologize, but I wasn't able to generate a complete response. Please try rephrasing your question."
 
-        total_latency_ms = int((time.time() - start_time) * 1000)
-        logger.info(f"[Answer] Synthesized in {total_latency_ms}ms (LLM: {llm_latency}ms)")
+        logger.info("[Answer] Synthesized response")
 
         # Update messages for conversation memory (persisted via LangGraph checkpoint)
         messages = list(state.get("messages", []))
@@ -69,8 +65,7 @@ def answer_node(state: AgentState) -> AgentState:
         }
 
     except Exception as e:
-        total_latency_ms = int((time.time() - start_time) * 1000)
-        logger.error(f"[Answer] Failed after {total_latency_ms}ms: {e}")
+        logger.error(f"[Answer] Failed: {e}")
         error_answer = f"I encountered an error generating the answer: {str(e)}"
 
         # Still update messages for conversation continuity

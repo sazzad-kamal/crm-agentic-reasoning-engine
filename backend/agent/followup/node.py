@@ -1,7 +1,6 @@
 """Follow-up suggestion node for agent workflow."""
 
 import logging
-import time
 
 from backend.agent.core.config import get_config
 from backend.agent.core.state import AgentState, format_history_for_prompt
@@ -12,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 def followup_node(state: AgentState) -> AgentState:
     config = get_config()
-    start_time = time.time()
 
     if not config.enable_follow_up_suggestions:
         logger.info("[Followup] Suggestions disabled in config")
@@ -57,14 +55,12 @@ def followup_node(state: AgentState) -> AgentState:
             suggestions = [s for s in suggestions if s and s.strip()]
             suggestions = suggestions[: config.max_followup_suggestions]
 
-        latency_ms = int((time.time() - start_time) * 1000)
-        logger.info(f"[Followup] Generated {len(suggestions)} suggestions in {latency_ms}ms")
+        logger.info(f"[Followup] Generated {len(suggestions)} suggestions")
 
         return {"follow_up_suggestions": suggestions}
 
     except Exception as e:
-        latency_ms = int((time.time() - start_time) * 1000)
-        logger.warning(f"[Followup] Failed after {latency_ms}ms: {e}")
+        logger.warning(f"[Followup] Failed: {e}")
         return {"follow_up_suggestions": []}
 
 

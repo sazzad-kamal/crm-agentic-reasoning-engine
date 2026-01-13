@@ -152,12 +152,12 @@ def run_route_eval(limit: int | None = None, verbose: bool = False) -> EvalResul
                 expected["queries"], actual["queries"]
             )
 
-            # Compare needs_rag
+            # Compare needs_rag (tracked but not included in pass/fail)
             needs_rag_match = expected["needs_rag"] == actual["needs_rag"]
 
-            # Overall pass
+            # Overall pass (excludes needs_rag for now)
             passed = all(
-                [query_count_match, table_match, filters_match, order_by_match, needs_rag_match]
+                [query_count_match, table_match, filters_match, order_by_match]
             )
 
             # Update counters

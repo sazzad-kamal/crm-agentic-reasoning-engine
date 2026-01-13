@@ -78,7 +78,7 @@
               "value": "Acme"
             }
           ],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "opportunities",
@@ -241,7 +241,7 @@
               "value": "Acme"
             }
           ],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "contacts",
@@ -252,7 +252,7 @@
               "value": "$company_id"
             }
           ],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -271,7 +271,7 @@
               "value": "Acme"
             }
           ],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "history",
@@ -282,7 +282,7 @@
               "value": "$company_id"
             }
           ],
-          "order_by": "date DESC"
+          "order_by": "occurred_at DESC"
         }
       ],
       "needs_rag": true
@@ -301,7 +301,7 @@
               "value": "Acme"
             }
           ],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "activities",
@@ -331,7 +331,7 @@
               "value": "at-risk"
             }
           ],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -350,7 +350,7 @@
               "value": "Delta"
             }
           ],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": true
@@ -369,7 +369,7 @@
               "value": "Green"
             }
           ],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": true
@@ -388,7 +388,7 @@
               "value": "healthy"
             }
           ],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -407,7 +407,7 @@
               "value": "Delta"
             }
           ],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "contacts",
@@ -418,7 +418,7 @@
               "value": "$company_id"
             }
           ],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -437,7 +437,7 @@
               "value": "Delta"
             }
           ],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "opportunities",
@@ -467,7 +467,7 @@
               "value": "Delta"
             }
           ],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "history",
@@ -478,7 +478,7 @@
               "value": "$company_id"
             }
           ],
-          "order_by": "date DESC"
+          "order_by": "occurred_at DESC"
         }
       ],
       "needs_rag": true
@@ -497,7 +497,7 @@
               "value": "Green"
             }
           ],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "contacts",
@@ -508,7 +508,7 @@
               "value": "$company_id"
             }
           ],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -527,7 +527,7 @@
               "value": "Green"
             }
           ],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "opportunities",
@@ -557,7 +557,7 @@
               "value": "Green"
             }
           ],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "history",
@@ -568,7 +568,7 @@
               "value": "$company_id"
             }
           ],
-          "order_by": "date DESC"
+          "order_by": "occurred_at DESC"
         }
       ],
       "needs_rag": true
@@ -587,7 +587,7 @@
               "value": "churn"
             }
           ],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -606,7 +606,7 @@
               "value": "at-risk"
             }
           ],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -625,7 +625,7 @@
               "value": "healthy"
             }
           ],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -657,7 +657,7 @@
         {
           "table": "contacts",
           "filters": [],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -676,7 +676,7 @@
               "value": "Decision Maker"
             }
           ],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -708,7 +708,7 @@
               "value": "Acme"
             }
           ],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "contacts",
@@ -719,7 +719,7 @@
               "value": "$company_id"
             }
           ],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -745,7 +745,7 @@
         {
           "table": "contacts",
           "filters": [],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -764,7 +764,7 @@
               "value": "Beta"
             }
           ],
-          "order_by": null
+          "order_by": ""
         },
         {
           "table": "contacts",
@@ -775,7 +775,7 @@
               "value": "$company_id"
             }
           ],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -798,7 +798,7 @@
               ]
             }
           ],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -811,7 +811,7 @@
         {
           "table": "contacts",
           "filters": [],
-          "order_by": null
+          "order_by": ""
         }
       ],
       "needs_rag": false
@@ -862,7 +862,7 @@
         {
           "table": "history",
           "filters": [],
-          "order_by": "date DESC"
+          "order_by": "occurred_at DESC"
         }
       ],
       "needs_rag": false

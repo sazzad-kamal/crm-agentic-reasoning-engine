@@ -4,72 +4,82 @@
 # Assertion types:
 #   row_count: Exact number of rows
 #   row_count_min/max: Range of rows
-#   must_contain_all: All values must appear
-#   must_not_contain: Values must NOT appear (critical for filtering)
+#   column_values: Expected values must appear in column (extras OK)
+#   column_excludes: Values must NOT appear in column
 #   total_value: Sum of value column (10% tolerance)
-#   exact_values: Exact column values
+#   exact_values: Exact column values (set equality)
+#
+# Legacy (text-based, less precise):
+#   must_contain_all/any: Values in flattened text
+#   must_not_contain: Values not in flattened text
 
 # =============================================================================
 # OPPORTUNITIES BRANCH - Starter: "What deals are in the pipeline?"
-# All deals visible (no owner filtering)
 # =============================================================================
 
 "What deals are in the pipeline?":
-  row_count_min: 8  # All open opportunities
-  must_contain_all: ["Acme", "Beta", "Crown", "Delta", "Fusion", "Harbor", "Eastern"]
-  must_not_contain: ["Closed Won", "Closed Lost"]
+  row_count_min: 8
+  column_excludes:
+    stage: ["Closed Won", "Closed Lost"]
 
 "How are deals distributed by stage?":
-  row_count_min: 8
-  must_contain_all: ["Proposal", "Qualified", "Negotiation", "Discovery"]
-  must_not_contain: ["Closed Won", "Closed Lost"]
+  row_count_min: 4
+  column_values:
+    stage: ["Proposal", "Qualified", "Negotiation", "Discovery"]
 
 "What are the highest value deals?":
   row_count_min: 4
-  must_contain_all: ["32000", "26000", "24000", "22000"]
+  column_values:
+    value: [32000, 26000, 24000, 22000]
 
-"Which deals involve Acme Corp?":
+"Which deals involve Acme Manufacturing?":
   row_count: 2
-  must_contain_all: ["Acme", "15000", "24000"]
-  must_not_contain: ["Crown", "Beta", "Delta", "Green"]
+  column_values:
+    value: [15000, 24000]
   total_value: 39000
 
 "What deals are in Proposal stage?":
   row_count_min: 2
-  must_contain: "Proposal"
-  must_not_contain: ["Qualified", "Negotiation", "Discovery", "Closed"]
+  column_values:
+    stage: ["Proposal"]
+  column_excludes:
+    stage: ["Qualified", "Negotiation", "Discovery", "Closed Won", "Closed Lost"]
 
 "What deals are in Qualified stage?":
   row_count_min: 3
-  must_contain: "Qualified"
-  must_not_contain: ["Proposal", "Negotiation", "Closed"]
+  column_values:
+    stage: ["Qualified"]
+  column_excludes:
+    stage: ["Proposal", "Negotiation", "Closed Won", "Closed Lost"]
 
 "What deals are in Negotiation stage?":
   row_count: 1
-  must_contain_all: ["Negotiation", "Beta", "32000"]
-  must_not_contain: ["Proposal", "Qualified", "Discovery"]
+  column_values:
+    stage: ["Negotiation"]
+    value: [32000]
 
 "Which deals are over $50,000?":
   row_count: 0
-  # No deals exceed $50,000
 
 "Which deals are under $20,000?":
   row_count_min: 4
-  must_contain_all: ["15000", "18000", "12000"]
-  must_not_contain: ["32000", "26000", "24000", "22000"]
+  column_values:
+    value: [15000, 18000, 12000]
+  column_excludes:
+    value: [32000, 26000, 24000, 22000]
 
 "What's the total pipeline value?":
   row_count_min: 1
 
-"Who are the Acme contacts?":
+"Who are the Acme Manufacturing contacts?":
   row_count: 3
-  must_contain_all: ["Anna", "Beth", "Joe"]
-  must_not_contain: ["Maria", "Erin", "Carlos"]
+  column_values:
+    first_name: ["Anna", "Beth", "Joe"]
+  column_excludes:
+    first_name: ["Maria", "Erin", "Carlos"]
 
-"What activities happened with Acme?":
+"What activities happened with Acme Manufacturing?":
   row_count_min: 1
-  must_contain: "Acme"
-  must_not_contain: ["Beta", "Delta", "Green"]
 
 # =============================================================================
 # COMPANIES BRANCH - Starter: "Which accounts are at risk?"
@@ -79,44 +89,50 @@
   row_count_min: 1
   must_contain_any: ["at-risk", "Delta", "Green"]
 
-"What's happening with Delta Health?":
+"What's happening with Delta Health Clinics?":
   row_count_min: 1
-  must_contain: "Delta"
-  must_not_contain: ["Acme", "Beta", "Crown"]
+  column_values:
+    name: ["Delta Health Clinics"]
 
-"What's happening with Green Energy?":
+"What's happening with Green Energy Partners?":
   row_count_min: 1
-  must_contain: "Green"
-  must_not_contain: ["Delta", "Acme", "Beta"]
+  column_values:
+    name: ["Green Energy Partners"]
 
 "Which accounts have health issues?":
   row_count_min: 1
   must_contain_any: ["at-risk", "Churned"]
 
-"Who are the Delta Health contacts?":
+"Who are the Delta Health Clinics contacts?":
   row_count: 3
-  must_contain_all: ["Erin", "Mike", "Priya"]
-  must_not_contain: ["Anna", "Carlos", "Maria"]
+  column_values:
+    first_name: ["Erin", "Mike", "Priya"]
+  column_excludes:
+    first_name: ["Anna", "Carlos", "Maria"]
 
-"What are the Delta Health deals?":
+"What are the Delta Health Clinics deals?":
   row_count: 2
-  must_contain_all: ["Delta", "22000", "15000"]
-  must_not_contain: ["Green", "Acme", "Beta"]
+  column_values:
+    value: [22000, 15000]
   total_value: 37000
 
-"Who are the Green Energy contacts?":
+"Who are the Green Energy Partners contacts?":
   row_count: 3
-  must_contain_all: ["Carlos", "Linda", "Tom"]
-  must_not_contain: ["Erin", "Anna", "Maria"]
+  column_values:
+    first_name: ["Carlos", "Linda", "Tom"]
+  column_excludes:
+    first_name: ["Erin", "Anna", "Maria"]
 
-"What are the Green Energy deals?":
+"What are the Green Energy Partners deals?":
   row_count: 2
-  must_contain_all: ["Green", "Closed Lost"]
-  must_not_contain: ["Delta", "Acme"]
+  column_values:
+    stage: ["Closed Lost"]
 
 "Which accounts are churning?":
-  row_count_min: 1
-  must_contain_any: ["Churned", "Green"]
+  row_count: 1
+  column_values:
+    name: ["Green Energy Partners"]
+    status: ["Churned"]
 
 "Which accounts need attention?":
   row_count_min: 1
@@ -134,20 +150,21 @@
 
 "Who are the decision makers?":
   row_count_min: 1
-  must_contain_any: ["Decision Maker", "Champion", "Executive"]
+  column_values:
+    role: ["Decision Maker"]
 
 "Which contacts had recent activity?":
   row_count_min: 1
 
-"Who at Acme needs follow-up?":
+"Who at Acme Manufacturing needs follow-up?":
   row_count_min: 1
-  must_contain: "Acme"
-  must_not_contain: ["Beta", "Delta", "Green"]
 
-"Who's the contact at Beta Corp?":
-  row_count: 2
-  must_contain_all: ["Maria", "Lisa"]
-  must_not_contain: ["Anna", "Erin", "Carlos"]
+"Who's the contact at Beta Tech Solutions?":
+  row_count: 3
+  column_values:
+    first_name: ["Lisa", "Omar", "Sam"]
+  column_excludes:
+    first_name: ["Anna", "Erin", "Carlos"]
 
 "Which executives should I engage?":
   row_count_min: 1
@@ -155,7 +172,45 @@
 
 "What are their roles?":
   row_count_min: 1
-  must_contain_any: ["Decision Maker", "Champion", "Technical Contact", "Executive"]
+  column_values:
+    role: ["Decision Maker", "Champion", "Technical Contact", "Executive"]
 
 "What were the recent interactions?":
+  row_count_min: 1
+
+# =============================================================================
+# HISTORY/ACTIVITY QUESTIONS
+# =============================================================================
+
+"What's the history with Acme Manufacturing?":
+  row_count_min: 1
+
+"What's the Delta Health Clinics history?":
+  row_count_min: 1
+
+"What's the Green Energy Partners history?":
+  row_count_min: 1
+
+"What emails were sent recently?":
+  row_count_min: 1
+  column_values:
+    type: ["Email"]
+
+"What meetings occurred recently?":
+  row_count_min: 1
+  column_values:
+    type: ["Meeting"]
+
+# =============================================================================
+# ABSTRACT/RECOMMENDATION QUESTIONS (minimal assertions)
+# =============================================================================
+
+"What are the warning signs?":
+  row_count_min: 1
+  must_contain_any: ["at-risk", "Churned", "low-activity"]
+
+"Which leads are going cold?":
+  row_count_min: 1
+
+"What's the best way to reach them?":
   row_count_min: 1

@@ -336,6 +336,24 @@ def validate_sql_results(question: str, sql_results: dict) -> tuple[bool, list[s
             if expected_set != actual_set:
                 errors.append(f"exact_values[{col}]: got {actual_set}, expected {expected_set}")
 
+    # Validate column_values (expected values must appear in column, extras OK)
+    if "column_values" in expected:
+        for col, values in expected["column_values"].items():
+            actual_col_values = [row.get(col) for row in all_rows if col in row]
+            actual_set = set(str(v).lower() for v in actual_col_values)
+            for v in values:
+                if str(v).lower() not in actual_set:
+                    errors.append(f"column_values[{col}]: '{v}' not found in column")
+
+    # Validate column_excludes (values must NOT appear in column)
+    if "column_excludes" in expected:
+        for col, values in expected["column_excludes"].items():
+            actual_col_values = [row.get(col) for row in all_rows if col in row]
+            actual_set = set(str(v).lower() for v in actual_col_values)
+            for v in values:
+                if str(v).lower() in actual_set:
+                    errors.append(f"column_excludes[{col}]: '{v}' found but should be excluded")
+
     passed = len(errors) == 0
     return passed, errors
 

@@ -57,8 +57,8 @@
     "What are their roles?"
   ],
   "Which contacts had recent activity?": [
-    "Who opened emails recently?",
-    "Who attended meetings?",
+    "What emails were sent recently?",
+    "What meetings occurred recently?",
     "What were the recent interactions?"
   ]
 }

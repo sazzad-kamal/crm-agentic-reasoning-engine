@@ -1,7 +1,7 @@
 """
-SQL query executor for slot-based query architecture.
+SQL query executor.
 
-Executes SlotPlan queries against DuckDB - builds SQL from slots using pypika.
+Executes SQL queries against DuckDB.
 """
 
 import logging
@@ -10,7 +10,7 @@ from typing import Any
 
 import duckdb
 
-from backend.agent.route.slot_query import SlotPlan, slot_to_sql
+from backend.agent.route.sql_planner import SQLPlan
 
 logger = logging.getLogger(__name__)
 
@@ -99,94 +99,101 @@ class SQLExecutionStats:
         return "; ".join(f"{purpose}: {error}" for purpose, error in self.errors.items())
 
 
-def execute_slot_plan(
-    plan: SlotPlan,
+def execute_sql_plan(
+    plan: SQLPlan,
     conn: duckdb.DuckDBPyConnection,
     max_rows: int = 100,
 ) -> tuple[dict[str, list[dict[str, Any]]], dict[str, str], SQLExecutionStats]:
     """
-    Execute SlotPlan queries against DuckDB.
-
-    Builds SQL from slots using pypika, then executes against DuckDB.
+    Execute SQLPlan query against DuckDB.
 
     Args:
-        plan: SlotPlan containing slot queries
+        plan: SQLPlan containing raw SQL query
         conn: DuckDB connection
-        max_rows: Maximum rows to return per query (safety limit)
+        max_rows: Maximum rows to return (safety limit)
 
     Returns:
-        Tuple of (results dict by purpose, resolved placeholders dict, execution stats)
+        Tuple of (results dict, resolved placeholders dict, execution stats)
 
     Raises:
         SQLValidationError: If SQL contains dangerous keywords
     """
     results: dict[str, list[dict[str, Any]]] = {}
-    resolved: dict[str, str] = {}  # $company_id, $contact_id
+    resolved: dict[str, str] = {}
     stats = SQLExecutionStats()
 
-    for idx, slot in enumerate(plan.queries):
-        stats.total += 1
-        query_key = f"{slot.table}_{idx}" if len(plan.queries) > 1 else slot.table
-        try:
-            # Build SQL from slot using pypika
-            sql = slot_to_sql(slot)
+    if not plan.sql or not plan.sql.strip():
+        return results, resolved, stats
 
-            # Validate SQL for safety
-            validate_sql(sql)
+    stats.total = 1
+    sql = plan.sql.strip()
 
-            # Resolve placeholders from previous query results
-            sql = resolve_placeholders(sql, resolved)
+    try:
+        # Validate SQL for safety
+        validate_sql(sql)
 
-            # Add LIMIT if not present (safety)
-            if "LIMIT" not in sql.upper():
-                sql = f"{sql} LIMIT {max_rows}"
+        # Add LIMIT if not present (safety)
+        if "LIMIT" not in sql.upper():
+            sql = f"{sql} LIMIT {max_rows}"
 
-            logger.debug(f"Executing SQL for '{slot.table}': {sql[:100]}...")
+        logger.debug(f"Executing SQL: {sql[:100]}...")
 
-            # Execute query
-            result = conn.execute(sql)
-            rows = result.fetchall()
-            columns = [desc[0] for desc in result.description]
+        # Execute query
+        result = conn.execute(sql)
+        rows = result.fetchall()
+        columns = [desc[0] for desc in result.description]
 
-            # Convert to list of dicts
-            data = [dict(zip(columns, row, strict=True)) for row in rows]
+        # Convert to list of dicts
+        data = [dict(zip(columns, row, strict=True)) for row in rows]
 
-            # Enforce max_rows limit
-            if len(data) > max_rows:
-                logger.warning(
-                    f"Query '{slot.table}' returned {len(data)} rows, truncating to {max_rows}"
-                )
-                data = data[:max_rows]
+        # Enforce max_rows limit
+        if len(data) > max_rows:
+            logger.warning(f"Query returned {len(data)} rows, truncating to {max_rows}")
+            data = data[:max_rows]
 
-            results[query_key] = data
-            stats.success += 1
+        # Determine result key from SQL (first table mentioned)
+        result_key = _extract_table_from_sql(sql)
+        results[result_key] = data
+        stats.success = 1
 
-            # Cache IDs for subsequent queries and RAG filtering
-            if data:
-                first_row = data[0]
-                for key in ["company_id", "contact_id", "opportunity_id"]:
-                    if key in first_row and first_row[key] and f"${key}" not in resolved:
-                        resolved[f"${key}"] = str(first_row[key])
+        # Cache IDs for RAG filtering
+        if data:
+            first_row = data[0]
+            for key in ["company_id", "contact_id", "opportunity_id"]:
+                if key in first_row and first_row[key]:
+                    resolved[f"${key}"] = str(first_row[key])
 
-            logger.debug(f"Query '{slot.table}' returned {len(data)} rows")
+        logger.debug(f"Query returned {len(data)} rows")
 
-        except SQLValidationError:
-            # Re-raise validation errors
-            raise
+    except SQLValidationError:
+        raise
 
-        except Exception as e:
-            error_msg = str(e)
-            logger.error(f"SQL execution failed for '{slot.table}': {error_msg}")
-            # Store error for retry feedback
-            stats.errors[query_key] = error_msg
-            # Store empty result for failed queries instead of failing entirely
-            results[query_key] = []
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"SQL execution failed: {error_msg}")
+        stats.errors["query"] = error_msg
+        results["query"] = []
 
     return results, resolved, stats
 
 
+def _extract_table_from_sql(sql: str) -> str:
+    """Extract main table name from SQL for result key."""
+    sql_upper = sql.upper()
+
+    # Try FROM clause
+    match = re.search(r"\bFROM\s+(\w+)", sql_upper)
+    if match:
+        # Get actual case from original SQL
+        start = match.start(1)
+        end = match.end(1)
+        return sql[start:end].lower()
+
+    return "query"
+
+
 __all__ = [
-    "execute_slot_plan",
+    "execute_sql_plan",
     "resolve_placeholders",
     "validate_sql",
     "SQLExecutionError",

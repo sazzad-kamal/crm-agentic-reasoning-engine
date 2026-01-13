@@ -1,27 +1,26 @@
-"""Route node evaluation - tests query planner in isolation."""
+"""SQL Planner evaluation - tests generated SQL against expected results."""
 
-import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import yaml
 from rich.console import Console
 from rich.table import Table
 
-from backend.agent.route.query_planner import get_slot_plan
-from backend.agent.route.slot_query import SlotPlan
+from backend.agent.datastore.connection import get_connection
+from backend.agent.followup.tree import get_expected_sql_results, validate_sql_results
+from backend.agent.route.sql_planner import get_sql_plan
 
-_DIR = Path(__file__).parent
 console = Console()
 
+_FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 
-@dataclass
-class FieldResult:
-    """Result for a single field comparison."""
 
-    field: str
-    expected: str
-    actual: str
-    match: bool
+def _load_test_questions() -> list[str]:
+    """Load all questions from expected_sql_results.yaml (memory-independent)."""
+    with open(_FIXTURES_DIR / "expected_sql_results.yaml") as f:
+        data = yaml.safe_load(f)
+    return list(data.keys())
 
 
 @dataclass
@@ -29,8 +28,10 @@ class CaseResult:
     """Result for a single test case."""
 
     question: str
+    sql: str
     passed: bool
-    field_results: list[FieldResult] = field(default_factory=list)
+    row_count: int = 0
+    errors: list[str] = field(default_factory=list)
     error: str | None = None
 
 
@@ -40,226 +41,148 @@ class EvalResults:
 
     total: int = 0
     passed: int = 0
+    sql_executed: int = 0
+    sql_failed: int = 0
     cases: list[CaseResult] = field(default_factory=list)
 
-    # Per-field accuracy
-    query_count_correct: int = 0
-    table_correct: int = 0
-    filters_correct: int = 0
-    order_by_correct: int = 0
-    needs_rag_correct: int = 0
 
-
-def _load_eval_cases() -> list[dict]:
-    """Load test cases from eval_cases.json."""
-    with open(_DIR / "eval_cases.json") as f:
-        data: list[dict] = json.load(f)
-        return data
-
-
-def _compare_filters(expected: list[dict], actual: list[dict]) -> bool:
-    """Compare filter lists (order-insensitive)."""
-    if len(expected) != len(actual):
-        return False
-
-    def normalize(f: dict) -> tuple:
-        value = f.get("value")
-        if isinstance(value, list):
-            value = tuple(sorted(value))
-        return (f.get("field"), f.get("op"), value)
-
-    expected_set = {normalize(f) for f in expected}
-    actual_set = {normalize(f) for f in actual}
-    return expected_set == actual_set
-
-
-def _compare_queries(expected: list[dict], actual: list[dict]) -> tuple[bool, bool, bool]:
+def run_sql_eval(
+    questions: list[str] | None = None,
+    verbose: bool = False,
+    limit: int | None = None,
+) -> EvalResults:
     """
-    Compare query lists.
+    Run SQL planner evaluation.
 
-    Returns: (table_match, filters_match, order_by_match)
-    """
-    if len(expected) != len(actual):
-        return False, False, False
-
-    table_match = True
-    filters_match = True
-    order_by_match = True
-
-    for exp, act in zip(expected, actual, strict=True):
-        if exp.get("table") != act.get("table"):
-            table_match = False
-
-        exp_filters = exp.get("filters", [])
-        act_filters = act.get("filters", [])
-        if not _compare_filters(exp_filters, act_filters):
-            filters_match = False
-
-        if exp.get("order_by") != act.get("order_by"):
-            order_by_match = False
-
-    return table_match, filters_match, order_by_match
-
-
-def _slot_plan_to_dict(plan: SlotPlan) -> dict:
-    """Convert SlotPlan to dict for comparison."""
-    return {
-        "queries": [
-            {
-                "table": q.table,
-                "filters": [{"field": f.field, "op": f.op, "value": f.value} for f in q.filters],
-                "order_by": q.order_by,
-            }
-            for q in plan.queries
-        ],
-        "needs_rag": plan.needs_rag,
-    }
-
-
-def run_route_eval(limit: int | None = None, verbose: bool = False) -> EvalResults:
-    """
-    Run route node evaluation.
+    For each question:
+    1. Generate SQL via get_sql_plan()
+    2. Execute SQL against DuckDB
+    3. Validate results against expected_sql_results.yaml assertions
 
     Args:
-        limit: Maximum number of test cases to run
-        verbose: Print detailed output for each case
+        questions: List of questions to test (default: TEST_QUESTIONS)
+        verbose: Print detailed output
 
     Returns:
         EvalResults with per-case and aggregate metrics
     """
-    cases = _load_eval_cases()
+    questions = questions or _load_test_questions()
     if limit:
-        cases = cases[:limit]
+        questions = questions[:limit]
+    results = EvalResults(total=len(questions))
+    conn = get_connection()
 
-    results = EvalResults(total=len(cases))
-
-    for i, case in enumerate(cases):
-        question = case["question"]
-        expected = case["output"]
-
+    for i, question in enumerate(questions):
         if verbose:
-            console.print(f"\n[bold]Case {i + 1}/{len(cases)}:[/bold] {question}")
+            console.print(f"\n[bold]Case {i + 1}/{len(questions)}:[/bold] {question}")
 
         try:
-            actual_plan = get_slot_plan(question)
-            actual = _slot_plan_to_dict(actual_plan)
-
-            # Compare query count
-            query_count_match = len(expected["queries"]) == len(actual["queries"])
-
-            # Compare queries
-            table_match, filters_match, order_by_match = _compare_queries(
-                expected["queries"], actual["queries"]
-            )
-
-            # Compare needs_rag (tracked but not included in pass/fail)
-            needs_rag_match = expected["needs_rag"] == actual["needs_rag"]
-
-            # Overall pass (excludes needs_rag for now)
-            passed = all(
-                [query_count_match, table_match, filters_match, order_by_match]
-            )
-
-            # Update counters
-            if query_count_match:
-                results.query_count_correct += 1
-            if table_match:
-                results.table_correct += 1
-            if filters_match:
-                results.filters_correct += 1
-            if order_by_match:
-                results.order_by_correct += 1
-            if needs_rag_match:
-                results.needs_rag_correct += 1
-            if passed:
-                results.passed += 1
-
-            # Build field results
-            field_results = [
-                FieldResult("query_count", str(len(expected["queries"])), str(len(actual["queries"])), query_count_match),
-                FieldResult("table", _tables_str(expected), _tables_str(actual), table_match),
-                FieldResult("filters", _filters_str(expected), _filters_str(actual), filters_match),
-                FieldResult("order_by", _order_by_str(expected), _order_by_str(actual), order_by_match),
-                FieldResult("needs_rag", str(expected["needs_rag"]), str(actual["needs_rag"]), needs_rag_match),
-            ]
-
-            case_result = CaseResult(question=question, passed=passed, field_results=field_results)
+            # Get SQL from planner
+            plan = get_sql_plan(question)
+            sql = plan.sql
 
             if verbose:
-                status = "[green]PASS[/green]" if passed else "[red]FAIL[/red]"
-                console.print(f"  {status}")
-                if not passed:
-                    for fr in field_results:
-                        if not fr.match:
-                            console.print(f"    [yellow]{fr.field}[/yellow]: expected={fr.expected}, actual={fr.actual}")
+                console.print(f"  SQL: {sql[:80]}...")
+
+            # Execute SQL
+            try:
+                result = conn.execute(sql)
+                rows = result.fetchall()
+                columns = [desc[0] for desc in result.description]
+                data = [dict(zip(columns, row, strict=True)) for row in rows]
+                results.sql_executed += 1
+
+                # Validate against expected results
+                sql_results = {"query": data}
+                passed, errors = validate_sql_results(question, sql_results)
+
+                # If no assertions defined, check if we got results
+                if get_expected_sql_results(question) is None:
+                    passed = len(data) > 0
+                    errors = [] if passed else ["No results returned"]
+
+                if passed:
+                    results.passed += 1
+
+                case = CaseResult(
+                    question=question,
+                    sql=sql,
+                    passed=passed,
+                    row_count=len(data),
+                    errors=errors,
+                )
+
+                if verbose:
+                    status = "[green]PASS[/green]" if passed else "[red]FAIL[/red]"
+                    console.print(f"  {status} ({len(data)} rows)")
+                    if errors:
+                        for err in errors:
+                            console.print(f"    [yellow]{err}[/yellow]")
+
+            except Exception as e:
+                results.sql_failed += 1
+                case = CaseResult(
+                    question=question,
+                    sql=sql,
+                    passed=False,
+                    error=f"SQL error: {e}",
+                )
+                if verbose:
+                    console.print(f"  [red]SQL ERROR[/red]: {e}")
 
         except Exception as e:
-            case_result = CaseResult(question=question, passed=False, error=str(e))
+            case = CaseResult(
+                question=question,
+                sql="",
+                passed=False,
+                error=f"Planner error: {e}",
+            )
             if verbose:
-                console.print(f"  [red]ERROR[/red]: {e}")
+                console.print(f"  [red]PLANNER ERROR[/red]: {e}")
 
-        results.cases.append(case_result)
+        results.cases.append(case)
 
     return results
 
 
-def _tables_str(output: dict) -> str:
-    """Format tables for display."""
-    return ", ".join(q.get("table", "") for q in output.get("queries", []))
-
-
-def _filters_str(output: dict) -> str:
-    """Format filters for display."""
-    parts = []
-    for q in output.get("queries", []):
-        filters = q.get("filters", [])
-        if filters:
-            parts.append(str(len(filters)))
-        else:
-            parts.append("0")
-    return ", ".join(parts)
-
-
-def _order_by_str(output: dict) -> str:
-    """Format order_by for display."""
-    parts = []
-    for q in output.get("queries", []):
-        ob = q.get("order_by")
-        parts.append(ob if ob else "null")
-    return ", ".join(parts)
-
-
 def print_summary(results: EvalResults) -> None:
     """Print evaluation summary."""
-    console.print("\n[bold]Route Evaluation Summary[/bold]")
+    console.print("\n[bold]SQL Planner Evaluation Summary[/bold]")
     console.print(f"Total: {results.total}, Passed: {results.passed}, Failed: {results.total - results.passed}")
     console.print(f"Pass Rate: {results.passed / results.total * 100:.1f}%")
+    console.print(f"SQL Executed: {results.sql_executed}, SQL Failed: {results.sql_failed}")
 
-    # Per-field accuracy table
-    table = Table(title="Per-Field Accuracy")
-    table.add_column("Field", style="cyan")
-    table.add_column("Correct", justify="right")
-    table.add_column("Accuracy", justify="right")
-
-    fields = [
-        ("Query Count", results.query_count_correct),
-        ("Table", results.table_correct),
-        ("Filters", results.filters_correct),
-        ("Order By", results.order_by_correct),
-        ("Needs RAG", results.needs_rag_correct),
-    ]
-
-    for name, correct in fields:
-        pct = correct / results.total * 100 if results.total > 0 else 0
-        table.add_row(name, str(correct), f"{pct:.1f}%")
-
-    console.print(table)
-
-    # Failed cases
+    # Failed cases table
     failed = [c for c in results.cases if not c.passed]
     if failed:
-        console.print(f"\n[bold red]Failed Cases ({len(failed)}):[/bold red]")
-        for c in failed[:10]:  # Show first 10
-            console.print(f"  - {c.question}")
-            if c.error:
-                console.print(f"    [red]Error: {c.error}[/red]")
+        table = Table(title=f"Failed Cases ({len(failed)})")
+        table.add_column("Question", style="cyan", max_width=40)
+        table.add_column("Error", style="red", max_width=50)
+
+        for c in failed[:10]:
+            error = c.error or "; ".join(c.errors[:2])
+            table.add_row(c.question[:40], error[:50])
+
+        console.print(table)
+
+
+def main() -> None:
+    """Run eval from command line."""
+    import argparse
+
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+    parser = argparse.ArgumentParser(description="SQL Planner Evaluation")
+    parser.add_argument("--limit", type=int, help="Limit number of questions to test")
+    parser.add_argument("-q", "--quiet", action="store_true", help="Suppress verbose output")
+    args = parser.parse_args()
+
+    console.print("[bold]SQL Planner Evaluation[/bold]\n")
+    results = run_sql_eval(verbose=not args.quiet, limit=args.limit)
+    print_summary(results)
+
+
+if __name__ == "__main__":
+    main()

@@ -121,11 +121,11 @@
 "What are their roles?": |
   Roles include Decision Maker, Champion, Technical Contact, and Executive.
 
-"Who opened emails recently?": |
-  Email engagement data from recent activities.
+"What emails were sent recently?": |
+  Recent email communications from the history table.
 
-"Who attended meetings?": |
-  Meeting attendance from recent activities.
+"What meetings occurred recently?": |
+  Recent meetings from the history table.
 
 "What were the recent interactions?": |
   Recent interactions include calls, meetings, and emails.

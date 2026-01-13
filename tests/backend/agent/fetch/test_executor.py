@@ -1,22 +1,21 @@
 """
 Tests for SQL query executor.
 
-Covers execute_slot_plan, validate_sql, resolve_placeholders,
-and JOIN support for multi-table queries.
+Covers execute_sql_plan, validate_sql, resolve_placeholders.
 """
 
 import pytest
 import duckdb
 
 from backend.agent.fetch.executor import (
-    execute_slot_plan,
+    execute_sql_plan,
     validate_sql,
     resolve_placeholders,
     SQLExecutionError,
     SQLExecutionStats,
     SQLValidationError,
 )
-from backend.agent.route.slot_query import Filter, SlotPlan, SlotQuery
+from backend.agent.route.sql_planner import SQLPlan
 
 
 # =============================================================================
@@ -153,7 +152,7 @@ class TestSQLExecutionStats:
 
 
 # =============================================================================
-# Execute Query Plan Tests - In-Memory DuckDB
+# Execute SQL Plan Tests - In-Memory DuckDB
 # =============================================================================
 
 
@@ -244,17 +243,14 @@ def duckdb_connection():
     conn.close()
 
 
-class TestExecuteSlotPlan:
-    """Tests for execute_slot_plan function."""
+class TestExecuteSQLPlan:
+    """Tests for execute_sql_plan function."""
 
     def test_execute_simple_select(self, duckdb_connection):
-        """Executes simple SELECT query from slot."""
-        plan = SlotPlan(
-            queries=[SlotQuery(table="companies", filters=[])],
-            needs_rag=False,
-        )
+        """Executes simple SELECT query."""
+        plan = SQLPlan(sql="SELECT * FROM companies", needs_rag=False)
 
-        results, resolved, stats = execute_slot_plan(plan, duckdb_connection)
+        results, resolved, stats = execute_sql_plan(plan, duckdb_connection)
 
         assert "companies" in results
         assert len(results["companies"]) == 3
@@ -262,129 +258,89 @@ class TestExecuteSlotPlan:
         assert stats.success == 1
 
     def test_execute_filtered_query(self, duckdb_connection):
-        """Executes filtered query from slot."""
-        plan = SlotPlan(
-            queries=[
-                SlotQuery(
-                    table="companies",
-                    filters=[Filter(field="company_id", op="=", value="ACME-MFG")],
-                )
-            ],
+        """Executes filtered query."""
+        plan = SQLPlan(
+            sql="SELECT * FROM companies WHERE company_id = 'ACME-MFG'",
             needs_rag=True,
         )
 
-        results, resolved, stats = execute_slot_plan(plan, duckdb_connection)
+        results, resolved, stats = execute_sql_plan(plan, duckdb_connection)
 
         assert "companies" in results
         assert len(results["companies"]) == 1
         assert results["companies"][0]["name"] == "Acme Manufacturing"
 
     def test_execute_with_order_by(self, duckdb_connection):
-        """Executes query with ORDER BY from slot."""
-        plan = SlotPlan(
-            queries=[
-                SlotQuery(
-                    table="opportunities",
-                    filters=[],
-                    order_by="value DESC",
-                )
-            ],
+        """Executes query with ORDER BY."""
+        plan = SQLPlan(
+            sql="SELECT * FROM opportunities ORDER BY value DESC",
             needs_rag=False,
         )
 
-        results, resolved, stats = execute_slot_plan(plan, duckdb_connection)
+        results, resolved, stats = execute_sql_plan(plan, duckdb_connection)
 
         assert len(results["opportunities"]) == 3
         # Highest value deal should be first (32000)
         assert results["opportunities"][0]["value"] == 32000
 
-    def test_execute_with_list_filter(self, duckdb_connection):
-        """Executes query with IN filter."""
-        plan = SlotPlan(
-            queries=[
-                SlotQuery(
-                    table="companies",
-                    filters=[Filter(field="company_id", op="IN", value=["ACME-MFG", "BETA-TECH"])],
-                )
-            ],
+    def test_execute_with_join(self, duckdb_connection):
+        """Executes query with JOIN."""
+        plan = SQLPlan(
+            sql="""
+                SELECT c.*, co.name as company_name
+                FROM contacts c
+                JOIN companies co ON c.company_id = co.company_id
+                WHERE co.name LIKE '%Acme%'
+            """,
             needs_rag=False,
         )
 
-        results, resolved, stats = execute_slot_plan(plan, duckdb_connection)
+        results, resolved, stats = execute_sql_plan(plan, duckdb_connection)
 
-        assert len(results["companies"]) == 2
+        assert stats.success == 1
+        assert len(results["contacts"]) == 2  # Anna and Joe
 
     def test_execute_with_stage_filter(self, duckdb_connection):
         """Executes query with stage filter."""
-        plan = SlotPlan(
-            queries=[
-                SlotQuery(
-                    table="opportunities",
-                    filters=[Filter(field="stage", op="=", value="Negotiation")],
-                )
-            ],
+        plan = SQLPlan(
+            sql="SELECT * FROM opportunities WHERE stage = 'Negotiation'",
             needs_rag=False,
         )
 
-        results, resolved, stats = execute_slot_plan(plan, duckdb_connection)
+        results, resolved, stats = execute_sql_plan(plan, duckdb_connection)
 
         assert len(results["opportunities"]) == 1
         assert results["opportunities"][0]["value"] == 32000
 
     def test_execute_resolves_company_id(self, duckdb_connection):
-        """First query resolves $company_id for subsequent queries."""
-        plan = SlotPlan(
-            queries=[
-                SlotQuery(
-                    table="companies",
-                    filters=[Filter(field="name", op="=", value="Acme")],
-                ),
-                SlotQuery(
-                    table="contacts",
-                    filters=[Filter(field="company_id", op="=", value="ACME-MFG")],
-                ),
-            ],
+        """Query resolves $company_id from results."""
+        plan = SQLPlan(
+            sql="SELECT * FROM companies WHERE name LIKE '%Acme%'",
             needs_rag=True,
         )
 
-        results, resolved, stats = execute_slot_plan(plan, duckdb_connection)
+        results, resolved, stats = execute_sql_plan(plan, duckdb_connection)
 
         assert resolved.get("$company_id") == "ACME-MFG"
-        # Multiple queries use {table}_{idx} keys
-        assert len(results["contacts_1"]) == 2  # Anna and Joe
 
     def test_execute_adds_limit_if_missing(self, duckdb_connection):
         """Adds LIMIT to queries without one."""
-        plan = SlotPlan(
-            queries=[SlotQuery(table="companies", filters=[])],
-            needs_rag=False,
-        )
+        plan = SQLPlan(sql="SELECT * FROM companies", needs_rag=False)
 
         # Execute with a small max_rows to verify LIMIT is added
-        results, _, stats = execute_slot_plan(plan, duckdb_connection, max_rows=2)
+        results, _, stats = execute_sql_plan(plan, duckdb_connection, max_rows=2)
 
         # Should return at most 2 rows due to added LIMIT
         assert len(results["companies"]) <= 2
 
-    def test_execute_multiple_queries(self, duckdb_connection):
-        """Executes multiple queries in a plan."""
-        plan = SlotPlan(
-            queries=[
-                SlotQuery(table="companies", filters=[]),
-                SlotQuery(table="contacts", filters=[]),
-                SlotQuery(table="opportunities", filters=[]),
-            ],
-            needs_rag=False,
-        )
+    def test_execute_empty_plan(self, duckdb_connection):
+        """Handles empty SQL plan."""
+        plan = SQLPlan(sql="", needs_rag=False)
 
-        results, _, stats = execute_slot_plan(plan, duckdb_connection)
+        results, resolved, stats = execute_sql_plan(plan, duckdb_connection)
 
-        assert stats.total == 3
-        assert stats.success == 3
-        # Multiple queries use {table}_{idx} keys
-        assert len(results["companies_0"]) == 3
-        assert len(results["contacts_1"]) == 4
-        assert len(results["opportunities_2"]) == 3
+        assert results == {}
+        assert stats.total == 0
 
 
 # =============================================================================
@@ -392,7 +348,7 @@ class TestExecuteSlotPlan:
 # =============================================================================
 
 
-class TestExecuteSlotPlanWithRealData:
+class TestExecuteSQLPlanWithRealData:
     """Integration tests using real CRM data."""
 
     @pytest.fixture
@@ -404,17 +360,12 @@ class TestExecuteSlotPlanWithRealData:
 
     def test_filter_contacts_by_role(self, real_connection):
         """Find contacts by role."""
-        plan = SlotPlan(
-            queries=[
-                SlotQuery(
-                    table="contacts",
-                    filters=[Filter(field="role", op="=", value="Decision Maker")],
-                )
-            ],
+        plan = SQLPlan(
+            sql="SELECT * FROM contacts WHERE role = 'Decision Maker'",
             needs_rag=False,
         )
 
-        results, _, stats = execute_slot_plan(plan, real_connection)
+        results, _, stats = execute_sql_plan(plan, real_connection)
 
         assert stats.success == 1
         assert len(results["contacts"]) > 0
@@ -423,35 +374,21 @@ class TestExecuteSlotPlanWithRealData:
 
     def test_get_activities(self, real_connection):
         """Get activities from real data."""
-        plan = SlotPlan(
-            queries=[
-                SlotQuery(
-                    table="activities",
-                    filters=[],
-                )
-            ],
-            needs_rag=False,
-        )
+        plan = SQLPlan(sql="SELECT * FROM activities", needs_rag=False)
 
-        results, _, stats = execute_slot_plan(plan, real_connection)
+        results, _, stats = execute_sql_plan(plan, real_connection)
 
         assert stats.success == 1
         assert len(results["activities"]) > 0
 
     def test_filter_opportunities_by_stage(self, real_connection):
         """Filter opportunities by stage."""
-        plan = SlotPlan(
-            queries=[
-                SlotQuery(
-                    table="opportunities",
-                    filters=[Filter(field="stage", op="NOT IN", value=["Closed Won", "Closed Lost"])],
-                    order_by="value DESC",
-                )
-            ],
+        plan = SQLPlan(
+            sql="SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') ORDER BY value DESC",
             needs_rag=False,
         )
 
-        results, _, stats = execute_slot_plan(plan, real_connection)
+        results, _, stats = execute_sql_plan(plan, real_connection)
 
         assert stats.success == 1
         # All results should be open deals

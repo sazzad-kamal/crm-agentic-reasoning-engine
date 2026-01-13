@@ -81,6 +81,6 @@
 "What are their roles?": false
 
 # Depth 3 (from "Which contacts had recent activity?")
-"Who opened emails recently?": false
-"Who attended meetings?": false
+"What emails were sent recently?": false
+"What meetings occurred recently?": false
 "What were the recent interactions?": false

@@ -72,9 +72,9 @@ class AgentState(TypedDict, total=False):
     # Conversation history (persisted by LangGraph checkpointer)
     messages: list[Message]
 
-    # Slot-based query plan (LLM outputs structured slots, SQL built at execution)
-    slot_plan: Any  # SlotPlan from route_node (table, filters, order_by)
-    sql_results: dict[str, Any]  # Results from SQL queries, keyed by purpose
+    # SQL query plan (LLM generates SQL directly)
+    sql_plan: Any  # SQLPlan from route_node (raw SQL string)
+    sql_results: dict[str, Any]  # Results from SQL queries, keyed by table
     sql_queries_total: int  # Total number of SQL queries executed
     sql_queries_success: int  # Number of SQL queries that succeeded
 
@@ -82,7 +82,7 @@ class AgentState(TypedDict, total=False):
     resolved_company_id: str | None
     resolved_contact_id: str | None
     resolved_opportunity_id: str | None
-    needs_rag: bool  # Whether RAG context is needed (from slot planner)
+    needs_rag: bool  # Whether RAG context is needed
 
     # Legacy data outputs (kept for backwards compatibility during migration)
     company_data: dict[str, Any] | None

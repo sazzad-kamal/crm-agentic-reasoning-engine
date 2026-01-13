@@ -15,17 +15,17 @@ os.environ["MOCK_LLM"] = "1"
 class TestRouteNode:
     """Tests for route_node function."""
 
-    @patch('backend.agent.route.node.get_slot_plan')
-    def test_route_node_returns_slot_plan(self, mock_slot_planner):
-        """Returns slot plan in state."""
+    @patch('backend.agent.route.node.get_sql_plan')
+    def test_route_node_returns_sql_plan(self, mock_sql_planner):
+        """Returns SQL plan in state."""
         from backend.agent.route.node import route_node
-        from backend.agent.route.slot_query import SlotPlan, SlotQuery
+        from backend.agent.route.sql_planner import SQLPlan
 
-        mock_slot_plan = SlotPlan(
-            queries=[SlotQuery(table="companies", filters=[])],
+        mock_sql_plan = SQLPlan(
+            sql="SELECT * FROM companies",
             needs_rag=True
         )
-        mock_slot_planner.return_value = mock_slot_plan
+        mock_sql_planner.return_value = mock_sql_plan
 
         state = {
             "question": "What's happening with Acme?",
@@ -34,21 +34,21 @@ class TestRouteNode:
 
         result = route_node(state)
 
-        assert result["slot_plan"] is not None
-        assert len(result["slot_plan"].queries) == 1
+        assert result["sql_plan"] is not None
+        assert result["sql_plan"].sql == "SELECT * FROM companies"
         assert result["needs_rag"] is True
 
-    @patch('backend.agent.route.node.get_slot_plan')
-    def test_route_node_passes_conversation_history(self, mock_slot_planner):
+    @patch('backend.agent.route.node.get_sql_plan')
+    def test_route_node_passes_conversation_history(self, mock_sql_planner):
         """Passes formatted conversation history to planner."""
         from backend.agent.route.node import route_node
-        from backend.agent.route.slot_query import SlotPlan, SlotQuery
+        from backend.agent.route.sql_planner import SQLPlan
 
-        mock_slot_plan = SlotPlan(
-            queries=[SlotQuery(table="opportunities", filters=[])],
+        mock_sql_plan = SQLPlan(
+            sql="SELECT * FROM opportunities",
             needs_rag=False
         )
-        mock_slot_planner.return_value = mock_slot_plan
+        mock_sql_planner.return_value = mock_sql_plan
 
         state = {
             "question": "What about their pipeline?",
@@ -60,16 +60,16 @@ class TestRouteNode:
 
         route_node(state)
 
-        call_kwargs = mock_slot_planner.call_args[1]
+        call_kwargs = mock_sql_planner.call_args[1]
         assert "conversation_history" in call_kwargs
         assert len(call_kwargs["conversation_history"]) > 0
 
-    @patch('backend.agent.route.node.get_slot_plan')
-    def test_route_node_handles_exception_with_fallback(self, mock_slot_planner):
-        """Handles exception and uses fallback slot plan."""
+    @patch('backend.agent.route.node.get_sql_plan')
+    def test_route_node_handles_exception_with_fallback(self, mock_sql_planner):
+        """Handles exception and uses fallback SQL plan."""
         from backend.agent.route.node import route_node
 
-        mock_slot_planner.side_effect = Exception("Planner error")
+        mock_sql_planner.side_effect = Exception("Planner error")
 
         state = {
             "question": "What's happening with our company accounts?",
@@ -78,21 +78,21 @@ class TestRouteNode:
 
         result = route_node(state)
 
-        assert "slot_plan" in result
+        assert "sql_plan" in result
         assert result["needs_rag"] is False
         assert "error" in result
 
-    @patch('backend.agent.route.node.get_slot_plan')
-    def test_route_node_handles_empty_messages(self, mock_slot_planner):
+    @patch('backend.agent.route.node.get_sql_plan')
+    def test_route_node_handles_empty_messages(self, mock_sql_planner):
         """Handles state with no messages."""
         from backend.agent.route.node import route_node
-        from backend.agent.route.slot_query import SlotPlan, SlotQuery
+        from backend.agent.route.sql_planner import SQLPlan
 
-        mock_slot_plan = SlotPlan(
-            queries=[SlotQuery(table="companies", filters=[])],
+        mock_sql_plan = SQLPlan(
+            sql="SELECT * FROM companies",
             needs_rag=False
         )
-        mock_slot_planner.return_value = mock_slot_plan
+        mock_sql_planner.return_value = mock_sql_plan
 
         state = {
             "question": "Test question",
@@ -101,5 +101,5 @@ class TestRouteNode:
 
         result = route_node(state)
 
-        call_kwargs = mock_slot_planner.call_args[1]
+        call_kwargs = mock_sql_planner.call_args[1]
         assert call_kwargs["conversation_history"] == ""

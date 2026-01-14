@@ -11,20 +11,19 @@ Sources:
 - attachments.csv (summary field)
 
 Usage:
-    python generate_private_texts.py [--merge-opportunities] [--input-dir DIR]
+    python generate_private_texts.py [--input-dir DIR]
 
 Options:
-    --merge-opportunities  Merge opportunity_descriptions.csv into opportunities.csv first
-    --input-dir DIR        Input directory for CSVs (default: ./csv)
+    --input-dir DIR  Input directory for CSVs (default: ./csv)
 """
 
 import argparse
 import csv
 import json
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 CSV_DIR = Path(__file__).parent / "csv"
 
@@ -128,60 +127,6 @@ SOURCES: list[CsvSource] = [
 ]
 
 
-def merge_opportunity_descriptions(csv_dir: Path) -> None:
-    """Merge opportunity_descriptions.csv text into opportunities.csv as notes column.
-
-    This operation is idempotent - running multiple times won't corrupt data.
-    """
-    opps_path = csv_dir / "opportunities.csv"
-    descs_path = csv_dir / "opportunity_descriptions.csv"
-
-    if not descs_path.exists():
-        print("No opportunity_descriptions.csv found, skipping merge")
-        return
-
-    if not opps_path.exists():
-        print("No opportunities.csv found, skipping merge")
-        return
-
-    # Read opportunity descriptions
-    desc_map: dict[str, str] = {}
-    with open(descs_path, encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            opp_id = row.get("opportunity_id", "")
-            text = row.get("text", "")
-            if opp_id and text:
-                desc_map[opp_id] = text
-
-    print(f"Loaded {len(desc_map)} opportunity descriptions")
-
-    # Read opportunities and add/update notes column
-    rows = []
-    fieldnames: list[str] = []
-    with open(opps_path, encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        fieldnames = list(reader.fieldnames or [])
-        if "notes" not in fieldnames:
-            fieldnames.append("notes")
-        for row in reader:
-            opp_id = row.get("opportunity_id", "")
-            # Only update if we have a description (idempotent)
-            if opp_id in desc_map:
-                row["notes"] = desc_map[opp_id]
-            elif "notes" not in row:
-                row["notes"] = ""
-            rows.append(row)
-
-    # Write updated opportunities.csv
-    with open(opps_path, "w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-
-    print(f"Updated opportunities.csv with notes column ({len(rows)} rows)")
-
-
 def process_csv_source(source: CsvSource, csv_dir: Path) -> list[dict]:
     """Process a single CSV source and return records."""
     csv_path = csv_dir / source.filename
@@ -233,11 +178,6 @@ def generate_private_texts(csv_dir: Path) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate private_texts.jsonl from source CSVs")
     parser.add_argument(
-        "--merge-opportunities",
-        action="store_true",
-        help="Merge opportunity_descriptions.csv into opportunities.csv first",
-    )
-    parser.add_argument(
         "--input-dir",
         type=Path,
         default=CSV_DIR,
@@ -249,11 +189,6 @@ def main() -> int:
     if not csv_dir.exists():
         print(f"Error: Input directory does not exist: {csv_dir}", file=sys.stderr)
         return 1
-
-    if args.merge_opportunities:
-        print("Step 1: Merging opportunity descriptions...")
-        merge_opportunity_descriptions(csv_dir)
-        print()
 
     print("Generating private_texts.jsonl...")
     generate_private_texts(csv_dir)

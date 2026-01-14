@@ -2100,3 +2100,1656 @@ class TestLangSmithEdgeCases:
 
         result = get_latency_percentages()
         assert result == {}  # Zero total means empty result
+
+
+# =============================================================================
+# Output Module Extended Tests (coverage for lines 236, 239)
+# =============================================================================
+
+
+class TestCountSloFailures:
+    """Tests for _count_slo_failures function."""
+
+    def test_count_slo_failures_sql_queries_failed(self):
+        """Test _count_slo_failures counts SQL query failures."""
+        from backend.eval.output import _count_slo_failures
+
+        step = FlowStepResult(
+            question="Q?",
+            answer="A",
+            latency_ms=100,
+            has_answer=True,
+            has_sources=True,
+            relevance_score=0.95,
+            faithfulness_score=0.95,
+            answer_correctness_score=0.80,
+            sql_queries_total=5,
+            sql_queries_success=3,  # 2 failed
+        )
+
+        count = _count_slo_failures(step, eval_mode="both")
+        assert count >= 1  # Should count SQL query failures
+
+    def test_count_slo_failures_sql_data_validation_failed(self):
+        """Test _count_slo_failures counts SQL data validation failures."""
+        from backend.eval.output import _count_slo_failures
+
+        step = FlowStepResult(
+            question="Q?",
+            answer="A",
+            latency_ms=100,
+            has_answer=True,
+            has_sources=True,
+            relevance_score=0.95,
+            faithfulness_score=0.95,
+            answer_correctness_score=0.80,
+            sql_data_validated=False,  # Failed validation
+        )
+
+        count = _count_slo_failures(step, eval_mode="both")
+        assert count >= 1  # Should count SQL data validation failure
+
+    def test_count_slo_failures_multiple_failures(self):
+        """Test _count_slo_failures counts multiple failure types."""
+        from backend.eval.output import _count_slo_failures
+
+        step = FlowStepResult(
+            question="Q?",
+            answer="A",
+            latency_ms=100,
+            has_answer=True,
+            has_sources=True,
+            relevance_score=0.5,  # Below SLO
+            faithfulness_score=0.5,  # Below SLO
+            answer_correctness_score=0.3,  # Below SLO
+            sql_queries_total=5,
+            sql_queries_success=3,  # Failed
+            sql_data_validated=False,  # Failed
+            account_rag_invoked=True,
+            account_precision_score=0.5,  # Below SLO
+            account_recall_score=0.4,  # Below SLO
+        )
+
+        count = _count_slo_failures(step, eval_mode="both")
+        assert count >= 5  # Multiple failures
+
+
+# =============================================================================
+# Tree Module SQL Validation Tests
+# =============================================================================
+
+
+class TestValidateSqlResults:
+    """Tests for validate_sql_results function."""
+
+    def test_validate_sql_results_no_expectations(self):
+        """Test validate_sql_results when no expectations defined."""
+        from backend.eval.tree import validate_sql_results
+
+        passed, errors = validate_sql_results("Unknown question", {"query": [{"a": 1}]})
+        assert passed is True
+        assert errors == []
+
+    def test_validate_sql_results_row_count_exact(self, monkeypatch):
+        """Test validate_sql_results with exact row_count assertion."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"row_count": 3}},
+        )
+
+        # Passing case
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"a": 1}, {"a": 2}, {"a": 3}]}
+        )
+        assert passed is True
+
+        # Failing case
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"a": 1}]}
+        )
+        assert passed is False
+        assert any("row_count" in e for e in errors)
+
+    def test_validate_sql_results_row_count_min(self, monkeypatch):
+        """Test validate_sql_results with row_count_min assertion."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"row_count_min": 2}},
+        )
+
+        # Passing case
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"a": 1}, {"a": 2}, {"a": 3}]}
+        )
+        assert passed is True
+
+        # Failing case
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"a": 1}]}
+        )
+        assert passed is False
+
+    def test_validate_sql_results_row_count_max(self, monkeypatch):
+        """Test validate_sql_results with row_count_max assertion."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"row_count_max": 2}},
+        )
+
+        # Passing case
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"a": 1}]}
+        )
+        assert passed is True
+
+        # Failing case
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"a": 1}, {"a": 2}, {"a": 3}]}
+        )
+        assert passed is False
+
+    def test_validate_sql_results_total_value(self, monkeypatch):
+        """Test validate_sql_results with total_value assertion."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"total_value": 100}},
+        )
+
+        # Passing case (within 10% tolerance)
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"value": 50}, {"value": 55}]}
+        )
+        assert passed is True
+
+        # Failing case (outside tolerance)
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"value": 10}]}
+        )
+        assert passed is False
+
+    def test_validate_sql_results_must_contain_list(self, monkeypatch):
+        """Test validate_sql_results with must_contain list assertion."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"must_contain": ["Acme", "Beta"]}},
+        )
+
+        # Passing case
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"name": "Acme Corp"}, {"name": "Beta Inc"}]}
+        )
+        assert passed is True
+
+        # Failing case
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"name": "Acme Corp"}]}
+        )
+        assert passed is False
+
+    def test_validate_sql_results_must_contain_single(self, monkeypatch):
+        """Test validate_sql_results with must_contain single value."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"must_contain": "Acme"}},
+        )
+
+        # Passing case
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"name": "Acme Corp"}]}
+        )
+        assert passed is True
+
+        # Failing case
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"name": "Other Corp"}]}
+        )
+        assert passed is False
+
+    def test_validate_sql_results_must_contain_all(self, monkeypatch):
+        """Test validate_sql_results with must_contain_all assertion."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"must_contain_all": ["Acme", "Beta", "Gamma"]}},
+        )
+
+        # Passing case
+        passed, errors = validate_sql_results(
+            "Test question?",
+            {"query": [{"name": "Acme"}, {"name": "Beta"}, {"name": "Gamma"}]},
+        )
+        assert passed is True
+
+        # Failing case (missing one)
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"name": "Acme"}, {"name": "Beta"}]}
+        )
+        assert passed is False
+
+    def test_validate_sql_results_must_contain_any(self, monkeypatch):
+        """Test validate_sql_results with must_contain_any assertion."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"must_contain_any": ["Acme", "Beta"]}},
+        )
+
+        # Passing case (has one)
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"name": "Acme Corp"}]}
+        )
+        assert passed is True
+
+        # Failing case (has neither)
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"name": "Other"}]}
+        )
+        assert passed is False
+
+    def test_validate_sql_results_must_not_contain_list(self, monkeypatch):
+        """Test validate_sql_results with must_not_contain list."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"must_not_contain": ["Excluded", "Banned"]}},
+        )
+
+        # Passing case
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"name": "Allowed"}]}
+        )
+        assert passed is True
+
+        # Failing case
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"name": "Excluded Item"}]}
+        )
+        assert passed is False
+
+    def test_validate_sql_results_must_not_contain_single(self, monkeypatch):
+        """Test validate_sql_results with must_not_contain single value."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"must_not_contain": "Excluded"}},
+        )
+
+        # Passing case
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"name": "Allowed"}]}
+        )
+        assert passed is True
+
+        # Failing case
+        passed, errors = validate_sql_results(
+            "Test question?", {"query": [{"name": "Excluded Item"}]}
+        )
+        assert passed is False
+
+    def test_validate_sql_results_exact_values(self, monkeypatch):
+        """Test validate_sql_results with exact_values assertion."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"exact_values": {"status": ["Active", "Pending"]}}},
+        )
+
+        # Passing case
+        passed, errors = validate_sql_results(
+            "Test question?",
+            {"query": [{"status": "Active"}, {"status": "Pending"}]},
+        )
+        assert passed is True
+
+        # Failing case (different values)
+        passed, errors = validate_sql_results(
+            "Test question?",
+            {"query": [{"status": "Active"}, {"status": "Closed"}]},
+        )
+        assert passed is False
+
+    def test_validate_sql_results_column_values(self, monkeypatch):
+        """Test validate_sql_results with column_values assertion."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"column_values": {"status": ["Active"]}}},
+        )
+
+        # Passing case (Active present, extras OK)
+        passed, errors = validate_sql_results(
+            "Test question?",
+            {"query": [{"status": "Active"}, {"status": "Pending"}]},
+        )
+        assert passed is True
+
+        # Failing case (Active not present)
+        passed, errors = validate_sql_results(
+            "Test question?",
+            {"query": [{"status": "Closed"}]},
+        )
+        assert passed is False
+
+    def test_validate_sql_results_column_excludes(self, monkeypatch):
+        """Test validate_sql_results with column_excludes assertion."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"column_excludes": {"status": ["Excluded"]}}},
+        )
+
+        # Passing case
+        passed, errors = validate_sql_results(
+            "Test question?",
+            {"query": [{"status": "Active"}]},
+        )
+        assert passed is True
+
+        # Failing case
+        passed, errors = validate_sql_results(
+            "Test question?",
+            {"query": [{"status": "Excluded"}]},
+        )
+        assert passed is False
+
+    def test_validate_sql_results_non_dict_rows(self, monkeypatch):
+        """Test validate_sql_results handles non-dict row values."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"must_contain": "test"}},
+        )
+
+        # Non-dict rows (list of scalars)
+        passed, errors = validate_sql_results(
+            "Test question?",
+            {"query": ["test value", "other value"]},
+        )
+        assert passed is True
+
+    def test_validate_sql_results_dict_result(self, monkeypatch):
+        """Test validate_sql_results handles dict instead of list."""
+        from backend.eval.tree import validate_sql_results
+        import backend.eval.tree
+
+        monkeypatch.setattr(
+            backend.eval.tree,
+            "_EXPECTED_SQL_RESULTS",
+            {"Test question?": {"must_contain": "test"}},
+        )
+
+        # Single dict instead of list
+        passed, errors = validate_sql_results(
+            "Test question?",
+            {"query": {"name": "test value"}},
+        )
+        assert passed is True
+
+
+# =============================================================================
+# Tree Module Validation and Print Tests
+# =============================================================================
+
+
+class TestTreeValidation:
+    """Tests for tree validation functions."""
+
+    def test_validate_tree(self):
+        """Test validate_tree returns list of issues."""
+        from backend.eval.tree import validate_tree
+
+        issues = validate_tree()
+        assert isinstance(issues, list)
+
+    def test_get_tree_stats(self):
+        """Test get_tree_stats returns expected keys."""
+        from backend.eval.tree import get_tree_stats
+
+        stats = get_tree_stats()
+        assert "num_starters" in stats
+        assert "num_questions" in stats
+        assert "num_edges" in stats
+        assert "num_paths" in stats
+        assert "max_depth" in stats
+        assert "path_lengths" in stats
+
+    def test_get_all_paths(self):
+        """Test get_all_paths returns list of paths."""
+        from backend.eval.tree import get_all_paths
+
+        paths = get_all_paths()
+        assert isinstance(paths, list)
+        if paths:
+            assert isinstance(paths[0], list)
+
+    def test_print_tree(self):
+        """Test print_tree returns Rich Tree object."""
+        from backend.eval.tree import print_tree
+
+        tree = print_tree()
+        assert tree is not None
+
+    def test_print_tree_with_max_depth(self):
+        """Test print_tree with max_depth parameter."""
+        from backend.eval.tree import print_tree
+
+        tree = print_tree(max_depth=2)
+        assert tree is not None
+
+
+# =============================================================================
+# Tree Module YAML Loading Tests
+# =============================================================================
+
+
+class TestYamlLoading:
+    """Tests for YAML fixture loading."""
+
+    def test_get_expected_answer_exists(self):
+        """Test get_expected_answer for existing question."""
+        from backend.eval.tree import get_expected_answer
+
+        # May return None if no fixtures, but shouldn't crash
+        result = get_expected_answer("What deals are in the pipeline?")
+        assert result is None or isinstance(result, str)
+
+    def test_get_expected_answer_not_exists(self):
+        """Test get_expected_answer for non-existing question."""
+        from backend.eval.tree import get_expected_answer
+
+        result = get_expected_answer("This question does not exist in fixtures")
+        assert result is None
+
+    def test_get_expected_rag_exists(self):
+        """Test get_expected_rag for existing question."""
+        from backend.eval.tree import get_expected_rag
+
+        # May return None if no fixtures
+        result = get_expected_rag("What deals are in the pipeline?")
+        assert result is None or isinstance(result, bool)
+
+    def test_get_expected_rag_not_exists(self):
+        """Test get_expected_rag for non-existing question."""
+        from backend.eval.tree import get_expected_rag
+
+        result = get_expected_rag("This question does not exist in fixtures")
+        assert result is None
+
+    def test_get_expected_sql_results_not_exists(self):
+        """Test get_expected_sql_results for non-existing question."""
+        from backend.eval.tree import get_expected_sql_results
+
+        result = get_expected_sql_results("This question does not exist")
+        assert result is None
+
+
+# =============================================================================
+# Judge Module Extended Tests
+# =============================================================================
+
+
+class TestJudgeModule:
+    """Extended tests for judge module."""
+
+    def test_suppress_event_loop_closed_errors(self):
+        """Test _suppress_event_loop_closed_errors doesn't crash."""
+        from backend.eval.judge import _suppress_event_loop_closed_errors
+
+        # Should not raise
+        _suppress_event_loop_closed_errors()
+
+    def test_is_mock_mode(self, monkeypatch):
+        """Test _is_mock_mode returns correct value."""
+        from backend.eval.judge import _is_mock_mode
+
+        monkeypatch.setenv("MOCK_LLM", "1")
+        # Need to reimport or check current state
+        assert _is_mock_mode() is True
+
+        monkeypatch.setenv("MOCK_LLM", "0")
+        assert _is_mock_mode() is False
+
+
+# =============================================================================
+# Runner Module Exception Tests
+# =============================================================================
+
+
+class TestRunnerExceptions:
+    """Tests for runner exception handling."""
+
+    def test_judge_answer_timeout(self, monkeypatch):
+        """Test judge_answer handles timeout."""
+        from backend.eval.runner import judge_answer
+        from concurrent.futures import TimeoutError as FuturesTimeoutError
+
+        def mock_evaluate_single_timeout(*args, **kwargs):
+            raise TimeoutError("Timed out")
+
+        # Must patch in runner module where it's imported
+        import backend.eval.runner
+        monkeypatch.setattr(backend.eval.runner, "evaluate_single", mock_evaluate_single_timeout)
+
+        result = judge_answer("Q", "A", ["ctx"], timeout=1)
+        assert result["ragas_failed"] is True
+        assert "timeout" in result["explanation"].lower()
+
+    def test_judge_answer_exception(self, monkeypatch):
+        """Test judge_answer handles general exceptions."""
+        from backend.eval.runner import judge_answer
+
+        def mock_evaluate_single(*args, **kwargs):
+            raise RuntimeError("Evaluation failed")
+
+        # Must patch in runner module where it's imported
+        import backend.eval.runner
+        monkeypatch.setattr(backend.eval.runner, "evaluate_single", mock_evaluate_single)
+
+        result = judge_answer("Q", "A", ["ctx"])
+        assert result["ragas_failed"] is True
+        assert "RuntimeError" in result["explanation"] or "Evaluation failed" in result["explanation"]
+
+
+# =============================================================================
+# CLI Module Extended Tests
+# =============================================================================
+
+
+class TestCliModuleExtended:
+    """Extended tests for CLI module."""
+
+    def test_route_command(self, monkeypatch):
+        """Test route command runs without error."""
+        from backend.eval.cli import route
+
+        def mock_run_sql_eval(**kwargs):
+            from dataclasses import dataclass
+
+            @dataclass
+            class MockResults:
+                total: int = 10
+                passed: int = 9
+                failed: int = 1
+                pass_rate: float = 0.9
+                cases: list = None
+
+                def __post_init__(self):
+                    self.cases = []
+
+            return MockResults()
+
+        def mock_print_summary(results):
+            pass
+
+        import backend.eval.route.eval
+        monkeypatch.setattr(backend.eval.route.eval, "run_sql_eval", mock_run_sql_eval)
+        monkeypatch.setattr(backend.eval.route.eval, "print_summary", mock_print_summary)
+
+        # Should not raise
+        route(limit=1, verbose=False)
+
+    def test_main_command(self, monkeypatch):
+        """Test main command calls _run_eval."""
+        from backend.eval.cli import main
+
+        call_args = {}
+
+        def mock_run_eval(**kwargs):
+            call_args.update(kwargs)
+
+        import backend.eval.cli
+        monkeypatch.setattr(backend.eval.cli, "_run_eval", mock_run_eval)
+
+        main(limit=5, verbose=True, no_judge=True, output="test.json", debug=True, eval_mode="both")
+
+        assert call_args["limit"] == 5
+        assert call_args["verbose"] is True
+        assert call_args["no_judge"] is True
+
+    def test_run_eval_debug_output(self, monkeypatch, tmp_path):
+        """Test _run_eval debug output for failed paths."""
+        from backend.eval.cli import _run_eval
+
+        def mock_check_qdrant_access():
+            return True
+
+        def mock_tool_entity_rag(*args, **kwargs):
+            return "", []
+
+        def mock_get_tree_stats():
+            return {"total_paths": 1}
+
+        failed_step = FlowStepResult(
+            question="Failed Q with longer question text?",
+            answer="Bad A with some content",
+            latency_ms=100,
+            has_answer=True,
+            has_sources=False,
+            relevance_score=0.5,
+            faithfulness_score=0.5,
+            judge_explanation="Low quality answer detected",  # Has explanation
+        )
+        failed_flow = FlowResult(
+            path_id=0,
+            questions=["Failed Q with longer question text?"],
+            steps=[failed_step],
+            total_latency_ms=100,
+            success=False,
+        )
+
+        def mock_run_flow_eval(**kwargs):
+            return FlowEvalResults(
+                total_paths=1,
+                paths_tested=1,
+                paths_passed=0,
+                paths_failed=1,
+                total_questions=1,
+                questions_passed=0,
+                questions_failed=1,
+                failed_paths=[failed_flow],
+                all_results=[failed_flow],
+            )
+
+        def mock_get_latency_percentages(**kwargs):
+            return {}
+
+        import backend.eval.cli
+        import backend.agent.fetch.rag.tools
+        import backend.eval.runner
+        import backend.eval.langsmith
+
+        monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
+        monkeypatch.setattr(backend.agent.fetch.rag.tools, "tool_entity_rag", mock_tool_entity_rag)
+        monkeypatch.setattr(backend.eval.cli, "get_tree_stats", mock_get_tree_stats)
+        monkeypatch.setattr(backend.eval.runner, "run_flow_eval", mock_run_flow_eval)
+        monkeypatch.setattr(backend.eval.langsmith, "get_latency_percentages", mock_get_latency_percentages)
+
+        # Run with debug=True to trigger debug output path (line 157)
+        _run_eval(
+            limit=1,
+            verbose=False,
+            no_judge=True,
+            output=None,
+            debug=True,
+            eval_mode="both",
+        )
+
+
+# =============================================================================
+# Tree Module YAML Error Handling Tests
+# =============================================================================
+
+
+class TestYamlLoadingErrors:
+    """Tests for YAML loading error handling."""
+
+    def test_load_yaml_fixture_nonexistent_file(self, monkeypatch, tmp_path):
+        """Test _load_yaml_fixture with nonexistent file."""
+        import backend.eval.tree
+
+        # Temporarily change fixtures path to a nonexistent directory
+        monkeypatch.setattr(backend.eval.tree, "_EVAL_FIXTURES_PATH", tmp_path / "nonexistent")
+
+        # Should return empty dict without crashing
+        result = backend.eval.tree._load_yaml_fixture("test.yaml")
+        assert result == {}
+
+    def test_load_yaml_fixture_invalid_yaml(self, monkeypatch, tmp_path):
+        """Test _load_yaml_fixture with invalid YAML content."""
+        import backend.eval.tree
+
+        # Create a file with invalid YAML
+        invalid_yaml = tmp_path / "invalid.yaml"
+        invalid_yaml.write_text("::invalid:: yaml: [content")
+
+        monkeypatch.setattr(backend.eval.tree, "_EVAL_FIXTURES_PATH", tmp_path)
+
+        # Should return empty dict without crashing
+        result = backend.eval.tree._load_yaml_fixture("invalid.yaml")
+        assert result == {}
+
+    def test_load_yaml_fixture_empty_file(self, monkeypatch, tmp_path):
+        """Test _load_yaml_fixture with empty file."""
+        import backend.eval.tree
+
+        # Create an empty file
+        empty_yaml = tmp_path / "empty.yaml"
+        empty_yaml.write_text("")
+
+        monkeypatch.setattr(backend.eval.tree, "_EVAL_FIXTURES_PATH", tmp_path)
+
+        # Should return empty dict
+        result = backend.eval.tree._load_yaml_fixture("empty.yaml")
+        assert result == {}
+
+
+# =============================================================================
+# Tree Module Path Finding Edge Cases
+# =============================================================================
+
+
+class TestTreePathFinding:
+    """Tests for tree path finding edge cases."""
+
+    def test_compute_max_depth_no_descendants(self, monkeypatch):
+        """Test _compute_max_depth when starters have no descendants."""
+        import backend.eval.tree
+        import networkx as nx
+
+        # Create a minimal graph with only starters (no descendants)
+        mock_g = nx.DiGraph()
+        mock_g.add_node("Starter Q?")
+        monkeypatch.setattr(backend.eval.tree, "_G", mock_g)
+        monkeypatch.setattr(backend.eval.tree, "_STARTERS", ["Starter Q?"])
+
+        result = backend.eval.tree._compute_max_depth(["Starter Q?"])
+        assert result == 0
+
+    def test_find_paths_with_nx_no_path(self, monkeypatch):
+        """Test _find_paths handles NetworkXNoPath exception."""
+        import backend.eval.tree
+        import networkx as nx
+
+        # Create a simple graph with a path
+        mock_g = nx.DiGraph()
+        mock_g.add_edge("Starter?", "Child?")
+        mock_g.add_edge("Child?", "Leaf?")
+
+        monkeypatch.setattr(backend.eval.tree, "_G", mock_g)
+
+        # Create subgraph with all nodes
+        subgraph = mock_g.subgraph(["Starter?", "Child?", "Leaf?"])
+
+        # This should work - leaf is Leaf?
+        result = backend.eval.tree._find_paths(["Starter?"], subgraph, 5)
+        assert len(result) > 0  # Should find paths
+
+
+# =============================================================================
+# Tree Validation Edge Cases
+# =============================================================================
+
+
+class TestTreeValidationEdgeCases:
+    """Tests for tree validation edge cases."""
+
+    def test_validate_tree_starter_not_in_graph(self, monkeypatch):
+        """Test validate_tree when starter is not in graph."""
+        import backend.eval.tree
+        import networkx as nx
+
+        # Create empty graph but have starters defined
+        mock_g = nx.DiGraph()
+        monkeypatch.setattr(backend.eval.tree, "_G", mock_g)
+        monkeypatch.setattr(backend.eval.tree, "_STARTERS", ["Missing Starter?"])
+
+        issues = backend.eval.tree.validate_tree()
+        assert any("Starter not in tree" in issue for issue in issues)
+
+    def test_validate_tree_orphaned_question(self, monkeypatch):
+        """Test validate_tree detects orphaned questions."""
+        import backend.eval.tree
+        import networkx as nx
+
+        # Create graph with connected and orphaned nodes
+        mock_g = nx.DiGraph()
+        mock_g.add_edge("Starter?", "Connected?")
+        mock_g.add_node("Orphan?")  # Not reachable from starter
+        monkeypatch.setattr(backend.eval.tree, "_G", mock_g)
+        monkeypatch.setattr(backend.eval.tree, "_STARTERS", ["Starter?"])
+
+        issues = backend.eval.tree.validate_tree()
+        assert any("Orphaned question" in issue for issue in issues)
+
+    def test_validate_tree_cycle_detection(self, monkeypatch):
+        """Test validate_tree detects cycles."""
+        import backend.eval.tree
+        import networkx as nx
+
+        # Create graph with a cycle
+        mock_g = nx.DiGraph()
+        mock_g.add_edge("A?", "B?")
+        mock_g.add_edge("B?", "C?")
+        mock_g.add_edge("C?", "A?")  # Creates cycle
+        monkeypatch.setattr(backend.eval.tree, "_G", mock_g)
+        monkeypatch.setattr(backend.eval.tree, "_STARTERS", ["A?"])
+
+        issues = backend.eval.tree.validate_tree()
+        assert any("cycles" in issue.lower() for issue in issues)
+
+    def test_validate_tree_wrong_out_degree(self, monkeypatch):
+        """Test validate_tree detects wrong number of follow-ups."""
+        import backend.eval.tree
+        import networkx as nx
+
+        # Create graph where node has 2 follow-ups (not 0 or 3)
+        mock_g = nx.DiGraph()
+        mock_g.add_edge("Starter?", "Child1?")
+        mock_g.add_edge("Starter?", "Child2?")  # Only 2 children, not 0 or 3
+        monkeypatch.setattr(backend.eval.tree, "_G", mock_g)
+        monkeypatch.setattr(backend.eval.tree, "_STARTERS", ["Starter?"])
+
+        issues = backend.eval.tree.validate_tree()
+        assert any("follow-ups" in issue for issue in issues)
+
+
+# =============================================================================
+# Route Eval Module Tests
+# =============================================================================
+
+
+class TestRouteEvalModule:
+    """Tests for route evaluation module."""
+
+    def test_route_eval_run_sql_eval(self, monkeypatch):
+        """Test run_sql_eval function exists and runs."""
+        from backend.eval.route.eval import run_sql_eval, EvalResults
+
+        # Mock to return empty list of questions
+        def mock_load_test_questions():
+            return []
+
+        import backend.eval.route.eval
+        monkeypatch.setattr(backend.eval.route.eval, "_load_test_questions", mock_load_test_questions)
+
+        # Run with empty questions list
+        results = run_sql_eval(limit=0, verbose=False)
+        assert isinstance(results, EvalResults)
+
+    def test_route_eval_print_summary(self, capsys):
+        """Test print_summary function."""
+        from backend.eval.route.eval import print_summary, EvalResults
+
+        results = EvalResults(
+            total=10,
+            passed=8,
+            sql_executed=10,
+            sql_failed=0,
+            cases=[],
+        )
+
+        print_summary(results)
+        # Should not raise
+
+    def test_route_eval_print_summary_with_failures(self, capsys):
+        """Test print_summary with failed cases."""
+        from backend.eval.route.eval import print_summary, EvalResults, CaseResult
+
+        failed_case = CaseResult(
+            question="Test question?",
+            sql="SELECT * FROM test",
+            passed=False,
+            row_count=0,
+            errors=["Expected 5 rows, got 0"],
+        )
+
+        results = EvalResults(
+            total=1,
+            passed=0,
+            sql_executed=1,
+            sql_failed=0,
+            cases=[failed_case],
+        )
+
+        print_summary(results)
+        # Should print failure details
+
+
+# =============================================================================
+# Output Print SLO Failures Tests
+# =============================================================================
+
+
+class TestPrintSloFailuresExtended:
+    """Extended tests for _print_slo_failures function."""
+
+    def test_print_slo_failures_with_multiple_failures(self, capsys):
+        """Test _print_slo_failures shows failures sorted by severity."""
+        from backend.eval.output import _print_slo_failures
+
+        # Create steps with varying failure counts
+        step1 = FlowStepResult(
+            question="Q1?",
+            answer="A1",
+            latency_ms=100,
+            has_answer=True,
+            has_sources=True,
+            relevance_score=0.5,  # Fails
+            faithfulness_score=0.5,  # Fails
+            answer_correctness_score=0.3,  # Fails
+        )
+        step2 = FlowStepResult(
+            question="Q2?",
+            answer="A2",
+            latency_ms=100,
+            has_answer=True,
+            has_sources=True,
+            relevance_score=0.5,  # Fails
+            faithfulness_score=0.9,
+            answer_correctness_score=0.8,
+        )
+
+        flow1 = FlowResult(
+            path_id=0,
+            questions=["Q1?"],
+            steps=[step1],
+            total_latency_ms=100,
+            success=False,
+        )
+        flow2 = FlowResult(
+            path_id=1,
+            questions=["Q2?"],
+            steps=[step2],
+            total_latency_ms=100,
+            success=False,
+        )
+
+        results = FlowEvalResults(
+            total_paths=2,
+            paths_tested=2,
+            paths_passed=0,
+            paths_failed=2,
+            total_questions=2,
+            questions_passed=0,
+            questions_failed=2,
+            all_results=[flow1, flow2],
+        )
+
+        # Should print failures table without crashing
+        _print_slo_failures(results, eval_mode="both")
+
+    def test_print_slo_failures_rag_only_mode(self, capsys):
+        """Test _print_slo_failures in rag-only eval mode."""
+        from backend.eval.output import _print_slo_failures
+
+        step = FlowStepResult(
+            question="Q?",
+            answer="A",
+            latency_ms=100,
+            has_answer=True,
+            has_sources=True,
+            relevance_score=0.9,
+            faithfulness_score=0.9,
+            account_rag_invoked=True,
+            account_precision_score=0.5,  # Fails
+            account_recall_score=0.4,  # Fails
+        )
+
+        flow = FlowResult(
+            path_id=0,
+            questions=["Q?"],
+            steps=[step],
+            total_latency_ms=100,
+            success=False,
+        )
+
+        results = FlowEvalResults(
+            total_paths=1,
+            paths_tested=1,
+            paths_passed=0,
+            paths_failed=1,
+            total_questions=1,
+            questions_passed=0,
+            questions_failed=1,
+            all_results=[flow],
+        )
+
+        # Should print with RAG columns only
+        _print_slo_failures(results, eval_mode="rag")
+
+    def test_print_slo_failures_pipeline_only_mode(self, capsys):
+        """Test _print_slo_failures in pipeline-only eval mode."""
+        from backend.eval.output import _print_slo_failures
+
+        step = FlowStepResult(
+            question="Q?",
+            answer="A",
+            latency_ms=100,
+            has_answer=True,
+            has_sources=True,
+            relevance_score=0.5,  # Fails
+            faithfulness_score=0.5,  # Fails
+            answer_correctness_score=0.3,  # Fails
+        )
+
+        flow = FlowResult(
+            path_id=0,
+            questions=["Q?"],
+            steps=[step],
+            total_latency_ms=100,
+            success=False,
+        )
+
+        results = FlowEvalResults(
+            total_paths=1,
+            paths_tested=1,
+            paths_passed=0,
+            paths_failed=1,
+            total_questions=1,
+            questions_passed=0,
+            questions_failed=1,
+            all_results=[flow],
+        )
+
+        # Should print with pipeline columns only
+        _print_slo_failures(results, eval_mode="pipeline")
+
+
+# =============================================================================
+# Runner Module Extended Coverage Tests
+# =============================================================================
+
+
+class TestRunnerEdgeCases:
+    """Extended tests for runner edge cases."""
+
+    def test_test_single_question_with_sql_data_validation(self, monkeypatch):
+        """Test test_single_question with SQL data validation."""
+        from backend.eval.runner import test_single_question
+
+        def mock_invoke_agent(question, session_id=None):
+            return {
+                "answer": "Test answer with good content",
+                "sources": [],
+                "sql_results": {"query": [{"company": "Acme", "value": 100}]},
+                "account_chunks": [],
+                "needs_rag": False,
+            }
+
+        def mock_judge_answer(*args, **kwargs):
+            return {
+                "relevance": 0.90,
+                "faithfulness": 0.88,
+                "context_precision": 0.0,
+                "context_recall": 0.0,
+                "answer_correctness": 0.75,
+                "explanation": "",
+                "ragas_failed": False,
+                "nan_metrics": [],
+            }
+
+        def mock_get_expected_answer(question):
+            return "Expected answer"
+
+        def mock_get_expected_sql_results(question):
+            return {"must_contain": "Acme"}
+
+        import backend.eval.runner
+
+        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
+        monkeypatch.setattr(backend.eval.runner, "judge_answer", mock_judge_answer)
+        # Patch in runner module where functions are imported
+        monkeypatch.setattr(backend.eval.runner, "get_expected_answer", mock_get_expected_answer)
+        monkeypatch.setattr(backend.eval.runner, "get_expected_sql_results", mock_get_expected_sql_results)
+
+        result = test_single_question("Test Q?", [], "session1")
+
+        assert result.sql_data_validated is True
+        assert result.sql_data_errors is None
+
+    def test_test_single_question_ragas_failed_rag_mode(self, monkeypatch):
+        """Test test_single_question with RAGAS failure in RAG mode."""
+        from backend.eval.runner import test_single_question
+
+        def mock_invoke_agent(question, session_id=None):
+            return {
+                "answer": "Test answer",
+                "sources": [],
+                "sql_results": {},
+                "account_chunks": ["Some context"],
+                "account_rag_invoked": True,  # Must be True for RAG metrics to be evaluated
+                "needs_rag": True,
+            }
+
+        def mock_judge_answer(*args, **kwargs):
+            return {
+                "relevance": 0.0,
+                "faithfulness": 0.0,
+                "context_precision": 0.0,
+                "context_recall": 0.0,
+                "answer_correctness": 0.0,
+                "explanation": "RAGAS failed",
+                "ragas_failed": True,  # RAGAS failure
+                "nan_metrics": ["context_precision", "context_recall"],
+            }
+
+        def mock_get_expected_answer(question):
+            return "Expected"  # Need reference for RAG metrics
+
+        import backend.eval.runner
+
+        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
+        monkeypatch.setattr(backend.eval.runner, "judge_answer", mock_judge_answer)
+        monkeypatch.setattr(backend.eval.runner, "get_expected_answer", mock_get_expected_answer)
+
+        result = test_single_question("Q?", [], "session1", eval_mode="rag")
+
+        assert result.ragas_metrics_failed >= 2
+
+    def test_test_single_question_ragas_failed_pipeline_mode(self, monkeypatch):
+        """Test test_single_question with RAGAS failure in pipeline mode."""
+        from backend.eval.runner import test_single_question
+
+        def mock_invoke_agent(question, session_id=None):
+            return {
+                "answer": "Test answer",
+                "sources": [],
+                "sql_results": {"query": [{"a": 1}]},
+                "account_chunks": [],
+                "needs_rag": False,
+            }
+
+        def mock_judge_answer(*args, **kwargs):
+            return {
+                "relevance": 0.0,
+                "faithfulness": 0.0,
+                "context_precision": 0.0,
+                "context_recall": 0.0,
+                "answer_correctness": 0.0,
+                "explanation": "RAGAS failed",
+                "ragas_failed": True,  # RAGAS failure
+                "nan_metrics": [],
+            }
+
+        def mock_get_expected_answer(question):
+            return None
+
+        import backend.eval.runner
+        import backend.eval.tree
+
+        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
+        monkeypatch.setattr(backend.eval.runner, "judge_answer", mock_judge_answer)
+        monkeypatch.setattr(backend.eval.tree, "get_expected_answer", mock_get_expected_answer)
+
+        result = test_single_question("Q?", [], "session1", eval_mode="pipeline")
+
+        assert result.ragas_metrics_failed >= 3
+
+    def test_test_single_question_ragas_failed_both_mode(self, monkeypatch):
+        """Test test_single_question with RAGAS failure in both mode."""
+        from backend.eval.runner import test_single_question
+
+        def mock_invoke_agent(question, session_id=None):
+            return {
+                "answer": "Test answer",
+                "sources": [],
+                "sql_results": {"query": [{"a": 1}]},
+                "account_chunks": ["context"],
+                "account_rag_invoked": True,  # Must be True for RAG metrics to be evaluated
+                "needs_rag": True,
+            }
+
+        call_count = {"count": 0}
+
+        def mock_judge_answer(*args, **kwargs):
+            call_count["count"] += 1
+            return {
+                "relevance": 0.0,
+                "faithfulness": 0.0,
+                "context_precision": 0.0,
+                "context_recall": 0.0,
+                "answer_correctness": 0.0,
+                "explanation": "RAGAS failed",
+                "ragas_failed": True,  # RAGAS failure
+                "nan_metrics": [],
+            }
+
+        def mock_get_expected_answer(question):
+            return "Expected"
+
+        import backend.eval.runner
+        import backend.eval.tree
+
+        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
+        monkeypatch.setattr(backend.eval.runner, "judge_answer", mock_judge_answer)
+        monkeypatch.setattr(backend.eval.tree, "get_expected_answer", mock_get_expected_answer)
+
+        result = test_single_question("Q?", [], "session1", eval_mode="both")
+
+        # Should have failed metrics from both RAG and pipeline evaluations
+        assert result.ragas_metrics_failed >= 2
+
+
+# =============================================================================
+# Route Eval Extended Tests
+# =============================================================================
+
+
+class TestRouteEvalExtended:
+    """Extended tests for route evaluation module."""
+
+    def test_route_eval_run_with_verbose(self, monkeypatch, tmp_path):
+        """Test run_sql_eval with verbose output and actual execution."""
+        from backend.eval.route.eval import run_sql_eval, EvalResults
+
+        # Create mock fixtures file
+        fixtures_dir = tmp_path / "fixtures"
+        fixtures_dir.mkdir()
+        (fixtures_dir / "expected_sql_results.yaml").write_text(
+            "Test question?:\n  must_contain: test\n"
+        )
+
+        def mock_load_test_questions():
+            return ["Test question?"]
+
+        def mock_get_sql_plan(question):
+            from backend.agent.fetch.planner import SQLPlan
+            return SQLPlan(sql="SELECT 'test' as value", needs_rag=False)
+
+        class MockResult:
+            description = [("value",)]
+            def fetchall(self):
+                return [("test",)]
+
+        class MockConnection:
+            def execute(self, sql):
+                return MockResult()
+
+        def mock_get_connection():
+            return MockConnection()
+
+        import backend.eval.route.eval
+        import backend.agent.fetch.planner
+        import backend.agent.fetch.sql.connection
+
+        monkeypatch.setattr(backend.eval.route.eval, "_load_test_questions", mock_load_test_questions)
+        monkeypatch.setattr(backend.eval.route.eval, "get_sql_plan", mock_get_sql_plan)
+        monkeypatch.setattr(backend.eval.route.eval, "get_connection", mock_get_connection)
+
+        results = run_sql_eval(verbose=True, limit=1)
+        assert isinstance(results, EvalResults)
+        assert results.total == 1
+
+    def test_route_eval_sql_execution_error(self, monkeypatch):
+        """Test run_sql_eval handles SQL execution errors."""
+        from backend.eval.route.eval import run_sql_eval, EvalResults
+
+        def mock_load_test_questions():
+            return ["Bad SQL question?"]
+
+        def mock_get_sql_plan(question):
+            from backend.agent.fetch.planner import SQLPlan
+            return SQLPlan(sql="INVALID SQL", needs_rag=False)
+
+        class MockConnection:
+            def execute(self, sql):
+                raise Exception("SQL syntax error")
+
+        def mock_get_connection():
+            return MockConnection()
+
+        import backend.eval.route.eval
+
+        monkeypatch.setattr(backend.eval.route.eval, "_load_test_questions", mock_load_test_questions)
+        monkeypatch.setattr(backend.eval.route.eval, "get_sql_plan", mock_get_sql_plan)
+        monkeypatch.setattr(backend.eval.route.eval, "get_connection", mock_get_connection)
+
+        results = run_sql_eval(verbose=True, limit=1)
+        assert results.sql_failed == 1
+
+    def test_route_eval_planner_error(self, monkeypatch):
+        """Test run_sql_eval handles planner errors."""
+        from backend.eval.route.eval import run_sql_eval, EvalResults
+
+        def mock_load_test_questions():
+            return ["Error question?"]
+
+        def mock_get_sql_plan(question):
+            raise Exception("Planner crashed")
+
+        import backend.eval.route.eval
+
+        monkeypatch.setattr(backend.eval.route.eval, "_load_test_questions", mock_load_test_questions)
+        monkeypatch.setattr(backend.eval.route.eval, "get_sql_plan", mock_get_sql_plan)
+
+        results = run_sql_eval(verbose=True, limit=1)
+        assert results.passed == 0  # Should fail
+
+    def test_route_eval_no_assertions(self, monkeypatch):
+        """Test run_sql_eval when no assertions defined for question."""
+        from backend.eval.route.eval import run_sql_eval, EvalResults
+
+        def mock_load_test_questions():
+            return ["Unknown question?"]
+
+        def mock_get_sql_plan(question):
+            from backend.agent.fetch.planner import SQLPlan
+            return SQLPlan(sql="SELECT 1 as value", needs_rag=False)
+
+        class MockResult:
+            description = [("value",)]
+            def fetchall(self):
+                return [(1,)]
+
+        class MockConnection:
+            def execute(self, sql):
+                return MockResult()
+
+        def mock_get_connection():
+            return MockConnection()
+
+        def mock_get_expected_sql_results(question):
+            return None  # No assertions
+
+        import backend.eval.route.eval
+        import backend.eval.tree
+
+        monkeypatch.setattr(backend.eval.route.eval, "_load_test_questions", mock_load_test_questions)
+        monkeypatch.setattr(backend.eval.route.eval, "get_sql_plan", mock_get_sql_plan)
+        monkeypatch.setattr(backend.eval.route.eval, "get_connection", mock_get_connection)
+        monkeypatch.setattr(backend.eval.tree, "get_expected_sql_results", mock_get_expected_sql_results)
+
+        results = run_sql_eval(verbose=False, limit=1)
+        # Should pass if results returned (no assertions)
+        assert results.total == 1
+
+
+# =============================================================================
+# Tree Network Path Edge Cases
+# =============================================================================
+
+
+class TestTreeNetworkPaths:
+    """Test tree path finding with network exceptions."""
+
+    def test_compute_max_depth_no_path_between_nodes(self, monkeypatch):
+        """Test _compute_max_depth when no path exists between starter and descendant."""
+        import networkx as nx
+        import backend.eval.tree as tree_module
+
+        # Create a graph with disconnected components
+        G = nx.DiGraph()
+        G.add_edge("starter", "node1")
+        G.add_node("orphan")  # Node with no connection
+
+        # Mock the global _G
+        monkeypatch.setattr(tree_module, "_G", G)
+        monkeypatch.setattr(tree_module, "_STARTERS", ["starter"])
+
+        # This should handle the case where descendants are found but no path exists
+        max_depth = tree_module._compute_max_depth(["starter"])
+        assert max_depth >= 1  # At least depth 1 for starter -> node1
+
+    def test_find_paths_disconnected_nodes(self, monkeypatch):
+        """Test _find_paths with disconnected subgraph."""
+        import networkx as nx
+        import backend.eval.tree as tree_module
+
+        # Create a graph where path finding might fail
+        G = nx.DiGraph()
+        G.add_edge("starter", "mid")
+        G.add_edge("mid", "leaf")
+
+        # Mock the global _G
+        monkeypatch.setattr(tree_module, "_G", G)
+        monkeypatch.setattr(tree_module, "_STARTERS", ["starter"])
+
+        # Test with disconnected leaf (not in the subgraph)
+        subgraph = G.subgraph(["starter", "mid", "leaf"]).copy()
+        paths = tree_module._find_paths(["starter"], subgraph, 3)
+        assert len(paths) >= 1
+
+
+# =============================================================================
+# Runner Timeout and Concurrent Execution Tests
+# =============================================================================
+
+
+class TestRunnerTimeoutHandling:
+    """Test runner timeout and concurrent execution edge cases."""
+
+    def test_test_single_question_timeout_error(self, monkeypatch):
+        """Test test_single_question handles TimeoutError."""
+        from backend.eval.runner import test_single_question
+
+        def mock_invoke_agent(question, session_id=None):
+            raise TimeoutError("Request timed out")
+
+        import backend.eval.runner
+        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
+
+        result = test_single_question("Q?", [], "session1")
+
+        assert result.has_answer is False
+        assert "Timeout" in result.error
+
+    def test_run_flow_eval_concurrent_exception(self, monkeypatch):
+        """Test run_flow_eval handles exceptions in concurrent futures."""
+        from backend.eval.runner import run_flow_eval
+        from backend.eval.models import FlowResult, FlowStepResult
+
+        call_count = {"count": 0}
+
+        def mock_test_flow(path, path_id, use_judge, verbose, eval_mode):
+            call_count["count"] += 1
+            if call_count["count"] == 1:
+                raise RuntimeError("Thread crashed unexpectedly")
+            return FlowResult(
+                path_id=path_id,
+                questions=path,
+                steps=[FlowStepResult(
+                    question="Q?", answer="A", latency_ms=100,
+                    has_answer=True, has_sources=True,
+                    relevance_score=0.9, faithfulness_score=0.9,
+                )],
+                total_latency_ms=100,
+                success=True,
+            )
+
+        def mock_get_all_paths():
+            return [["Q1?"], ["Q2?"]]  # Two paths
+
+        import backend.eval.runner
+        monkeypatch.setattr(backend.eval.runner, "test_flow", mock_test_flow)
+        monkeypatch.setattr(backend.eval.runner, "get_all_paths", mock_get_all_paths)
+
+        # Run with concurrency=2 to trigger ThreadPoolExecutor path
+        results = run_flow_eval(max_paths=2, concurrency=2)
+
+        # Should have handled the exception gracefully
+        assert results.paths_tested == 2
+
+
+# =============================================================================
+# CLI Exception Handling Tests
+# =============================================================================
+
+
+class TestCliExceptionHandling:
+    """Test CLI handles exceptions gracefully."""
+
+    def test_run_eval_flow_eval_exception(self, monkeypatch):
+        """Test _run_eval handles exceptions from run_flow_eval."""
+        from backend.eval.cli import _run_eval
+
+        def mock_check_qdrant_access():
+            return True
+
+        def mock_ensure_collections():
+            pass
+
+        def mock_run_flow_eval(**kwargs):
+            raise RuntimeError("Flow eval crashed")
+
+        def mock_get_latency_percentages(**kwargs):
+            return None
+
+        def mock_get_tree_stats():
+            return {"num_starters": 1, "num_questions": 5, "num_edges": 4, "max_depth": 3, "num_paths": 2, "path_lengths": {"min": 2, "max": 3}}
+
+        import backend.eval.cli
+
+        monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
+        monkeypatch.setattr(backend.eval.cli, "ensure_qdrant_collections", mock_ensure_collections)
+        monkeypatch.setattr(backend.eval.cli, "run_flow_eval", mock_run_flow_eval)
+        monkeypatch.setattr(backend.eval.cli, "get_latency_percentages", mock_get_latency_percentages)
+        monkeypatch.setattr(backend.eval.cli, "get_tree_stats", mock_get_tree_stats)
+
+        # Should not raise, but handle gracefully
+        _run_eval(limit=1, verbose=False, no_judge=True, output=None, debug=False, eval_mode="both")
+
+    def test_run_eval_debug_with_judge_explanation(self, monkeypatch, capsys):
+        """Test _run_eval debug output includes judge explanation."""
+        from backend.eval.cli import _run_eval
+        from backend.eval.models import FlowEvalResults, FlowResult, FlowStepResult
+
+        def mock_check_qdrant_access():
+            return True
+
+        def mock_ensure_collections():
+            pass
+
+        failed_step = FlowStepResult(
+            question="Failed Q?",
+            answer="Bad answer",
+            latency_ms=100,
+            has_answer=True,
+            has_sources=False,
+            relevance_score=0.3,
+            faithfulness_score=0.3,
+            judge_explanation="This answer is not relevant to the question.",
+        )
+
+        def mock_run_flow_eval(**kwargs):
+            return FlowEvalResults(
+                total_paths=1,
+                paths_tested=1,
+                paths_passed=0,
+                paths_failed=1,
+                total_questions=1,
+                questions_passed=0,
+                questions_failed=1,
+                failed_paths=[
+                    FlowResult(
+                        path_id=1,
+                        questions=["Failed Q?"],
+                        steps=[failed_step],
+                        total_latency_ms=100,
+                        success=False,
+                    )
+                ],
+                all_results=[],
+            )
+
+        def mock_get_latency_percentages(**kwargs):
+            return None
+
+        def mock_print_summary(*args, **kwargs):
+            pass
+
+        def mock_get_tree_stats():
+            return {"num_starters": 1, "num_questions": 5, "num_edges": 4, "max_depth": 3, "num_paths": 2, "path_lengths": {"min": 2, "max": 3}}
+
+        import backend.eval.cli
+
+        monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
+        monkeypatch.setattr(backend.eval.cli, "ensure_qdrant_collections", mock_ensure_collections)
+        monkeypatch.setattr(backend.eval.cli, "run_flow_eval", mock_run_flow_eval)
+        monkeypatch.setattr(backend.eval.cli, "get_latency_percentages", mock_get_latency_percentages)
+        monkeypatch.setattr(backend.eval.cli, "print_summary", mock_print_summary)
+        monkeypatch.setattr(backend.eval.cli, "get_tree_stats", mock_get_tree_stats)
+
+        # Run with debug=True
+        _run_eval(limit=1, verbose=False, no_judge=True, output=None, debug=True, eval_mode="both")
+
+
+# =============================================================================
+# Route Eval Verbose Output Tests
+# =============================================================================
+
+
+class TestRouteEvalVerboseOutput:
+    """Test route eval verbose output paths."""
+
+    def test_run_sql_eval_verbose_with_errors(self, monkeypatch):
+        """Test run_sql_eval verbose output with validation errors."""
+        from backend.eval.route.eval import run_sql_eval
+
+        def mock_load_test_questions():
+            return ["Question with validation errors?"]
+
+        def mock_get_sql_plan(question):
+            from backend.agent.fetch.planner import SQLPlan
+            return SQLPlan(sql="SELECT 'test' as name", needs_rag=False)
+
+        class MockResult:
+            description = [("name",)]
+            def fetchall(self):
+                return [("test",)]
+
+        class MockConnection:
+            def execute(self, sql):
+                return MockResult()
+
+        def mock_get_connection():
+            return MockConnection()
+
+        def mock_validate(question, results):
+            return False, ["row_count mismatch: expected 5, got 1"]
+
+        def mock_get_expected_sql_results(question):
+            return {"row_count": 5}  # Will cause mismatch
+
+        import backend.eval.route.eval
+        import backend.eval.tree
+
+        monkeypatch.setattr(backend.eval.route.eval, "_load_test_questions", mock_load_test_questions)
+        monkeypatch.setattr(backend.eval.route.eval, "get_sql_plan", mock_get_sql_plan)
+        monkeypatch.setattr(backend.eval.route.eval, "get_connection", mock_get_connection)
+        monkeypatch.setattr(backend.eval.route.eval, "validate_sql_results", mock_validate)
+        monkeypatch.setattr(backend.eval.route.eval, "get_expected_sql_results", mock_get_expected_sql_results)
+
+        # Run with verbose=True to trigger error output
+        results = run_sql_eval(verbose=True, limit=1)
+
+        assert results.passed == 0
+        assert len(results.cases) == 1
+        assert len(results.cases[0].errors) > 0

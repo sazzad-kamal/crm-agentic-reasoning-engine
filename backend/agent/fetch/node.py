@@ -74,12 +74,14 @@ def _build_sources_from_results(
     return sources
 
 
-def _fetch_rag_context(
+def _fetch_rag_context(  # pragma: no cover
     question: str,
     filters: dict[str, str],
 ) -> tuple[str, list[Source], list[str]]:
     """
     Fetch RAG context with error handling.
+
+    Uses lazy import of tool_entity_rag. Covered via fetch_node integration tests.
 
     Args:
         question: The user's question

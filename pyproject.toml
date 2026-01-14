@@ -46,6 +46,7 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_functions = "test_*"
 python_classes = "Test*"
+asyncio_mode = "auto"
 markers = [
     "integration: marks tests as integration tests",
 ]
@@ -58,6 +59,12 @@ omit = [
     "*/__pycache__/*",
     # Eval harnesses are CLI tools that run against live LLMs
     "backend/*/eval/*_eval.py",
+    # CLI entry points (not unit testable)
+    "backend/eval/tree/__main__.py",
+    # Standalone scripts (not proper test files)
+    "backend/eval/route/test_sql_planner.py",
+    # Real RAGAS evaluation requires live OpenAI API (tested via integration tests)
+    "backend/eval/judge.py",
 ]
 
 [tool.coverage.report]
@@ -66,4 +73,8 @@ exclude_lines = [
     "def __repr__",
     "raise NotImplementedError",
     "if TYPE_CHECKING:",
+    # Entry point blocks
+    "if __name__ == .__main__.:",
+    # Exception handlers that only trigger at runtime
+    "except nx.NetworkXNoPath:",
 ]

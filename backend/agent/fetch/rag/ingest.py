@@ -23,9 +23,12 @@ from backend.agent.fetch.rag.config import (
 logger = logging.getLogger(__name__)
 
 
-def ingest_private_texts(recreate: bool = True) -> int:
+def ingest_private_texts(recreate: bool = True) -> int:  # pragma: no cover
     """
     Ingest private texts from JSONL into Qdrant.
+
+    Requires external dependencies (Qdrant, llama_index, HuggingFace).
+    Run via: python -m backend.agent.fetch.rag.ingest
 
     Args:
         recreate: If True, delete and recreate the collection

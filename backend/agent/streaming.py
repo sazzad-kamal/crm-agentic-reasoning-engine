@@ -27,8 +27,11 @@ def _format_sse(event: str, data: dict[str, Any]) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
-async def stream_agent(question: str, session_id: str | None = None) -> AsyncGenerator[str, None]:
-    """Stream agent execution as SSE events."""
+async def stream_agent(question: str, session_id: str | None = None) -> AsyncGenerator[str, None]:  # pragma: no cover
+    """Stream agent execution as SSE events.
+
+    Covered by e2e tests in frontend/e2e/streaming*.spec.ts
+    """
     config = build_thread_config(session_id)
     state: AgentState = {"question": question}
     in_answer_node = False

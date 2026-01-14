@@ -254,7 +254,7 @@ class TestFetchNode:
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
              patch("backend.agent.fetch.node.execute_sql_plan") as mock_exec, \
-             patch("backend.agent.fetch.node.tool_entity_rag") as mock_rag:
+             patch("backend.agent.fetch.rag.tools.tool_entity_rag") as mock_rag:
 
             mock_exec.return_value = (
                 {"companies": [{"company_id": "delta_1"}]},
@@ -442,26 +442,62 @@ class TestGetSqlPlan:
 
         _get_client.cache_clear()
 
+    @pytest.mark.no_mock_llm
     def test_get_sql_plan_none_result_raises(self):
         """get_sql_plan raises ValueError when OpenAI returns None parsed result."""
         from backend.agent.fetch.planner import get_sql_plan, _get_client
 
-        # Clear cache
+        # Clear cache first
         _get_client.cache_clear()
 
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.parsed = None  # Simulates unparseable response
 
-        with patch("backend.agent.fetch.planner.OpenAI") as mock_openai, \
-             patch("backend.agent.fetch.planner.load_prompt", return_value="prompt {today} {conversation_history} {question}"):
+        mock_client = MagicMock()
+        mock_client.beta.chat.completions.parse.return_value = mock_response
 
-            mock_client = MagicMock()
-            mock_client.beta.chat.completions.parse.return_value = mock_response
-            mock_openai.return_value = mock_client
+        # Mock prompt that returns a string when .format() is called
+        mock_prompt = MagicMock()
+        mock_prompt.format.return_value = "test prompt"
+
+        with patch("backend.agent.fetch.planner._get_client", return_value=mock_client), \
+             patch("backend.agent.fetch.planner.load_prompt", return_value=mock_prompt):
 
             with pytest.raises(ValueError, match="Failed to parse SQL plan"):
                 get_sql_plan("What companies do we have?")
+
+        _get_client.cache_clear()
+
+    @pytest.mark.no_mock_llm
+    def test_get_sql_plan_success_path(self):
+        """get_sql_plan returns valid SQLPlan on success."""
+        from backend.agent.fetch.planner import get_sql_plan, _get_client, SQLPlan
+
+        # Clear cache first
+        _get_client.cache_clear()
+
+        # Create a valid SQLPlan response
+        expected_plan = SQLPlan(sql="SELECT * FROM companies", needs_rag=True)
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.parsed = expected_plan
+
+        mock_client = MagicMock()
+        mock_client.beta.chat.completions.parse.return_value = mock_response
+
+        # Mock prompt that returns a string when .format() is called
+        mock_prompt = MagicMock()
+        mock_prompt.format.return_value = "test prompt"
+
+        with patch("backend.agent.fetch.planner._get_client", return_value=mock_client), \
+             patch("backend.agent.fetch.planner.load_prompt", return_value=mock_prompt):
+
+            result = get_sql_plan("What companies do we have?")
+
+            assert result.sql == "SELECT * FROM companies"
+            assert result.needs_rag is True
 
         _get_client.cache_clear()
 
@@ -699,6 +735,25 @@ class TestGenerateFollowUpSuggestions:
 
         # Suggestions field is a list
         assert isinstance(suggestions.suggestions, list)
+
+
+class TestGenerateFollowUpDisabled:
+    """Tests for generate_follow_up_suggestions when disabled."""
+
+    @pytest.mark.no_mock_llm
+    def test_returns_empty_when_disabled(self):
+        """Returns empty list when follow-ups are disabled in config."""
+        from backend.agent.followup.llm import generate_follow_up_suggestions
+
+        with patch("backend.agent.followup.llm.get_config") as mock_config:
+            mock_config.return_value.enable_follow_up_suggestions = False
+
+            result = generate_follow_up_suggestions(
+                question="What's the pipeline?",
+                company_name="Acme",
+            )
+
+            assert result == []
 
 
 class TestFormatAvailableData:

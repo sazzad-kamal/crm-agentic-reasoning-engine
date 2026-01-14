@@ -289,3 +289,34 @@ class TestFollowupNode:
         call_kwargs = mock_generate.call_args[1]
         assert call_kwargs["available_data"]["contacts"] == 2
         assert call_kwargs["available_data"]["activities"] == 1
+
+    @patch('backend.agent.followup.node.generate_follow_up_suggestions')
+    @patch('backend.agent.followup.node.get_config')
+    def test_followup_node_counts_non_list_data_as_one(self, mock_config, mock_generate):
+        """Non-list truthy data is counted as 1 in available_data."""
+        from backend.agent.followup.node import followup_node
+
+        mock_config.return_value.enable_follow_up_suggestions = True
+        mock_config.return_value.max_followup_suggestions = 3
+        mock_generate.return_value = []
+
+        state = {
+            "question": "Test",
+            "messages": [],
+            "sql_results": {
+                "contacts": [{"name": "John"}],  # List - should count as 1
+                "summary": "Pipeline summary text",  # String - should count as 1
+                "total_value": 50000,  # Number - should count as 1
+                "empty_field": "",  # Empty string - should not be counted
+                "null_field": None,  # None - should not be counted
+            },
+        }
+
+        followup_node(state)
+
+        call_kwargs = mock_generate.call_args[1]
+        assert call_kwargs["available_data"]["contacts"] == 1
+        assert call_kwargs["available_data"]["summary"] == 1
+        assert call_kwargs["available_data"]["total_value"] == 1
+        assert "empty_field" not in call_kwargs["available_data"]
+        assert "null_field" not in call_kwargs["available_data"]

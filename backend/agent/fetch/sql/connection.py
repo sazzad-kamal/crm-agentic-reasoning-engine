@@ -53,7 +53,8 @@ def get_connection(csv_path: Path | None = None) -> duckdb.DuckDBPyConnection:
         _thread_local.conn = duckdb.connect(":memory:")
         _load_csvs(_thread_local.conn, csv_path or _get_csv_base_path())
         logger.debug("Created new DuckDB connection with CSV tables")
-    return _thread_local.conn
+    conn: duckdb.DuckDBPyConnection = _thread_local.conn
+    return conn
 
 
 def reset_connection() -> None:

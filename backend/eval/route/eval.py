@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 from rich.console import Console
 
 from backend.agent.fetch.planner import get_sql_plan

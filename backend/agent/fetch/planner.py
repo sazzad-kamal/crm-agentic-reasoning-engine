@@ -1,11 +1,12 @@
 """SQL Sorcerer-style query planner - generates SQL directly."""
 
+import json
 import logging
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 
-from openai import OpenAI
+import anthropic
 from pydantic import BaseModel, Field
 
 from backend.agent.core.config import get_config
@@ -24,9 +25,9 @@ class SQLPlan(BaseModel):
 
 
 @lru_cache
-def _get_client() -> OpenAI:
-    """Get OpenAI client (cached)."""
-    return OpenAI()
+def _get_client() -> anthropic.Anthropic:
+    """Get Anthropic client (cached)."""
+    return anthropic.Anthropic()
 
 
 def get_sql_plan(question: str, conversation_history: str = "") -> SQLPlan:
@@ -43,19 +44,25 @@ def get_sql_plan(question: str, conversation_history: str = "") -> SQLPlan:
         question=question,
     )
 
-    response = _get_client().beta.chat.completions.parse(
+    response = _get_client().messages.create(
         model=config.router_model,
-        temperature=0,
-        messages=[
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": question},
-        ],
-        response_format=SQLPlan,
+        max_tokens=1024,
+        messages=[{"role": "user", "content": f"{prompt}\n\nQuestion: {question}"}],
     )
 
-    result = response.choices[0].message.parsed
-    if result is None:
-        raise ValueError("Failed to parse SQL plan from LLM response")
+    # Parse JSON from response
+    text = response.content[0].text
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as err:
+        # Try to extract JSON from markdown code block
+        import re
+        if match := re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL):
+            data = json.loads(match.group(1))
+        else:
+            raise ValueError(f"Failed to parse JSON from response: {text[:200]}") from err
+
+    result = SQLPlan(**data)
     logger.info("SQL Planner: %s (needs_rag=%s)", result.sql[:80], result.needs_rag)
     return result
 

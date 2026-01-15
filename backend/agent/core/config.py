@@ -31,7 +31,7 @@ class AgentConfig(BaseSettings):
         description="LLM model for agent orchestration and synthesis",
     )
     router_model: str = Field(
-        default="gpt-5.2", description="LLM model for routing and SQL generation"
+        default="claude-sonnet-4-5-20241022", description="LLM model for SQL generation"
     )
     llm_temperature: float = Field(default=0.1, description="LLM temperature for agent responses")
     llm_max_tokens: int = Field(default=1024, description="Maximum tokens in LLM response")

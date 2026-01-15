@@ -18,15 +18,44 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
-
 # Models that require max_completion_tokens instead of max_tokens
 _MAX_COMPLETION_TOKENS_PREFIXES = {"o1", "o3", "o4", "gpt-5"}
 
 
-def _requires_max_completion_tokens(model: str) -> bool:
-    """Check if model requires max_completion_tokens instead of max_tokens."""
-    model_lower = model.lower()
-    return any(model_lower.startswith(prefix) for prefix in _MAX_COMPLETION_TOKENS_PREFIXES)
+def _create_chat_openai(
+    model: str,
+    temperature: float,
+    max_tokens: int,
+    streaming: bool,
+) -> ChatOpenAI:
+    """Create a ChatOpenAI instance with proper token parameter handling."""
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY environment variable not set")
+
+    # Newer models use max_completion_tokens instead of max_tokens
+    uses_completion_tokens = any(
+        model.lower().startswith(p) for p in _MAX_COMPLETION_TOKENS_PREFIXES
+    )
+
+    if uses_completion_tokens:
+        return ChatOpenAI(
+            model=model,
+            api_key=api_key,  # type: ignore[arg-type]
+            max_retries=3,
+            request_timeout=60,  # type: ignore[call-arg]
+            max_completion_tokens=max_tokens,
+            streaming=streaming,
+        )
+    return ChatOpenAI(
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,  # type: ignore[call-arg]
+        api_key=api_key,  # type: ignore[arg-type]
+        max_retries=3,
+        request_timeout=60,
+        streaming=streaming,
+    )
 
 
 @lru_cache(maxsize=16)
@@ -36,40 +65,8 @@ def get_chat_model(
     max_tokens: int = 2000,
     streaming: bool = False,
 ) -> ChatOpenAI:
-    """Get a cached ChatOpenAI instance.
-
-    Args:
-        model: The model name (e.g., "gpt-4o", "gpt-4o-mini")
-        temperature: Sampling temperature
-        max_tokens: Maximum tokens in response
-        streaming: Whether to enable streaming
-
-    Returns:
-        A configured ChatOpenAI instance
-    """
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY environment variable not set")
-
-    if _requires_max_completion_tokens(model):
-        return ChatOpenAI(
-            model=model,
-            api_key=api_key,  # type: ignore[arg-type]
-            max_retries=3,
-            request_timeout=60,  # type: ignore[call-arg]
-            max_completion_tokens=max_tokens,
-            streaming=streaming,
-        )
-    else:
-        return ChatOpenAI(
-            model=model,
-            temperature=temperature,
-            max_tokens=max_tokens,  # type: ignore[call-arg]
-            api_key=api_key,  # type: ignore[arg-type]
-            max_retries=3,
-            request_timeout=60,
-            streaming=streaming,
-        )
+    """Get a cached ChatOpenAI instance."""
+    return _create_chat_openai(model, temperature, max_tokens, streaming)
 
 
 def create_chain(
@@ -80,43 +77,12 @@ def create_chain(
     structured_output: type[BaseModel] | None = None,
     streaming: bool = True,
 ) -> Any:
-    """Create an LCEL chain with the given prompt template.
-
-    Args:
-        prompt_template: A LangChain prompt template
-        model: The model name
-        temperature: Sampling temperature
-        max_tokens: Maximum tokens in response
-        structured_output: Optional Pydantic model for structured output
-        streaming: Whether to enable streaming (default True)
-
-    Returns:
-        An LCEL chain (prompt | llm | parser)
-    """
+    """Create an LCEL chain with the given prompt template."""
     # Don't use cached model for chains - create fresh for proper streaming
-    api_key = os.environ.get("OPENAI_API_KEY")
-
-    if _requires_max_completion_tokens(model):
-        llm = ChatOpenAI(
-            model=model,
-            api_key=api_key,  # type: ignore[arg-type]
-            max_retries=3,
-            request_timeout=60,  # type: ignore[call-arg]
-            max_completion_tokens=max_tokens,
-            streaming=streaming,
-        )
-    else:
-        llm = ChatOpenAI(
-            model=model,
-            temperature=temperature,
-            max_tokens=max_tokens,  # type: ignore[call-arg]
-            api_key=api_key,  # type: ignore[arg-type]
-            streaming=streaming,
-        )
+    llm = _create_chat_openai(model, temperature, max_tokens, streaming)
 
     if structured_output:
         return prompt_template | llm.with_structured_output(structured_output)
-
     return prompt_template | llm | StrOutputParser()
 
 

@@ -57,10 +57,12 @@ const mockOpportunitiesResponse = {
       stage: "Proposal",
       value: "50000",
       notes: "High priority customer",
-      _attachments: [
+      _private_texts: [
         {
-          file_name: "proposal.pdf",
-          file_size: "2MB",
+          id: "opp::OPP-001",
+          type: "opportunity",
+          title: "Proposal Notes",
+          text: "High priority customer with expansion potential",
         },
       ],
     },
@@ -386,7 +388,7 @@ describe("DataExplorer", () => {
   });
 
   describe("Nested Data Types", () => {
-    it("displays opportunity attachments correctly", async () => {
+    it("displays opportunity notes correctly", async () => {
       render(<DataExplorer />);
 
       const oppTab = screen.getByRole("tab", { name: /opportunities/i });
@@ -400,8 +402,8 @@ describe("DataExplorer", () => {
       fireEvent.click(expandButton);
 
       await waitFor(() => {
-        expect(screen.getByText("Attachments")).toBeInTheDocument();
-        expect(screen.getByText(/proposal.pdf/i)).toBeInTheDocument();
+        expect(screen.getByText("Notes")).toBeInTheDocument();
+        expect(screen.getByText(/High priority customer with expansion potential/i)).toBeInTheDocument();
       });
     });
 

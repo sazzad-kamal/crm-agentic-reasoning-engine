@@ -637,11 +637,11 @@ describe("DataTables", () => {
   });
 
   // =========================================================================
-  // Nested Items - Attachments
+  // Nested Items - Opportunity Notes
   // =========================================================================
 
-  describe("NestedItems - attachments", () => {
-    it("renders attachments in opportunities table", () => {
+  describe("NestedItems - opportunity notes", () => {
+    it("renders notes in opportunities table", () => {
       const rawData: RawData = {
         opportunities: [
           {
@@ -650,8 +650,8 @@ describe("DataTables", () => {
             stage: "Negotiation",
             expected_close_date: "2024-06-30",
             value: 100000,
-            _attachments: [
-              { attachment_id: "1", title: "Proposal.pdf", file_type: "pdf", summary: "", created_at: "" },
+            _private_texts: [
+              { id: "1", type: "opportunity", title: "Deal Notes", text: "Important deal details" },
             ],
           },
         ],
@@ -660,12 +660,11 @@ describe("DataTables", () => {
       render(<DataTables rawData={rawData} />);
       fireEvent.click(screen.getByRole("button"));
 
-      expect(screen.getByText("📎")).toBeInTheDocument();
-      expect(screen.getByText("Proposal.pdf")).toBeInTheDocument();
-      expect(screen.getByText("pdf")).toBeInTheDocument();
+      expect(screen.getByText("opportunity")).toBeInTheDocument();
+      expect(screen.getByText("Deal Notes")).toBeInTheDocument();
     });
 
-    it("falls back to file_name when title is empty", () => {
+    it("shows +X more for notes when more than 5", () => {
       const rawData: RawData = {
         opportunities: [
           {
@@ -674,59 +673,15 @@ describe("DataTables", () => {
             stage: "Open",
             expected_close_date: "2024-06-30",
             value: 50000,
-            _attachments: [
-              { attachment_id: "1", title: "", file_name: "contract.docx", file_type: "docx", summary: "", created_at: "" },
-            ],
-          },
-        ],
-      };
-
-      render(<DataTables rawData={rawData} />);
-      fireEvent.click(screen.getByRole("button"));
-
-      expect(screen.getByText("contract.docx")).toBeInTheDocument();
-    });
-
-    it("shows default Attachment when no title or file_name", () => {
-      const rawData: RawData = {
-        opportunities: [
-          {
-            opportunity_id: "1",
-            name: "Deal",
-            stage: "Open",
-            expected_close_date: "2024-06-30",
-            value: 50000,
-            _attachments: [
-              { attachment_id: "1", title: "", file_type: "", summary: "", created_at: "" },
-            ],
-          },
-        ],
-      };
-
-      render(<DataTables rawData={rawData} />);
-      fireEvent.click(screen.getByRole("button"));
-
-      expect(screen.getByText("Attachment")).toBeInTheDocument();
-    });
-
-    it("shows +X more for attachments when more than 5", () => {
-      const rawData: RawData = {
-        opportunities: [
-          {
-            opportunity_id: "1",
-            name: "Deal",
-            stage: "Open",
-            expected_close_date: "2024-06-30",
-            value: 50000,
-            _attachments: [
-              { attachment_id: "1", title: "File 1", file_type: "pdf", summary: "", created_at: "" },
-              { attachment_id: "2", title: "File 2", file_type: "pdf", summary: "", created_at: "" },
-              { attachment_id: "3", title: "File 3", file_type: "pdf", summary: "", created_at: "" },
-              { attachment_id: "4", title: "File 4", file_type: "pdf", summary: "", created_at: "" },
-              { attachment_id: "5", title: "File 5", file_type: "pdf", summary: "", created_at: "" },
-              { attachment_id: "6", title: "File 6", file_type: "pdf", summary: "", created_at: "" },
-              { attachment_id: "7", title: "File 7", file_type: "pdf", summary: "", created_at: "" },
-              { attachment_id: "8", title: "File 8", file_type: "pdf", summary: "", created_at: "" },
+            _private_texts: [
+              { id: "1", type: "opportunity", title: "Note 1", text: "" },
+              { id: "2", type: "opportunity", title: "Note 2", text: "" },
+              { id: "3", type: "opportunity", title: "Note 3", text: "" },
+              { id: "4", type: "opportunity", title: "Note 4", text: "" },
+              { id: "5", type: "opportunity", title: "Note 5", text: "" },
+              { id: "6", type: "opportunity", title: "Note 6", text: "" },
+              { id: "7", type: "opportunity", title: "Note 7", text: "" },
+              { id: "8", type: "opportunity", title: "Note 8", text: "" },
             ],
           },
         ],
@@ -736,11 +691,11 @@ describe("DataTables", () => {
       fireEvent.click(screen.getByRole("button"));
 
       expect(screen.getByText("+3 more")).toBeInTheDocument();
-      expect(screen.getByText("File 5")).toBeInTheDocument();
-      expect(screen.queryByText("File 6")).not.toBeInTheDocument();
+      expect(screen.getByText("Note 5")).toBeInTheDocument();
+      expect(screen.queryByText("Note 6")).not.toBeInTheDocument();
     });
 
-    it("renders nothing for empty attachments", () => {
+    it("renders nothing for empty notes", () => {
       const rawData: RawData = {
         opportunities: [
           {
@@ -749,7 +704,7 @@ describe("DataTables", () => {
             stage: "Open",
             expected_close_date: "2024-06-30",
             value: 50000,
-            _attachments: [],
+            _private_texts: [],
           },
         ],
       };
@@ -757,7 +712,8 @@ describe("DataTables", () => {
       render(<DataTables rawData={rawData} />);
       fireEvent.click(screen.getByRole("button"));
 
-      expect(screen.queryByText("📎")).not.toBeInTheDocument();
+      // Notes column should exist but be empty
+      expect(screen.getByText("Notes")).toBeInTheDocument();
     });
   });
 

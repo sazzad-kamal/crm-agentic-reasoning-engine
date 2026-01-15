@@ -61,45 +61,19 @@ class TestRagClient:
         client.close_qdrant_client()
         assert client._qdrant_client is None
 
-    def test_get_embed_model_lazy_load(self):
-        """Test that embed model is lazily loaded and cached (singleton)."""
-        from backend.agent.fetch.rag import tools
-
-        # Reset the singleton to test lazy loading
-        original_embed_model = tools._embed_model
-        tools._embed_model = None
-
-        try:
-            mock_model = MagicMock()
-
-            # Patch at the source module where HuggingFaceEmbedding is imported from
-            with patch("llama_index.embeddings.huggingface.HuggingFaceEmbedding", return_value=mock_model) as mock_class:
-                result = tools._get_embed_model()
-                assert result is mock_model
-
-                # Second call should return cached model (singleton)
-                result2 = tools._get_embed_model()
-                assert result2 is mock_model
-
-                # HuggingFaceEmbedding should only be called once (singleton)
-                assert mock_class.call_count == 1
-        finally:
-            # Restore original state
-            tools._embed_model = original_embed_model
-
 
 class TestRagIngest:
     """Tests for backend.agent.rag.ingest module."""
 
-    def test_ingest_private_texts_no_file(self):
-        """Test ingest_private_texts returns 0 when JSONL doesn't exist."""
+    def test_ingest_texts_no_file(self):
+        """Test ingest_texts returns 0 when JSONL doesn't exist."""
         # This is a simpler test that just checks the file-not-exists path
         # without needing to mock llama_index since it returns early
-        from backend.agent.fetch.rag.ingest import ingest_private_texts
+        from backend.agent.fetch.rag.ingest import ingest_texts
 
         with patch("backend.agent.fetch.rag.ingest.JSONL_PATH") as mock_path:
             mock_path.exists.return_value = False
-            result = ingest_private_texts()
+            result = ingest_texts()
             assert result == 0
 
     def test_jsonl_path_configured(self):

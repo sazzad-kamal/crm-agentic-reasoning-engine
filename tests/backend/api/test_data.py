@@ -96,13 +96,13 @@ class TestOpportunitiesEndpoint:
         for col in expected_columns:
             assert col in data["columns"]
 
-    def test_includes_nested_attachments(self, client: TestClient):
-        """Should include nested attachments for opportunities."""
+    def test_includes_nested_private_texts(self, client: TestClient):
+        """Should include nested private texts for opportunities."""
         response = client.get("/api/data/opportunities")
         data = response.json()
         for opp in data["data"]:
-            assert "_attachments" in opp
-            assert isinstance(opp["_attachments"], list)
+            assert "_private_texts" in opp
+            assert isinstance(opp["_private_texts"], list)
 
     def test_includes_notes_column(self, client: TestClient):
         """Should include notes column in opportunities."""

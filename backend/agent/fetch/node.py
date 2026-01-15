@@ -118,7 +118,7 @@ def _fetch_rag_if_needed(
     logger.info(f"[Fetch] Retrieving RAG context with filters={filters}")
 
     try:
-        from backend.agent.fetch.rag.tools import tool_entity_rag
+        from backend.agent.fetch.rag.search import tool_entity_rag
 
         context, _ = tool_entity_rag(question, filters)
         chunks = context.split("\n\n---\n\n") if context else []

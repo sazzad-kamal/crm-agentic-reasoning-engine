@@ -90,45 +90,6 @@ describe("NestedDataDisplay", () => {
   });
 
   // =========================================================================
-  // AttachmentItem
-  // =========================================================================
-
-  describe("AttachmentItem", () => {
-    it("renders attachment with file_name", () => {
-      const row = {
-        _attachments: [{ file_name: "report.pdf" }],
-      };
-      const nestedFields = [{ key: "_attachments", label: "Attachments", icon: "📎" }];
-
-      render(<NestedData row={row} nestedFields={nestedFields} />);
-
-      expect(screen.getByText("report.pdf")).toBeInTheDocument();
-    });
-
-    it("renders attachment with name fallback", () => {
-      const row = {
-        _attachments: [{ name: "backup-file.xlsx" }],
-      };
-      const nestedFields = [{ key: "_attachments", label: "Attachments", icon: "📎" }];
-
-      render(<NestedData row={row} nestedFields={nestedFields} />);
-
-      expect(screen.getByText("backup-file.xlsx")).toBeInTheDocument();
-    });
-
-    it("renders file size when present", () => {
-      const row = {
-        _attachments: [{ file_name: "doc.pdf", file_size: "2.5 MB" }],
-      };
-      const nestedFields = [{ key: "_attachments", label: "Attachments", icon: "📎" }];
-
-      render(<NestedData row={row} nestedFields={nestedFields} />);
-
-      expect(screen.getByText("2.5 MB")).toBeInTheDocument();
-    });
-  });
-
-  // =========================================================================
   // MemberItem
   // =========================================================================
 
@@ -229,33 +190,33 @@ describe("NestedDataDisplay", () => {
     it("renders multiple nested field sections", () => {
       const row = {
         _private_texts: [{ text: "Note 1" }],
-        _attachments: [{ file_name: "doc.pdf" }],
+        _members: [{ company_id: "ACME-001", added_at: "2025-01-01" }],
       };
       const nestedFields = [
         { key: "_private_texts", label: "Notes", icon: "📝" },
-        { key: "_attachments", label: "Attachments", icon: "📎" },
+        { key: "_members", label: "Members", icon: "👥" },
       ];
 
       render(<NestedData row={row} nestedFields={nestedFields} />);
 
       expect(screen.getByText("Notes")).toBeInTheDocument();
-      expect(screen.getByText("Attachments")).toBeInTheDocument();
+      expect(screen.getByText("Members")).toBeInTheDocument();
     });
 
     it("only renders sections with data", () => {
       const row = {
         _private_texts: [{ text: "Note 1" }],
-        _attachments: [], // Empty, should not render
+        _members: [], // Empty, should not render
       };
       const nestedFields = [
         { key: "_private_texts", label: "Notes", icon: "📝" },
-        { key: "_attachments", label: "Attachments", icon: "📎" },
+        { key: "_members", label: "Members", icon: "👥" },
       ];
 
       render(<NestedData row={row} nestedFields={nestedFields} />);
 
       expect(screen.getByText("Notes")).toBeInTheDocument();
-      expect(screen.queryByText("Attachments")).not.toBeInTheDocument();
+      expect(screen.queryByText("Members")).not.toBeInTheDocument();
     });
   });
 });

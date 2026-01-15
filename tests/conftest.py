@@ -247,7 +247,7 @@ def mock_llm(request):
 
     with patch("backend.agent.answer.llm.call_answer_chain", mock_call_answer_chain), \
          patch("backend.agent.answer.llm.stream_answer_chain", mock_stream_answer_chain), \
-         patch("backend.agent.fetch.rag.tools.tool_entity_rag", mock_tool_entity_rag), \
+         patch("backend.agent.fetch.rag.search.tool_entity_rag", mock_tool_entity_rag), \
          patch("backend.agent.followup.llm.generate_follow_up_suggestions", mock_generate_follow_up_suggestions), \
          patch("backend.agent.fetch.planner.get_sql_plan", mock_get_sql_plan):
         yield

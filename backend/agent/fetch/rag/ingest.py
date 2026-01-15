@@ -2,7 +2,7 @@
 RAG ingestion functions.
 
 Provides:
-- ingest_private_texts: Ingest CRM private text into Qdrant
+- ingest_texts: Ingest CRM text into Qdrant
 """
 
 import json
@@ -13,19 +13,18 @@ from qdrant_client import QdrantClient
 from backend.agent.fetch.rag.client import close_qdrant_client
 from backend.agent.fetch.rag.config import (
     EMBEDDING_MODEL,
-    HYBRID_SEARCH_ENABLED,
     JSONL_PATH,
-    PRIVATE_COLLECTION,
     QDRANT_PATH,
     SPARSE_EMBEDDING_MODEL,
+    TEXT_COLLECTION,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def ingest_private_texts(recreate: bool = True) -> int:  # pragma: no cover
+def ingest_texts(recreate: bool = True) -> int:  # pragma: no cover
     """
-    Ingest private texts from JSONL into Qdrant.
+    Ingest texts from JSONL into Qdrant.
 
     Requires external dependencies (Qdrant, llama_index, HuggingFace).
     Run via: python -m backend.agent.fetch.rag.ingest
@@ -41,7 +40,7 @@ def ingest_private_texts(recreate: bool = True) -> int:  # pragma: no cover
     from llama_index.embeddings.huggingface import HuggingFaceEmbedding
     from llama_index.vector_stores.qdrant import QdrantVectorStore
 
-    logger.info(f"Ingesting private texts from {JSONL_PATH}")
+    logger.info(f"Ingesting texts from {JSONL_PATH}")
 
     # Configure LlamaIndex (disable LLM since we only need embeddings)
     Settings.llm = None
@@ -50,7 +49,7 @@ def ingest_private_texts(recreate: bool = True) -> int:  # pragma: no cover
 
     # Load JSONL documents
     if not JSONL_PATH.exists():
-        logger.warning(f"Private texts file not found: {JSONL_PATH}")
+        logger.warning(f"Texts file not found: {JSONL_PATH}")
         return 0
 
     documents = []
@@ -66,7 +65,6 @@ def ingest_private_texts(recreate: bool = True) -> int:  # pragma: no cover
                         "doc_id": record.get("id", ""),
                         "company_id": record.get("company_id", ""),
                         "type": record.get("type", ""),
-                        "title": record.get("title", ""),
                         "contact_id": record.get("contact_id"),
                         "opportunity_id": record.get("opportunity_id"),
                         "activity_id": record.get("activity_id"),
@@ -91,19 +89,18 @@ def ingest_private_texts(recreate: bool = True) -> int:  # pragma: no cover
 
     try:
         # Delete existing collection if recreate=True
-        if recreate and client.collection_exists(PRIVATE_COLLECTION):
-            logger.info(f"Deleting existing collection: {PRIVATE_COLLECTION}")
-            client.delete_collection(PRIVATE_COLLECTION)
+        if recreate and client.collection_exists(TEXT_COLLECTION):
+            logger.info(f"Deleting existing collection: {TEXT_COLLECTION}")
+            client.delete_collection(TEXT_COLLECTION)
 
-        # Create vector store with storage context
+        # Create vector store with hybrid search (dense + sparse)
         vector_store_kwargs = {
             "client": client,
-            "collection_name": PRIVATE_COLLECTION,
+            "collection_name": TEXT_COLLECTION,
+            "enable_hybrid": True,
+            "fastembed_sparse_model": SPARSE_EMBEDDING_MODEL,
         }
-        if HYBRID_SEARCH_ENABLED:
-            vector_store_kwargs["enable_hybrid"] = True
-            vector_store_kwargs["fastembed_sparse_model"] = SPARSE_EMBEDDING_MODEL
-            logger.info(f"Hybrid search enabled with sparse model: {SPARSE_EMBEDDING_MODEL}")
+        logger.info(f"Hybrid search enabled with sparse model: {SPARSE_EMBEDDING_MODEL}")
 
         vector_store = QdrantVectorStore(**vector_store_kwargs)  # type: ignore[arg-type]
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
@@ -117,8 +114,8 @@ def ingest_private_texts(recreate: bool = True) -> int:  # pragma: no cover
         )
 
         # Get actual chunk count from Qdrant (documents are split into multiple chunks)
-        chunk_count = client.count(collection_name=PRIVATE_COLLECTION).count
-        logger.info(f"Ingested {chunk_count} chunks into '{PRIVATE_COLLECTION}'")
+        chunk_count = client.count(collection_name=TEXT_COLLECTION).count
+        logger.info(f"Ingested {chunk_count} chunks into '{TEXT_COLLECTION}'")
 
         return chunk_count
     finally:
@@ -126,5 +123,5 @@ def ingest_private_texts(recreate: bool = True) -> int:  # pragma: no cover
 
 
 __all__ = [
-    "ingest_private_texts",
+    "ingest_texts",
 ]

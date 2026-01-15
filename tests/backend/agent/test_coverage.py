@@ -186,7 +186,7 @@ class TestFetchNode:
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
              patch("backend.agent.fetch.node.execute_sql_plan") as mock_exec, \
-             patch("backend.agent.fetch.rag.tools.tool_entity_rag") as mock_rag:
+             patch("backend.agent.fetch.rag.search.tool_entity_rag") as mock_rag:
 
             mock_exec.return_value = (
                 {"companies": [{"company_id": "delta_1"}]},
@@ -217,7 +217,7 @@ class TestFetchNode:
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
              patch("backend.agent.fetch.node.execute_sql_plan") as mock_exec, \
-             patch("backend.agent.fetch.rag.tools.tool_entity_rag") as mock_rag:
+             patch("backend.agent.fetch.rag.search.tool_entity_rag") as mock_rag:
 
             # No resolved IDs
             mock_exec.return_value = ({"query": [{"count": 10}]}, {}, mock_stats)
@@ -254,7 +254,7 @@ class TestFetchNode:
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
              patch("backend.agent.fetch.node.execute_sql_plan") as mock_exec, \
-             patch("backend.agent.fetch.rag.tools.tool_entity_rag") as mock_rag:
+             patch("backend.agent.fetch.rag.search.tool_entity_rag") as mock_rag:
 
             mock_exec.return_value = (
                 {"companies": [{"company_id": "delta_1"}]},
@@ -286,7 +286,7 @@ class TestFetchNode:
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
              patch("backend.agent.fetch.node.execute_sql_plan") as mock_exec, \
-             patch("backend.agent.fetch.rag.tools.tool_entity_rag") as mock_rag:
+             patch("backend.agent.fetch.rag.search.tool_entity_rag") as mock_rag:
 
             mock_exec.return_value = (
                 {"contacts": [{"contact_id": "cont_1", "opportunity_id": "opp_1"}]},
@@ -806,8 +806,8 @@ class TestFormatAvailableData:
 # =============================================================================
 
 
-class TestIngestPrivateTexts:
-    """Tests for ingest_private_texts function."""
+class TestIngestTexts:
+    """Tests for ingest_texts function."""
 
     def test_empty_documents_returns_zero(self):
         """Empty documents after parsing returns 0."""
@@ -829,7 +829,7 @@ class TestIngestPrivateTexts:
             }):
                 # This should return 0 for no documents
                 with patch.object(ingest, "close_qdrant_client"):
-                    result = ingest.ingest_private_texts()
+                    result = ingest.ingest_texts()
                     # Will return 0 because mock file has no content
                     assert result == 0
 

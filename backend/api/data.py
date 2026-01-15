@@ -49,7 +49,7 @@ def _group_by(data: list[dict], key: str) -> dict[str, list[dict]]:
 @router.get("/data/companies", response_model=DataResponse, summary="Get all companies")
 async def get_companies() -> DataResponse:
     data, columns = load_csv("companies.csv")
-    texts = _group_by(load_jsonl("private_texts.jsonl"), "metadata_company_id")
+    texts = _group_by(load_jsonl("texts.jsonl"), "metadata_company_id")
     for row in data:
         row["_private_texts"] = texts.get(row.get("company_id", ""), [])
     return DataResponse(data=data, total=len(data), columns=columns)
@@ -58,7 +58,7 @@ async def get_companies() -> DataResponse:
 @router.get("/data/contacts", response_model=DataResponse, summary="Get all contacts")
 async def get_contacts() -> DataResponse:
     data, columns = load_csv("contacts.csv")
-    texts = _group_by(load_jsonl("private_texts.jsonl"), "metadata_contact_id")
+    texts = _group_by(load_jsonl("texts.jsonl"), "metadata_contact_id")
     for row in data:
         row["_private_texts"] = texts.get(row.get("contact_id", ""), [])
     return DataResponse(data=data, total=len(data), columns=columns)
@@ -67,9 +67,11 @@ async def get_contacts() -> DataResponse:
 @router.get("/data/opportunities", response_model=DataResponse, summary="Get all opportunities")
 async def get_opportunities() -> DataResponse:
     data, columns = load_csv("opportunities.csv")
+    texts = _group_by(load_jsonl("texts.jsonl"), "metadata_opportunity_id")
     attachs = _group_by(load_csv("attachments.csv")[0], "opportunity_id")
     for row in data:
         oid = row.get("opportunity_id", "")
+        row["_private_texts"] = texts.get(oid, [])
         row["_attachments"] = attachs.get(oid, [])
     return DataResponse(data=data, total=len(data), columns=columns)
 

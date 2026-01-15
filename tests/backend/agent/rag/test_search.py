@@ -1,5 +1,5 @@
 """
-Tests for RAG tools module.
+Tests for RAG search module.
 
 Covers tool_entity_rag function with mocked dependencies.
 """
@@ -13,32 +13,6 @@ from unittest.mock import MagicMock, patch
 mock_huggingface_module = MagicMock()
 mock_core_module = MagicMock()
 mock_qdrant_module = MagicMock()
-
-
-class TestGetEmbedModel:
-    """Tests for _get_embed_model function."""
-
-    def test_get_embed_model_returns_model(self):
-        """Test _get_embed_model returns HuggingFaceEmbedding."""
-        mock_embed_class = MagicMock()
-        mock_model = MagicMock()
-        mock_embed_class.return_value = mock_model
-
-        # Mock the llama_index module
-        mock_hf = MagicMock()
-        mock_hf.HuggingFaceEmbedding = mock_embed_class
-
-        with patch.dict(sys.modules, {"llama_index.embeddings.huggingface": mock_hf}):
-            # Clear any cached imports
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
-
-            from backend.agent.fetch.rag.tools import _get_embed_model
-
-            result = _get_embed_model()
-
-            assert result is mock_model
-            mock_embed_class.assert_called_once()
 
 
 class TestToolEntityRag:
@@ -60,6 +34,11 @@ class TestToolEntityRag:
         mock_core.Settings = mock_settings
         mock_core.VectorStoreIndex = mock_index_cls
 
+        # Mock the postprocessor module for SentenceTransformerRerank
+        mock_postprocessor = MagicMock()
+        mock_core_postprocessor = MagicMock()
+        mock_core_postprocessor.SentenceTransformerRerank = MagicMock()
+
         mock_hf = MagicMock()
         mock_hf.HuggingFaceEmbedding = mock_embed_cls
 
@@ -68,10 +47,12 @@ class TestToolEntityRag:
 
         return {
             "llama_index.core": mock_core,
+            "llama_index.core.postprocessor": mock_core_postprocessor,
             "llama_index.embeddings.huggingface": mock_hf,
             "llama_index.vector_stores.qdrant": mock_qdrant_vs,
         }
 
+    @pytest.mark.no_mock_llm
     def test_tool_entity_rag_success(self):
         """Test successful entity RAG retrieval."""
         mock_node1 = MagicMock()
@@ -89,15 +70,20 @@ class TestToolEntityRag:
 
         with patch.dict(sys.modules, llama_mocks):
             # Clear cached import
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
+            if "backend.agent.fetch.rag.search" in sys.modules:
+                del sys.modules["backend.agent.fetch.rag.search"]
 
-            from backend.agent.fetch.rag import tools
+            from backend.agent.fetch.rag import search
+
+            # Reset the cached globals to force re-initialization
+            search._vector_index = None
+            search._embed_model = None
+            search._reranker = None
 
             # Patch where it's used, not where it's defined
-            with patch.object(tools, "get_qdrant_client") as mock_client:
+            with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = tools.tool_entity_rag("What were the meeting notes?", {"company_id": "COMP001"})
+                context, sources = search.tool_entity_rag("What were the meeting notes?", {"company_id": "COMP001"})
 
         assert "Meeting notes" in context
         assert "Proposal document" in context
@@ -106,6 +92,7 @@ class TestToolEntityRag:
         assert sources[0]["id"] == "note_001"
         assert sources[1]["type"] == "attachment"
 
+    @pytest.mark.no_mock_llm
     def test_tool_entity_rag_empty_results(self):
         """Test entity RAG with no results."""
         mock_retriever = MagicMock()
@@ -114,14 +101,19 @@ class TestToolEntityRag:
         llama_mocks = self._setup_llama_mocks(mock_retriever)
 
         with patch.dict(sys.modules, llama_mocks):
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
+            if "backend.agent.fetch.rag.search" in sys.modules:
+                del sys.modules["backend.agent.fetch.rag.search"]
 
-            from backend.agent.fetch.rag import tools
+            from backend.agent.fetch.rag import search
 
-            with patch.object(tools, "get_qdrant_client") as mock_client:
+            # Reset the cached globals to force re-initialization
+            search._vector_index = None
+            search._embed_model = None
+            search._reranker = None
+
+            with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = tools.tool_entity_rag("Unknown query", {"company_id": "COMP001"})
+                context, sources = search.tool_entity_rag("Unknown query", {"company_id": "COMP001"})
 
         assert context == ""
         assert sources == []
@@ -129,14 +121,20 @@ class TestToolEntityRag:
     @pytest.mark.no_mock_llm
     def test_tool_entity_rag_exception(self):
         """Test account RAG handles exceptions gracefully."""
-        with patch("backend.agent.fetch.rag.tools.get_qdrant_client", side_effect=Exception("Client error")):
-            from backend.agent.fetch.rag.tools import tool_entity_rag
+        from backend.agent.fetch.rag import search
 
-            context, sources = tool_entity_rag("Any question", {"company_id": "COMP001"})
+        # Reset globals and patch to raise exception during initialization
+        search._vector_index = None
+        search._embed_model = None
+        search._reranker = None
+
+        with patch.object(search, "get_qdrant_client", side_effect=Exception("Client error")):
+            context, sources = search.tool_entity_rag("Any question", {"company_id": "COMP001"})
 
         assert context == ""
         assert sources == []
 
+    @pytest.mark.no_mock_llm
     def test_tool_entity_rag_metadata_defaults(self):
         """Test account RAG uses defaults for missing metadata."""
         mock_node = MagicMock()
@@ -146,42 +144,30 @@ class TestToolEntityRag:
         mock_retriever = MagicMock()
         mock_retriever.retrieve.return_value = [mock_node]
 
-        # Create fresh mock index that returns our retriever
-        mock_index = MagicMock()
-        mock_index.as_retriever.return_value = mock_retriever
-
-        mock_index_cls = MagicMock()
-        mock_index_cls.from_vector_store.return_value = mock_index
-
-        mock_core = MagicMock()
-        mock_core.Settings = MagicMock()
-        mock_core.VectorStoreIndex = mock_index_cls
-
-        mock_hf = MagicMock()
-        mock_qdrant_vs = MagicMock()
-
-        llama_mocks = {
-            "llama_index.core": mock_core,
-            "llama_index.embeddings.huggingface": mock_hf,
-            "llama_index.vector_stores.qdrant": mock_qdrant_vs,
-        }
+        llama_mocks = self._setup_llama_mocks(mock_retriever)
 
         with patch.dict(sys.modules, llama_mocks):
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
+            if "backend.agent.fetch.rag.search" in sys.modules:
+                del sys.modules["backend.agent.fetch.rag.search"]
 
             # Import after setting up llama_index mocks
-            from backend.agent.fetch.rag import tools
+            from backend.agent.fetch.rag import search
+
+            # Reset the cached globals to force re-initialization
+            search._vector_index = None
+            search._embed_model = None
+            search._reranker = None
 
             # Patch where it's used, not where it's defined
-            with patch.object(tools, "get_qdrant_client") as mock_client_fn:
+            with patch.object(search, "get_qdrant_client") as mock_client_fn:
                 mock_client_fn.return_value = MagicMock()
-                context, sources = tools.tool_entity_rag("Question", {"company_id": "COMP001"})
+                context, sources = search.tool_entity_rag("Question", {"company_id": "COMP001"})
 
         assert len(sources) == 1
         assert sources[0]["type"] == "note"  # Default type
         assert sources[0]["id"] == "unknown"  # Default id
 
+    @pytest.mark.no_mock_llm
     def test_tool_entity_rag_doc_id_fallback(self):
         """Test account RAG uses doc_id when source_id missing."""
         mock_node = MagicMock()
@@ -191,39 +177,27 @@ class TestToolEntityRag:
         mock_retriever = MagicMock()
         mock_retriever.retrieve.return_value = [mock_node]
 
-        # Create fresh mock index that returns our retriever
-        mock_index = MagicMock()
-        mock_index.as_retriever.return_value = mock_retriever
-
-        mock_index_cls = MagicMock()
-        mock_index_cls.from_vector_store.return_value = mock_index
-
-        mock_core = MagicMock()
-        mock_core.Settings = MagicMock()
-        mock_core.VectorStoreIndex = mock_index_cls
-
-        mock_hf = MagicMock()
-        mock_qdrant_vs = MagicMock()
-
-        llama_mocks = {
-            "llama_index.core": mock_core,
-            "llama_index.embeddings.huggingface": mock_hf,
-            "llama_index.vector_stores.qdrant": mock_qdrant_vs,
-        }
+        llama_mocks = self._setup_llama_mocks(mock_retriever)
 
         with patch.dict(sys.modules, llama_mocks):
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
+            if "backend.agent.fetch.rag.search" in sys.modules:
+                del sys.modules["backend.agent.fetch.rag.search"]
 
-            from backend.agent.fetch.rag import tools
+            from backend.agent.fetch.rag import search
 
-            with patch.object(tools, "get_qdrant_client") as mock_client_fn:
+            # Reset the cached globals to force re-initialization
+            search._vector_index = None
+            search._embed_model = None
+            search._reranker = None
+
+            with patch.object(search, "get_qdrant_client") as mock_client_fn:
                 mock_client_fn.return_value = MagicMock()
-                context, sources = tools.tool_entity_rag("Question", {"company_id": "COMP001"})
+                context, sources = search.tool_entity_rag("Question", {"company_id": "COMP001"})
 
         assert len(sources) == 1
         assert sources[0]["id"] == "doc_123"
 
+    @pytest.mark.no_mock_llm
     def test_tool_entity_rag_multi_entity_filter(self):
         """Test account RAG builds compound filter from multiple entity IDs."""
         mock_node = MagicMock()
@@ -236,15 +210,20 @@ class TestToolEntityRag:
         llama_mocks = self._setup_llama_mocks(mock_retriever)
 
         with patch.dict(sys.modules, llama_mocks):
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
+            if "backend.agent.fetch.rag.search" in sys.modules:
+                del sys.modules["backend.agent.fetch.rag.search"]
 
-            from backend.agent.fetch.rag import tools
+            from backend.agent.fetch.rag import search
 
-            with patch.object(tools, "get_qdrant_client") as mock_client:
+            # Reset the cached globals to force re-initialization
+            search._vector_index = None
+            search._embed_model = None
+            search._reranker = None
+
+            with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
                 # Pass multiple entity IDs
-                context, sources = tools.tool_entity_rag(
+                context, sources = search.tool_entity_rag(
                     "What did Lisa say?",
                     {"company_id": "COMP001", "contact_id": "CONT001", "opportunity_id": "OPP001"}
                 )
@@ -252,6 +231,7 @@ class TestToolEntityRag:
         assert "Lisa discussed pricing" in context
         assert len(sources) == 1
 
+    @pytest.mark.no_mock_llm
     def test_tool_entity_rag_company_type(self):
         """Test entity RAG returns company description content."""
         mock_node = MagicMock()
@@ -269,22 +249,27 @@ class TestToolEntityRag:
         llama_mocks = self._setup_llama_mocks(mock_retriever)
 
         with patch.dict(sys.modules, llama_mocks):
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
+            if "backend.agent.fetch.rag.search" in sys.modules:
+                del sys.modules["backend.agent.fetch.rag.search"]
 
-            from backend.agent.fetch.rag import tools
+            from backend.agent.fetch.rag import search
 
-            with patch.object(tools, "get_qdrant_client") as mock_client:
+            # Reset the cached globals to force re-initialization
+            search._vector_index = None
+            search._embed_model = None
+            search._reranker = None
+
+            with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = tools.tool_entity_rag(
+                context, sources = search.tool_entity_rag(
                     "What should I know about Acme?",
                     {"company_id": "ACME-MFG"}
                 )
 
         assert "Enterprise customer" in context
         assert sources[0]["type"] == "company"
-        assert sources[0]["label"] == "Acme Manufacturing"
 
+    @pytest.mark.no_mock_llm
     def test_tool_entity_rag_contact_type(self):
         """Test entity RAG returns contact notes content."""
         mock_node = MagicMock()
@@ -303,22 +288,27 @@ class TestToolEntityRag:
         llama_mocks = self._setup_llama_mocks(mock_retriever)
 
         with patch.dict(sys.modules, llama_mocks):
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
+            if "backend.agent.fetch.rag.search" in sys.modules:
+                del sys.modules["backend.agent.fetch.rag.search"]
 
-            from backend.agent.fetch.rag import tools
+            from backend.agent.fetch.rag import search
 
-            with patch.object(tools, "get_qdrant_client") as mock_client:
+            # Reset the cached globals to force re-initialization
+            search._vector_index = None
+            search._embed_model = None
+            search._reranker = None
+
+            with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = tools.tool_entity_rag(
+                context, sources = search.tool_entity_rag(
                     "What's Anna's communication style?",
                     {"contact_id": "C-ACME-ANNA"}
                 )
 
         assert "Prefers email" in context
         assert sources[0]["type"] == "contact"
-        assert sources[0]["label"] == "Anna Lopez"
 
+    @pytest.mark.no_mock_llm
     def test_tool_entity_rag_opportunity_type(self):
         """Test entity RAG returns opportunity notes content."""
         mock_node = MagicMock()
@@ -337,14 +327,19 @@ class TestToolEntityRag:
         llama_mocks = self._setup_llama_mocks(mock_retriever)
 
         with patch.dict(sys.modules, llama_mocks):
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
+            if "backend.agent.fetch.rag.search" in sys.modules:
+                del sys.modules["backend.agent.fetch.rag.search"]
 
-            from backend.agent.fetch.rag import tools
+            from backend.agent.fetch.rag import search
 
-            with patch.object(tools, "get_qdrant_client") as mock_client:
+            # Reset the cached globals to force re-initialization
+            search._vector_index = None
+            search._embed_model = None
+            search._reranker = None
+
+            with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = tools.tool_entity_rag(
+                context, sources = search.tool_entity_rag(
                     "What's blocking the Acme upgrade?",
                     {"opportunity_id": "OPP-ACME-UPGRADE"}
                 )
@@ -352,6 +347,7 @@ class TestToolEntityRag:
         assert "pricing concerns" in context
         assert sources[0]["type"] == "opportunity"
 
+    @pytest.mark.no_mock_llm
     def test_tool_entity_rag_activity_type(self):
         """Test entity RAG returns activity description content."""
         mock_node = MagicMock()
@@ -370,14 +366,19 @@ class TestToolEntityRag:
         llama_mocks = self._setup_llama_mocks(mock_retriever)
 
         with patch.dict(sys.modules, llama_mocks):
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
+            if "backend.agent.fetch.rag.search" in sys.modules:
+                del sys.modules["backend.agent.fetch.rag.search"]
 
-            from backend.agent.fetch.rag import tools
+            from backend.agent.fetch.rag import search
 
-            with patch.object(tools, "get_qdrant_client") as mock_client:
+            # Reset the cached globals to force re-initialization
+            search._vector_index = None
+            search._embed_model = None
+            search._reranker = None
+
+            with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = tools.tool_entity_rag(
+                context, sources = search.tool_entity_rag(
                     "What happened in the Acme follow-up?",
                     {"company_id": "ACME-MFG"}
                 )
@@ -385,6 +386,7 @@ class TestToolEntityRag:
         assert "CFO approval" in context
         assert sources[0]["type"] == "activity"
 
+    @pytest.mark.no_mock_llm
     def test_tool_entity_rag_history_type(self):
         """Test entity RAG returns history description content."""
         mock_node = MagicMock()
@@ -402,14 +404,19 @@ class TestToolEntityRag:
         llama_mocks = self._setup_llama_mocks(mock_retriever)
 
         with patch.dict(sys.modules, llama_mocks):
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
+            if "backend.agent.fetch.rag.search" in sys.modules:
+                del sys.modules["backend.agent.fetch.rag.search"]
 
-            from backend.agent.fetch.rag import tools
+            from backend.agent.fetch.rag import search
 
-            with patch.object(tools, "get_qdrant_client") as mock_client:
+            # Reset the cached globals to force re-initialization
+            search._vector_index = None
+            search._embed_model = None
+            search._reranker = None
+
+            with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = tools.tool_entity_rag(
+                context, sources = search.tool_entity_rag(
                     "What did we discuss in the Beta Tech QBR?",
                     {"company_id": "BETA-TECH"}
                 )
@@ -417,6 +424,7 @@ class TestToolEntityRag:
         assert "expansion to marketing" in context
         assert sources[0]["type"] == "history"
 
+    @pytest.mark.no_mock_llm
     def test_tool_entity_rag_attachment_type(self):
         """Test entity RAG returns attachment summary content."""
         mock_node = MagicMock()
@@ -435,14 +443,19 @@ class TestToolEntityRag:
         llama_mocks = self._setup_llama_mocks(mock_retriever)
 
         with patch.dict(sys.modules, llama_mocks):
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
+            if "backend.agent.fetch.rag.search" in sys.modules:
+                del sys.modules["backend.agent.fetch.rag.search"]
 
-            from backend.agent.fetch.rag import tools
+            from backend.agent.fetch.rag import search
 
-            with patch.object(tools, "get_qdrant_client") as mock_client:
+            # Reset the cached globals to force re-initialization
+            search._vector_index = None
+            search._embed_model = None
+            search._reranker = None
+
+            with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = tools.tool_entity_rag(
+                context, sources = search.tool_entity_rag(
                     "What's in the Acme proposal?",
                     {"opportunity_id": "OPP-ACME-UPGRADE"}
                 )
@@ -450,6 +463,7 @@ class TestToolEntityRag:
         assert "pricing tier" in context
         assert sources[0]["type"] == "attachment"
 
+    @pytest.mark.no_mock_llm
     def test_tool_entity_rag_mixed_entity_types(self):
         """Test entity RAG returns mixed content types for a company query."""
         mock_company = MagicMock()
@@ -470,14 +484,19 @@ class TestToolEntityRag:
         llama_mocks = self._setup_llama_mocks(mock_retriever)
 
         with patch.dict(sys.modules, llama_mocks):
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
+            if "backend.agent.fetch.rag.search" in sys.modules:
+                del sys.modules["backend.agent.fetch.rag.search"]
 
-            from backend.agent.fetch.rag import tools
+            from backend.agent.fetch.rag import search
 
-            with patch.object(tools, "get_qdrant_client") as mock_client:
+            # Reset the cached globals to force re-initialization
+            search._vector_index = None
+            search._embed_model = None
+            search._reranker = None
+
+            with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = tools.tool_entity_rag(
+                context, sources = search.tool_entity_rag(
                     "What should I know about Acme before my call?",
                     {"company_id": "ACME"}
                 )

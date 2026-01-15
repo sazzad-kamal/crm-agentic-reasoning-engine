@@ -647,7 +647,7 @@ class TestEnsureQdrantCollections:
 
         monkeypatch.setattr(backend.agent.fetch.rag.client, "get_qdrant_client", mock_get_client)
         monkeypatch.setattr(backend.agent.fetch.rag.client, "close_qdrant_client", mock_close_client)
-        monkeypatch.setattr(backend.agent.fetch.rag.ingest, "ingest_private_texts", mock_ingest_private)
+        monkeypatch.setattr(backend.agent.fetch.rag.ingest, "ingest_texts", mock_ingest_private)
         monkeypatch.setattr(backend.agent.fetch.rag.config, "QDRANT_PATH", tmp_path / "qdrant")
 
         from backend.eval.cli import ensure_qdrant_collections
@@ -685,7 +685,7 @@ class TestEnsureQdrantCollections:
 
         monkeypatch.setattr(backend.agent.fetch.rag.client, "get_qdrant_client", mock_get_client)
         monkeypatch.setattr(backend.agent.fetch.rag.client, "close_qdrant_client", mock_close_client)
-        monkeypatch.setattr(backend.agent.fetch.rag.ingest, "ingest_private_texts", mock_ingest_private)
+        monkeypatch.setattr(backend.agent.fetch.rag.ingest, "ingest_texts", mock_ingest_private)
         monkeypatch.setattr(backend.agent.fetch.rag.config, "QDRANT_PATH", tmp_path / "qdrant")
 
         from backend.eval.cli import ensure_qdrant_collections
@@ -1735,13 +1735,13 @@ class TestCliModule:
             return {}
 
         import backend.eval.cli
-        import backend.agent.fetch.rag.tools
+        import backend.agent.fetch.rag.search
         import backend.eval.tree
         import backend.eval.runner
         import backend.eval.langsmith
 
         monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
-        monkeypatch.setattr(backend.agent.fetch.rag.tools, "tool_entity_rag", mock_tool_entity_rag)
+        monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
         monkeypatch.setattr(backend.eval.tree, "get_tree_stats", mock_get_tree_stats)
         monkeypatch.setattr(backend.eval.runner, "run_flow_eval", mock_run_flow_eval)
         monkeypatch.setattr(backend.eval.langsmith, "get_latency_percentages", mock_get_latency_percentages)
@@ -1784,13 +1784,13 @@ class TestCliModule:
             return {"routing": 0.2, "retrieval": 0.3, "answer": 0.25}
 
         import backend.eval.cli
-        import backend.agent.fetch.rag.tools
+        import backend.agent.fetch.rag.search
         import backend.eval.runner
         import backend.eval.langsmith
 
         # Must patch in cli module where it's imported
         monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
-        monkeypatch.setattr(backend.agent.fetch.rag.tools, "tool_entity_rag", mock_tool_entity_rag)
+        monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
         monkeypatch.setattr(backend.eval.cli, "get_tree_stats", mock_get_tree_stats)
         monkeypatch.setattr(backend.eval.runner, "run_flow_eval", mock_run_flow_eval)
         monkeypatch.setattr(backend.eval.langsmith, "get_latency_percentages", mock_get_latency_percentages)
@@ -1855,12 +1855,12 @@ class TestCliModule:
             return {}
 
         import backend.eval.cli
-        import backend.agent.fetch.rag.tools
+        import backend.agent.fetch.rag.search
         import backend.eval.runner
         import backend.eval.langsmith
 
         monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
-        monkeypatch.setattr(backend.agent.fetch.rag.tools, "tool_entity_rag", mock_tool_entity_rag)
+        monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
         monkeypatch.setattr(backend.eval.cli, "get_tree_stats", mock_get_tree_stats)
         monkeypatch.setattr(backend.eval.runner, "run_flow_eval", mock_run_flow_eval)
         monkeypatch.setattr(backend.eval.langsmith, "get_latency_percentages", mock_get_latency_percentages)
@@ -1892,11 +1892,11 @@ class TestCliModule:
             raise RuntimeError("Evaluation crashed")
 
         import backend.eval.cli
-        import backend.agent.fetch.rag.tools
+        import backend.agent.fetch.rag.search
         import backend.eval.runner
 
         monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
-        monkeypatch.setattr(backend.agent.fetch.rag.tools, "tool_entity_rag", mock_tool_entity_rag)
+        monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
         monkeypatch.setattr(backend.eval.cli, "get_tree_stats", mock_get_tree_stats)
         monkeypatch.setattr(backend.eval.runner, "run_flow_eval", mock_run_flow_eval)
 
@@ -2830,12 +2830,12 @@ class TestCliModuleExtended:
             return {}
 
         import backend.eval.cli
-        import backend.agent.fetch.rag.tools
+        import backend.agent.fetch.rag.search
         import backend.eval.runner
         import backend.eval.langsmith
 
         monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
-        monkeypatch.setattr(backend.agent.fetch.rag.tools, "tool_entity_rag", mock_tool_entity_rag)
+        monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
         monkeypatch.setattr(backend.eval.cli, "get_tree_stats", mock_get_tree_stats)
         monkeypatch.setattr(backend.eval.runner, "run_flow_eval", mock_run_flow_eval)
         monkeypatch.setattr(backend.eval.langsmith, "get_latency_percentages", mock_get_latency_percentages)

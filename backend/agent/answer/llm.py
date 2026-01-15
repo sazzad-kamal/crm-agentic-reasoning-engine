@@ -97,7 +97,7 @@ def call_answer_chain(
     Args:
         question: The user's question
         sql_results: Dict of SQL query results keyed by purpose
-        account_context: RAG context from account notes/attachments
+        account_context: RAG context from account notes/descriptions
         conversation_history: Formatted conversation history
 
     Returns:
@@ -134,7 +134,7 @@ async def stream_answer_chain(  # pragma: no cover
     Args:
         question: The user's question
         sql_results: Dict of SQL query results keyed by purpose
-        account_context: RAG context from account notes/attachments
+        account_context: RAG context from account notes/descriptions
         conversation_history: Formatted conversation history
 
     Yields:

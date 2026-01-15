@@ -38,33 +38,33 @@ app = typer.Typer()
 def ensure_qdrant_collections() -> None:
     """Ensure Qdrant collections exist, ingesting data if needed."""
     from backend.agent.fetch.rag.client import close_qdrant_client, get_qdrant_client
-    from backend.agent.fetch.rag.config import PRIVATE_COLLECTION, QDRANT_PATH
-    from backend.agent.fetch.rag.ingest import ingest_private_texts
+    from backend.agent.fetch.rag.config import QDRANT_PATH, TEXT_COLLECTION
+    from backend.agent.fetch.rag.ingest import ingest_texts
 
     QDRANT_PATH.mkdir(parents=True, exist_ok=True)
     qdrant = get_qdrant_client()
 
-    private_exists = (
-        qdrant.collection_exists(PRIVATE_COLLECTION)
-        and (qdrant.get_collection(PRIVATE_COLLECTION).points_count or 0) > 0
+    collection_exists = (
+        qdrant.collection_exists(TEXT_COLLECTION)
+        and (qdrant.get_collection(TEXT_COLLECTION).points_count or 0) > 0
     )
 
-    if private_exists:
+    if collection_exists:
         print("Qdrant collections ready.")
         return
 
     # Close singleton before ingest (ingest needs exclusive access to local storage)
     close_qdrant_client()
 
-    print("Ingesting private texts into Qdrant...")
-    ingest_private_texts()
+    print("Ingesting texts into Qdrant...")
+    ingest_texts()
 
     # Verify collection was created (this creates a fresh singleton)
     qdrant = get_qdrant_client()
-    if not qdrant.collection_exists(PRIVATE_COLLECTION):
-        raise RuntimeError(f"Failed to create collection {PRIVATE_COLLECTION}")
-    count = qdrant.get_collection(PRIVATE_COLLECTION).points_count or 0
-    print(f"  Private collection created ({count} points)")
+    if not qdrant.collection_exists(TEXT_COLLECTION):
+        raise RuntimeError(f"Failed to create collection {TEXT_COLLECTION}")
+    count = qdrant.get_collection(TEXT_COLLECTION).points_count or 0
+    print(f"  Text collection created ({count} points)")
 
 
 def _run_eval(
@@ -95,10 +95,10 @@ def _run_eval(
     # Warmup: trigger model loading (suppress expected "no results" warning)
     console.print("\n[dim]Warming up models...[/dim]")
     try:
-        from backend.agent.fetch.rag.tools import tool_entity_rag
+        from backend.agent.fetch.rag.search import tool_entity_rag
 
         # Temporarily suppress RAG warnings during warmup (expected to fail with fake company)
-        rag_logger = logging.getLogger("backend.agent.rag.tools")
+        rag_logger = logging.getLogger("backend.agent.fetch.rag.search")
         original_level = rag_logger.level
         rag_logger.setLevel(logging.ERROR)
         try:

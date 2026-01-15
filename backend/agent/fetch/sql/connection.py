@@ -20,7 +20,6 @@ CSV_TABLES = {
     "activities": "activities.csv",
     "history": "history.csv",
     "opportunities": "opportunities.csv",
-    "attachments": "attachments.csv",
 }
 
 

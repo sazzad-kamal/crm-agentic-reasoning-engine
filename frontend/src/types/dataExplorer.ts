@@ -53,7 +53,7 @@ export const TABS: TabConfig[] = [
     label: "Opportunities",
     icon: "💰",
     endpoint: "/api/data/opportunities",
-    nestedFields: [{ key: "_attachments", label: "Attachments", icon: "📎" }]
+    nestedFields: [{ key: "_private_texts", label: "Notes", icon: "📝" }]
   },
   { id: "activities", label: "Activities", icon: "📅", endpoint: "/api/data/activities" },
   { id: "history", label: "History", icon: "📜", endpoint: "/api/data/history" },

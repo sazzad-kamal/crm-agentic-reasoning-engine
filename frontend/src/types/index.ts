@@ -19,18 +19,6 @@ interface PrivateText {
   };
 }
 
-interface Attachment {
-  attachment_id: string;
-  title: string;
-  summary: string;
-  file_type: string;
-  created_at: string;
-  file_name?: string;
-  company_id?: string;
-  contact_id?: string;
-  opportunity_id?: string;
-}
-
 // Internal types for RawData (not exported - only used within this module)
 interface Company {
   company_id: string;
@@ -56,7 +44,7 @@ interface Opportunity {
   expected_close_date: string;
   value: number;
   notes?: string;
-  _attachments?: Attachment[];
+  _private_texts?: PrivateText[];
 }
 
 interface HistoryEntry {

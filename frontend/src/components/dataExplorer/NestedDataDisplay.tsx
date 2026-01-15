@@ -55,8 +55,6 @@ function NestedItem({ item, fieldKey }: NestedItemProps) {
   switch (fieldKey) {
     case "_private_texts":
       return <PrivateTextItem item={item} />;
-    case "_attachments":
-      return <AttachmentItem item={item} />;
     case "_members":
       return <MemberItem item={item} />;
     default:
@@ -79,18 +77,6 @@ function PrivateTextItem({ item }: { item: Record<string, unknown> }) {
           <span>🕐 {String(item.metadata_created_at)}</span>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-function AttachmentItem({ item }: { item: Record<string, unknown> }) {
-  return (
-    <div className="nested-item nested-item--attachment">
-      <span className="nested-item__icon">📎</span>
-      <span className="nested-item__filename">
-        {String(item.file_name || item.name || "Attachment")}
-      </span>
-      <span className="nested-item__size">{String(item.file_size || "")}</span>
     </div>
   );
 }

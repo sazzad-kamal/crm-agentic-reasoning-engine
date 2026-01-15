@@ -4,27 +4,17 @@ import type { RawData } from "../types";
 import { formatDate, formatDateTime, formatCurrency } from "../utils/formatters";
 
 /** Nested data item display (simplified version of NestedDataDisplay) */
-function NestedItems({ items, type }: { items: unknown[]; type: "private_texts" | "attachments" }) {
+function NestedItems({ items }: { items: unknown[] }) {
   if (!items || items.length === 0) return null;
 
   return (
     <div className="nested-items">
       {items.slice(0, 5).map((item, idx) => {
         const record = item as Record<string, unknown>;
-        if (type === "private_texts") {
-          return (
-            <div key={idx} className="nested-items__item">
-              <span className="nested-items__type">{String(record.type || "note")}</span>
-              <span className="nested-items__text">{String(record.title || record.text || "").slice(0, 100)}</span>
-            </div>
-          );
-        }
-        // attachments
         return (
           <div key={idx} className="nested-items__item">
-            <span className="nested-items__icon">📎</span>
-            <span className="nested-items__text">{String(record.title || record.file_name || "Attachment")}</span>
-            <span className="nested-items__meta">{String(record.file_type || "")}</span>
+            <span className="nested-items__type">{String(record.type || "note")}</span>
+            <span className="nested-items__text">{String(record.title || record.text || "").slice(0, 100)}</span>
           </div>
         );
       })}
@@ -145,7 +135,7 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
                       <td>{c.plan}</td>
                       <td>{formatDate(c.renewal_date)}</td>
                       <td>
-                        <NestedItems items={c._private_texts || []} type="private_texts" />
+                        <NestedItems items={c._private_texts || []} />
                       </td>
                     </tr>
                   ))}
@@ -198,7 +188,7 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
                     <th scope="col">Stage</th>
                     <th scope="col">Expected Close</th>
                     <th scope="col">Value</th>
-                    <th scope="col">Attachments</th>
+                    <th scope="col">Notes</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -209,7 +199,7 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
                       <td>{formatDate(o.expected_close_date)}</td>
                       <td>{formatCurrency(o.value)}</td>
                       <td>
-                        <NestedItems items={o._attachments || []} type="attachments" />
+                        <NestedItems items={o._private_texts || []} />
                       </td>
                     </tr>
                   ))}

@@ -15,22 +15,19 @@ class TestHybridConfig:
     def test_hybrid_config_exists(self):
         """Test that hybrid config values are present."""
         from backend.agent.fetch.rag.config import (
-            HYBRID_SEARCH_ENABLED,
             SPARSE_EMBEDDING_MODEL,
-            SPARSE_TOP_K,
+            SEARCH_TOP_K,
         )
 
-        assert isinstance(HYBRID_SEARCH_ENABLED, bool)
         assert SPARSE_EMBEDDING_MODEL == "Qdrant/bm25"
-        assert SPARSE_TOP_K > 0
+        assert SEARCH_TOP_K > 0
 
     def test_hybrid_config_exported(self):
         """Test hybrid config is in __all__."""
         from backend.agent.fetch.rag import config
 
-        assert "HYBRID_SEARCH_ENABLED" in config.__all__
         assert "SPARSE_EMBEDDING_MODEL" in config.__all__
-        assert "SPARSE_TOP_K" in config.__all__
+        assert "SEARCH_TOP_K" in config.__all__
 
 
 class TestHybridIngestion:
@@ -41,7 +38,6 @@ class TestHybridIngestion:
         from backend.agent.fetch.rag import ingest
 
         # Verify hybrid config is available in the module
-        assert hasattr(ingest, "HYBRID_SEARCH_ENABLED")
         assert hasattr(ingest, "SPARSE_EMBEDDING_MODEL")
 
 
@@ -64,6 +60,10 @@ class TestHybridRetrieval:
         mock_core.Settings = mock_settings
         mock_core.VectorStoreIndex = mock_index_cls
 
+        # Mock the postprocessor module for SentenceTransformerRerank
+        mock_core_postprocessor = MagicMock()
+        mock_core_postprocessor.SentenceTransformerRerank = MagicMock()
+
         mock_hf = MagicMock()
         mock_hf.HuggingFaceEmbedding = mock_embed_cls
 
@@ -72,6 +72,7 @@ class TestHybridRetrieval:
 
         return {
             "llama_index.core": mock_core,
+            "llama_index.core.postprocessor": mock_core_postprocessor,
             "llama_index.embeddings.huggingface": mock_hf,
             "llama_index.vector_stores.qdrant": mock_qdrant_vs,
             "mock_vector_store_cls": mock_vector_store_cls,
@@ -79,8 +80,8 @@ class TestHybridRetrieval:
         }
 
     @pytest.mark.no_mock_llm
-    def test_retriever_uses_hybrid_mode_when_enabled(self):
-        """Test retriever sets vector_store_query_mode='hybrid' when enabled."""
+    def test_retriever_uses_hybrid_mode(self):
+        """Test retriever sets vector_store_query_mode='hybrid'."""
         mock_nodes = [MagicMock() for _ in range(3)]
         for i, node in enumerate(mock_nodes):
             node.text = f"Content {i}"
@@ -92,26 +93,29 @@ class TestHybridRetrieval:
         mocks = self._setup_llama_mocks(mock_retriever)
         llama_mocks = {
             "llama_index.core": mocks["llama_index.core"],
+            "llama_index.core.postprocessor": mocks["llama_index.core.postprocessor"],
             "llama_index.embeddings.huggingface": mocks["llama_index.embeddings.huggingface"],
             "llama_index.vector_stores.qdrant": mocks["llama_index.vector_stores.qdrant"],
         }
         mock_index = mocks["mock_index"]
 
         with patch.dict(sys.modules, llama_mocks):
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
+            if "backend.agent.fetch.rag.search" in sys.modules:
+                del sys.modules["backend.agent.fetch.rag.search"]
 
-            from backend.agent.fetch.rag import tools
+            from backend.agent.fetch.rag import search
+
+            # Reset the cached globals to force re-initialization
+            search._vector_index = None
+            search._embed_model = None
+            search._reranker = None
 
             with (
-                patch.object(tools, "get_qdrant_client") as mock_client,
-                patch.object(tools, "HYBRID_SEARCH_ENABLED", True),
-                patch.object(tools, "SPARSE_EMBEDDING_MODEL", "Qdrant/bm25"),
-                patch.object(tools, "SPARSE_TOP_K", 15),
-                patch.object(tools, "RERANKER_ENABLED", False),
+                patch.object(search, "get_qdrant_client") as mock_client,
+                patch.object(search, "SEARCH_TOP_K", 15),
             ):
                 mock_client.return_value = MagicMock()
-                tools.tool_entity_rag("test query", {"company_id": "COMP001"})
+                search.tool_entity_rag("test query", {"company_id": "COMP001"})
 
         # Verify retriever was called with hybrid mode
         mock_index.as_retriever.assert_called_once()
@@ -120,47 +124,8 @@ class TestHybridRetrieval:
         assert call_kwargs.get("sparse_top_k") == 15
 
     @pytest.mark.no_mock_llm
-    def test_retriever_uses_dense_only_when_hybrid_disabled(self):
-        """Test retriever uses dense-only mode when hybrid is disabled."""
-        mock_nodes = [MagicMock() for _ in range(3)]
-        for i, node in enumerate(mock_nodes):
-            node.text = f"Content {i}"
-            node.metadata = {"type": "note", "source_id": f"note_{i}"}
-
-        mock_retriever = MagicMock()
-        mock_retriever.retrieve.return_value = mock_nodes
-
-        mocks = self._setup_llama_mocks(mock_retriever)
-        llama_mocks = {
-            "llama_index.core": mocks["llama_index.core"],
-            "llama_index.embeddings.huggingface": mocks["llama_index.embeddings.huggingface"],
-            "llama_index.vector_stores.qdrant": mocks["llama_index.vector_stores.qdrant"],
-        }
-        mock_index = mocks["mock_index"]
-
-        with patch.dict(sys.modules, llama_mocks):
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
-
-            from backend.agent.fetch.rag import tools
-
-            with (
-                patch.object(tools, "get_qdrant_client") as mock_client,
-                patch.object(tools, "HYBRID_SEARCH_ENABLED", False),
-                patch.object(tools, "RERANKER_ENABLED", False),
-            ):
-                mock_client.return_value = MagicMock()
-                tools.tool_entity_rag("test query", {"company_id": "COMP001"})
-
-        # Verify retriever was called without hybrid mode
-        mock_index.as_retriever.assert_called_once()
-        call_kwargs = mock_index.as_retriever.call_args[1]
-        assert "vector_store_query_mode" not in call_kwargs
-        assert "sparse_top_k" not in call_kwargs
-
-    @pytest.mark.no_mock_llm
     def test_vector_store_created_with_hybrid_params(self):
-        """Test QdrantVectorStore is created with hybrid params when enabled."""
+        """Test QdrantVectorStore is created with hybrid params."""
         mock_nodes = []
         mock_retriever = MagicMock()
         mock_retriever.retrieve.return_value = mock_nodes
@@ -168,25 +133,26 @@ class TestHybridRetrieval:
         mocks = self._setup_llama_mocks(mock_retriever)
         llama_mocks = {
             "llama_index.core": mocks["llama_index.core"],
+            "llama_index.core.postprocessor": mocks["llama_index.core.postprocessor"],
             "llama_index.embeddings.huggingface": mocks["llama_index.embeddings.huggingface"],
             "llama_index.vector_stores.qdrant": mocks["llama_index.vector_stores.qdrant"],
         }
         mock_vector_store_cls = mocks["mock_vector_store_cls"]
 
         with patch.dict(sys.modules, llama_mocks):
-            if "backend.agent.fetch.rag.tools" in sys.modules:
-                del sys.modules["backend.agent.fetch.rag.tools"]
+            if "backend.agent.fetch.rag.search" in sys.modules:
+                del sys.modules["backend.agent.fetch.rag.search"]
 
-            from backend.agent.fetch.rag import tools
+            from backend.agent.fetch.rag import search
 
-            with (
-                patch.object(tools, "get_qdrant_client") as mock_client,
-                patch.object(tools, "HYBRID_SEARCH_ENABLED", True),
-                patch.object(tools, "SPARSE_EMBEDDING_MODEL", "Qdrant/bm25"),
-                patch.object(tools, "RERANKER_ENABLED", False),
-            ):
+            # Reset the cached globals to force re-initialization
+            search._vector_index = None
+            search._embed_model = None
+            search._reranker = None
+
+            with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                tools.tool_entity_rag("test query", {"company_id": "COMP001"})
+                search.tool_entity_rag("test query", {"company_id": "COMP001"})
 
         # Verify QdrantVectorStore was called with hybrid params
         mock_vector_store_cls.assert_called_once()

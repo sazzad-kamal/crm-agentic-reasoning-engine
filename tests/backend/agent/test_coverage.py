@@ -70,49 +70,32 @@ class TestFetchNode:
         from backend.agent.fetch.node import fetch_node
         from backend.agent.core.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
-        from backend.agent.fetch.sql.executor import SQLExecutionStats
 
         state: AgentState = {"question": "What deals are in the pipeline?"}
-
         mock_plan = SQLPlan(sql="SELECT * FROM opportunities", needs_rag=False)
-        mock_stats = SQLExecutionStats()
-        mock_stats.total = 1
-        mock_stats.success = 1
 
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
-             patch("backend.agent.fetch.node.get_connection") as mock_conn, \
-             patch("backend.agent.fetch.node.execute_sql_plan") as mock_exec:
+             patch("backend.agent.fetch.node.get_connection"), \
+             patch("backend.agent.fetch.node.execute_sql") as mock_exec:
 
             mock_exec.return_value = (
-                {"opportunities": [{"opportunity_id": "opp_1", "value": 1000}]},
-                {"$company_id": "comp_1"},
-                mock_stats,
+                [{"opportunity_id": "opp_1", "value": 1000}],
+                {"company_id": "comp_1"},
+                None,
             )
 
             result = fetch_node(state)
 
             assert "sql_results" in result
-            assert result["sql_results"]["opportunities"][0]["opportunity_id"] == "opp_1"
+            assert result["sql_results"]["data"][0]["opportunity_id"] == "opp_1"
 
     def test_sql_execution_with_retry(self):
         """SQL execution retries on failure."""
         from backend.agent.fetch.node import fetch_node
         from backend.agent.core.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
-        from backend.agent.fetch.sql.executor import SQLExecutionStats
 
         state: AgentState = {"question": "test"}
-
-        # First plan fails, retry succeeds
-        failing_stats = SQLExecutionStats()
-        failing_stats.total = 1
-        failing_stats.success = 0
-        failing_stats.errors = {"query": "syntax error"}
-
-        success_stats = SQLExecutionStats()
-        success_stats.total = 1
-        success_stats.success = 1
-
         call_count = [0]
 
         def mock_get_sql_plan(*args, **kwargs):
@@ -121,17 +104,17 @@ class TestFetchNode:
 
         def mock_execute(*args, **kwargs):
             if call_count[0] == 1:
-                return ({}, {}, failing_stats)
-            return ({"companies": [{"company_id": "c1"}]}, {}, success_stats)
+                return ([], {}, "syntax error")
+            return ([{"company_id": "c1"}], {"company_id": "c1"}, None)
 
         with patch("backend.agent.fetch.node.get_sql_plan", side_effect=mock_get_sql_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
-             patch("backend.agent.fetch.node.execute_sql_plan", side_effect=mock_execute):
+             patch("backend.agent.fetch.node.execute_sql", side_effect=mock_execute):
 
             result = fetch_node(state)
 
             assert call_count[0] == 2  # Initial + retry
-            assert "companies" in result["sql_results"]
+            assert "data" in result["sql_results"]
 
     def test_sql_execution_failure(self):
         """SQL execution exception is handled."""
@@ -143,10 +126,9 @@ class TestFetchNode:
         mock_plan = SQLPlan(sql="SELECT * FROM companies", needs_rag=False)
 
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
-             patch("backend.agent.fetch.node.get_connection"), \
-             patch("backend.agent.fetch.node.execute_sql_plan") as mock_exec:
+             patch("backend.agent.fetch.node.get_connection") as mock_conn:
 
-            mock_exec.side_effect = Exception("DB error")
+            mock_conn.side_effect = Exception("DB error")
 
             result = fetch_node(state)
 
@@ -163,7 +145,7 @@ class TestFetchNode:
         mock_plan = SQLPlan(sql="", needs_rag=False)
 
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
-             patch("backend.agent.fetch.node.execute_sql_plan") as mock_exec:
+             patch("backend.agent.fetch.node.execute_sql") as mock_exec:
 
             result = fetch_node(state)
 
@@ -174,24 +156,19 @@ class TestFetchNode:
         from backend.agent.fetch.node import fetch_node
         from backend.agent.core.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
-        from backend.agent.fetch.sql.executor import SQLExecutionStats
 
         state: AgentState = {"question": "What are Delta's notes?"}
         mock_plan = SQLPlan(sql="SELECT * FROM companies WHERE name = 'Delta'", needs_rag=True)
 
-        mock_stats = SQLExecutionStats()
-        mock_stats.total = 1
-        mock_stats.success = 1
-
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
-             patch("backend.agent.fetch.node.execute_sql_plan") as mock_exec, \
+             patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
              patch("backend.agent.fetch.rag.search.tool_entity_rag") as mock_rag:
 
             mock_exec.return_value = (
-                {"companies": [{"company_id": "delta_1"}]},
-                {"$company_id": "delta_1"},
-                mock_stats,
+                [{"company_id": "delta_1"}],
+                {"company_id": "delta_1"},
+                None,
             )
             mock_rag.return_value = ("RAG context", [{"type": "note", "id": "n1", "label": "Note"}])
 
@@ -205,68 +182,53 @@ class TestFetchNode:
         from backend.agent.fetch.node import fetch_node
         from backend.agent.core.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
-        from backend.agent.fetch.sql.executor import SQLExecutionStats
 
         state: AgentState = {"question": "test"}
         mock_plan = SQLPlan(sql="SELECT COUNT(*) FROM companies", needs_rag=True)
 
-        mock_stats = SQLExecutionStats()
-        mock_stats.total = 1
-        mock_stats.success = 1
-
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
-             patch("backend.agent.fetch.node.execute_sql_plan") as mock_exec, \
+             patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
              patch("backend.agent.fetch.rag.search.tool_entity_rag") as mock_rag:
 
             # No resolved IDs
-            mock_exec.return_value = ({"query": [{"count": 10}]}, {}, mock_stats)
+            mock_exec.return_value = ([{"count": 10}], {}, None)
 
             result = fetch_node(state)
 
             mock_rag.assert_not_called()
-            # RAG not invoked means no account_context_answer
             assert result.get("account_context_answer", "") == ""
 
     def test_capture_eval_data_import_error(self):
         """_capture_eval_data handles ImportError when eval module unavailable."""
         from backend.agent.fetch.node import _capture_eval_data
 
-        # Patch the import inside _capture_eval_data to raise ImportError
         with patch.dict("sys.modules", {"backend.eval.callback": None}):
-            # Should not raise - gracefully handles missing eval module
-            _capture_eval_data(None, None, False, [])
+            _capture_eval_data(None, [], None, False, [])
 
     def test_rag_fetch_exception_handled(self):
         """RAG fetch exception is caught and returns empty result."""
         from backend.agent.fetch.node import fetch_node
         from backend.agent.core.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
-        from backend.agent.fetch.sql.executor import SQLExecutionStats
 
         state: AgentState = {"question": "What are Delta's notes?"}
         mock_plan = SQLPlan(sql="SELECT * FROM companies WHERE name = 'Delta'", needs_rag=True)
 
-        mock_stats = SQLExecutionStats()
-        mock_stats.total = 1
-        mock_stats.success = 1
-
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
-             patch("backend.agent.fetch.node.execute_sql_plan") as mock_exec, \
+             patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
              patch("backend.agent.fetch.rag.search.tool_entity_rag") as mock_rag:
 
             mock_exec.return_value = (
-                {"companies": [{"company_id": "delta_1"}]},
-                {"$company_id": "delta_1"},
-                mock_stats,
+                [{"company_id": "delta_1"}],
+                {"company_id": "delta_1"},
+                None,
             )
-            # RAG raises exception
             mock_rag.side_effect = Exception("RAG service unavailable")
 
             result = fetch_node(state)
 
-            # Should not crash, RAG context should be empty
             assert result.get("account_context_answer", "") == ""
 
     def test_rag_with_contact_and_opportunity_ids(self):
@@ -274,30 +236,24 @@ class TestFetchNode:
         from backend.agent.fetch.node import fetch_node
         from backend.agent.core.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
-        from backend.agent.fetch.sql.executor import SQLExecutionStats
 
         state: AgentState = {"question": "test"}
         mock_plan = SQLPlan(sql="SELECT * FROM contacts", needs_rag=True)
 
-        mock_stats = SQLExecutionStats()
-        mock_stats.total = 1
-        mock_stats.success = 1
-
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
-             patch("backend.agent.fetch.node.execute_sql_plan") as mock_exec, \
+             patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
              patch("backend.agent.fetch.rag.search.tool_entity_rag") as mock_rag:
 
             mock_exec.return_value = (
-                {"contacts": [{"contact_id": "cont_1", "opportunity_id": "opp_1"}]},
-                {"$contact_id": "cont_1", "$opportunity_id": "opp_1"},
-                mock_stats,
+                [{"contact_id": "cont_1", "opportunity_id": "opp_1"}],
+                {"contact_id": "cont_1", "opportunity_id": "opp_1"},
+                None,
             )
             mock_rag.return_value = ("context", [])
 
             result = fetch_node(state)
 
-            # Check filters passed to RAG
             call_args = mock_rag.call_args
             filters = call_args[0][1]
             assert "contact_id" in filters
@@ -840,11 +796,11 @@ class TestIngestTexts:
 
 
 class TestGetCsvBasePath:
-    """Tests for get_csv_base_path function."""
+    """Tests for _get_csv_base_path function."""
 
     def test_prefers_crm_directory(self):
         """Prefers data/crm/ when it exists."""
-        from backend.agent.fetch.sql.connection import get_csv_base_path
+        from backend.agent.fetch.sql.connection import _get_csv_base_path
 
         with patch("backend.agent.fetch.sql.connection.Path") as mock_path_class:
             mock_crm_path = MagicMock()
@@ -857,19 +813,16 @@ class TestGetCsvBasePath:
             mock_path_class.return_value.parent = mock_path_instance
 
             # The function uses chained parent.parent.parent.parent
-            result = get_csv_base_path()
+            result = _get_csv_base_path()
             # Just verify it doesn't crash
 
     def test_falls_back_to_csv(self):
         """Falls back to data/csv/ when crm doesn't exist."""
         from backend.agent.fetch.sql import connection
 
-        # Save original
-        original_func = connection.get_csv_base_path
-
         # Test the fallback logic
         with patch.object(Path, "exists", return_value=False):
-            result = connection.get_csv_base_path()
+            result = connection._get_csv_base_path()
             assert "csv" in str(result) or "crm" in str(result)
 
 
@@ -898,162 +851,46 @@ class TestResetConnection:
         connection.reset_connection()
 
 
-class TestCloseConnection:
-    """Tests for close_connection function."""
-
-    def test_close_calls_reset(self):
-        """close_connection calls reset_connection."""
-        from backend.agent.fetch.sql import connection
-
-        with patch.object(connection, "reset_connection") as mock_reset:
-            connection.close_connection()
-            mock_reset.assert_called_once()
-
-
 # =============================================================================
 # fetch/sql/executor.py Tests
 # =============================================================================
 
 
-class TestSqlExecutionStats:
-    """Tests for SQLExecutionStats class."""
-
-    def test_failed_property(self):
-        """Failed property returns total - success."""
-        from backend.agent.fetch.sql.executor import SQLExecutionStats
-
-        stats = SQLExecutionStats()
-        stats.total = 5
-        stats.success = 3
-
-        assert stats.failed == 2
-
-    def test_get_error_summary_empty(self):
-        """Error summary returns None when no errors."""
-        from backend.agent.fetch.sql.executor import SQLExecutionStats
-
-        stats = SQLExecutionStats()
-        assert stats.get_error_summary() is None
-
-    def test_get_error_summary_with_errors(self):
-        """Error summary combines all errors."""
-        from backend.agent.fetch.sql.executor import SQLExecutionStats
-
-        stats = SQLExecutionStats()
-        stats.errors = {"query1": "syntax error", "query2": "table not found"}
-
-        summary = stats.get_error_summary()
-        assert "syntax error" in summary
-        assert "table not found" in summary
-
-
-class TestExecuteSqlPlan:
-    """Tests for execute_sql_plan function."""
+class TestExecuteSql:
+    """Tests for execute_sql function."""
 
     def test_max_rows_truncation(self):
         """Results are truncated to max_rows."""
-        from backend.agent.fetch.sql.executor import execute_sql_plan
+        from backend.agent.fetch.sql.executor import execute_sql
         from backend.agent.fetch.planner import SQLPlan
 
         plan = SQLPlan(sql="SELECT * FROM companies", needs_rag=False)
 
-        # Create mock connection that returns many rows
         mock_conn = MagicMock()
         mock_result = MagicMock()
         mock_result.fetchall.return_value = [(i,) for i in range(200)]
         mock_result.description = [("id",)]
         mock_conn.execute.return_value = mock_result
 
-        results, resolved, stats = execute_sql_plan(plan, mock_conn, max_rows=50)
+        rows, ids, error = execute_sql(plan, mock_conn, max_rows=50)
 
-        assert len(results["companies"]) == 50
-
-    def test_extract_table_from_sql_with_from(self):
-        """Extracts table name from FROM clause."""
-        from backend.agent.fetch.sql.executor import _extract_table_from_sql
-
-        sql = "SELECT * FROM opportunities WHERE value > 1000"
-        result = _extract_table_from_sql(sql)
-
-        assert result == "opportunities"
-
-    def test_extract_table_from_sql_no_from(self):
-        """Returns 'query' when no FROM clause."""
-        from backend.agent.fetch.sql.executor import _extract_table_from_sql
-
-        sql = "SELECT 1 + 1"
-        result = _extract_table_from_sql(sql)
-
-        assert result == "query"
+        assert len(rows) == 50
 
     def test_sql_execution_generic_exception(self):
         """Test generic exception handling during SQL execution."""
-        from backend.agent.fetch.sql.executor import execute_sql_plan
+        from backend.agent.fetch.sql.executor import execute_sql
         from backend.agent.fetch.planner import SQLPlan
 
         plan = SQLPlan(sql="SELECT * FROM companies", needs_rag=False)
 
-        # Create mock connection that raises a generic exception
         mock_conn = MagicMock()
         mock_conn.execute.side_effect = RuntimeError("Database error")
 
-        results, resolved, stats = execute_sql_plan(plan, mock_conn)
+        rows, ids, error = execute_sql(plan, mock_conn)
 
-        # Should capture the error and return empty results
-        assert "query" in stats.errors or results.get("companies") == [] or results.get("query") == []
-        assert stats.success == 0
-
-    def test_sql_validation_error_reraise(self):
-        """Test that SQLValidationError is re-raised."""
-        from backend.agent.fetch.sql.executor import execute_sql_plan, SQLValidationError
-        from backend.agent.fetch.planner import SQLPlan
-
-        # This SQL contains dangerous keyword (DELETE) that will trigger validation error
-        plan = SQLPlan(sql="DELETE FROM companies", needs_rag=False)
-
-        mock_conn = MagicMock()
-
-        # Should raise SQLValidationError
-        with pytest.raises(SQLValidationError):
-            execute_sql_plan(plan, mock_conn)
-
-
-class TestResolvePlaceholders:
-    """Tests for resolve_placeholders function."""
-
-    def test_resolve_single_placeholder(self):
-        """Resolves single placeholder."""
-        from backend.agent.fetch.sql.executor import resolve_placeholders
-
-        sql = "SELECT * FROM companies WHERE company_id = $company_id"
-        resolved = {"$company_id": "comp_123"}
-
-        result = resolve_placeholders(sql, resolved)
-
-        assert "$company_id" not in result
-        assert "'comp_123'" in result
-
-    def test_resolve_escapes_quotes(self):
-        """Escapes single quotes in values."""
-        from backend.agent.fetch.sql.executor import resolve_placeholders
-
-        sql = "SELECT * FROM companies WHERE name = $name"
-        resolved = {"$name": "O'Brien"}
-
-        result = resolve_placeholders(sql, resolved)
-
-        assert "O''Brien" in result
-
-    def test_resolve_skips_none_values(self):
-        """Skips placeholders with None values."""
-        from backend.agent.fetch.sql.executor import resolve_placeholders
-
-        sql = "SELECT * FROM companies WHERE company_id = $company_id"
-        resolved = {"$company_id": None}
-
-        result = resolve_placeholders(sql, resolved)
-
-        assert "$company_id" in result  # Not replaced
+        assert rows == []
+        assert error is not None
+        assert "Database error" in error
 
 
 # =============================================================================

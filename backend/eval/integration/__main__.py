@@ -10,7 +10,6 @@ import time
 from pathlib import Path
 
 import typer
-from dotenv import load_dotenv
 from rich.panel import Panel
 
 # Fix Windows asyncio cleanup issues with httpx/RAGAS
@@ -18,9 +17,10 @@ from rich.panel import Panel
 if platform.system() == "Windows":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+from backend.eval.shared import load_project_env
+
 # Load environment before other imports
-_project_root = Path(__file__).parent.parent.parent.parent
-load_dotenv(_project_root / ".env")
+load_project_env()
 
 from backend.agent.fetch.rag.client import close_qdrant_client
 from backend.eval.integration.langsmith import get_latency_percentages

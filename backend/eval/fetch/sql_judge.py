@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import threading
 from typing import Any
+
+from backend.eval.shared import is_mock_mode
 
 logger = logging.getLogger(__name__)
 
@@ -45,11 +46,6 @@ Respond with JSON only:
 
 If passed=true, errors should be an empty list.
 If passed=false, list specific issues found."""
-
-
-def _is_mock_mode() -> bool:
-    """Check if MOCK_LLM mode is enabled."""
-    return os.environ.get("MOCK_LLM", "0") == "1"
 
 
 def _get_openai_client() -> Any:
@@ -95,7 +91,7 @@ def judge_sql_results(
         - errors: List of issues found (empty if passed)
     """
     # Mock mode for testing without API
-    if _is_mock_mode():
+    if is_mock_mode():
         logger.debug("SQL Judge: mock mode - returning pass")
         return True, []
 

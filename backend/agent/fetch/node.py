@@ -27,7 +27,7 @@ def _capture_eval_data(
 ) -> None:
     """Capture eval-specific data via context variable (no-op if eval not running)."""
     try:
-        from backend.eval.callback import set_eval_data
+        from backend.eval.shared.callback import set_eval_data
 
         set_eval_data(
             sql_plan=sql_plan,

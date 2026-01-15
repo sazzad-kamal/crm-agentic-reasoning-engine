@@ -295,20 +295,6 @@ class TestSLOConstants:
 class TestFormatters:
     """Tests for formatting functions."""
 
-    def test_format_check_mark_true(self):
-        """Test format_check_mark with True."""
-        from backend.eval.shared.formatting import format_check_mark
-
-        result = format_check_mark(True)
-        assert "[green]Y[/green]" in result
-
-    def test_format_check_mark_false(self):
-        """Test format_check_mark with False."""
-        from backend.eval.shared.formatting import format_check_mark
-
-        result = format_check_mark(False)
-        assert "[red]X[/red]" in result
-
     def test_format_percentage_high(self):
         """Test format_percentage with high value (green)."""
         from backend.eval.shared.formatting import format_percentage
@@ -371,18 +357,6 @@ class TestPrintFunctions:
         from backend.eval.shared.formatting import print_eval_header
 
         print_eval_header("Test Header", "Test Subtitle")
-
-    def test_print_overall_result_panel_pass(self):
-        """Test print_overall_result_panel with pass."""
-        from backend.eval.shared.formatting import print_overall_result_panel
-
-        print_overall_result_panel(True, [], "All tests passed!")
-
-    def test_print_overall_result_panel_fail(self):
-        """Test print_overall_result_panel with failure."""
-        from backend.eval.shared.formatting import print_overall_result_panel
-
-        print_overall_result_panel(False, ["SLO failed", "Regression detected"], "")
 
     def test_print_debug_failures_empty(self):
         """Test print_debug_failures with empty list."""

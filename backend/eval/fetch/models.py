@@ -102,11 +102,11 @@ class EvalResults:
         rag_recall_cases = [c for c in self.cases if c.rag_recall is not None]
 
         if rag_precision_cases:
-            self.avg_rag_precision = sum(c.rag_precision for c in rag_precision_cases) / len(
-                rag_precision_cases
-            )
+            precisions = [c.rag_precision for c in rag_precision_cases if c.rag_precision is not None]
+            self.avg_rag_precision = sum(precisions) / len(precisions) if precisions else 0.0
         if rag_recall_cases:
-            self.avg_rag_recall = sum(c.rag_recall for c in rag_recall_cases) / len(rag_recall_cases)
+            recalls = [c.rag_recall for c in rag_recall_cases if c.rag_recall is not None]
+            self.avg_rag_recall = sum(recalls) / len(recalls) if recalls else 0.0
 
 
 __all__ = ["Question", "CaseResult", "EvalResults"]

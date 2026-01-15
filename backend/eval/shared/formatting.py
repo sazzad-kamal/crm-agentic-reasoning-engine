@@ -15,11 +15,6 @@ from rich.table import Table
 console = Console()
 
 
-def format_check_mark(value: bool) -> str:
-    """Format boolean as colored check/cross mark."""
-    return "[green]Y[/green]" if value else "[red]X[/red]"
-
-
 def format_percentage(value: float, thresholds: tuple[float, float] = (0.9, 0.7)) -> str:
     """
     Format percentage with color based on thresholds.
@@ -50,35 +45,6 @@ def print_eval_header(title: str, subtitle: str) -> None:
             border_style="blue",
         )
     )
-
-
-def print_overall_result_panel(
-    all_passed: bool,
-    failure_reasons: list[str],
-    success_message: str,
-) -> None:
-    """
-    Print overall pass/fail result panel.
-
-    Args:
-        all_passed: Whether overall evaluation passed
-        failure_reasons: List of failure reason strings
-        success_message: Message to show on success
-    """
-    if all_passed:
-        console.print(
-            Panel(
-                f"[green bold]OVERALL: PASS[/green bold]\n{success_message}",
-                border_style="green",
-            )
-        )
-    else:
-        console.print(
-            Panel(
-                f"[red bold]OVERALL: FAIL[/red bold]\n{'; '.join(failure_reasons)}",
-                border_style="red",
-            )
-        )
 
 
 def print_debug_failures(
@@ -165,10 +131,8 @@ def build_eval_table(
 
 __all__ = [
     "console",
-    "format_check_mark",
     "format_percentage",
     "print_eval_header",
-    "print_overall_result_panel",
     "print_debug_failures",
     "build_eval_table",
 ]

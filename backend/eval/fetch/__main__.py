@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 import typer
-from dotenv import load_dotenv
+
+from backend.eval.shared import load_project_env
 
 # Load environment before other imports
-_project_root = Path(__file__).parent.parent.parent.parent
-load_dotenv(_project_root / ".env")
+load_project_env()
 
 from backend.eval.fetch.runner import print_summary, run_sql_eval
 
@@ -36,9 +35,9 @@ def main(
     if difficulty:
         try:
             difficulty_filter = [int(d.strip()) for d in difficulty.split(",")]
-        except ValueError:
+        except ValueError as e:
             print(f"Invalid difficulty filter: {difficulty}. Use comma-separated numbers 1-5.")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
     results = run_sql_eval(limit=limit, verbose=verbose, difficulty_filter=difficulty_filter)
     print_summary(results)

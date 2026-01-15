@@ -11,13 +11,13 @@ from typing import Any, TypedDict
 from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
-from backend.eval.integration.callback import get_eval_capture, reset_eval_capture
 from backend.eval.integration.models import FlowEvalResults, FlowResult, FlowStepResult
 from backend.eval.integration.tree import (
     get_all_paths,
     get_expected_answer,
     get_expected_rag,
 )
+from backend.eval.shared.callback import get_eval_capture, reset_eval_capture
 from backend.eval.shared.formatting import console, print_eval_header
 from backend.eval.shared.ragas import evaluate_single
 

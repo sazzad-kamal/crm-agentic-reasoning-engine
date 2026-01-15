@@ -68,11 +68,8 @@ async def get_contacts() -> DataResponse:
 async def get_opportunities() -> DataResponse:
     data, columns = load_csv("opportunities.csv")
     texts = _group_by(load_jsonl("texts.jsonl"), "metadata_opportunity_id")
-    attachs = _group_by(load_csv("attachments.csv")[0], "opportunity_id")
     for row in data:
-        oid = row.get("opportunity_id", "")
-        row["_private_texts"] = texts.get(oid, [])
-        row["_attachments"] = attachs.get(oid, [])
+        row["_private_texts"] = texts.get(row.get("opportunity_id", ""), [])
     return DataResponse(data=data, total=len(data), columns=columns)
 
 

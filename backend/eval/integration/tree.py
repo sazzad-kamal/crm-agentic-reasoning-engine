@@ -36,7 +36,7 @@ __all__ = [
 # Load Expected Values (from eval/fixtures/)
 # =============================================================================
 
-_EVAL_FIXTURES_PATH = Path(__file__).parent.parent / "fixtures"
+_EVAL_FIXTURES_PATH = Path(__file__).parent / "fixtures"
 
 
 def _load_yaml_fixture(filename: str) -> dict:

@@ -11,7 +11,6 @@ from typing import Any, TypedDict
 from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
-from backend.eval.fetch.sql_judge import judge_sql_results
 from backend.eval.integration.callback import get_eval_capture, reset_eval_capture
 from backend.eval.integration.models import FlowEvalResults, FlowResult, FlowStepResult
 from backend.eval.integration.tree import (
@@ -180,7 +179,6 @@ def _create_error_step_result(question: str, latency_ms: int, error: str) -> Flo
         answer="",
         latency_ms=latency_ms,
         has_answer=False,
-        has_sources=False,
         relevance_score=0.0,
         faithfulness_score=0.0,
         answer_correctness_score=0.0,
@@ -235,15 +233,6 @@ def test_single_question(
         if account_context := result.get("account_context_answer", ""):
             all_contexts.append(account_context)
 
-        # Validate SQL results using LLM judge
-        sql_data_validated: bool | None = None
-        sql_data_errors: list[str] | None = None
-        if sql_results and use_judge:
-            sql_query = sql_plan.sql if sql_plan else ""
-            passed, errors = judge_sql_results(question, sql_query, sql_results)
-            sql_data_validated = passed
-            sql_data_errors = errors if errors else None
-
         # Check RAG detection accuracy (needs_rag decision from sql_plan vs expected)
         rag_decision_correct: bool | None = None
         expected_rag = get_expected_rag(question)
@@ -272,11 +261,8 @@ def test_single_question(
             answer=answer,
             latency_ms=latency_ms,
             has_answer=has_answer,
-            has_sources=False,
             sql_queries_total=sql_queries_total,
             sql_queries_success=sql_queries_success,
-            sql_data_validated=sql_data_validated,
-            sql_data_errors=sql_data_errors,
             relevance_score=ragas["relevance"],
             faithfulness_score=ragas["faithfulness"],
             answer_correctness_score=ragas["answer_correctness"],

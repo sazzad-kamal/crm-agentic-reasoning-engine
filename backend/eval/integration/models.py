@@ -64,7 +64,6 @@ class FlowStepResult:
     answer: str
     latency_ms: int
     has_answer: bool
-    has_sources: bool
     # SQL execution metrics
     sql_queries_total: int = 0
     sql_queries_success: int = 0
@@ -78,9 +77,6 @@ class FlowStepResult:
     # RAGAS metrics (0.0-1.0) - retrieval quality
     account_precision_score: float = 0.0  # Account RAG precision
     account_recall_score: float = 0.0  # Account RAG recall
-    # Per-metric success flags (for excluding NaN from averages)
-    precision_succeeded: bool = False  # True if precision metric returned valid value
-    recall_succeeded: bool = False  # True if recall metric returned valid value
     # RAG invocation flags (for N/A vs 0% distinction)
     account_rag_invoked: bool = False  # True only if account RAG was called
     # RAG detection accuracy (needs_rag decision from slot planner vs expected)

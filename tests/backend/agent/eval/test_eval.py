@@ -101,7 +101,6 @@ class TestFlowStepResult:
             answer="Acme's revenue is $1M.",
             latency_ms=500,
             has_answer=True,
-            has_sources=True,
             relevance_score=0.9,
             faithfulness_score=0.85,
         )
@@ -117,7 +116,6 @@ class TestFlowStepResult:
             answer="A",
             latency_ms=100,
             has_answer=True,
-            has_sources=True,
             relevance_score=0.8,
             faithfulness_score=0.8,
         )
@@ -129,7 +127,6 @@ class TestFlowStepResult:
             answer="A",
             latency_ms=100,
             has_answer=True,
-            has_sources=True,
             relevance_score=0.5,
             faithfulness_score=0.8,
         )
@@ -141,7 +138,6 @@ class TestFlowStepResult:
             answer="",
             latency_ms=100,
             has_answer=False,
-            has_sources=False,
             relevance_score=0.8,
             faithfulness_score=0.8,
         )
@@ -159,8 +155,7 @@ class TestFlowResult:
                 answer="A1",
                 latency_ms=100,
                 has_answer=True,
-                has_sources=True,
-                relevance_score=0.9,
+                    relevance_score=0.9,
                 faithfulness_score=0.9,
             ),
             FlowStepResult(
@@ -168,8 +163,7 @@ class TestFlowResult:
                 answer="A2",
                 latency_ms=150,
                 has_answer=True,
-                has_sources=True,
-                relevance_score=0.85,
+                    relevance_score=0.85,
                 faithfulness_score=0.85,
             ),
         ]
@@ -349,14 +343,6 @@ class TestFormatters:
 
 class TestTables:
     """Tests for table creation functions."""
-
-    def test_create_summary_table(self):
-        """Test create_summary_table creates valid table."""
-        from backend.eval.shared.formatting import create_summary_table
-
-        table = create_summary_table("Test Summary")
-        assert table.title == "Test Summary"
-        assert len(table.columns) == 2
 
     def test_build_eval_table(self):
         """Test build_eval_table creates valid table."""
@@ -848,7 +834,6 @@ class TestOutputModule:
             answer="Bad answer",
             latency_ms=1000,
             has_answer=True,
-            has_sources=False,
             relevance_score=0.4,
             faithfulness_score=0.5,
             answer_correctness_score=0.3,
@@ -956,8 +941,7 @@ class TestPrintSloFailures:
                             answer="A1",
                             latency_ms=100,
                             has_answer=True,
-                            has_sources=True,
-                            relevance_score=0.95,
+                                            relevance_score=0.95,
                             faithfulness_score=0.95,
                             answer_correctness_score=0.80,
                         )
@@ -993,8 +977,7 @@ class TestPrintSloFailures:
                             answer="A1",
                             latency_ms=100,
                             has_answer=True,
-                            has_sources=True,
-                            relevance_score=0.5,  # Below SLO
+                                            relevance_score=0.5,  # Below SLO
                             faithfulness_score=0.5,  # Below SLO
                             answer_correctness_score=0.3,
                         ),
@@ -1003,8 +986,7 @@ class TestPrintSloFailures:
                             answer="A2",
                             latency_ms=100,
                             has_answer=True,
-                            has_sources=True,
-                            relevance_score=0.4,
+                                            relevance_score=0.4,
                             faithfulness_score=0.4,
                             answer_correctness_score=0.2,
                             account_rag_invoked=True,
@@ -1290,8 +1272,7 @@ class TestTestFlow:
                 answer=f"Answer to {question}",
                 latency_ms=100,
                 has_answer=True,
-                has_sources=True,
-                relevance_score=0.90,
+                    relevance_score=0.90,
                 faithfulness_score=0.85,
             )
 
@@ -1316,8 +1297,7 @@ class TestTestFlow:
                     answer="",
                     latency_ms=100,
                     has_answer=False,
-                    has_sources=False,
-                    relevance_score=0.0,
+                            relevance_score=0.0,
                     faithfulness_score=0.0,
                     error="Failed to answer",
                 )
@@ -1326,8 +1306,7 @@ class TestTestFlow:
                 answer="Good answer",
                 latency_ms=100,
                 has_answer=True,
-                has_sources=True,
-                relevance_score=0.90,
+                    relevance_score=0.90,
                 faithfulness_score=0.85,
             )
 
@@ -1622,7 +1601,6 @@ class TestModelsExtended:
             answer="A",
             latency_ms=100,
             has_answer=True,
-            has_sources=True,
             relevance_score=0.9,  # High
             faithfulness_score=0.5,  # Below 0.7 threshold
         )
@@ -1826,7 +1804,6 @@ class TestCliModule:
             answer="Bad A",
             latency_ms=100,
             has_answer=True,
-            has_sources=False,
             relevance_score=0.5,
             faithfulness_score=0.5,
             judge_explanation="Low quality",
@@ -1936,8 +1913,7 @@ class TestRunFlowEval:
                         answer="A1",
                         latency_ms=100,
                         has_answer=True,
-                        has_sources=True,
-                        relevance_score=0.9,
+                                    relevance_score=0.9,
                         faithfulness_score=0.9,
                         sql_queries_total=2,
                         sql_queries_success=2,
@@ -1948,8 +1924,7 @@ class TestRunFlowEval:
                         answer="A2",
                         latency_ms=100,
                         has_answer=True,
-                        has_sources=True,
-                        relevance_score=0.85,
+                                    relevance_score=0.85,
                         faithfulness_score=0.85,
                         sql_queries_total=1,
                         sql_queries_success=1,
@@ -1987,8 +1962,7 @@ class TestRunFlowEval:
                         answer="Bad answer",
                         latency_ms=100,
                         has_answer=True,
-                        has_sources=False,
-                        relevance_score=0.5,
+                                    relevance_score=0.5,
                         faithfulness_score=0.5,
                     ),
                 ],
@@ -2024,14 +1998,11 @@ class TestRunFlowEval:
                         answer="A1",
                         latency_ms=100,
                         has_answer=True,
-                        has_sources=True,
-                        relevance_score=0.9,
+                                    relevance_score=0.9,
                         faithfulness_score=0.9,
                         account_rag_invoked=True,
                         account_precision_score=0.85,
                         account_recall_score=0.80,
-                        precision_succeeded=True,
-                        recall_succeeded=True,
                     ),
                 ],
                 total_latency_ms=100,
@@ -2069,8 +2040,7 @@ class TestRunFlowEval:
                         answer=f"A{path_id}",
                         latency_ms=100,
                         has_answer=True,
-                        has_sources=True,
-                        relevance_score=0.9,
+                                    relevance_score=0.9,
                         faithfulness_score=0.9,
                     ),
                 ],
@@ -2147,7 +2117,6 @@ class TestCountSloFailures:
             answer="A",
             latency_ms=100,
             has_answer=True,
-            has_sources=True,
             relevance_score=0.95,
             faithfulness_score=0.95,
             answer_correctness_score=0.80,
@@ -2167,7 +2136,6 @@ class TestCountSloFailures:
             answer="A",
             latency_ms=100,
             has_answer=True,
-            has_sources=True,
             relevance_score=0.95,
             faithfulness_score=0.95,
             answer_correctness_score=0.80,
@@ -2186,7 +2154,6 @@ class TestCountSloFailures:
             answer="A",
             latency_ms=100,
             has_answer=True,
-            has_sources=True,
             relevance_score=0.5,  # Below SLO
             faithfulness_score=0.5,  # Below SLO
             answer_correctness_score=0.3,  # Below SLO
@@ -2433,7 +2400,6 @@ class TestCliModuleExtended:
             answer="Bad A with some content",
             latency_ms=100,
             has_answer=True,
-            has_sources=False,
             relevance_score=0.5,
             faithfulness_score=0.5,
             judge_explanation="Low quality answer detected",  # Has explanation
@@ -2660,7 +2626,6 @@ class TestPrintSloFailuresExtended:
             answer="A1",
             latency_ms=100,
             has_answer=True,
-            has_sources=True,
             relevance_score=0.5,  # Fails
             faithfulness_score=0.5,  # Fails
             answer_correctness_score=0.3,  # Fails
@@ -2670,7 +2635,6 @@ class TestPrintSloFailuresExtended:
             answer="A2",
             latency_ms=100,
             has_answer=True,
-            has_sources=True,
             relevance_score=0.5,  # Fails
             faithfulness_score=0.9,
             answer_correctness_score=0.8,
@@ -2714,7 +2678,6 @@ class TestPrintSloFailuresExtended:
             answer="A",
             latency_ms=100,
             has_answer=True,
-            has_sources=True,
             relevance_score=0.9,
             faithfulness_score=0.9,
             account_rag_invoked=True,
@@ -2753,7 +2716,6 @@ class TestPrintSloFailuresExtended:
             answer="A",
             latency_ms=100,
             has_answer=True,
-            has_sources=True,
             relevance_score=0.5,  # Fails
             faithfulness_score=0.5,  # Fails
             answer_correctness_score=0.3,  # Fails
@@ -2790,8 +2752,8 @@ class TestPrintSloFailuresExtended:
 class TestRunnerEdgeCases:
     """Extended tests for runner edge cases."""
 
-    def test_test_single_question_with_sql_data_validation(self, monkeypatch):
-        """Test test_single_question with SQL data validation."""
+    def test_test_single_question_no_sql_validation_in_integration(self, monkeypatch):
+        """Test that integration runner does NOT perform SQL validation (decoupled to fetch)."""
         from backend.eval.integration.runner import test_single_question
 
         def mock_invoke_agent(question, session_id=None):
@@ -2824,19 +2786,16 @@ class TestRunnerEdgeCases:
         def mock_get_expected_answer(question):
             return "Expected answer"
 
-        def mock_judge_sql_results(question, sql, results):
-            return True, []  # Passed with no errors
-
         import backend.eval.integration.runner
 
         monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
         monkeypatch.setattr(backend.eval.integration.runner, "judge_answer", mock_judge_answer)
         monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", mock_get_expected_answer)
-        monkeypatch.setattr(backend.eval.integration.runner, "judge_sql_results", mock_judge_sql_results)
 
         result = test_single_question("Test Q?", [], "session1")
 
-        assert result.sql_data_validated is True
+        # SQL validation is NOT done in integration runner (decoupled to fetch eval)
+        assert result.sql_data_validated is None
         assert result.sql_data_errors is None
 
     def test_test_single_question_ragas_failed_rag_mode(self, monkeypatch):
@@ -3063,7 +3022,7 @@ class TestRunnerTimeoutHandling:
                 questions=path,
                 steps=[FlowStepResult(
                     question="Q?", answer="A", latency_ms=100,
-                    has_answer=True, has_sources=True,
+                    has_answer=True,
                     relevance_score=0.9, faithfulness_score=0.9,
                 )],
                 total_latency_ms=100,
@@ -3138,7 +3097,6 @@ class TestCliExceptionHandling:
             answer="Bad answer",
             latency_ms=100,
             has_answer=True,
-            has_sources=False,
             relevance_score=0.3,
             faithfulness_score=0.3,
             judge_explanation="This answer is not relevant to the question.",

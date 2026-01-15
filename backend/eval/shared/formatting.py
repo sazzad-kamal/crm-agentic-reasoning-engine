@@ -41,14 +41,6 @@ def format_percentage(value: float, thresholds: tuple[float, float] = (0.9, 0.7)
     return f"[{color}]{value:.1%}[/{color}]"
 
 
-def create_summary_table(title: str = "Evaluation Summary") -> Table:
-    """Create a standard summary table with consistent styling."""
-    table = Table(title=title, show_header=True, header_style="bold cyan")
-    table.add_column("Metric", style="dim")
-    table.add_column("Value", justify="right")
-    return table
-
-
 def print_eval_header(title: str, subtitle: str) -> None:
     """Print evaluation header panel."""
     console.print(
@@ -175,7 +167,6 @@ __all__ = [
     "console",
     "format_check_mark",
     "format_percentage",
-    "create_summary_table",
     "print_eval_header",
     "print_overall_result_panel",
     "print_debug_failures",

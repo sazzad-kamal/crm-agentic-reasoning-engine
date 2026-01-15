@@ -6,7 +6,7 @@ import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from backend.eval.formatting import console
+from backend.eval.shared.formatting import console
 
 
 def get_latency_breakdown(

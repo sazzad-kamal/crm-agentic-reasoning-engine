@@ -6,7 +6,7 @@ from backend.agent.followup.tree import (
     get_starters,
     get_follow_ups,
 )
-from backend.eval.tree import (
+from backend.eval.integration.tree import (
     get_all_paths,
     get_tree_stats,
     validate_tree,

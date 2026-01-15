@@ -8,8 +8,7 @@ from pathlib import Path
 
 from rich.table import Table
 
-from backend.eval.formatting import build_eval_table, console, format_percentage
-from backend.eval.models import (
+from backend.eval.integration.models import (
     SLO_ACCOUNT_PRECISION,
     SLO_ACCOUNT_RECALL,
     SLO_FLOW_ANSWER_CORRECTNESS,
@@ -27,6 +26,7 @@ from backend.eval.models import (
     FlowEvalResults,
     FlowStepResult,
 )
+from backend.eval.shared.formatting import build_eval_table, console, format_percentage
 
 logger = logging.getLogger(__name__)
 

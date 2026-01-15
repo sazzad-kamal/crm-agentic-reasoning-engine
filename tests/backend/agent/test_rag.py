@@ -198,7 +198,7 @@ class TestEvalFormatting:
 
     def test_build_eval_table(self):
         """Test build_eval_table creates table with sections."""
-        from backend.eval.formatting import build_eval_table
+        from backend.eval.shared.formatting import build_eval_table
 
         sections = [
             ("Section1", [

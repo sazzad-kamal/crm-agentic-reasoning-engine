@@ -11,16 +11,16 @@ from typing import Any, TypedDict
 from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
-from backend.eval.callback import get_eval_capture, reset_eval_capture
-from backend.eval.formatting import console, print_eval_header
-from backend.eval.judge import evaluate_single
-from backend.eval.models import FlowEvalResults, FlowResult, FlowStepResult
-from backend.eval.route.sql_judge import judge_sql_results
-from backend.eval.tree import (
+from backend.eval.fetch.sql_judge import judge_sql_results
+from backend.eval.integration.callback import get_eval_capture, reset_eval_capture
+from backend.eval.integration.models import FlowEvalResults, FlowResult, FlowStepResult
+from backend.eval.integration.tree import (
     get_all_paths,
     get_expected_answer,
     get_expected_rag,
 )
+from backend.eval.shared.formatting import console, print_eval_header
+from backend.eval.shared.ragas import evaluate_single
 
 logger = logging.getLogger(__name__)
 

@@ -1,0 +1,224 @@
+# Fetch Node Evaluation Questions
+# 50 SQL questions (10 per difficulty level 1-5)
+# 10 RAG-only questions (2 per difficulty level 1-5)
+
+questions:
+  # =============================================================================
+  # SQL DIFFICULTY 1: Single table, simple filters
+  # =============================================================================
+  - text: "What is Acme Manufacturing's plan?"
+    difficulty: 1
+
+  - text: "What is Beta Tech Solutions' status?"
+    difficulty: 1
+
+  - text: "What industry is Crown Foods in?"
+    difficulty: 1
+
+  - text: "What is Delta Health's renewal date?"
+    difficulty: 1
+
+  - text: "What region is Fusion Retail in?"
+    difficulty: 1
+
+  - text: "What is the email for Anna Lopez?"
+    difficulty: 1
+
+  - text: "What is Joe Smith's job title?"
+    difficulty: 1
+
+  - text: "What is the stage of the Acme Manufacturing upgrade opportunity?"
+    difficulty: 1
+
+  - text: "What is the value of the Beta Tech new rollout opportunity?"
+    difficulty: 1
+
+  - text: "What is the priority of the Crown Foods renewal check-in activity?"
+    difficulty: 1
+
+  # =============================================================================
+  # SQL DIFFICULTY 2: Joins, basic aggregations
+  # =============================================================================
+  - text: "How many contacts does Acme Manufacturing have?"
+    difficulty: 2
+
+  - text: "What is the total value of all opportunities for Beta Tech?"
+    difficulty: 2
+
+  - text: "How many open activities does Delta Health have?"
+    difficulty: 2
+
+  - text: "What is the total pipeline value for all active companies?"
+    difficulty: 2
+
+  - text: "How many opportunities are in the Proposal stage?"
+    difficulty: 2
+
+  - text: "What are the contact names at Crown Foods?"
+    difficulty: 2
+
+  - text: "Which companies have at-risk health flags?"
+    difficulty: 2
+
+  - text: "How many contacts have the role Champion?"
+    difficulty: 2
+
+  - text: "What is the average opportunity value?"
+    difficulty: 2
+
+  - text: "How many high priority activities are open?"
+    difficulty: 2
+
+  # =============================================================================
+  # SQL DIFFICULTY 3: Multiple joins, GROUP BY
+  # =============================================================================
+  - text: "Which company has the most contacts?"
+    difficulty: 3
+
+  - text: "What is the total opportunity value per company?"
+    difficulty: 3
+
+  - text: "How many activities does each account owner have?"
+    difficulty: 3
+
+  - text: "Which companies have opportunities in the Negotiation stage?"
+    difficulty: 3
+
+  - text: "What is the breakdown of opportunities by stage?"
+    difficulty: 3
+
+  - text: "How many contacts per company have the Decision Maker role?"
+    difficulty: 3
+
+  - text: "What are the companies with renewal dates in Q1 2026?"
+    difficulty: 3
+
+  - text: "Which contacts at Beta Tech are in the Customer lifecycle stage?"
+    difficulty: 3
+
+  - text: "What is the total pipeline value by region?"
+    difficulty: 3
+
+  - text: "How many history entries exist per company?"
+    difficulty: 3
+
+  # =============================================================================
+  # SQL DIFFICULTY 4: Subqueries, complex filters
+  # =============================================================================
+  - text: "Which companies have more than 2 opportunities?"
+    difficulty: 4
+
+  - text: "What contacts belong to companies with churned status?"
+    difficulty: 4
+
+  - text: "Which opportunities have value above the average?"
+    difficulty: 4
+
+  - text: "What are the contacts at companies with at-risk health flags?"
+    difficulty: 4
+
+  - text: "Which account owners manage companies with total pipeline over $30k?"
+    difficulty: 4
+
+  - text: "What opportunities are tied to contacts with Executive role?"
+    difficulty: 4
+
+  - text: "Which companies have both renewal and expansion opportunities?"
+    difficulty: 4
+
+  - text: "What is the highest value opportunity per industry?"
+    difficulty: 4
+
+  - text: "Which contacts have open high-priority activities?"
+    difficulty: 4
+
+  - text: "What companies have opportunities closing in the next 60 days?"
+    difficulty: 4
+
+  # =============================================================================
+  # SQL DIFFICULTY 5: CTEs, window functions, multi-step logic
+  # =============================================================================
+  - text: "Rank companies by total pipeline value and show their rank?"
+    difficulty: 5
+
+  - text: "What is the running total of opportunity values by created date?"
+    difficulty: 5
+
+  - text: "Which contacts have the most activities compared to others in the same company?"
+    difficulty: 5
+
+  - text: "What is the average days in stage for each opportunity stage?"
+    difficulty: 5
+
+  - text: "Show opportunities along with the previous opportunity value for the same company?"
+    difficulty: 5
+
+  - text: "What percentage of total pipeline does each company represent?"
+    difficulty: 5
+
+  - text: "Which companies have improved their opportunity count over time?"
+    difficulty: 5
+
+  - text: "Rank contacts by their company's total pipeline value?"
+    difficulty: 5
+
+  - text: "What is the month-over-month change in total opportunity value?"
+    difficulty: 5
+
+  - text: "Which account owners have the highest win rate on opportunities?"
+    difficulty: 5
+
+  # =============================================================================
+  # RAG-ONLY DIFFICULTY 1: Simple entity lookup
+  # =============================================================================
+  - text: "What are the notes about Anna Lopez?"
+    rag_only: true
+    difficulty: 1
+
+  - text: "What is the description for Acme Manufacturing?"
+    rag_only: true
+    difficulty: 1
+
+  # =============================================================================
+  # RAG-ONLY DIFFICULTY 2: Multi-field retrieval
+  # =============================================================================
+  - text: "What are the key details about the Beta Tech new rollout opportunity?"
+    rag_only: true
+    difficulty: 2
+
+  - text: "What information do we have about Lisa Ng at Beta Tech?"
+    rag_only: true
+    difficulty: 2
+
+  # =============================================================================
+  # RAG-ONLY DIFFICULTY 3: Cross-document reasoning
+  # =============================================================================
+  - text: "Why did Green Energy churn and what is the win-back strategy?"
+    rag_only: true
+    difficulty: 3
+
+  - text: "What are the concerns and opportunities related to Delta Health's expansion?"
+    rag_only: true
+    difficulty: 3
+
+  # =============================================================================
+  # RAG-ONLY DIFFICULTY 4: Complex semantic matching
+  # =============================================================================
+  - text: "What contacts have expressed concerns about pricing across all companies?"
+    rag_only: true
+    difficulty: 4
+
+  - text: "Which opportunities are at risk and why based on history and activities?"
+    rag_only: true
+    difficulty: 4
+
+  # =============================================================================
+  # RAG-ONLY DIFFICULTY 5: Multi-hop reasoning
+  # =============================================================================
+  - text: "Based on all interactions, what is the recommended approach for the Acme Manufacturing upgrade deal?"
+    rag_only: true
+    difficulty: 5
+
+  - text: "Considering all touchpoints, which companies are most likely to expand and why?"
+    rag_only: true
+    difficulty: 5

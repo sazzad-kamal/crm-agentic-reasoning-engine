@@ -1,4 +1,4 @@
-"""CLI for evaluation."""
+"""CLI for integration evaluation."""
 
 from __future__ import annotations
 
@@ -19,15 +19,15 @@ if platform.system() == "Windows":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 # Load environment before other imports
-_project_root = Path(__file__).parent.parent.parent
+_project_root = Path(__file__).parent.parent.parent.parent
 load_dotenv(_project_root / ".env")
 
 from backend.agent.fetch.rag.client import close_qdrant_client
-from backend.eval.formatting import console, print_debug_failures
-from backend.eval.langsmith import get_latency_percentages
-from backend.eval.output import check_qdrant_access, print_summary, save_results
-from backend.eval.runner import run_flow_eval
-from backend.eval.tree import get_tree_stats
+from backend.eval.integration.langsmith import get_latency_percentages
+from backend.eval.integration.output import check_qdrant_access, print_summary, save_results
+from backend.eval.integration.runner import run_flow_eval
+from backend.eval.integration.tree import get_tree_stats
+from backend.eval.shared.formatting import console, print_debug_failures
 
 # Register cleanup to prevent shutdown errors
 atexit.register(close_qdrant_client)
@@ -209,19 +209,6 @@ def main(
         debug=debug,
         eval_mode=eval_mode,
     )
-
-
-@app.command()
-def route(
-    limit: int | None = typer.Option(None, "--limit", "-l", help="Limit number of test cases"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output for each case"),
-) -> None:
-    """Run route node evaluation only (tests query planner in isolation)."""
-    logging.basicConfig(level=logging.WARNING)
-    from backend.eval.route.eval import print_summary, run_sql_eval
-
-    results = run_sql_eval(limit=limit, verbose=verbose)
-    print_summary(results)
 
 
 if __name__ == "__main__":

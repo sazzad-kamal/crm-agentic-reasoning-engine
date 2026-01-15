@@ -37,7 +37,7 @@ def make_invoke_mock(
     return (result, eval_data or default_eval)
 
 
-from backend.eval.models import (
+from backend.eval.integration.models import (
     _latency_score,
     FlowStepResult,
     FlowResult,
@@ -303,21 +303,21 @@ class TestFormatters:
 
     def test_format_check_mark_true(self):
         """Test format_check_mark with True."""
-        from backend.eval.formatting import format_check_mark
+        from backend.eval.shared.formatting import format_check_mark
 
         result = format_check_mark(True)
         assert "[green]Y[/green]" in result
 
     def test_format_check_mark_false(self):
         """Test format_check_mark with False."""
-        from backend.eval.formatting import format_check_mark
+        from backend.eval.shared.formatting import format_check_mark
 
         result = format_check_mark(False)
         assert "[red]X[/red]" in result
 
     def test_format_percentage_high(self):
         """Test format_percentage with high value (green)."""
-        from backend.eval.formatting import format_percentage
+        from backend.eval.shared.formatting import format_percentage
 
         result = format_percentage(0.95)
         assert "[green]" in result
@@ -325,7 +325,7 @@ class TestFormatters:
 
     def test_format_percentage_medium(self):
         """Test format_percentage with medium value (yellow)."""
-        from backend.eval.formatting import format_percentage
+        from backend.eval.shared.formatting import format_percentage
 
         result = format_percentage(0.75)
         assert "[yellow]" in result
@@ -333,7 +333,7 @@ class TestFormatters:
 
     def test_format_percentage_low(self):
         """Test format_percentage with low value (red)."""
-        from backend.eval.formatting import format_percentage
+        from backend.eval.shared.formatting import format_percentage
 
         result = format_percentage(0.50)
         assert "[red]" in result
@@ -341,7 +341,7 @@ class TestFormatters:
 
     def test_format_percentage_custom_thresholds(self):
         """Test format_percentage with custom thresholds."""
-        from backend.eval.formatting import format_percentage
+        from backend.eval.shared.formatting import format_percentage
 
         result = format_percentage(0.75, thresholds=(0.8, 0.6))
         assert "[yellow]" in result
@@ -352,7 +352,7 @@ class TestTables:
 
     def test_create_summary_table(self):
         """Test create_summary_table creates valid table."""
-        from backend.eval.formatting import create_summary_table
+        from backend.eval.shared.formatting import create_summary_table
 
         table = create_summary_table("Test Summary")
         assert table.title == "Test Summary"
@@ -360,7 +360,7 @@ class TestTables:
 
     def test_build_eval_table(self):
         """Test build_eval_table creates valid table."""
-        from backend.eval.formatting import build_eval_table
+        from backend.eval.shared.formatting import build_eval_table
 
         sections = [
             (
@@ -382,31 +382,31 @@ class TestPrintFunctions:
 
     def test_print_eval_header(self):
         """Test print_eval_header runs without error."""
-        from backend.eval.formatting import print_eval_header
+        from backend.eval.shared.formatting import print_eval_header
 
         print_eval_header("Test Header", "Test Subtitle")
 
     def test_print_overall_result_panel_pass(self):
         """Test print_overall_result_panel with pass."""
-        from backend.eval.formatting import print_overall_result_panel
+        from backend.eval.shared.formatting import print_overall_result_panel
 
         print_overall_result_panel(True, [], "All tests passed!")
 
     def test_print_overall_result_panel_fail(self):
         """Test print_overall_result_panel with failure."""
-        from backend.eval.formatting import print_overall_result_panel
+        from backend.eval.shared.formatting import print_overall_result_panel
 
         print_overall_result_panel(False, ["SLO failed", "Regression detected"], "")
 
     def test_print_debug_failures_empty(self):
         """Test print_debug_failures with empty list."""
-        from backend.eval.formatting import print_debug_failures
+        from backend.eval.shared.formatting import print_debug_failures
 
         print_debug_failures([], "No Failures")
 
     def test_print_debug_failures_with_items(self):
         """Test print_debug_failures with items."""
-        from backend.eval.formatting import print_debug_failures
+        from backend.eval.shared.formatting import print_debug_failures
 
         failures = [
             {"id": "t1", "error": "Test error 1"},
@@ -429,7 +429,7 @@ class TestRagasMockMode:
         monkeypatch.setenv("MOCK_LLM", "1")
 
         # Force reimport with mock mode enabled
-        from backend.eval.judge import _mock_evaluate_single
+        from backend.eval.shared.ragas import _mock_evaluate_single
 
         result = _mock_evaluate_single(
             question="What is the revenue?",
@@ -448,7 +448,7 @@ class TestRagasMockMode:
         """Test mock evaluate returns reduced scores without context."""
         monkeypatch.setenv("MOCK_LLM", "1")
 
-        from backend.eval.judge import _mock_evaluate_single
+        from backend.eval.shared.ragas import _mock_evaluate_single
 
         result = _mock_evaluate_single(
             question="What is the revenue?",
@@ -465,7 +465,7 @@ class TestRagasMockMode:
         """Test mock evaluate returns zeros for empty answer."""
         monkeypatch.setenv("MOCK_LLM", "1")
 
-        from backend.eval.judge import _mock_evaluate_single
+        from backend.eval.shared.ragas import _mock_evaluate_single
 
         result = _mock_evaluate_single(
             question="What is the revenue?",
@@ -489,7 +489,7 @@ class TestLangSmithLatency:
         """Test get_latency_breakdown without API key."""
         monkeypatch.delenv("LANGCHAIN_API_KEY", raising=False)
 
-        from backend.eval.langsmith import get_latency_breakdown
+        from backend.eval.integration.langsmith import get_latency_breakdown
 
         result = get_latency_breakdown()
         assert result == {}
@@ -508,7 +508,7 @@ class TestLangSmithLatency:
         mock_langsmith.Client = MockClient
         monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
 
-        from backend.eval.langsmith import get_latency_breakdown
+        from backend.eval.integration.langsmith import get_latency_breakdown
 
         result = get_latency_breakdown()
         assert result == {}
@@ -550,7 +550,7 @@ class TestLangSmithLatency:
         mock_langsmith.Client = MockClient
         monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
 
-        from backend.eval.langsmith import get_latency_breakdown
+        from backend.eval.integration.langsmith import get_latency_breakdown
 
         result = get_latency_breakdown()
 
@@ -574,7 +574,7 @@ class TestLangSmithLatency:
         mock_langsmith.Client = MockClient
         monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
 
-        from backend.eval.langsmith import get_latency_breakdown
+        from backend.eval.integration.langsmith import get_latency_breakdown
 
         result = get_latency_breakdown()
         assert result == {}
@@ -610,7 +610,7 @@ class TestEnsureQdrantCollections:
         monkeypatch.setattr(backend.agent.fetch.rag.client, "get_qdrant_client", mock_get_client)
         monkeypatch.setattr(backend.agent.fetch.rag.config, "QDRANT_PATH", tmp_path / "qdrant")
 
-        from backend.eval.cli import ensure_qdrant_collections
+        from backend.eval.integration.__main__ import ensure_qdrant_collections
 
         # Should complete without calling ingest
         ensure_qdrant_collections()
@@ -650,7 +650,7 @@ class TestEnsureQdrantCollections:
         monkeypatch.setattr(backend.agent.fetch.rag.ingest, "ingest_texts", mock_ingest_private)
         monkeypatch.setattr(backend.agent.fetch.rag.config, "QDRANT_PATH", tmp_path / "qdrant")
 
-        from backend.eval.cli import ensure_qdrant_collections
+        from backend.eval.integration.__main__ import ensure_qdrant_collections
 
         # Should call ingest functions and verify collection was created
         ensure_qdrant_collections()
@@ -688,7 +688,7 @@ class TestEnsureQdrantCollections:
         monkeypatch.setattr(backend.agent.fetch.rag.ingest, "ingest_texts", mock_ingest_private)
         monkeypatch.setattr(backend.agent.fetch.rag.config, "QDRANT_PATH", tmp_path / "qdrant")
 
-        from backend.eval.cli import ensure_qdrant_collections
+        from backend.eval.integration.__main__ import ensure_qdrant_collections
 
         with pytest.raises(RuntimeError, match="Failed to create collection"):
             ensure_qdrant_collections()
@@ -704,7 +704,7 @@ class TestOutputModule:
 
     def test_print_summary_all_pass(self):
         """Test print_summary with all SLOs passing."""
-        from backend.eval.output import print_summary
+        from backend.eval.integration.output import print_summary
 
         results = FlowEvalResults(
             total_paths=10,
@@ -738,7 +738,7 @@ class TestOutputModule:
 
     def test_print_summary_rag_mode(self):
         """Test print_summary with eval_mode='rag'."""
-        from backend.eval.output import print_summary
+        from backend.eval.integration.output import print_summary
 
         results = FlowEvalResults(
             total_paths=5,
@@ -759,7 +759,7 @@ class TestOutputModule:
 
     def test_print_summary_pipeline_mode(self):
         """Test print_summary with eval_mode='pipeline'."""
-        from backend.eval.output import print_summary
+        from backend.eval.integration.output import print_summary
 
         results = FlowEvalResults(
             total_paths=5,
@@ -779,7 +779,7 @@ class TestOutputModule:
 
     def test_print_summary_no_sql_queries(self):
         """Test print_summary when no SQL queries executed."""
-        from backend.eval.output import print_summary
+        from backend.eval.integration.output import print_summary
 
         results = FlowEvalResults(
             total_paths=5,
@@ -800,7 +800,7 @@ class TestOutputModule:
 
     def test_save_results(self, tmp_path):
         """Test save_results writes correct JSON."""
-        from backend.eval.output import save_results
+        from backend.eval.integration.output import save_results
 
         results = FlowEvalResults(
             total_paths=5,
@@ -841,7 +841,7 @@ class TestOutputModule:
 
     def test_save_results_with_failed_paths(self, tmp_path):
         """Test save_results includes failed path details."""
-        from backend.eval.output import save_results
+        from backend.eval.integration.output import save_results
 
         failed_step = FlowStepResult(
             question="Failed question?",
@@ -889,7 +889,7 @@ class TestOutputModule:
 
     def test_check_qdrant_access_success(self, monkeypatch):
         """Test check_qdrant_access returns True when accessible."""
-        from backend.eval.output import check_qdrant_access
+        from backend.eval.integration.output import check_qdrant_access
 
         class MockClient:
             def get_collections(self):
@@ -906,7 +906,7 @@ class TestOutputModule:
 
     def test_check_qdrant_access_locked(self, monkeypatch):
         """Test check_qdrant_access returns False when locked."""
-        from backend.eval.output import check_qdrant_access
+        from backend.eval.integration.output import check_qdrant_access
 
         def mock_get_client():
             raise Exception("Database already accessed by another process")
@@ -919,7 +919,7 @@ class TestOutputModule:
 
     def test_check_qdrant_access_other_error(self, monkeypatch):
         """Test check_qdrant_access returns True for non-lock errors."""
-        from backend.eval.output import check_qdrant_access
+        from backend.eval.integration.output import check_qdrant_access
 
         def mock_get_client():
             raise Exception("Connection timeout")
@@ -936,7 +936,7 @@ class TestPrintSloFailures:
 
     def test_print_slo_failures_no_failures(self):
         """Test _print_slo_failures with no failures."""
-        from backend.eval.output import _print_slo_failures
+        from backend.eval.integration.output import _print_slo_failures
 
         results = FlowEvalResults(
             total_paths=1,
@@ -973,7 +973,7 @@ class TestPrintSloFailures:
 
     def test_print_slo_failures_with_failures(self):
         """Test _print_slo_failures with failures."""
-        from backend.eval.output import _print_slo_failures
+        from backend.eval.integration.output import _print_slo_failures
 
         results = FlowEvalResults(
             total_paths=1,
@@ -1030,11 +1030,11 @@ class TestPrintSloFailures:
 
 
 class TestRunnerModule:
-    """Tests for backend.eval.runner module."""
+    """Tests for backend.eval.integration.runner module."""
 
     def test_judge_answer_success_with_mock(self):
         """Test judge_answer uses mock mode and returns valid scores."""
-        from backend.eval.runner import judge_answer
+        from backend.eval.integration.runner import judge_answer
 
         # In mock mode, judge_answer uses _mock_evaluate_single
         # A long answer with context should return good scores
@@ -1050,7 +1050,7 @@ class TestRunnerModule:
 
     def test_judge_answer_without_context(self):
         """Test judge_answer with empty context returns reduced scores."""
-        from backend.eval.runner import judge_answer
+        from backend.eval.integration.runner import judge_answer
 
         result = judge_answer(
             "What is the status?",
@@ -1064,7 +1064,7 @@ class TestRunnerModule:
 
     def test_judge_answer_short_answer(self):
         """Test judge_answer with short answer returns zeros."""
-        from backend.eval.runner import judge_answer
+        from backend.eval.integration.runner import judge_answer
 
         result = judge_answer(
             "What?",
@@ -1078,7 +1078,7 @@ class TestRunnerModule:
 
     def test_judge_answer_with_reference(self):
         """Test judge_answer with reference answer."""
-        from backend.eval.runner import judge_answer
+        from backend.eval.integration.runner import judge_answer
 
         result = judge_answer(
             "What is the revenue?",
@@ -1096,7 +1096,7 @@ class TestTestSingleQuestion:
 
     def test_test_single_question_success(self, monkeypatch):
         """Test test_single_question with successful execution."""
-        from backend.eval.runner import test_single_question
+        from backend.eval.integration.runner import test_single_question
 
         def mock_invoke_agent(question, session_id=None):
             return make_invoke_mock(
@@ -1129,12 +1129,12 @@ class TestTestSingleQuestion:
                 "nan_metrics": [],
             }
 
-        import backend.eval.runner
-        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
-        monkeypatch.setattr(backend.eval.runner, "judge_answer", mock_judge_answer)
+        import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
+        monkeypatch.setattr(backend.eval.integration.runner, "judge_answer", mock_judge_answer)
 
-        import backend.eval.tree
-        monkeypatch.setattr(backend.eval.tree, "get_expected_answer", mock_get_expected_answer)
+        import backend.eval.integration.tree
+        monkeypatch.setattr(backend.eval.integration.tree, "get_expected_answer", mock_get_expected_answer)
 
         result = test_single_question("What is Acme's status?", [], "session1")
 
@@ -1145,7 +1145,7 @@ class TestTestSingleQuestion:
 
     def test_test_single_question_no_answer(self, monkeypatch):
         """Test test_single_question when agent returns no answer."""
-        from backend.eval.runner import test_single_question
+        from backend.eval.integration.runner import test_single_question
 
         def mock_invoke_agent(question, session_id=None):
             return make_invoke_mock({"answer": "", "sql_results": {}})
@@ -1153,11 +1153,11 @@ class TestTestSingleQuestion:
         def mock_get_expected_answer(question):
             return None
 
-        import backend.eval.runner
-        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
+        import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
 
-        import backend.eval.tree
-        monkeypatch.setattr(backend.eval.tree, "get_expected_answer", mock_get_expected_answer)
+        import backend.eval.integration.tree
+        monkeypatch.setattr(backend.eval.integration.tree, "get_expected_answer", mock_get_expected_answer)
 
         result = test_single_question("Hello?", [], "session1", use_judge=False)
 
@@ -1166,13 +1166,13 @@ class TestTestSingleQuestion:
 
     def test_test_single_question_exception(self, monkeypatch):
         """Test test_single_question handles exceptions."""
-        from backend.eval.runner import test_single_question
+        from backend.eval.integration.runner import test_single_question
 
         def mock_invoke_agent(question, session_id=None):
             raise RuntimeError("Agent crashed")
 
-        import backend.eval.runner
-        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
+        import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
 
         result = test_single_question("Q?", [], "session1")
 
@@ -1182,7 +1182,7 @@ class TestTestSingleQuestion:
 
     def test_test_single_question_rag_mode(self, monkeypatch):
         """Test test_single_question in rag eval mode."""
-        from backend.eval.runner import test_single_question
+        from backend.eval.integration.runner import test_single_question
 
         def mock_invoke_agent(question, session_id=None):
             return make_invoke_mock(
@@ -1215,12 +1215,12 @@ class TestTestSingleQuestion:
                 "nan_metrics": [],
             }
 
-        import backend.eval.runner
-        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
-        monkeypatch.setattr(backend.eval.runner, "judge_answer", mock_judge_answer)
+        import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
+        monkeypatch.setattr(backend.eval.integration.runner, "judge_answer", mock_judge_answer)
 
-        import backend.eval.tree
-        monkeypatch.setattr(backend.eval.tree, "get_expected_answer", mock_get_expected_answer)
+        import backend.eval.integration.tree
+        monkeypatch.setattr(backend.eval.integration.tree, "get_expected_answer", mock_get_expected_answer)
 
         result = test_single_question("Q?", [], "session1", eval_mode="rag")
 
@@ -1229,7 +1229,7 @@ class TestTestSingleQuestion:
 
     def test_test_single_question_pipeline_mode(self, monkeypatch):
         """Test test_single_question in pipeline eval mode."""
-        from backend.eval.runner import test_single_question
+        from backend.eval.integration.runner import test_single_question
 
         def mock_invoke_agent(question, session_id=None):
             return make_invoke_mock(
@@ -1261,12 +1261,12 @@ class TestTestSingleQuestion:
                 "nan_metrics": [],
             }
 
-        import backend.eval.runner
-        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
-        monkeypatch.setattr(backend.eval.runner, "judge_answer", mock_judge_answer)
+        import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
+        monkeypatch.setattr(backend.eval.integration.runner, "judge_answer", mock_judge_answer)
 
-        import backend.eval.tree
-        monkeypatch.setattr(backend.eval.tree, "get_expected_answer", mock_get_expected_answer)
+        import backend.eval.integration.tree
+        monkeypatch.setattr(backend.eval.integration.tree, "get_expected_answer", mock_get_expected_answer)
 
         result = test_single_question("Pipeline?", [], "session1", eval_mode="pipeline")
 
@@ -1279,7 +1279,7 @@ class TestTestFlow:
 
     def test_test_flow_success(self, monkeypatch):
         """Test test_flow with successful execution."""
-        from backend.eval.runner import test_flow
+        from backend.eval.integration.runner import test_flow
 
         call_count = {"count": 0}
 
@@ -1295,8 +1295,8 @@ class TestTestFlow:
                 faithfulness_score=0.85,
             )
 
-        import backend.eval.runner
-        monkeypatch.setattr(backend.eval.runner, "test_single_question", mock_test_single_question)
+        import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "test_single_question", mock_test_single_question)
 
         result = test_flow(["Q1?", "Q2?"], path_id=0)
 
@@ -1307,7 +1307,7 @@ class TestTestFlow:
 
     def test_test_flow_with_failure(self, monkeypatch):
         """Test test_flow when a step fails."""
-        from backend.eval.runner import test_flow
+        from backend.eval.integration.runner import test_flow
 
         def mock_test_single_question(question, history, session_id, use_judge=True, verbose=False, eval_mode="both"):
             if "fail" in question.lower():
@@ -1331,8 +1331,8 @@ class TestTestFlow:
                 faithfulness_score=0.85,
             )
 
-        import backend.eval.runner
-        monkeypatch.setattr(backend.eval.runner, "test_single_question", mock_test_single_question)
+        import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "test_single_question", mock_test_single_question)
 
         result = test_flow(["Q1?", "Q2 fail?"], path_id=0)
 
@@ -1376,7 +1376,7 @@ class TestLangSmithPercentages:
         mock_langsmith.Client = MockClient
         monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
 
-        from backend.eval.langsmith import get_latency_percentages
+        from backend.eval.integration.langsmith import get_latency_percentages
 
         result = get_latency_percentages()
 
@@ -1400,7 +1400,7 @@ class TestLangSmithPercentages:
         mock_langsmith.Client = MockClient
         monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
 
-        from backend.eval.langsmith import get_latency_percentages
+        from backend.eval.integration.langsmith import get_latency_percentages
 
         result = get_latency_percentages()
         assert result == {}
@@ -1432,7 +1432,7 @@ class TestLangSmithPercentages:
         mock_langsmith.Client = MockClient
         monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
 
-        from backend.eval.langsmith import get_latency_percentages
+        from backend.eval.integration.langsmith import get_latency_percentages
 
         result = get_latency_percentages()
         assert result == {}
@@ -1456,7 +1456,7 @@ class TestLangSmithPercentages:
 
         # Need to reimport to trigger the import error
         # This is tricky - the function catches the import error internally
-        from backend.eval.langsmith import get_latency_breakdown
+        from backend.eval.integration.langsmith import get_latency_breakdown
         result = get_latency_breakdown()
         assert result == {}
 
@@ -1471,7 +1471,7 @@ class TestFormattingExtended:
 
     def test_build_eval_table_with_aggregate_row(self):
         """Test build_eval_table with aggregate row."""
-        from backend.eval.formatting import build_eval_table
+        from backend.eval.shared.formatting import build_eval_table
 
         sections = [
             (
@@ -1491,7 +1491,7 @@ class TestFormattingExtended:
 
     def test_build_eval_table_with_failing_aggregate(self):
         """Test build_eval_table with failing aggregate row."""
-        from backend.eval.formatting import build_eval_table
+        from backend.eval.shared.formatting import build_eval_table
 
         sections = [
             (
@@ -1511,7 +1511,7 @@ class TestFormattingExtended:
 
     def test_build_eval_table_empty_section_name(self):
         """Test build_eval_table with empty section name."""
-        from backend.eval.formatting import build_eval_table
+        from backend.eval.shared.formatting import build_eval_table
 
         sections = [
             (
@@ -1527,7 +1527,7 @@ class TestFormattingExtended:
 
     def test_build_eval_table_no_slo_target(self):
         """Test build_eval_table with None slo_target."""
-        from backend.eval.formatting import build_eval_table
+        from backend.eval.shared.formatting import build_eval_table
 
         sections = [
             (
@@ -1543,7 +1543,7 @@ class TestFormattingExtended:
 
     def test_print_debug_failures_with_format_item(self):
         """Test print_debug_failures with custom format_item function."""
-        from backend.eval.formatting import print_debug_failures
+        from backend.eval.shared.formatting import print_debug_failures
 
         format_called = {"count": 0}
 
@@ -1640,7 +1640,7 @@ class TestJudgeExtended:
 
     def test_mock_evaluate_single_no_reference(self):
         """Test mock evaluate without reference answer."""
-        from backend.eval.judge import _mock_evaluate_single
+        from backend.eval.shared.ragas import _mock_evaluate_single
 
         result = _mock_evaluate_single(
             question="What is the status?",
@@ -1654,7 +1654,7 @@ class TestJudgeExtended:
 
     def test_mock_evaluate_single_short_answer(self):
         """Test mock evaluate with short answer (< 10 chars)."""
-        from backend.eval.judge import _mock_evaluate_single
+        from backend.eval.shared.ragas import _mock_evaluate_single
 
         result = _mock_evaluate_single(
             question="What?",
@@ -1666,7 +1666,7 @@ class TestJudgeExtended:
 
     def test_mock_evaluate_single_no_context_placeholder(self):
         """Test mock evaluate with 'No context provided' placeholder."""
-        from backend.eval.judge import _mock_evaluate_single
+        from backend.eval.shared.ragas import _mock_evaluate_single
 
         result = _mock_evaluate_single(
             question="What?",
@@ -1685,17 +1685,17 @@ class TestJudgeExtended:
 
 
 class TestCliModule:
-    """Tests for backend.eval.cli module."""
+    """Tests for backend.eval.integration.__main__ module."""
 
     def test_run_eval_qdrant_not_accessible(self, monkeypatch):
         """Test _run_eval when Qdrant is not accessible."""
-        from backend.eval.cli import _run_eval
+        from backend.eval.integration.__main__ import _run_eval
 
         def mock_check_qdrant_access():
             return False
 
-        import backend.eval.cli
-        monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
+        import backend.eval.integration.__main__
+        monkeypatch.setattr(backend.eval.integration.__main__, "check_qdrant_access", mock_check_qdrant_access)
 
         # Should return early (not raise) when Qdrant not accessible
         _run_eval(
@@ -1709,7 +1709,7 @@ class TestCliModule:
 
     def test_run_eval_warmup_failure(self, monkeypatch, tmp_path):
         """Test _run_eval handles warmup failure gracefully."""
-        from backend.eval.cli import _run_eval
+        from backend.eval.integration.__main__ import _run_eval
 
         def mock_check_qdrant_access():
             return True
@@ -1734,17 +1734,17 @@ class TestCliModule:
         def mock_get_latency_percentages(**kwargs):
             return {}
 
-        import backend.eval.cli
+        import backend.eval.integration.__main__
         import backend.agent.fetch.rag.search
-        import backend.eval.tree
-        import backend.eval.runner
-        import backend.eval.langsmith
+        import backend.eval.integration.tree
+        import backend.eval.integration.runner
+        import backend.eval.integration.langsmith
 
-        monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
+        monkeypatch.setattr(backend.eval.integration.__main__, "check_qdrant_access", mock_check_qdrant_access)
         monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
-        monkeypatch.setattr(backend.eval.tree, "get_tree_stats", mock_get_tree_stats)
-        monkeypatch.setattr(backend.eval.runner, "run_flow_eval", mock_run_flow_eval)
-        monkeypatch.setattr(backend.eval.langsmith, "get_latency_percentages", mock_get_latency_percentages)
+        monkeypatch.setattr(backend.eval.integration.tree, "get_tree_stats", mock_get_tree_stats)
+        monkeypatch.setattr(backend.eval.integration.runner, "run_flow_eval", mock_run_flow_eval)
+        monkeypatch.setattr(backend.eval.integration.langsmith, "get_latency_percentages", mock_get_latency_percentages)
 
         # Should complete without raising
         _run_eval(
@@ -1758,7 +1758,7 @@ class TestCliModule:
 
     def test_run_eval_with_output_file(self, monkeypatch, tmp_path):
         """Test _run_eval saves output file."""
-        from backend.eval.cli import _run_eval
+        from backend.eval.integration.__main__ import _run_eval
 
         def mock_check_qdrant_access():
             return True
@@ -1783,17 +1783,17 @@ class TestCliModule:
         def mock_get_latency_percentages(**kwargs):
             return {"routing": 0.2, "retrieval": 0.3, "answer": 0.25}
 
-        import backend.eval.cli
+        import backend.eval.integration.__main__
         import backend.agent.fetch.rag.search
-        import backend.eval.runner
-        import backend.eval.langsmith
+        import backend.eval.integration.runner
+        import backend.eval.integration.langsmith
 
         # Must patch in cli module where it's imported
-        monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
+        monkeypatch.setattr(backend.eval.integration.__main__, "check_qdrant_access", mock_check_qdrant_access)
         monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
-        monkeypatch.setattr(backend.eval.cli, "get_tree_stats", mock_get_tree_stats)
-        monkeypatch.setattr(backend.eval.runner, "run_flow_eval", mock_run_flow_eval)
-        monkeypatch.setattr(backend.eval.langsmith, "get_latency_percentages", mock_get_latency_percentages)
+        monkeypatch.setattr(backend.eval.integration.__main__, "get_tree_stats", mock_get_tree_stats)
+        monkeypatch.setattr(backend.eval.integration.runner, "run_flow_eval", mock_run_flow_eval)
+        monkeypatch.setattr(backend.eval.integration.langsmith, "get_latency_percentages", mock_get_latency_percentages)
 
         output_path = tmp_path / "results.json"
 
@@ -1810,7 +1810,7 @@ class TestCliModule:
 
     def test_run_eval_with_debug_failures(self, monkeypatch, tmp_path):
         """Test _run_eval with debug mode and failed paths."""
-        from backend.eval.cli import _run_eval
+        from backend.eval.integration.__main__ import _run_eval
 
         def mock_check_qdrant_access():
             return True
@@ -1854,16 +1854,16 @@ class TestCliModule:
         def mock_get_latency_percentages(**kwargs):
             return {}
 
-        import backend.eval.cli
+        import backend.eval.integration.__main__
         import backend.agent.fetch.rag.search
-        import backend.eval.runner
-        import backend.eval.langsmith
+        import backend.eval.integration.runner
+        import backend.eval.integration.langsmith
 
-        monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
+        monkeypatch.setattr(backend.eval.integration.__main__, "check_qdrant_access", mock_check_qdrant_access)
         monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
-        monkeypatch.setattr(backend.eval.cli, "get_tree_stats", mock_get_tree_stats)
-        monkeypatch.setattr(backend.eval.runner, "run_flow_eval", mock_run_flow_eval)
-        monkeypatch.setattr(backend.eval.langsmith, "get_latency_percentages", mock_get_latency_percentages)
+        monkeypatch.setattr(backend.eval.integration.__main__, "get_tree_stats", mock_get_tree_stats)
+        monkeypatch.setattr(backend.eval.integration.runner, "run_flow_eval", mock_run_flow_eval)
+        monkeypatch.setattr(backend.eval.integration.langsmith, "get_latency_percentages", mock_get_latency_percentages)
 
         # Should print debug failures
         _run_eval(
@@ -1877,7 +1877,7 @@ class TestCliModule:
 
     def test_run_eval_exception_handling(self, monkeypatch):
         """Test _run_eval handles exceptions gracefully."""
-        from backend.eval.cli import _run_eval
+        from backend.eval.integration.__main__ import _run_eval
 
         def mock_check_qdrant_access():
             return True
@@ -1891,14 +1891,14 @@ class TestCliModule:
         def mock_run_flow_eval(**kwargs):
             raise RuntimeError("Evaluation crashed")
 
-        import backend.eval.cli
+        import backend.eval.integration.__main__
         import backend.agent.fetch.rag.search
-        import backend.eval.runner
+        import backend.eval.integration.runner
 
-        monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
+        monkeypatch.setattr(backend.eval.integration.__main__, "check_qdrant_access", mock_check_qdrant_access)
         monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
-        monkeypatch.setattr(backend.eval.cli, "get_tree_stats", mock_get_tree_stats)
-        monkeypatch.setattr(backend.eval.runner, "run_flow_eval", mock_run_flow_eval)
+        monkeypatch.setattr(backend.eval.integration.__main__, "get_tree_stats", mock_get_tree_stats)
+        monkeypatch.setattr(backend.eval.integration.runner, "run_flow_eval", mock_run_flow_eval)
 
         # Should handle exception gracefully (not raise)
         _run_eval(
@@ -1921,7 +1921,7 @@ class TestRunFlowEval:
 
     def test_run_flow_eval_basic(self, monkeypatch):
         """Test run_flow_eval with basic execution."""
-        from backend.eval.runner import run_flow_eval
+        from backend.eval.integration.runner import run_flow_eval
 
         def mock_get_all_paths(role=None):
             return [["Q1?", "Q2?"]]
@@ -1959,10 +1959,10 @@ class TestRunFlowEval:
                 success=True,
             )
 
-        import backend.eval.runner
+        import backend.eval.integration.runner
 
-        monkeypatch.setattr(backend.eval.runner, "get_all_paths", mock_get_all_paths)
-        monkeypatch.setattr(backend.eval.runner, "test_flow", mock_test_flow)
+        monkeypatch.setattr(backend.eval.integration.runner, "get_all_paths", mock_get_all_paths)
+        monkeypatch.setattr(backend.eval.integration.runner, "test_flow", mock_test_flow)
 
         results = run_flow_eval(max_paths=1, concurrency=1)
 
@@ -1972,7 +1972,7 @@ class TestRunFlowEval:
 
     def test_run_flow_eval_with_failures(self, monkeypatch):
         """Test run_flow_eval with failed paths."""
-        from backend.eval.runner import run_flow_eval
+        from backend.eval.integration.runner import run_flow_eval
 
         def mock_get_all_paths(role=None):
             return [["Q1?"]]
@@ -1997,10 +1997,10 @@ class TestRunFlowEval:
                 error="Failed test",
             )
 
-        import backend.eval.runner
+        import backend.eval.integration.runner
 
-        monkeypatch.setattr(backend.eval.runner, "get_all_paths", mock_get_all_paths)
-        monkeypatch.setattr(backend.eval.runner, "test_flow", mock_test_flow)
+        monkeypatch.setattr(backend.eval.integration.runner, "get_all_paths", mock_get_all_paths)
+        monkeypatch.setattr(backend.eval.integration.runner, "test_flow", mock_test_flow)
 
         results = run_flow_eval(max_paths=1, concurrency=1)
 
@@ -2009,7 +2009,7 @@ class TestRunFlowEval:
 
     def test_run_flow_eval_with_rag_metrics(self, monkeypatch):
         """Test run_flow_eval with RAG metrics."""
-        from backend.eval.runner import run_flow_eval
+        from backend.eval.integration.runner import run_flow_eval
 
         def mock_get_all_paths(role=None):
             return [["Q1?"]]
@@ -2038,10 +2038,10 @@ class TestRunFlowEval:
                 success=True,
             )
 
-        import backend.eval.runner
+        import backend.eval.integration.runner
 
-        monkeypatch.setattr(backend.eval.runner, "get_all_paths", mock_get_all_paths)
-        monkeypatch.setattr(backend.eval.runner, "test_flow", mock_test_flow)
+        monkeypatch.setattr(backend.eval.integration.runner, "get_all_paths", mock_get_all_paths)
+        monkeypatch.setattr(backend.eval.integration.runner, "test_flow", mock_test_flow)
 
         results = run_flow_eval(max_paths=1, concurrency=1, eval_mode="rag")
 
@@ -2051,7 +2051,7 @@ class TestRunFlowEval:
 
     def test_run_flow_eval_parallel(self, monkeypatch):
         """Test run_flow_eval with parallel execution."""
-        from backend.eval.runner import run_flow_eval
+        from backend.eval.integration.runner import run_flow_eval
 
         def mock_get_all_paths(role=None):
             return [["Q1?"], ["Q2?"], ["Q3?"]]
@@ -2078,10 +2078,10 @@ class TestRunFlowEval:
                 success=True,
             )
 
-        import backend.eval.runner
+        import backend.eval.integration.runner
 
-        monkeypatch.setattr(backend.eval.runner, "get_all_paths", mock_get_all_paths)
-        monkeypatch.setattr(backend.eval.runner, "test_flow", mock_test_flow)
+        monkeypatch.setattr(backend.eval.integration.runner, "get_all_paths", mock_get_all_paths)
+        monkeypatch.setattr(backend.eval.integration.runner, "test_flow", mock_test_flow)
 
         results = run_flow_eval(max_paths=3, concurrency=2)
 
@@ -2124,7 +2124,7 @@ class TestLangSmithEdgeCases:
         mock_langsmith.Client = MockClient
         monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
 
-        from backend.eval.langsmith import get_latency_percentages
+        from backend.eval.integration.langsmith import get_latency_percentages
 
         result = get_latency_percentages()
         assert result == {}  # Zero total means empty result
@@ -2140,7 +2140,7 @@ class TestCountSloFailures:
 
     def test_count_slo_failures_sql_queries_failed(self):
         """Test _count_slo_failures counts SQL query failures."""
-        from backend.eval.output import _count_slo_failures
+        from backend.eval.integration.output import _count_slo_failures
 
         step = FlowStepResult(
             question="Q?",
@@ -2160,7 +2160,7 @@ class TestCountSloFailures:
 
     def test_count_slo_failures_sql_data_validation_failed(self):
         """Test _count_slo_failures counts SQL data validation failures."""
-        from backend.eval.output import _count_slo_failures
+        from backend.eval.integration.output import _count_slo_failures
 
         step = FlowStepResult(
             question="Q?",
@@ -2179,7 +2179,7 @@ class TestCountSloFailures:
 
     def test_count_slo_failures_multiple_failures(self):
         """Test _count_slo_failures counts multiple failure types."""
-        from backend.eval.output import _count_slo_failures
+        from backend.eval.integration.output import _count_slo_failures
 
         step = FlowStepResult(
             question="Q?",
@@ -2212,14 +2212,14 @@ class TestTreeValidation:
 
     def test_validate_tree(self):
         """Test validate_tree returns list of issues."""
-        from backend.eval.tree import validate_tree
+        from backend.eval.integration.tree import validate_tree
 
         issues = validate_tree()
         assert isinstance(issues, list)
 
     def test_get_tree_stats(self):
         """Test get_tree_stats returns expected keys."""
-        from backend.eval.tree import get_tree_stats
+        from backend.eval.integration.tree import get_tree_stats
 
         stats = get_tree_stats()
         assert "num_starters" in stats
@@ -2231,7 +2231,7 @@ class TestTreeValidation:
 
     def test_get_all_paths(self):
         """Test get_all_paths returns list of paths."""
-        from backend.eval.tree import get_all_paths
+        from backend.eval.integration.tree import get_all_paths
 
         paths = get_all_paths()
         assert isinstance(paths, list)
@@ -2240,14 +2240,14 @@ class TestTreeValidation:
 
     def test_print_tree(self):
         """Test print_tree returns Rich Tree object."""
-        from backend.eval.tree import print_tree
+        from backend.eval.integration.tree import print_tree
 
         tree = print_tree()
         assert tree is not None
 
     def test_print_tree_with_max_depth(self):
         """Test print_tree with max_depth parameter."""
-        from backend.eval.tree import print_tree
+        from backend.eval.integration.tree import print_tree
 
         tree = print_tree(max_depth=2)
         assert tree is not None
@@ -2263,7 +2263,7 @@ class TestYamlLoading:
 
     def test_get_expected_answer_exists(self):
         """Test get_expected_answer for existing question."""
-        from backend.eval.tree import get_expected_answer
+        from backend.eval.integration.tree import get_expected_answer
 
         # May return None if no fixtures, but shouldn't crash
         result = get_expected_answer("What deals are in the pipeline?")
@@ -2271,14 +2271,14 @@ class TestYamlLoading:
 
     def test_get_expected_answer_not_exists(self):
         """Test get_expected_answer for non-existing question."""
-        from backend.eval.tree import get_expected_answer
+        from backend.eval.integration.tree import get_expected_answer
 
         result = get_expected_answer("This question does not exist in fixtures")
         assert result is None
 
     def test_get_expected_rag_exists(self):
         """Test get_expected_rag for existing question."""
-        from backend.eval.tree import get_expected_rag
+        from backend.eval.integration.tree import get_expected_rag
 
         # May return None if no fixtures
         result = get_expected_rag("What deals are in the pipeline?")
@@ -2286,7 +2286,7 @@ class TestYamlLoading:
 
     def test_get_expected_rag_not_exists(self):
         """Test get_expected_rag for non-existing question."""
-        from backend.eval.tree import get_expected_rag
+        from backend.eval.integration.tree import get_expected_rag
 
         result = get_expected_rag("This question does not exist in fixtures")
         assert result is None
@@ -2302,14 +2302,14 @@ class TestJudgeModule:
 
     def test_suppress_event_loop_closed_errors(self):
         """Test _suppress_event_loop_closed_errors doesn't crash."""
-        from backend.eval.judge import _suppress_event_loop_closed_errors
+        from backend.eval.shared.ragas import _suppress_event_loop_closed_errors
 
         # Should not raise
         _suppress_event_loop_closed_errors()
 
     def test_is_mock_mode(self, monkeypatch):
         """Test _is_mock_mode returns correct value."""
-        from backend.eval.judge import _is_mock_mode
+        from backend.eval.shared.ragas import _is_mock_mode
 
         monkeypatch.setenv("MOCK_LLM", "1")
         # Need to reimport or check current state
@@ -2329,15 +2329,15 @@ class TestRunnerExceptions:
 
     def test_judge_answer_timeout(self, monkeypatch):
         """Test judge_answer handles timeout."""
-        from backend.eval.runner import judge_answer
+        from backend.eval.integration.runner import judge_answer
         from concurrent.futures import TimeoutError as FuturesTimeoutError
 
         def mock_evaluate_single_timeout(*args, **kwargs):
             raise TimeoutError("Timed out")
 
         # Must patch in runner module where it's imported
-        import backend.eval.runner
-        monkeypatch.setattr(backend.eval.runner, "evaluate_single", mock_evaluate_single_timeout)
+        import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "evaluate_single", mock_evaluate_single_timeout)
 
         result = judge_answer("Q", "A", ["ctx"], timeout=1)
         assert result["ragas_failed"] is True
@@ -2345,14 +2345,14 @@ class TestRunnerExceptions:
 
     def test_judge_answer_exception(self, monkeypatch):
         """Test judge_answer handles general exceptions."""
-        from backend.eval.runner import judge_answer
+        from backend.eval.integration.runner import judge_answer
 
         def mock_evaluate_single(*args, **kwargs):
             raise RuntimeError("Evaluation failed")
 
         # Must patch in runner module where it's imported
-        import backend.eval.runner
-        monkeypatch.setattr(backend.eval.runner, "evaluate_single", mock_evaluate_single)
+        import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "evaluate_single", mock_evaluate_single)
 
         result = judge_answer("Q", "A", ["ctx"])
         assert result["ragas_failed"] is True
@@ -2367,9 +2367,9 @@ class TestRunnerExceptions:
 class TestCliModuleExtended:
     """Extended tests for CLI module."""
 
-    def test_route_command(self, monkeypatch):
-        """Test route command runs without error."""
-        from backend.eval.cli import route
+    def test_fetch_command(self, monkeypatch):
+        """Test fetch command runs without error."""
+        from backend.eval.fetch.__main__ import main as fetch_main
 
         def mock_run_sql_eval(**kwargs):
             from dataclasses import dataclass
@@ -2390,24 +2390,24 @@ class TestCliModuleExtended:
         def mock_print_summary(results):
             pass
 
-        import backend.eval.route.eval
-        monkeypatch.setattr(backend.eval.route.eval, "run_sql_eval", mock_run_sql_eval)
-        monkeypatch.setattr(backend.eval.route.eval, "print_summary", mock_print_summary)
+        import backend.eval.fetch.runner
+        monkeypatch.setattr(backend.eval.fetch.runner, "run_sql_eval", mock_run_sql_eval)
+        monkeypatch.setattr(backend.eval.fetch.runner, "print_summary", mock_print_summary)
 
         # Should not raise
-        route(limit=1, verbose=False)
+        fetch_main(limit=1, verbose=False, difficulty=None)
 
     def test_main_command(self, monkeypatch):
         """Test main command calls _run_eval."""
-        from backend.eval.cli import main
+        from backend.eval.integration.__main__ import main
 
         call_args = {}
 
         def mock_run_eval(**kwargs):
             call_args.update(kwargs)
 
-        import backend.eval.cli
-        monkeypatch.setattr(backend.eval.cli, "_run_eval", mock_run_eval)
+        import backend.eval.integration.__main__
+        monkeypatch.setattr(backend.eval.integration.__main__, "_run_eval", mock_run_eval)
 
         main(limit=5, verbose=True, no_judge=True, output="test.json", debug=True, eval_mode="both")
 
@@ -2417,7 +2417,7 @@ class TestCliModuleExtended:
 
     def test_run_eval_debug_output(self, monkeypatch, tmp_path):
         """Test _run_eval debug output for failed paths."""
-        from backend.eval.cli import _run_eval
+        from backend.eval.integration.__main__ import _run_eval
 
         def mock_check_qdrant_access():
             return True
@@ -2462,16 +2462,16 @@ class TestCliModuleExtended:
         def mock_get_latency_percentages(**kwargs):
             return {}
 
-        import backend.eval.cli
+        import backend.eval.integration.__main__
         import backend.agent.fetch.rag.search
-        import backend.eval.runner
-        import backend.eval.langsmith
+        import backend.eval.integration.runner
+        import backend.eval.integration.langsmith
 
-        monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
+        monkeypatch.setattr(backend.eval.integration.__main__, "check_qdrant_access", mock_check_qdrant_access)
         monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
-        monkeypatch.setattr(backend.eval.cli, "get_tree_stats", mock_get_tree_stats)
-        monkeypatch.setattr(backend.eval.runner, "run_flow_eval", mock_run_flow_eval)
-        monkeypatch.setattr(backend.eval.langsmith, "get_latency_percentages", mock_get_latency_percentages)
+        monkeypatch.setattr(backend.eval.integration.__main__, "get_tree_stats", mock_get_tree_stats)
+        monkeypatch.setattr(backend.eval.integration.runner, "run_flow_eval", mock_run_flow_eval)
+        monkeypatch.setattr(backend.eval.integration.langsmith, "get_latency_percentages", mock_get_latency_percentages)
 
         # Run with debug=True to trigger debug output path (line 157)
         _run_eval(
@@ -2494,41 +2494,41 @@ class TestYamlLoadingErrors:
 
     def test_load_yaml_fixture_nonexistent_file(self, monkeypatch, tmp_path):
         """Test _load_yaml_fixture with nonexistent file."""
-        import backend.eval.tree
+        import backend.eval.integration.tree
 
         # Temporarily change fixtures path to a nonexistent directory
-        monkeypatch.setattr(backend.eval.tree, "_EVAL_FIXTURES_PATH", tmp_path / "nonexistent")
+        monkeypatch.setattr(backend.eval.integration.tree, "_EVAL_FIXTURES_PATH", tmp_path / "nonexistent")
 
         # Should return empty dict without crashing
-        result = backend.eval.tree._load_yaml_fixture("test.yaml")
+        result = backend.eval.integration.tree._load_yaml_fixture("test.yaml")
         assert result == {}
 
     def test_load_yaml_fixture_invalid_yaml(self, monkeypatch, tmp_path):
         """Test _load_yaml_fixture with invalid YAML content."""
-        import backend.eval.tree
+        import backend.eval.integration.tree
 
         # Create a file with invalid YAML
         invalid_yaml = tmp_path / "invalid.yaml"
         invalid_yaml.write_text("::invalid:: yaml: [content")
 
-        monkeypatch.setattr(backend.eval.tree, "_EVAL_FIXTURES_PATH", tmp_path)
+        monkeypatch.setattr(backend.eval.integration.tree, "_EVAL_FIXTURES_PATH", tmp_path)
 
         # Should return empty dict without crashing
-        result = backend.eval.tree._load_yaml_fixture("invalid.yaml")
+        result = backend.eval.integration.tree._load_yaml_fixture("invalid.yaml")
         assert result == {}
 
     def test_load_yaml_fixture_empty_file(self, monkeypatch, tmp_path):
         """Test _load_yaml_fixture with empty file."""
-        import backend.eval.tree
+        import backend.eval.integration.tree
 
         # Create an empty file
         empty_yaml = tmp_path / "empty.yaml"
         empty_yaml.write_text("")
 
-        monkeypatch.setattr(backend.eval.tree, "_EVAL_FIXTURES_PATH", tmp_path)
+        monkeypatch.setattr(backend.eval.integration.tree, "_EVAL_FIXTURES_PATH", tmp_path)
 
         # Should return empty dict
-        result = backend.eval.tree._load_yaml_fixture("empty.yaml")
+        result = backend.eval.integration.tree._load_yaml_fixture("empty.yaml")
         assert result == {}
 
 
@@ -2542,21 +2542,21 @@ class TestTreePathFinding:
 
     def test_compute_max_depth_no_descendants(self, monkeypatch):
         """Test _compute_max_depth when starters have no descendants."""
-        import backend.eval.tree
+        import backend.eval.integration.tree
         import networkx as nx
 
         # Create a minimal graph with only starters (no descendants)
         mock_g = nx.DiGraph()
         mock_g.add_node("Starter Q?")
-        monkeypatch.setattr(backend.eval.tree, "_G", mock_g)
-        monkeypatch.setattr(backend.eval.tree, "_STARTERS", ["Starter Q?"])
+        monkeypatch.setattr(backend.eval.integration.tree, "_G", mock_g)
+        monkeypatch.setattr(backend.eval.integration.tree, "_STARTERS", ["Starter Q?"])
 
-        result = backend.eval.tree._compute_max_depth(["Starter Q?"])
+        result = backend.eval.integration.tree._compute_max_depth(["Starter Q?"])
         assert result == 0
 
     def test_find_paths_with_nx_no_path(self, monkeypatch):
         """Test _find_paths handles NetworkXNoPath exception."""
-        import backend.eval.tree
+        import backend.eval.integration.tree
         import networkx as nx
 
         # Create a simple graph with a path
@@ -2564,13 +2564,13 @@ class TestTreePathFinding:
         mock_g.add_edge("Starter?", "Child?")
         mock_g.add_edge("Child?", "Leaf?")
 
-        monkeypatch.setattr(backend.eval.tree, "_G", mock_g)
+        monkeypatch.setattr(backend.eval.integration.tree, "_G", mock_g)
 
         # Create subgraph with all nodes
         subgraph = mock_g.subgraph(["Starter?", "Child?", "Leaf?"])
 
         # This should work - leaf is Leaf?
-        result = backend.eval.tree._find_paths(["Starter?"], subgraph, 5)
+        result = backend.eval.integration.tree._find_paths(["Starter?"], subgraph, 5)
         assert len(result) > 0  # Should find paths
 
 
@@ -2584,35 +2584,35 @@ class TestTreeValidationEdgeCases:
 
     def test_validate_tree_starter_not_in_graph(self, monkeypatch):
         """Test validate_tree when starter is not in graph."""
-        import backend.eval.tree
+        import backend.eval.integration.tree
         import networkx as nx
 
         # Create empty graph but have starters defined
         mock_g = nx.DiGraph()
-        monkeypatch.setattr(backend.eval.tree, "_G", mock_g)
-        monkeypatch.setattr(backend.eval.tree, "_STARTERS", ["Missing Starter?"])
+        monkeypatch.setattr(backend.eval.integration.tree, "_G", mock_g)
+        monkeypatch.setattr(backend.eval.integration.tree, "_STARTERS", ["Missing Starter?"])
 
-        issues = backend.eval.tree.validate_tree()
+        issues = backend.eval.integration.tree.validate_tree()
         assert any("Starter not in tree" in issue for issue in issues)
 
     def test_validate_tree_orphaned_question(self, monkeypatch):
         """Test validate_tree detects orphaned questions."""
-        import backend.eval.tree
+        import backend.eval.integration.tree
         import networkx as nx
 
         # Create graph with connected and orphaned nodes
         mock_g = nx.DiGraph()
         mock_g.add_edge("Starter?", "Connected?")
         mock_g.add_node("Orphan?")  # Not reachable from starter
-        monkeypatch.setattr(backend.eval.tree, "_G", mock_g)
-        monkeypatch.setattr(backend.eval.tree, "_STARTERS", ["Starter?"])
+        monkeypatch.setattr(backend.eval.integration.tree, "_G", mock_g)
+        monkeypatch.setattr(backend.eval.integration.tree, "_STARTERS", ["Starter?"])
 
-        issues = backend.eval.tree.validate_tree()
+        issues = backend.eval.integration.tree.validate_tree()
         assert any("Orphaned question" in issue for issue in issues)
 
     def test_validate_tree_cycle_detection(self, monkeypatch):
         """Test validate_tree detects cycles."""
-        import backend.eval.tree
+        import backend.eval.integration.tree
         import networkx as nx
 
         # Create graph with a cycle
@@ -2620,25 +2620,25 @@ class TestTreeValidationEdgeCases:
         mock_g.add_edge("A?", "B?")
         mock_g.add_edge("B?", "C?")
         mock_g.add_edge("C?", "A?")  # Creates cycle
-        monkeypatch.setattr(backend.eval.tree, "_G", mock_g)
-        monkeypatch.setattr(backend.eval.tree, "_STARTERS", ["A?"])
+        monkeypatch.setattr(backend.eval.integration.tree, "_G", mock_g)
+        monkeypatch.setattr(backend.eval.integration.tree, "_STARTERS", ["A?"])
 
-        issues = backend.eval.tree.validate_tree()
+        issues = backend.eval.integration.tree.validate_tree()
         assert any("cycles" in issue.lower() for issue in issues)
 
     def test_validate_tree_wrong_out_degree(self, monkeypatch):
         """Test validate_tree detects wrong number of follow-ups."""
-        import backend.eval.tree
+        import backend.eval.integration.tree
         import networkx as nx
 
         # Create graph where node has 2 follow-ups (not 0 or 3)
         mock_g = nx.DiGraph()
         mock_g.add_edge("Starter?", "Child1?")
         mock_g.add_edge("Starter?", "Child2?")  # Only 2 children, not 0 or 3
-        monkeypatch.setattr(backend.eval.tree, "_G", mock_g)
-        monkeypatch.setattr(backend.eval.tree, "_STARTERS", ["Starter?"])
+        monkeypatch.setattr(backend.eval.integration.tree, "_G", mock_g)
+        monkeypatch.setattr(backend.eval.integration.tree, "_STARTERS", ["Starter?"])
 
-        issues = backend.eval.tree.validate_tree()
+        issues = backend.eval.integration.tree.validate_tree()
         assert any("follow-ups" in issue for issue in issues)
 
 
@@ -2652,7 +2652,7 @@ class TestPrintSloFailuresExtended:
 
     def test_print_slo_failures_with_multiple_failures(self, capsys):
         """Test _print_slo_failures shows failures sorted by severity."""
-        from backend.eval.output import _print_slo_failures
+        from backend.eval.integration.output import _print_slo_failures
 
         # Create steps with varying failure counts
         step1 = FlowStepResult(
@@ -2707,7 +2707,7 @@ class TestPrintSloFailuresExtended:
 
     def test_print_slo_failures_rag_only_mode(self, capsys):
         """Test _print_slo_failures in rag-only eval mode."""
-        from backend.eval.output import _print_slo_failures
+        from backend.eval.integration.output import _print_slo_failures
 
         step = FlowStepResult(
             question="Q?",
@@ -2746,7 +2746,7 @@ class TestPrintSloFailuresExtended:
 
     def test_print_slo_failures_pipeline_only_mode(self, capsys):
         """Test _print_slo_failures in pipeline-only eval mode."""
-        from backend.eval.output import _print_slo_failures
+        from backend.eval.integration.output import _print_slo_failures
 
         step = FlowStepResult(
             question="Q?",
@@ -2792,7 +2792,7 @@ class TestRunnerEdgeCases:
 
     def test_test_single_question_with_sql_data_validation(self, monkeypatch):
         """Test test_single_question with SQL data validation."""
-        from backend.eval.runner import test_single_question
+        from backend.eval.integration.runner import test_single_question
 
         def mock_invoke_agent(question, session_id=None):
             return make_invoke_mock(
@@ -2827,12 +2827,12 @@ class TestRunnerEdgeCases:
         def mock_judge_sql_results(question, sql, results):
             return True, []  # Passed with no errors
 
-        import backend.eval.runner
+        import backend.eval.integration.runner
 
-        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
-        monkeypatch.setattr(backend.eval.runner, "judge_answer", mock_judge_answer)
-        monkeypatch.setattr(backend.eval.runner, "get_expected_answer", mock_get_expected_answer)
-        monkeypatch.setattr(backend.eval.runner, "judge_sql_results", mock_judge_sql_results)
+        monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
+        monkeypatch.setattr(backend.eval.integration.runner, "judge_answer", mock_judge_answer)
+        monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", mock_get_expected_answer)
+        monkeypatch.setattr(backend.eval.integration.runner, "judge_sql_results", mock_judge_sql_results)
 
         result = test_single_question("Test Q?", [], "session1")
 
@@ -2841,7 +2841,7 @@ class TestRunnerEdgeCases:
 
     def test_test_single_question_ragas_failed_rag_mode(self, monkeypatch):
         """Test test_single_question with RAGAS failure in RAG mode."""
-        from backend.eval.runner import test_single_question
+        from backend.eval.integration.runner import test_single_question
 
         def mock_invoke_agent(question, session_id=None):
             return make_invoke_mock(
@@ -2873,11 +2873,11 @@ class TestRunnerEdgeCases:
         def mock_get_expected_answer(question):
             return "Expected"  # Need reference for RAG metrics
 
-        import backend.eval.runner
+        import backend.eval.integration.runner
 
-        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
-        monkeypatch.setattr(backend.eval.runner, "judge_answer", mock_judge_answer)
-        monkeypatch.setattr(backend.eval.runner, "get_expected_answer", mock_get_expected_answer)
+        monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
+        monkeypatch.setattr(backend.eval.integration.runner, "judge_answer", mock_judge_answer)
+        monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", mock_get_expected_answer)
 
         result = test_single_question("Q?", [], "session1", eval_mode="rag")
 
@@ -2885,7 +2885,7 @@ class TestRunnerEdgeCases:
 
     def test_test_single_question_ragas_failed_pipeline_mode(self, monkeypatch):
         """Test test_single_question with RAGAS failure in pipeline mode."""
-        from backend.eval.runner import test_single_question
+        from backend.eval.integration.runner import test_single_question
 
         def mock_invoke_agent(question, session_id=None):
             return make_invoke_mock(
@@ -2917,12 +2917,12 @@ class TestRunnerEdgeCases:
         def mock_get_expected_answer(question):
             return None
 
-        import backend.eval.runner
-        import backend.eval.tree
+        import backend.eval.integration.runner
+        import backend.eval.integration.tree
 
-        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
-        monkeypatch.setattr(backend.eval.runner, "judge_answer", mock_judge_answer)
-        monkeypatch.setattr(backend.eval.tree, "get_expected_answer", mock_get_expected_answer)
+        monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
+        monkeypatch.setattr(backend.eval.integration.runner, "judge_answer", mock_judge_answer)
+        monkeypatch.setattr(backend.eval.integration.tree, "get_expected_answer", mock_get_expected_answer)
 
         result = test_single_question("Q?", [], "session1", eval_mode="pipeline")
 
@@ -2930,7 +2930,7 @@ class TestRunnerEdgeCases:
 
     def test_test_single_question_ragas_failed_both_mode(self, monkeypatch):
         """Test test_single_question with RAGAS failure in both mode."""
-        from backend.eval.runner import test_single_question
+        from backend.eval.integration.runner import test_single_question
 
         def mock_invoke_agent(question, session_id=None):
             return make_invoke_mock(
@@ -2965,12 +2965,12 @@ class TestRunnerEdgeCases:
         def mock_get_expected_answer(question):
             return "Expected"
 
-        import backend.eval.runner
-        import backend.eval.tree
+        import backend.eval.integration.runner
+        import backend.eval.integration.tree
 
-        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
-        monkeypatch.setattr(backend.eval.runner, "judge_answer", mock_judge_answer)
-        monkeypatch.setattr(backend.eval.tree, "get_expected_answer", mock_get_expected_answer)
+        monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
+        monkeypatch.setattr(backend.eval.integration.runner, "judge_answer", mock_judge_answer)
+        monkeypatch.setattr(backend.eval.integration.tree, "get_expected_answer", mock_get_expected_answer)
 
         result = test_single_question("Q?", [], "session1", eval_mode="both")
 
@@ -2989,7 +2989,7 @@ class TestTreeNetworkPaths:
     def test_compute_max_depth_no_path_between_nodes(self, monkeypatch):
         """Test _compute_max_depth when no path exists between starter and descendant."""
         import networkx as nx
-        import backend.eval.tree as tree_module
+        import backend.eval.integration.tree as tree_module
 
         # Create a graph with disconnected components
         G = nx.DiGraph()
@@ -3007,7 +3007,7 @@ class TestTreeNetworkPaths:
     def test_find_paths_disconnected_nodes(self, monkeypatch):
         """Test _find_paths with disconnected subgraph."""
         import networkx as nx
-        import backend.eval.tree as tree_module
+        import backend.eval.integration.tree as tree_module
 
         # Create a graph where path finding might fail
         G = nx.DiGraph()
@@ -3034,13 +3034,13 @@ class TestRunnerTimeoutHandling:
 
     def test_test_single_question_timeout_error(self, monkeypatch):
         """Test test_single_question handles TimeoutError."""
-        from backend.eval.runner import test_single_question
+        from backend.eval.integration.runner import test_single_question
 
         def mock_invoke_agent(question, session_id=None):
             raise TimeoutError("Request timed out")
 
-        import backend.eval.runner
-        monkeypatch.setattr(backend.eval.runner, "_invoke_agent", mock_invoke_agent)
+        import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
 
         result = test_single_question("Q?", [], "session1")
 
@@ -3049,8 +3049,8 @@ class TestRunnerTimeoutHandling:
 
     def test_run_flow_eval_concurrent_exception(self, monkeypatch):
         """Test run_flow_eval handles exceptions in concurrent futures."""
-        from backend.eval.runner import run_flow_eval
-        from backend.eval.models import FlowResult, FlowStepResult
+        from backend.eval.integration.runner import run_flow_eval
+        from backend.eval.integration.models import FlowResult, FlowStepResult
 
         call_count = {"count": 0}
 
@@ -3073,9 +3073,9 @@ class TestRunnerTimeoutHandling:
         def mock_get_all_paths():
             return [["Q1?"], ["Q2?"]]  # Two paths
 
-        import backend.eval.runner
-        monkeypatch.setattr(backend.eval.runner, "test_flow", mock_test_flow)
-        monkeypatch.setattr(backend.eval.runner, "get_all_paths", mock_get_all_paths)
+        import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "test_flow", mock_test_flow)
+        monkeypatch.setattr(backend.eval.integration.runner, "get_all_paths", mock_get_all_paths)
 
         # Run with concurrency=2 to trigger ThreadPoolExecutor path
         results = run_flow_eval(max_paths=2, concurrency=2)
@@ -3094,7 +3094,7 @@ class TestCliExceptionHandling:
 
     def test_run_eval_flow_eval_exception(self, monkeypatch):
         """Test _run_eval handles exceptions from run_flow_eval."""
-        from backend.eval.cli import _run_eval
+        from backend.eval.integration.__main__ import _run_eval
 
         def mock_check_qdrant_access():
             return True
@@ -3111,21 +3111,21 @@ class TestCliExceptionHandling:
         def mock_get_tree_stats():
             return {"num_starters": 1, "num_questions": 5, "num_edges": 4, "max_depth": 3, "num_paths": 2, "path_lengths": {"min": 2, "max": 3}}
 
-        import backend.eval.cli
+        import backend.eval.integration.__main__
 
-        monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
-        monkeypatch.setattr(backend.eval.cli, "ensure_qdrant_collections", mock_ensure_collections)
-        monkeypatch.setattr(backend.eval.cli, "run_flow_eval", mock_run_flow_eval)
-        monkeypatch.setattr(backend.eval.cli, "get_latency_percentages", mock_get_latency_percentages)
-        monkeypatch.setattr(backend.eval.cli, "get_tree_stats", mock_get_tree_stats)
+        monkeypatch.setattr(backend.eval.integration.__main__, "check_qdrant_access", mock_check_qdrant_access)
+        monkeypatch.setattr(backend.eval.integration.__main__, "ensure_qdrant_collections", mock_ensure_collections)
+        monkeypatch.setattr(backend.eval.integration.__main__, "run_flow_eval", mock_run_flow_eval)
+        monkeypatch.setattr(backend.eval.integration.__main__, "get_latency_percentages", mock_get_latency_percentages)
+        monkeypatch.setattr(backend.eval.integration.__main__, "get_tree_stats", mock_get_tree_stats)
 
         # Should not raise, but handle gracefully
         _run_eval(limit=1, verbose=False, no_judge=True, output=None, debug=False, eval_mode="both")
 
     def test_run_eval_debug_with_judge_explanation(self, monkeypatch, capsys):
         """Test _run_eval debug output includes judge explanation."""
-        from backend.eval.cli import _run_eval
-        from backend.eval.models import FlowEvalResults, FlowResult, FlowStepResult
+        from backend.eval.integration.__main__ import _run_eval
+        from backend.eval.integration.models import FlowEvalResults, FlowResult, FlowStepResult
 
         def mock_check_qdrant_access():
             return True
@@ -3174,14 +3174,14 @@ class TestCliExceptionHandling:
         def mock_get_tree_stats():
             return {"num_starters": 1, "num_questions": 5, "num_edges": 4, "max_depth": 3, "num_paths": 2, "path_lengths": {"min": 2, "max": 3}}
 
-        import backend.eval.cli
+        import backend.eval.integration.__main__
 
-        monkeypatch.setattr(backend.eval.cli, "check_qdrant_access", mock_check_qdrant_access)
-        monkeypatch.setattr(backend.eval.cli, "ensure_qdrant_collections", mock_ensure_collections)
-        monkeypatch.setattr(backend.eval.cli, "run_flow_eval", mock_run_flow_eval)
-        monkeypatch.setattr(backend.eval.cli, "get_latency_percentages", mock_get_latency_percentages)
-        monkeypatch.setattr(backend.eval.cli, "print_summary", mock_print_summary)
-        monkeypatch.setattr(backend.eval.cli, "get_tree_stats", mock_get_tree_stats)
+        monkeypatch.setattr(backend.eval.integration.__main__, "check_qdrant_access", mock_check_qdrant_access)
+        monkeypatch.setattr(backend.eval.integration.__main__, "ensure_qdrant_collections", mock_ensure_collections)
+        monkeypatch.setattr(backend.eval.integration.__main__, "run_flow_eval", mock_run_flow_eval)
+        monkeypatch.setattr(backend.eval.integration.__main__, "get_latency_percentages", mock_get_latency_percentages)
+        monkeypatch.setattr(backend.eval.integration.__main__, "print_summary", mock_print_summary)
+        monkeypatch.setattr(backend.eval.integration.__main__, "get_tree_stats", mock_get_tree_stats)
 
         # Run with debug=True
         _run_eval(limit=1, verbose=False, no_judge=True, output=None, debug=True, eval_mode="both")

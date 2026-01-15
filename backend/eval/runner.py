@@ -15,12 +15,11 @@ from backend.eval.callback import get_eval_capture, reset_eval_capture
 from backend.eval.formatting import console, print_eval_header
 from backend.eval.judge import evaluate_single
 from backend.eval.models import FlowEvalResults, FlowResult, FlowStepResult
+from backend.eval.route.sql_judge import judge_sql_results
 from backend.eval.tree import (
     get_all_paths,
     get_expected_answer,
     get_expected_rag,
-    get_expected_sql_results,
-    validate_sql_results,
 )
 
 logger = logging.getLogger(__name__)
@@ -236,15 +235,14 @@ def test_single_question(
         if account_context := result.get("account_context_answer", ""):
             all_contexts.append(account_context)
 
-        # Validate SQL results against expected (for all questions with assertions)
+        # Validate SQL results using LLM judge
         sql_data_validated: bool | None = None
         sql_data_errors: list[str] | None = None
-        if sql_results:
-            passed, errors = validate_sql_results(question, sql_results)
-            # Set validated if we have assertions for this question (SQL-only OR RAG)
-            if get_expected_sql_results(question) is not None:
-                sql_data_validated = passed
-                sql_data_errors = errors if errors else None
+        if sql_results and use_judge:
+            sql_query = sql_plan.sql if sql_plan else ""
+            passed, errors = judge_sql_results(question, sql_query, sql_results)
+            sql_data_validated = passed
+            sql_data_errors = errors if errors else None
 
         # Check RAG detection accuracy (needs_rag decision from sql_plan vs expected)
         rag_decision_correct: bool | None = None

@@ -1,25 +1,28 @@
-"""SQL Planner evaluation - tests generated SQL against expected results."""
+"""SQL Planner evaluation - tests generated SQL using LLM judge."""
 
 from dataclasses import dataclass, field
-from pathlib import Path
 
-import yaml
 from rich.console import Console
 
 from backend.agent.fetch.planner import get_sql_plan
 from backend.agent.fetch.sql.connection import get_connection
-from backend.eval.tree import get_expected_sql_results, validate_sql_results
+from backend.eval.route.sql_judge import judge_sql_results
+from backend.eval.tree import get_all_paths
+
+
+def _get_unique_questions() -> list[str]:
+    """Get all unique questions from the question tree."""
+    paths = get_all_paths()
+    seen = set()
+    questions = []
+    for path in paths:
+        for q in path:
+            if q not in seen:
+                seen.add(q)
+                questions.append(q)
+    return questions
 
 console = Console()
-
-_FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
-
-
-def _load_test_questions() -> list[str]:
-    """Load all questions from expected_sql_results.yaml (memory-independent)."""
-    with open(_FIXTURES_DIR / "expected_sql_results.yaml") as f:
-        data = yaml.safe_load(f)
-    return list(data.keys())
 
 
 @dataclass
@@ -44,6 +47,14 @@ class EvalResults:
     sql_failed: int = 0
     cases: list[CaseResult] = field(default_factory=list)
 
+    @property
+    def failed(self) -> int:
+        return self.total - self.passed
+
+    @property
+    def pass_rate(self) -> float:
+        return self.passed / self.total if self.total > 0 else 0.0
+
 
 def run_sql_eval(
     questions: list[str] | None = None,
@@ -56,16 +67,17 @@ def run_sql_eval(
     For each question:
     1. Generate SQL via get_sql_plan()
     2. Execute SQL against DuckDB
-    3. Validate results against expected_sql_results.yaml assertions
+    3. Validate results using LLM judge
 
     Args:
-        questions: List of questions to test (default: TEST_QUESTIONS)
+        questions: List of questions to test (default: from eval tree)
         verbose: Print detailed output
+        limit: Max number of questions to test
 
     Returns:
         EvalResults with per-case and aggregate metrics
     """
-    questions = questions or _load_test_questions()
+    questions = questions or _get_unique_questions()
     if limit:
         questions = questions[:limit]
     results = EvalResults(total=len(questions))
@@ -80,7 +92,6 @@ def run_sql_eval(
             plan = get_sql_plan(question)
             sql = plan.sql
 
-
             # Execute SQL
             try:
                 result = conn.execute(sql)
@@ -89,14 +100,9 @@ def run_sql_eval(
                 data = [dict(zip(columns, row, strict=True)) for row in rows]
                 results.sql_executed += 1
 
-                # Validate against expected results
+                # Validate using LLM judge
                 sql_results = {"query": data}
-                passed, errors = validate_sql_results(question, sql_results)
-
-                # If no assertions defined, check if we got results
-                if get_expected_sql_results(question) is None:
-                    passed = len(data) > 0
-                    errors = [] if passed else ["No results returned"]
+                passed, errors = judge_sql_results(question, sql, sql_results)
 
                 if passed:
                     results.passed += 1

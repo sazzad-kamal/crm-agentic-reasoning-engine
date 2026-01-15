@@ -2,8 +2,7 @@
 Evaluation utilities for the question tree.
 
 This module provides functions for:
-- Loading expected answers, RAG flags, and SQL results from fixtures
-- Validating SQL results against assertions
+- Loading expected answers and RAG flags from fixtures
 - Generating test paths from the question tree
 - Computing tree statistics
 
@@ -13,7 +12,6 @@ since runtime code (get_follow_ups) needs it.
 
 from __future__ import annotations
 
-import contextlib
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -28,8 +26,6 @@ if TYPE_CHECKING:
 __all__ = [
     "get_expected_answer",
     "get_expected_rag",
-    "get_expected_sql_results",
-    "validate_sql_results",
     "get_all_paths",
     "get_tree_stats",
     "validate_tree",
@@ -59,7 +55,6 @@ def _load_yaml_fixture(filename: str) -> dict:
 
 _EXPECTED_ANSWERS: dict[str, str] = _load_yaml_fixture("expected_answers.yaml")
 _EXPECTED_RAG: dict[str, bool] = _load_yaml_fixture("expected_rag.yaml")
-_EXPECTED_SQL_RESULTS: dict[str, dict] = _load_yaml_fixture("expected_sql_results.yaml")
 
 # Cache starters for reuse
 _STARTERS = get_starters()
@@ -137,176 +132,6 @@ def get_expected_rag(question: str) -> bool | None:
         True if RAG should be invoked, False if not, None if not found
     """
     return _EXPECTED_RAG.get(question)
-
-
-def get_expected_sql_results(question: str) -> dict | None:
-    """
-    Get the expected SQL results assertions for a question.
-
-    Args:
-        question: The question to look up
-
-    Returns:
-        Dict of assertions (row_count_min, total_value, must_contain, etc.), or None if not found
-    """
-    return _EXPECTED_SQL_RESULTS.get(question)
-
-
-# =============================================================================
-# SQL Result Validation
-# =============================================================================
-
-
-def validate_sql_results(question: str, sql_results: dict) -> tuple[bool, list[str]]:
-    """
-    Validate SQL query results against expected assertions.
-
-    Args:
-        question: The question that was asked
-        sql_results: Dict of query name -> list of result rows
-
-    Returns:
-        Tuple of (passed: bool, errors: list[str])
-        - passed: True if all assertions pass, False if any fail
-        - errors: List of error messages describing failures
-
-    Assertion types:
-        row_count: Exact number of rows expected
-        row_count_min: Minimum number of rows
-        row_count_max: Maximum number of rows
-        total_value: Sum of value columns (10% tolerance)
-        must_contain: Value(s) must appear in results
-        must_contain_all: All values must appear
-        must_contain_any: At least one value must appear
-        must_not_contain: Value(s) must NOT appear in results
-        exact_values: List of exact values that must match a column
-    """
-    expected = get_expected_sql_results(question)
-    if expected is None:
-        # No assertions defined for this question
-        return True, []
-
-    errors: list[str] = []
-
-    # Flatten all results into a single list of rows and a string for text search
-    all_rows: list[dict] = []
-    all_values: list = []
-    all_text = ""
-
-    for _query_name, rows in sql_results.items():
-        if isinstance(rows, list):
-            for row in rows:
-                if isinstance(row, dict):
-                    all_rows.append(row)
-                    all_values.extend(row.values())
-                    all_text += " ".join(str(v) for v in row.values()) + " "
-                else:
-                    all_values.append(row)
-                    all_text += str(row) + " "
-        elif isinstance(rows, dict):
-            all_rows.append(rows)
-            all_values.extend(rows.values())
-            all_text += " ".join(str(v) for v in rows.values()) + " "
-
-    all_text = all_text.lower()
-
-    # Validate row_count (exact)
-    if "row_count" in expected:
-        exact_rows = expected["row_count"]
-        if len(all_rows) != exact_rows:
-            errors.append(f"row_count: got {len(all_rows)}, expected exactly {exact_rows}")
-
-    # Validate row_count_min
-    if "row_count_min" in expected:
-        min_rows = expected["row_count_min"]
-        if len(all_rows) < min_rows:
-            errors.append(f"row_count: got {len(all_rows)}, expected >= {min_rows}")
-
-    # Validate row_count_max
-    if "row_count_max" in expected:
-        max_rows = expected["row_count_max"]
-        if len(all_rows) > max_rows:
-            errors.append(f"row_count: got {len(all_rows)}, expected <= {max_rows}")
-
-    # Validate total_value (sum of value columns)
-    if "total_value" in expected:
-        expected_total = expected["total_value"]
-        actual_total: float = 0.0
-        for row in all_rows:
-            # Check for value columns (handles GROUP BY and SUM queries)
-            for col in ("value", "total_value", "total_pipeline_value"):
-                if col in row:
-                    with contextlib.suppress(ValueError, TypeError):
-                        actual_total += float(row[col])
-                    break  # Only count once per row
-        # Allow 10% tolerance for rounding
-        tolerance = expected_total * 0.1
-        if abs(actual_total - expected_total) > tolerance:
-            errors.append(f"total_value: got {actual_total}, expected {expected_total}")
-
-    # Validate must_contain (single value must appear)
-    if "must_contain" in expected:
-        value = expected["must_contain"]
-        if isinstance(value, list):
-            for v in value:
-                if str(v).lower() not in all_text:
-                    errors.append(f"must_contain: '{v}' not found in results")
-        elif str(value).lower() not in all_text:
-            errors.append(f"must_contain: '{value}' not found in results")
-
-    # Validate must_contain_all (all values must appear)
-    if "must_contain_all" in expected:
-        for value in expected["must_contain_all"]:
-            if str(value).lower() not in all_text:
-                errors.append(f"must_contain_all: '{value}' not found in results")
-
-    # Validate must_contain_any (at least one value must appear)
-    if "must_contain_any" in expected:
-        values = expected["must_contain_any"]
-        found_any = any(str(v).lower() in all_text for v in values)
-        if not found_any:
-            errors.append(f"must_contain_any: none of {values} found in results")
-
-    # Validate must_not_contain (values must NOT appear - critical for filtering)
-    if "must_not_contain" in expected:
-        values = expected["must_not_contain"]
-        if isinstance(values, list):
-            for v in values:
-                if str(v).lower() in all_text:
-                    errors.append(f"must_not_contain: '{v}' found but should be excluded")
-        elif str(values).lower() in all_text:
-            errors.append(f"must_not_contain: '{values}' found but should be excluded")
-
-    # Validate exact_values (specific column values that must match exactly)
-    if "exact_values" in expected:
-        for col, values in expected["exact_values"].items():
-            actual_col_values = [row.get(col) for row in all_rows if col in row]
-            # Convert to comparable format
-            expected_set = set(str(v).lower() for v in values)
-            actual_set = set(str(v).lower() for v in actual_col_values)
-            if expected_set != actual_set:
-                errors.append(f"exact_values[{col}]: got {actual_set}, expected {expected_set}")
-
-    # Validate column_values (expected values must appear in column, extras OK)
-    if "column_values" in expected:
-        for col, values in expected["column_values"].items():
-            actual_col_values = [row.get(col) for row in all_rows if col in row]
-            actual_set = set(str(v).lower() for v in actual_col_values)
-            for v in values:
-                if str(v).lower() not in actual_set:
-                    errors.append(f"column_values[{col}]: '{v}' not found in column")
-
-    # Validate column_excludes (values must NOT appear in column)
-    if "column_excludes" in expected:
-        for col, values in expected["column_excludes"].items():
-            actual_col_values = [row.get(col) for row in all_rows if col in row]
-            actual_set = set(str(v).lower() for v in actual_col_values)
-            for v in values:
-                if str(v).lower() in actual_set:
-                    errors.append(f"column_excludes[{col}]: '{v}' found but should be excluded")
-
-    passed = len(errors) == 0
-    return passed, errors
 
 
 # =============================================================================

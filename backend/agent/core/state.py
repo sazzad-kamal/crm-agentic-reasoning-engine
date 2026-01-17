@@ -20,6 +20,7 @@ class Message(TypedDict):
 def format_conversation_for_prompt(
     messages: list["Message"],
     max_messages: int = 6,
+    max_chars: int = 200,
 ) -> str:
     """
     Format conversation history for inclusion in LLM prompts.
@@ -27,6 +28,7 @@ def format_conversation_for_prompt(
     Args:
         messages: List of messages
         max_messages: Maximum number of recent messages to include
+        max_chars: Maximum characters per message before truncation
 
     Returns:
         Formatted string for prompt inclusion
@@ -34,15 +36,12 @@ def format_conversation_for_prompt(
     if not messages:
         return ""
 
-    recent = messages[-max_messages:]
     lines = []
-
-    for msg in recent:
+    for msg in messages[-max_messages:]:
         role = "User" if msg["role"] == "user" else "Assistant"
         content = msg["content"]
-        # Truncate long messages
-        if len(content) > 200:
-            content = f"{content[:200]}..."
+        if len(content) > max_chars:
+            content = content[:max_chars].rsplit(" ", 1)[0] + "..."
         lines.append(f"{role}: {content}")
 
     return "\n".join(lines)

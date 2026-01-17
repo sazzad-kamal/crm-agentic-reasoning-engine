@@ -294,58 +294,6 @@ describe("DataExplorer", () => {
     });
   });
 
-  describe("Expandable Rows", () => {
-    it("shows expand button for rows with nested data", async () => {
-      render(<DataExplorer />);
-
-      await waitFor(() => {
-        expect(screen.getByText("Acme Corp")).toBeInTheDocument();
-      });
-
-      // Acme Corp has _private_texts, so should have expand button
-      const expandButtons = screen.getAllByRole("button", { name: /expand/i });
-      expect(expandButtons.length).toBeGreaterThan(0);
-    });
-
-    it("expands row to show nested data on click", async () => {
-      render(<DataExplorer />);
-
-      await waitFor(() => {
-        expect(screen.getByText("Acme Corp")).toBeInTheDocument();
-      });
-
-      const expandButton = screen.getAllByRole("button", { name: /expand/i })[0];
-      fireEvent.click(expandButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/Notes & Attachments/i)).toBeInTheDocument();
-        expect(screen.getByText(/Important customer note/i)).toBeInTheDocument();
-      });
-    });
-
-    it("collapses expanded row on second click", async () => {
-      render(<DataExplorer />);
-
-      await waitFor(() => {
-        expect(screen.getByText("Acme Corp")).toBeInTheDocument();
-      });
-
-      const expandButton = screen.getAllByRole("button", { name: /expand/i })[0];
-      
-      // Expand
-      fireEvent.click(expandButton);
-      await waitFor(() => {
-        expect(screen.getByText(/Important customer note/i)).toBeInTheDocument();
-      });
-
-      // Collapse
-      fireEvent.click(expandButton);
-      await waitFor(() => {
-        expect(screen.queryByText(/Important customer note/i)).not.toBeInTheDocument();
-      });
-    });
-  });
-
   describe("Ask AI Button", () => {
     it("renders Ask AI buttons when onAskAbout is provided", async () => {
       const mockOnAskAbout = vi.fn();
@@ -385,28 +333,6 @@ describe("DataExplorer", () => {
       const askButtons = screen.queryAllByTitle(/ask ai about this record/i);
       expect(askButtons.length).toBe(0);
     });
-  });
-
-  describe("Nested Data Types", () => {
-    it("displays opportunity notes correctly", async () => {
-      render(<DataExplorer />);
-
-      const oppTab = screen.getByRole("tab", { name: /opportunities/i });
-      fireEvent.click(oppTab);
-
-      await waitFor(() => {
-        expect(screen.getByText("Enterprise Deal")).toBeInTheDocument();
-      });
-
-      const expandButton = screen.getByRole("button", { name: /expand/i });
-      fireEvent.click(expandButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Notes")).toBeInTheDocument();
-        expect(screen.getByText(/High priority customer with expansion potential/i)).toBeInTheDocument();
-      });
-    });
-
   });
 
   describe("Empty States", () => {
@@ -456,23 +382,6 @@ describe("DataExplorer", () => {
       await waitFor(() => {
         const searchInput = screen.getByPlaceholderText(/search companies/i);
         expect(searchInput).toHaveAttribute("aria-label", "Search Companies");
-      });
-    });
-
-    it("expand buttons have proper aria-expanded state", async () => {
-      render(<DataExplorer />);
-
-      await waitFor(() => {
-        expect(screen.getByText("Acme Corp")).toBeInTheDocument();
-      });
-
-      const expandButton = screen.getAllByRole("button", { name: /expand/i })[0];
-      expect(expandButton).toHaveAttribute("aria-expanded", "false");
-
-      fireEvent.click(expandButton);
-
-      await waitFor(() => {
-        expect(expandButton).toHaveAttribute("aria-expanded", "true");
       });
     });
   });

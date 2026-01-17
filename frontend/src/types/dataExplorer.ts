@@ -34,27 +34,9 @@ export interface TabConfig {
 // =============================================================================
 
 export const TABS: TabConfig[] = [
-  {
-    id: "companies",
-    label: "Companies",
-    icon: "🏢",
-    endpoint: "/api/data/companies",
-    nestedFields: [{ key: "_private_texts", label: "Notes & Attachments", icon: "📝" }]
-  },
-  {
-    id: "contacts",
-    label: "Contacts",
-    icon: "👤",
-    endpoint: "/api/data/contacts",
-    nestedFields: [{ key: "_private_texts", label: "Notes & Attachments", icon: "📝" }]
-  },
-  {
-    id: "opportunities",
-    label: "Opportunities",
-    icon: "💰",
-    endpoint: "/api/data/opportunities",
-    nestedFields: [{ key: "_private_texts", label: "Notes", icon: "📝" }]
-  },
+  { id: "companies", label: "Companies", icon: "🏢", endpoint: "/api/data/companies" },
+  { id: "contacts", label: "Contacts", icon: "👤", endpoint: "/api/data/contacts" },
+  { id: "opportunities", label: "Opportunities", icon: "💰", endpoint: "/api/data/opportunities" },
   { id: "activities", label: "Activities", icon: "📅", endpoint: "/api/data/activities" },
   { id: "history", label: "History", icon: "📜", endpoint: "/api/data/history" },
 ];

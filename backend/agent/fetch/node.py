@@ -79,20 +79,15 @@ def _execute_sql_with_retry(
         return [], {}, str(e)
 
 
-def _fetch_rag_if_needed(
-    needs_rag: bool,
+def _fetch_rag(
     question: str,
     entity_ids: dict[str, str],
 ) -> tuple[str, bool, list[str]]:
-    """Fetch RAG context if needed.
+    """Fetch RAG context for resolved entities.
 
     Returns:
         Tuple of (context_str, rag_invoked, chunks) for eval capture.
     """
-    if not needs_rag:
-        logger.info("[Fetch] RAG skipped (needs_rag=False)")
-        return "", False, []
-
     # Filter to valid entity ID keys
     filters = {
         k: v
@@ -107,9 +102,9 @@ def _fetch_rag_if_needed(
     logger.info(f"[Fetch] Retrieving RAG context with filters={filters}")
 
     try:
-        from backend.agent.fetch.rag.search import tool_entity_rag
+        from backend.agent.fetch.rag.search import search_entity_context
 
-        context, _ = tool_entity_rag(question, filters)
+        context, _ = search_entity_context(question, filters)
         chunks = context.split("\n\n---\n\n") if context else []
 
         logger.info("[Fetch] RAG complete")
@@ -151,9 +146,13 @@ def fetch_node(state: AgentState) -> AgentState:
         result["error"] = f"SQL execution failed: {error}"
 
     # Step 3: Fetch RAG using resolved IDs
-    context, rag_invoked, chunks = _fetch_rag_if_needed(sql_plan.needs_rag, question, entity_ids)
-    if context:
-        result["rag_context"] = context
+    if sql_plan.needs_rag:
+        context, rag_invoked, chunks = _fetch_rag(question, entity_ids)
+        if context:
+            result["rag_context"] = context
+    else:
+        logger.info("[Fetch] RAG skipped (needs_rag=False)")
+        context, rag_invoked, chunks = "", False, []
 
     # Capture eval data
     _capture_eval_data(sql_plan, rows, error, rag_invoked, chunks)

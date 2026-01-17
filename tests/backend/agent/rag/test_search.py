@@ -1,7 +1,7 @@
 """
 Tests for RAG search module.
 
-Covers tool_entity_rag function with mocked dependencies.
+Covers search_entity_context function with mocked dependencies.
 """
 
 import sys
@@ -16,7 +16,7 @@ mock_qdrant_module = MagicMock()
 
 
 class TestToolEntityRag:
-    """Tests for tool_entity_rag function."""
+    """Tests for search_entity_context function."""
 
     def _setup_llama_mocks(self, mock_retriever):
         """Setup common llama_index mocks."""
@@ -53,7 +53,7 @@ class TestToolEntityRag:
         }
 
     @pytest.mark.no_mock_llm
-    def test_tool_entity_rag_success(self):
+    def test_search_entity_context_success(self):
         """Test successful entity RAG retrieval."""
         mock_node1 = MagicMock()
         mock_node1.text = "Meeting notes from last week."
@@ -83,7 +83,7 @@ class TestToolEntityRag:
             # Patch where it's used, not where it's defined
             with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = search.tool_entity_rag("What were the meeting notes?", {"company_id": "COMP001"})
+                context, sources = search.search_entity_context("What were the meeting notes?", {"company_id": "COMP001"})
 
         assert "Meeting notes" in context
         assert "Proposal document" in context
@@ -93,7 +93,7 @@ class TestToolEntityRag:
         assert sources[1]["type"] == "attachment"
 
     @pytest.mark.no_mock_llm
-    def test_tool_entity_rag_empty_results(self):
+    def test_search_entity_context_empty_results(self):
         """Test entity RAG with no results."""
         mock_retriever = MagicMock()
         mock_retriever.retrieve.return_value = []
@@ -113,13 +113,13 @@ class TestToolEntityRag:
 
             with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = search.tool_entity_rag("Unknown query", {"company_id": "COMP001"})
+                context, sources = search.search_entity_context("Unknown query", {"company_id": "COMP001"})
 
         assert context == ""
         assert sources == []
 
     @pytest.mark.no_mock_llm
-    def test_tool_entity_rag_exception(self):
+    def test_search_entity_context_exception(self):
         """Test account RAG handles exceptions gracefully."""
         from backend.agent.fetch.rag import search
 
@@ -129,13 +129,13 @@ class TestToolEntityRag:
         search._reranker = None
 
         with patch.object(search, "get_qdrant_client", side_effect=Exception("Client error")):
-            context, sources = search.tool_entity_rag("Any question", {"company_id": "COMP001"})
+            context, sources = search.search_entity_context("Any question", {"company_id": "COMP001"})
 
         assert context == ""
         assert sources == []
 
     @pytest.mark.no_mock_llm
-    def test_tool_entity_rag_metadata_defaults(self):
+    def test_search_entity_context_metadata_defaults(self):
         """Test account RAG uses defaults for missing metadata."""
         mock_node = MagicMock()
         mock_node.text = "Content with minimal metadata"
@@ -161,14 +161,14 @@ class TestToolEntityRag:
             # Patch where it's used, not where it's defined
             with patch.object(search, "get_qdrant_client") as mock_client_fn:
                 mock_client_fn.return_value = MagicMock()
-                context, sources = search.tool_entity_rag("Question", {"company_id": "COMP001"})
+                context, sources = search.search_entity_context("Question", {"company_id": "COMP001"})
 
         assert len(sources) == 1
         assert sources[0]["type"] == "note"  # Default type
         assert sources[0]["id"] == "unknown"  # Default id
 
     @pytest.mark.no_mock_llm
-    def test_tool_entity_rag_doc_id_fallback(self):
+    def test_search_entity_context_doc_id_fallback(self):
         """Test account RAG uses doc_id when source_id missing."""
         mock_node = MagicMock()
         mock_node.text = "Some content"
@@ -192,13 +192,13 @@ class TestToolEntityRag:
 
             with patch.object(search, "get_qdrant_client") as mock_client_fn:
                 mock_client_fn.return_value = MagicMock()
-                context, sources = search.tool_entity_rag("Question", {"company_id": "COMP001"})
+                context, sources = search.search_entity_context("Question", {"company_id": "COMP001"})
 
         assert len(sources) == 1
         assert sources[0]["id"] == "doc_123"
 
     @pytest.mark.no_mock_llm
-    def test_tool_entity_rag_multi_entity_filter(self):
+    def test_search_entity_context_multi_entity_filter(self):
         """Test account RAG builds compound filter from multiple entity IDs."""
         mock_node = MagicMock()
         mock_node.text = "Lisa discussed pricing with the client."
@@ -223,7 +223,7 @@ class TestToolEntityRag:
             with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
                 # Pass multiple entity IDs
-                context, sources = search.tool_entity_rag(
+                context, sources = search.search_entity_context(
                     "What did Lisa say?",
                     {"company_id": "COMP001", "contact_id": "CONT001", "opportunity_id": "OPP001"}
                 )
@@ -232,7 +232,7 @@ class TestToolEntityRag:
         assert len(sources) == 1
 
     @pytest.mark.no_mock_llm
-    def test_tool_entity_rag_company_type(self):
+    def test_search_entity_context_company_type(self):
         """Test entity RAG returns company description content."""
         mock_node = MagicMock()
         mock_node.text = "Enterprise customer since 2020. CFO is key decision maker."
@@ -261,7 +261,7 @@ class TestToolEntityRag:
 
             with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = search.tool_entity_rag(
+                context, sources = search.search_entity_context(
                     "What should I know about Acme?",
                     {"company_id": "ACME-MFG"}
                 )
@@ -270,7 +270,7 @@ class TestToolEntityRag:
         assert sources[0]["type"] == "company"
 
     @pytest.mark.no_mock_llm
-    def test_tool_entity_rag_contact_type(self):
+    def test_search_entity_context_contact_type(self):
         """Test entity RAG returns contact notes content."""
         mock_node = MagicMock()
         mock_node.text = "Prefers email over calls. Technical background. Champions our product."
@@ -300,7 +300,7 @@ class TestToolEntityRag:
 
             with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = search.tool_entity_rag(
+                context, sources = search.search_entity_context(
                     "What's Anna's communication style?",
                     {"contact_id": "C-ACME-ANNA"}
                 )
@@ -309,7 +309,7 @@ class TestToolEntityRag:
         assert sources[0]["type"] == "contact"
 
     @pytest.mark.no_mock_llm
-    def test_tool_entity_rag_opportunity_type(self):
+    def test_search_entity_context_opportunity_type(self):
         """Test entity RAG returns opportunity notes content."""
         mock_node = MagicMock()
         mock_node.text = "Deal is stalled due to pricing concerns. CFO wants ROI justification."
@@ -339,7 +339,7 @@ class TestToolEntityRag:
 
             with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = search.tool_entity_rag(
+                context, sources = search.search_entity_context(
                     "What's blocking the Acme upgrade?",
                     {"opportunity_id": "OPP-ACME-UPGRADE"}
                 )
@@ -348,7 +348,7 @@ class TestToolEntityRag:
         assert sources[0]["type"] == "opportunity"
 
     @pytest.mark.no_mock_llm
-    def test_tool_entity_rag_activity_type(self):
+    def test_search_entity_context_activity_type(self):
         """Test entity RAG returns activity description content."""
         mock_node = MagicMock()
         mock_node.text = "Reviewed Enterprise pricing with Anna. CFO approval needed before proceeding."
@@ -378,7 +378,7 @@ class TestToolEntityRag:
 
             with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = search.tool_entity_rag(
+                context, sources = search.search_entity_context(
                     "What happened in the Acme follow-up?",
                     {"company_id": "ACME-MFG"}
                 )
@@ -387,7 +387,7 @@ class TestToolEntityRag:
         assert sources[0]["type"] == "activity"
 
     @pytest.mark.no_mock_llm
-    def test_tool_entity_rag_history_type(self):
+    def test_search_entity_context_history_type(self):
         """Test entity RAG returns history description content."""
         mock_node = MagicMock()
         mock_node.text = "QBR meeting with Lisa. Discussed expansion to marketing team."
@@ -416,7 +416,7 @@ class TestToolEntityRag:
 
             with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = search.tool_entity_rag(
+                context, sources = search.search_entity_context(
                     "What did we discuss in the Beta Tech QBR?",
                     {"company_id": "BETA-TECH"}
                 )
@@ -425,7 +425,7 @@ class TestToolEntityRag:
         assert sources[0]["type"] == "history"
 
     @pytest.mark.no_mock_llm
-    def test_tool_entity_rag_attachment_type(self):
+    def test_search_entity_context_attachment_type(self):
         """Test entity RAG returns attachment summary content."""
         mock_node = MagicMock()
         mock_node.text = "Proposal includes Enterprise pricing tier breakdown and ROI projections."
@@ -455,7 +455,7 @@ class TestToolEntityRag:
 
             with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = search.tool_entity_rag(
+                context, sources = search.search_entity_context(
                     "What's in the Acme proposal?",
                     {"opportunity_id": "OPP-ACME-UPGRADE"}
                 )
@@ -464,7 +464,7 @@ class TestToolEntityRag:
         assert sources[0]["type"] == "attachment"
 
     @pytest.mark.no_mock_llm
-    def test_tool_entity_rag_mixed_entity_types(self):
+    def test_search_entity_context_mixed_entity_types(self):
         """Test entity RAG returns mixed content types for a company query."""
         mock_company = MagicMock()
         mock_company.text = "Enterprise customer since 2020."
@@ -496,7 +496,7 @@ class TestToolEntityRag:
 
             with patch.object(search, "get_qdrant_client") as mock_client:
                 mock_client.return_value = MagicMock()
-                context, sources = search.tool_entity_rag(
+                context, sources = search.search_entity_context(
                     "What should I know about Acme before my call?",
                     {"company_id": "ACME"}
                 )

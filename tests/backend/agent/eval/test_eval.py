@@ -1666,7 +1666,7 @@ class TestCliModule:
         def mock_check_qdrant_access():
             return True
 
-        def mock_tool_entity_rag(*args, **kwargs):
+        def mock_search_entity_context(*args, **kwargs):
             raise RuntimeError("Warmup failed")
 
         def mock_get_tree_stats():
@@ -1693,7 +1693,7 @@ class TestCliModule:
         import backend.eval.integration.langsmith
 
         monkeypatch.setattr(backend.eval.integration.__main__, "check_qdrant_access", mock_check_qdrant_access)
-        monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
+        monkeypatch.setattr(backend.agent.fetch.rag.search, "search_entity_context", mock_search_entity_context)
         monkeypatch.setattr(backend.eval.integration.tree, "get_tree_stats", mock_get_tree_stats)
         monkeypatch.setattr(backend.eval.integration.runner, "run_flow_eval", mock_run_flow_eval)
         monkeypatch.setattr(backend.eval.integration.langsmith, "get_latency_percentages", mock_get_latency_percentages)
@@ -1715,7 +1715,7 @@ class TestCliModule:
         def mock_check_qdrant_access():
             return True
 
-        def mock_tool_entity_rag(*args, **kwargs):
+        def mock_search_entity_context(*args, **kwargs):
             return "", []
 
         def mock_get_tree_stats():
@@ -1742,7 +1742,7 @@ class TestCliModule:
 
         # Must patch in cli module where it's imported
         monkeypatch.setattr(backend.eval.integration.__main__, "check_qdrant_access", mock_check_qdrant_access)
-        monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
+        monkeypatch.setattr(backend.agent.fetch.rag.search, "search_entity_context", mock_search_entity_context)
         monkeypatch.setattr(backend.eval.integration.__main__, "get_tree_stats", mock_get_tree_stats)
         monkeypatch.setattr(backend.eval.integration.runner, "run_flow_eval", mock_run_flow_eval)
         monkeypatch.setattr(backend.eval.integration.langsmith, "get_latency_percentages", mock_get_latency_percentages)
@@ -1767,7 +1767,7 @@ class TestCliModule:
         def mock_check_qdrant_access():
             return True
 
-        def mock_tool_entity_rag(*args, **kwargs):
+        def mock_search_entity_context(*args, **kwargs):
             return "", []
 
         def mock_get_tree_stats():
@@ -1811,7 +1811,7 @@ class TestCliModule:
         import backend.eval.integration.langsmith
 
         monkeypatch.setattr(backend.eval.integration.__main__, "check_qdrant_access", mock_check_qdrant_access)
-        monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
+        monkeypatch.setattr(backend.agent.fetch.rag.search, "search_entity_context", mock_search_entity_context)
         monkeypatch.setattr(backend.eval.integration.__main__, "get_tree_stats", mock_get_tree_stats)
         monkeypatch.setattr(backend.eval.integration.runner, "run_flow_eval", mock_run_flow_eval)
         monkeypatch.setattr(backend.eval.integration.langsmith, "get_latency_percentages", mock_get_latency_percentages)
@@ -1833,7 +1833,7 @@ class TestCliModule:
         def mock_check_qdrant_access():
             return True
 
-        def mock_tool_entity_rag(*args, **kwargs):
+        def mock_search_entity_context(*args, **kwargs):
             return "", []
 
         def mock_get_tree_stats():
@@ -1847,7 +1847,7 @@ class TestCliModule:
         import backend.eval.integration.runner
 
         monkeypatch.setattr(backend.eval.integration.__main__, "check_qdrant_access", mock_check_qdrant_access)
-        monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
+        monkeypatch.setattr(backend.agent.fetch.rag.search, "search_entity_context", mock_search_entity_context)
         monkeypatch.setattr(backend.eval.integration.__main__, "get_tree_stats", mock_get_tree_stats)
         monkeypatch.setattr(backend.eval.integration.runner, "run_flow_eval", mock_run_flow_eval)
 
@@ -2363,7 +2363,7 @@ class TestCliModuleExtended:
         def mock_check_qdrant_access():
             return True
 
-        def mock_tool_entity_rag(*args, **kwargs):
+        def mock_search_entity_context(*args, **kwargs):
             return "", []
 
         def mock_get_tree_stats():
@@ -2408,7 +2408,7 @@ class TestCliModuleExtended:
         import backend.eval.integration.langsmith
 
         monkeypatch.setattr(backend.eval.integration.__main__, "check_qdrant_access", mock_check_qdrant_access)
-        monkeypatch.setattr(backend.agent.fetch.rag.search, "tool_entity_rag", mock_tool_entity_rag)
+        monkeypatch.setattr(backend.agent.fetch.rag.search, "search_entity_context", mock_search_entity_context)
         monkeypatch.setattr(backend.eval.integration.__main__, "get_tree_stats", mock_get_tree_stats)
         monkeypatch.setattr(backend.eval.integration.runner, "run_flow_eval", mock_run_flow_eval)
         monkeypatch.setattr(backend.eval.integration.langsmith, "get_latency_percentages", mock_get_latency_percentages)

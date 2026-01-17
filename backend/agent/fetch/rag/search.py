@@ -2,7 +2,7 @@
 RAG search tools for the agent layer.
 
 Provides:
-- tool_entity_rag: Search entity-scoped CRM text
+- search_entity_context: Search entity-scoped CRM text
 """
 
 import logging
@@ -64,7 +64,7 @@ def _ensure_initialized():
         logger.debug("Initialized RAG components")
 
 
-def tool_entity_rag(
+def search_entity_context(
     question: str,
     filters: dict[str, str],
 ) -> tuple[str, list[dict]]:
@@ -128,5 +128,5 @@ def tool_entity_rag(
 
 
 __all__ = [
-    "tool_entity_rag",
+    "search_entity_context",
 ]

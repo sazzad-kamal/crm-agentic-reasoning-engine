@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 
 from backend.agent.fetch.planner import get_sql_plan
-from backend.agent.fetch.rag.search import tool_entity_rag
+from backend.agent.fetch.rag.search import search_entity_context
 from backend.agent.fetch.sql.connection import get_connection
 from backend.eval.fetch.models import CaseResult, EvalResults, Question
 from backend.eval.fetch.sql_judge import judge_sql_results
@@ -143,7 +143,7 @@ def run_sql_eval(
                                     entity_ids[key] = str(row[key])
 
                         if entity_ids:
-                            context, _ = tool_entity_rag(question.text, entity_ids)
+                            context, _ = search_entity_context(question.text, entity_ids)
                             rag_latency = measure_latency_ms(rag_start)
                             results.rag_invoked += 1
 

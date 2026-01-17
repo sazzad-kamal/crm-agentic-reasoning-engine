@@ -163,7 +163,7 @@ class TestFetchNode:
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
              patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
-             patch("backend.agent.fetch.rag.search.tool_entity_rag") as mock_rag:
+             patch("backend.agent.fetch.rag.search.search_entity_context") as mock_rag:
 
             mock_exec.return_value = (
                 [{"company_id": "delta_1"}],
@@ -189,7 +189,7 @@ class TestFetchNode:
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
              patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
-             patch("backend.agent.fetch.rag.search.tool_entity_rag") as mock_rag:
+             patch("backend.agent.fetch.rag.search.search_entity_context") as mock_rag:
 
             # No resolved IDs
             mock_exec.return_value = ([{"count": 10}], {}, None)
@@ -218,7 +218,7 @@ class TestFetchNode:
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
              patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
-             patch("backend.agent.fetch.rag.search.tool_entity_rag") as mock_rag:
+             patch("backend.agent.fetch.rag.search.search_entity_context") as mock_rag:
 
             mock_exec.return_value = (
                 [{"company_id": "delta_1"}],
@@ -243,7 +243,7 @@ class TestFetchNode:
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
              patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
-             patch("backend.agent.fetch.rag.search.tool_entity_rag") as mock_rag:
+             patch("backend.agent.fetch.rag.search.search_entity_context") as mock_rag:
 
             mock_exec.return_value = (
                 [{"contact_id": "cont_1", "opportunity_id": "opp_1"}],

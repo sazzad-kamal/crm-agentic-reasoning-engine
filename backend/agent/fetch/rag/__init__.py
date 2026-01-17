@@ -2,12 +2,12 @@
 RAG utilities for the fetch node.
 
 Exports:
-    tool_entity_rag: Search entity-scoped CRM text
+    search_entity_context: Search entity-scoped CRM text
     ingest_texts: Ingest CRM text into Qdrant
 """
 
-from backend.agent.fetch.rag.search import tool_entity_rag
+from backend.agent.fetch.rag.search import search_entity_context
 
 __all__ = [
-    "tool_entity_rag",
+    "search_entity_context",
 ]

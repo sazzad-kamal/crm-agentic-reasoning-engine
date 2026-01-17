@@ -822,31 +822,6 @@ class TestGetCsvBasePath:
             assert "csv" in str(result) or "crm" in str(result)
 
 
-class TestResetConnection:
-    """Tests for reset_connection function."""
-
-    def test_reset_when_connection_exists(self):
-        """Reset closes and clears existing connection."""
-        from backend.agent.fetch.sql import connection
-
-        mock_conn = MagicMock()
-        connection._thread_local.conn = mock_conn
-
-        connection.reset_connection()
-
-        mock_conn.close.assert_called_once()
-        assert connection._thread_local.conn is None
-
-    def test_reset_when_no_connection(self):
-        """Reset does nothing when no connection."""
-        from backend.agent.fetch.sql import connection
-
-        connection._thread_local.conn = None
-
-        # Should not raise
-        connection.reset_connection()
-
-
 # =============================================================================
 # fetch/sql/executor.py Tests
 # =============================================================================

@@ -65,11 +65,4 @@ def get_connection(csv_path: Path | None = None) -> duckdb.DuckDBPyConnection:
     return conn
 
 
-def reset_connection() -> None:
-    """Reset the thread-local connection (for testing)."""
-    if hasattr(_thread_local, "conn") and _thread_local.conn is not None:
-        _thread_local.conn.close()
-        _thread_local.conn = None
-
-
-__all__ = ["get_connection", "reset_connection"]
+__all__ = ["get_connection"]

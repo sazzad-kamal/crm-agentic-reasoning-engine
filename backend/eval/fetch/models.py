@@ -25,7 +25,6 @@ class CaseResult:
     passed: bool
     row_count: int = 0
     errors: list[str] = field(default_factory=list)
-    error: str | None = None
 
     # Latency tracking (milliseconds)
     sql_gen_latency_ms: float = 0.0
@@ -73,7 +72,7 @@ class EvalResults:
         sql_questions = [c for c in self.cases if not c.rag_only]
         if not sql_questions:
             return 0.0
-        passed_sql = sum(1 for c in sql_questions if c.passed and not c.error)
+        passed_sql = sum(1 for c in sql_questions if c.passed and not c.errors)
         return passed_sql / len(sql_questions)
 
     def compute_aggregates(self) -> None:

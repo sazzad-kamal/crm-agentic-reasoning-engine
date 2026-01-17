@@ -7,6 +7,7 @@ import logging
 import threading
 from typing import Any
 
+from backend.agent.core.llm import parse_json_response
 from backend.eval.shared import is_mock_mode
 
 logger = logging.getLogger(__name__)
@@ -114,15 +115,8 @@ def judge_sql_results(
         # Parse response
         content = response.choices[0].message.content or ""
 
-        # Try to extract JSON from response
         try:
-            # Handle potential markdown code blocks
-            if "```" in content:
-                import re
-                if match := re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL):
-                    content = match.group(1)
-
-            data = json.loads(content)
+            data = parse_json_response(content)
             passed = bool(data.get("passed", False))
             errors = data.get("errors", [])
             reasoning = data.get("reasoning", "")
@@ -133,7 +127,7 @@ def judge_sql_results(
             logger.debug(f"SQL Judge: passed={passed}, reasoning={reasoning[:100]}")
             return passed, errors if isinstance(errors, list) else [str(errors)]
 
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, ValueError):
             logger.warning(f"SQL Judge: failed to parse JSON response: {content[:200]}")
             return False, ["Judge failed to return valid JSON"]
 

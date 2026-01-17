@@ -107,7 +107,6 @@ def run_sql_eval(
         data: list[dict] = []
         passed = False
         errors: list[str] = []
-        error: str | None = None
 
         try:
             # Get SQL from planner
@@ -168,12 +167,12 @@ def run_sql_eval(
 
             except Exception as e:
                 results.sql_failed += 1
-                error = f"SQL error: {e}"
+                errors.append(f"SQL error: {e}")
                 if verbose:
                     console.print(f"  [red]SQL ERROR[/red]: {e}")
 
         except Exception as e:
-            error = f"Planner error: {e}"
+            errors.append(f"Planner error: {e}")
             if verbose:
                 console.print(f"  [red]PLANNER ERROR[/red]: {e}")
 
@@ -186,7 +185,6 @@ def run_sql_eval(
             passed=passed,
             row_count=len(data),
             errors=errors,
-            error=error,
             sql_gen_latency_ms=sql_gen_latency,
             sql_exec_latency_ms=sql_exec_latency,
             rag_latency_ms=rag_latency,
@@ -195,7 +193,7 @@ def run_sql_eval(
             rag_recall=rag_recall,
         )
 
-        if verbose and not error:
+        if verbose and not errors:
             status = "[green]PASS[/green]" if passed else "[red]FAIL[/red]"
             rag_info = f", RAG={rag_latency:.0f}ms" if rag_latency > 0 else ""
             console.print(f"  {status} ({len(data)} rows, {total_latency:.0f}ms{rag_info})")
@@ -277,7 +275,7 @@ def print_summary(results: EvalResults) -> None:
 
         # Show up to 10 failed cases
         for i, c in enumerate(failed[:10], 1):
-            error = c.error or "; ".join(c.errors)
+            error = "; ".join(c.errors)
             console.print(f"[bold cyan]{i}. {c.question}[/bold cyan] [dim](d={c.difficulty})[/dim]")
             console.print(f"   [red]Error:[/red] {error}")
             if c.sql:

@@ -1,6 +1,5 @@
 """SQL Sorcerer-style query planner - generates SQL directly."""
 
-import json
 import logging
 from datetime import datetime
 from functools import lru_cache
@@ -10,7 +9,7 @@ import anthropic
 from pydantic import BaseModel, Field
 
 from backend.agent.core.config import get_config
-from backend.agent.core.llm import load_prompt
+from backend.agent.core.llm import load_prompt, parse_json_response
 from backend.agent.fetch.sql.schema import get_schema_sql
 
 logger = logging.getLogger(__name__)
@@ -55,16 +54,7 @@ def get_sql_plan(question: str, conversation_history: str = "") -> SQLPlan:
     # Parse JSON from response
     block = response.content[0]
     text = block.text if hasattr(block, "text") else ""
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError as err:
-        # Try to extract JSON from markdown code block
-        import re
-        if match := re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL):
-            data = json.loads(match.group(1))
-        else:
-            raise ValueError(f"Failed to parse JSON from response: {text[:200]}") from err
-
+    data = parse_json_response(text)
     result = SQLPlan(**data)
     logger.info("SQL Planner: %s (needs_rag=%s)", result.sql[:80], result.needs_rag)
     return result

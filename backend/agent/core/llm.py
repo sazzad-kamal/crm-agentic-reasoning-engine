@@ -4,8 +4,10 @@ Shared LLM client infrastructure.
 Provides ChatOpenAI factory and chain creation used by both agent/ and eval/.
 """
 
+import json
 import logging
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -165,9 +167,31 @@ def load_prompt(path: Path) -> ChatPromptTemplate:
     )
 
 
+def parse_json_response(text: str) -> dict:
+    """Parse JSON from LLM response, handling markdown code blocks.
+
+    Args:
+        text: Raw LLM response text
+
+    Returns:
+        Parsed JSON as dict
+
+    Raises:
+        ValueError: If JSON cannot be parsed
+    """
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # Try to extract JSON from markdown code block
+        if match := re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL):
+            return json.loads(match.group(1))
+        raise ValueError(f"Failed to parse JSON from response: {text[:200]}")
+
+
 __all__ = [
     "get_chat_model",
     "create_chain",
     "call_llm",
     "load_prompt",
+    "parse_json_response",
 ]

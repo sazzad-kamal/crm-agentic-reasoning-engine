@@ -1,0 +1,71 @@
+# CRM Database Schema - Single source of truth
+# Used by: connection.py (views), prompt.txt (LLM context)
+
+tables:
+  companies:
+    columns:
+      company_id: "INT PRIMARY KEY"
+      name: "VARCHAR"
+      status: "VARCHAR CHECK (status IN ('Active', 'Churned', 'Trial'))"
+      plan: "VARCHAR"
+      account_owner: "VARCHAR"
+      industry: "VARCHAR"
+      segment: "VARCHAR CHECK (segment IN ('Enterprise', 'Mid-Market', 'SMB'))"
+      region: "VARCHAR"
+      renewal_date: "DATE"
+      health_flags: "VARCHAR CHECK (health_flags IN ('healthy', 'at-risk-low-activity', 'at-risk-renewal-soon'))"
+    exclude: [notes]
+
+  contacts:
+    columns:
+      contact_id: "INT PRIMARY KEY"
+      company_id: "INT REFERENCES companies(company_id)"
+      first_name: "VARCHAR"
+      last_name: "VARCHAR"
+      email: "VARCHAR"
+      phone: "VARCHAR"
+      job_title: "VARCHAR"
+      role: "VARCHAR CHECK (role IN ('Decision Maker', 'Champion', 'Technical Contact', 'Executive'))"
+      lifecycle_stage: "VARCHAR CHECK (lifecycle_stage IN ('Lead', 'MQL', 'SQL', 'Customer'))"
+    exclude: [notes]
+
+  opportunities:
+    columns:
+      opportunity_id: "INT PRIMARY KEY"
+      company_id: "INT REFERENCES companies(company_id)"
+      primary_contact_id: "INT REFERENCES contacts(contact_id)"
+      name: "VARCHAR"
+      stage: "VARCHAR CHECK (stage IN ('New', 'Discovery', 'Qualified', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'))"
+      type: "VARCHAR CHECK (type IN ('New Business', 'Renewal', 'Expansion'))"
+      value: "DECIMAL"
+      owner: "VARCHAR"
+      expected_close_date: "DATE"
+      days_in_stage: "INT"
+    exclude: [notes]
+
+  activities:
+    columns:
+      activity_id: "INT PRIMARY KEY"
+      company_id: "INT REFERENCES companies(company_id)"
+      contact_id: "INT REFERENCES contacts(contact_id)"
+      opportunity_id: "INT REFERENCES opportunities(opportunity_id)"
+      type: "VARCHAR CHECK (type IN ('Call', 'Email', 'Meeting', 'Task'))"
+      subject: "VARCHAR"
+      due_datetime: "DATETIME"
+      owner: "VARCHAR"
+      priority: "VARCHAR CHECK (priority IN ('High', 'Medium', 'Low'))"
+      status: "VARCHAR CHECK (status IN ('Pending', 'Completed', 'Cancelled'))"
+    exclude: [notes]
+
+  history:
+    columns:
+      history_id: "INT PRIMARY KEY"
+      company_id: "INT REFERENCES companies(company_id)"
+      contact_id: "INT REFERENCES contacts(contact_id)"
+      opportunity_id: "INT REFERENCES opportunities(opportunity_id)"
+      type: "VARCHAR CHECK (type IN ('Call', 'Email', 'Meeting', 'Note'))"
+      subject: "VARCHAR"
+      source: "VARCHAR"
+      occurred_at: "DATETIME"
+      owner: "VARCHAR"
+    exclude: [notes]

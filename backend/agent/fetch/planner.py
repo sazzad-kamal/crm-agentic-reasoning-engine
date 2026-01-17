@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from backend.agent.core.config import get_config
 from backend.agent.core.llm import load_prompt
+from backend.agent.fetch.schema import get_schema_sql
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ def get_sql_plan(question: str, conversation_history: str = "") -> SQLPlan:
 
     prompt = load_prompt(_DIR / "prompt.txt").format(
         today=datetime.now().strftime("%Y-%m-%d"),
+        schema=get_schema_sql(),
         conversation_history=conversation_history or "",
         question=question,
     )

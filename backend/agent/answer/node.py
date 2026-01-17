@@ -20,7 +20,7 @@ def answer_node(state: AgentState) -> AgentState:
         answer, _ = call_answer_chain(
             question=state["question"],
             sql_results=state.get("sql_results", {}),
-            account_context=state.get("account_context_answer", ""),
+            account_context=state.get("rag_context", ""),
             conversation_history=format_conversation_for_prompt(state.get("messages", [])),
         )
 

@@ -175,7 +175,7 @@ class TestFetchNode:
             result = fetch_node(state)
 
             mock_rag.assert_called_once()
-            assert result["account_context_answer"] == "RAG context"
+            assert result["rag_context"] == "RAG context"
 
     def test_rag_skipped_no_entities(self):
         """RAG skipped when needs_rag=True but no entities resolved."""
@@ -197,7 +197,7 @@ class TestFetchNode:
             result = fetch_node(state)
 
             mock_rag.assert_not_called()
-            assert result.get("account_context_answer", "") == ""
+            assert result.get("rag_context", "") == ""
 
     def test_capture_eval_data_import_error(self):
         """_capture_eval_data handles ImportError when eval module unavailable."""
@@ -229,7 +229,7 @@ class TestFetchNode:
 
             result = fetch_node(state)
 
-            assert result.get("account_context_answer", "") == ""
+            assert result.get("rag_context", "") == ""
 
     def test_rag_with_contact_and_opportunity_ids(self):
         """RAG filters include contact_id and opportunity_id."""

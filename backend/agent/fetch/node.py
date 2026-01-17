@@ -129,7 +129,7 @@ def fetch_node(state: AgentState) -> AgentState:
     # Initialize result state
     result: dict[str, Any] = {
         "sql_results": {},
-        "account_context_answer": "",
+        "rag_context": "",
     }
 
     # Step 1: Plan SQL
@@ -153,7 +153,7 @@ def fetch_node(state: AgentState) -> AgentState:
     # Step 3: Fetch RAG using resolved IDs
     context, rag_invoked, chunks = _fetch_rag_if_needed(sql_plan.needs_rag, question, entity_ids)
     if context:
-        result["account_context_answer"] = context
+        result["rag_context"] = context
 
     # Capture eval data
     _capture_eval_data(sql_plan, rows, error, rag_invoked, chunks)

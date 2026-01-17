@@ -230,7 +230,7 @@ def test_single_question(
         sql_results = result.get("sql_results", {})
         if sql_results:
             all_contexts.append(json.dumps(sql_results, indent=2, default=str))
-        if account_context := result.get("account_context_answer", ""):
+        if account_context := result.get("rag_context", ""):
             all_contexts.append(account_context)
 
         # Check RAG detection accuracy (needs_rag decision from sql_plan vs expected)

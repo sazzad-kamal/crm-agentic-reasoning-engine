@@ -110,7 +110,7 @@ class TestAnswerNode:
                 "company_info": [{"name": "Acme", "company_id": "ACME-001"}],
                 "open_deals": [{"name": "Upgrade", "value": 50000}],
             },
-            "account_context_answer": "Context notes",
+            "rag_context": "Context notes",
         }
 
         answer_node(state)

@@ -1059,7 +1059,7 @@ class TestTestSingleQuestion:
                 {
                     "answer": "This is a good answer with enough content.",
                     "sql_results": {"company_info": [{"name": "Acme", "company_id": "ACME001"}]},
-                    "account_context_answer": "Account context from RAG",
+                    "rag_context": "Account context from RAG",
                 },
                 {
                     "sql_plan": None,
@@ -1145,7 +1145,7 @@ class TestTestSingleQuestion:
                 {
                     "answer": "Good answer with sufficient length.",
                     "sql_results": {},
-                    "account_context_answer": "context",
+                    "rag_context": "context",
                 },
                 {
                     "sql_plan": None,

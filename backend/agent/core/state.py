@@ -66,8 +66,8 @@ class AgentState(TypedDict, total=False):
     # SQL results from fetch node
     sql_results: dict[str, Any]
 
-    # Account RAG output (private CRM text: notes, descriptions)
-    account_context_answer: str
+    # RAG context (entity-scoped notes)
+    rag_context: str
 
     # Final outputs
     answer: str

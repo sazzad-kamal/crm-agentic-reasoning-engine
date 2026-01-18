@@ -8,7 +8,6 @@ import threading
 from typing import Any
 
 from backend.core.llm import JUDGE_MODEL, parse_json_response
-from backend.eval.shared import is_mock_mode
 
 logger = logging.getLogger(__name__)
 
@@ -89,11 +88,6 @@ def judge_sql_results(
         - passed: True if the results correctly answer the question
         - errors: List of issues found (empty if passed)
     """
-    # Mock mode for testing without API
-    if is_mock_mode():
-        logger.debug("SQL Judge: mock mode - returning pass")
-        return True, []
-
     try:
         client = _get_openai_client()
 

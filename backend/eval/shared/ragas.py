@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import random
 import sys
 import threading
@@ -11,7 +10,24 @@ import time
 import warnings
 from typing import Any
 
+from datasets import Dataset
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from ragas import evaluate
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from ragas.llms import LangchainLLMWrapper
+
 from backend.core.llm import EMBEDDING_MODEL, FAST_MODEL
+
+# Import metric CLASSES (not singleton instances) for thread-safe instantiation
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", DeprecationWarning)
+    from ragas.metrics import (
+        AnswerCorrectness,
+        AnswerRelevancy,
+        ContextPrecision,
+        ContextRecall,
+        Faithfulness,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -74,74 +90,6 @@ def _suppress_event_loop_closed_errors() -> None:
 _suppress_event_loop_closed_errors()
 
 
-def _is_mock_mode() -> bool:
-    """Check if MOCK_LLM mode is enabled."""
-    return os.environ.get("MOCK_LLM", "0") == "1"
-
-
-def _mock_evaluate_single(
-    question: str,
-    answer: str,
-    contexts: list[str],
-    reference_answer: str | None = None,
-) -> dict[str, float | str | list[str] | None]:
-    """Return mock RAGAS scores for testing without OpenAI API."""
-    # Return realistic mock scores based on content presence
-    has_answer = bool(answer and len(answer) > 10)
-    has_context = bool(contexts and contexts[0] != "No context provided")
-
-    if has_answer and has_context:
-        return {
-            "answer_relevancy": 0.85,
-            "faithfulness": 0.80,
-            "context_precision": 0.75,
-            "context_recall": 0.70 if reference_answer else 0.0,
-            "answer_correctness": 0.65 if reference_answer else 0.0,
-            "error": None,
-            "nan_metrics": [],
-        }
-    elif has_answer:
-        return {
-            "answer_relevancy": 0.70,
-            "faithfulness": 0.50,
-            "context_precision": 0.0,
-            "context_recall": 0.0,
-            "answer_correctness": 0.40 if reference_answer else 0.0,
-            "error": None,
-            "nan_metrics": [],
-        }
-    else:
-        return {
-            "answer_relevancy": 0.0,
-            "faithfulness": 0.0,
-            "context_precision": 0.0,
-            "context_recall": 0.0,
-            "answer_correctness": 0.0,
-            "error": None,
-            "nan_metrics": [],
-        }
-
-
-# Only import RAGAS dependencies when not in mock mode
-if not _is_mock_mode():
-    from datasets import Dataset
-    from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-    from ragas import evaluate
-    from ragas.embeddings import LangchainEmbeddingsWrapper
-    from ragas.llms import LangchainLLMWrapper
-
-    # Import metric CLASSES (not singleton instances) for thread-safe instantiation
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        from ragas.metrics import (
-            AnswerCorrectness,
-            AnswerRelevancy,
-            ContextPrecision,
-            ContextRecall,
-            Faithfulness,
-        )
-
-
 def _get_ragas_llm() -> Any:
     """Get shared LLM for RAGAS (thread-safe singleton)."""
     global _ragas_llm
@@ -185,10 +133,6 @@ def evaluate_single(
         dict with answer_relevancy, faithfulness, context_precision, answer_correctness (0.0-1.0)
         Also includes 'error' key (None if success, error message string if failed)
     """
-    # Return mock scores in mock mode (no OpenAI API needed)
-    if _is_mock_mode():
-        return _mock_evaluate_single(question, answer, contexts, reference_answer)
-
     # Suppress RAGAS output unless verbose
     if not verbose:
         logging.getLogger("ragas").setLevel(logging.ERROR)

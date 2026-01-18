@@ -363,65 +363,6 @@ class TestPrintFunctions:
 # =============================================================================
 # RAGAS Mock Mode Tests
 # =============================================================================
-
-
-class TestRagasMockMode:
-    """Tests for RAGAS mock mode evaluation."""
-
-    def test_mock_evaluate_single_with_context(self, monkeypatch):
-        """Test mock evaluate returns scores when answer and context present."""
-        monkeypatch.setenv("MOCK_LLM", "1")
-
-        # Force reimport with mock mode enabled
-        from backend.eval.shared.ragas import _mock_evaluate_single
-
-        result = _mock_evaluate_single(
-            question="What is the revenue?",
-            answer="The revenue is $1M for Q4.",
-            contexts=["Revenue data shows $1M."],
-            reference_answer="The Q4 revenue was $1 million.",
-        )
-
-        assert result["answer_relevancy"] == 0.85
-        assert result["faithfulness"] == 0.80
-        assert result["context_precision"] == 0.75
-        assert result["context_recall"] == 0.70
-        assert result["answer_correctness"] == 0.65
-
-    def test_mock_evaluate_single_without_context(self, monkeypatch):
-        """Test mock evaluate returns reduced scores without context."""
-        monkeypatch.setenv("MOCK_LLM", "1")
-
-        from backend.eval.shared.ragas import _mock_evaluate_single
-
-        result = _mock_evaluate_single(
-            question="What is the revenue?",
-            answer="The revenue is $1M for Q4.",
-            contexts=[],
-        )
-
-        assert result["answer_relevancy"] == 0.70
-        assert result["faithfulness"] == 0.50
-        assert result["context_precision"] == 0.0
-        assert result["context_recall"] == 0.0
-
-    def test_mock_evaluate_single_empty_answer(self, monkeypatch):
-        """Test mock evaluate returns zeros for empty answer."""
-        monkeypatch.setenv("MOCK_LLM", "1")
-
-        from backend.eval.shared.ragas import _mock_evaluate_single
-
-        result = _mock_evaluate_single(
-            question="What is the revenue?",
-            answer="",
-            contexts=["Some context"],
-        )
-
-        assert result["answer_relevancy"] == 0.0
-        assert result["faithfulness"] == 0.0
-
-
-# =============================================================================
 # LangSmith Latency Tests (with mocks)
 # =============================================================================
 
@@ -925,61 +866,107 @@ class TestPrintSloFailures:
 class TestRunnerModule:
     """Tests for backend.eval.integration.runner module."""
 
-    def test_judge_answer_success_with_mock(self):
-        """Test judge_answer uses mock mode and returns valid scores."""
-        from backend.eval.integration.runner import judge_answer
+    def test_judge_answer_success(self, monkeypatch):
+        """Test judge_answer returns valid scores."""
+        import backend.eval.integration.runner as runner
 
-        # In mock mode, judge_answer uses _mock_evaluate_single
-        # A long answer with context should return good scores
-        result = judge_answer(
+        def mock_evaluate(*args, **kwargs):
+            return {
+                "answer_relevancy": 0.85,
+                "faithfulness": 0.80,
+                "context_precision": 0.75,
+                "context_recall": 0.0,
+                "answer_correctness": 0.0,
+                "error": None,
+                "nan_metrics": [],
+            }
+
+        monkeypatch.setattr(runner, "evaluate_single", mock_evaluate)
+
+        result = runner.judge_answer(
             "What is the status?",
             "The status is active and working correctly.",
             ["Status data: Active"]
         )
-        # Mock mode returns: relevance=0.85, faithfulness=0.80
         assert result["relevance"] == 0.85
         assert result["faithfulness"] == 0.80
         assert result["ragas_failed"] is False
 
-    def test_judge_answer_without_context(self):
-        """Test judge_answer with empty context returns reduced scores."""
-        from backend.eval.integration.runner import judge_answer
+    def test_judge_answer_without_context(self, monkeypatch):
+        """Test judge_answer with empty context."""
+        import backend.eval.integration.runner as runner
 
-        result = judge_answer(
+        def mock_evaluate(*args, **kwargs):
+            return {
+                "answer_relevancy": 0.70,
+                "faithfulness": 0.50,
+                "context_precision": 0.0,
+                "context_recall": 0.0,
+                "answer_correctness": 0.0,
+                "error": None,
+                "nan_metrics": [],
+            }
+
+        monkeypatch.setattr(runner, "evaluate_single", mock_evaluate)
+
+        result = runner.judge_answer(
             "What is the status?",
             "The status is unknown at this time.",
-            []  # Empty context
+            []
         )
-        # Mock mode returns: relevance=0.70, faithfulness=0.50 without context
         assert result["relevance"] == 0.70
         assert result["faithfulness"] == 0.50
         assert result["ragas_failed"] is False
 
-    def test_judge_answer_short_answer(self):
+    def test_judge_answer_short_answer(self, monkeypatch):
         """Test judge_answer with short answer returns zeros."""
-        from backend.eval.integration.runner import judge_answer
+        import backend.eval.integration.runner as runner
 
-        result = judge_answer(
+        def mock_evaluate(*args, **kwargs):
+            return {
+                "answer_relevancy": 0.0,
+                "faithfulness": 0.0,
+                "context_precision": 0.0,
+                "context_recall": 0.0,
+                "answer_correctness": 0.0,
+                "error": None,
+                "nan_metrics": [],
+            }
+
+        monkeypatch.setattr(runner, "evaluate_single", mock_evaluate)
+
+        result = runner.judge_answer(
             "What?",
-            "Yes",  # Too short (< 10 chars)
+            "Yes",
             ["Context"]
         )
-        # Mock mode returns zeros for short answers
         assert result["relevance"] == 0.0
         assert result["faithfulness"] == 0.0
-        assert result["ragas_failed"] is False  # No error, just low scores
+        assert result["ragas_failed"] is False
 
-    def test_judge_answer_with_reference(self):
+    def test_judge_answer_with_reference(self, monkeypatch):
         """Test judge_answer with reference answer."""
-        from backend.eval.integration.runner import judge_answer
+        import backend.eval.integration.runner as runner
 
-        result = judge_answer(
+        def mock_evaluate(*args, **kwargs):
+            return {
+                "answer_relevancy": 0.85,
+                "faithfulness": 0.80,
+                "context_precision": 0.75,
+                "context_recall": 0.70,
+                "answer_correctness": 0.65,
+                "error": None,
+                "nan_metrics": [],
+            }
+
+        monkeypatch.setattr(runner, "evaluate_single", mock_evaluate)
+
+        result = runner.judge_answer(
             "What is the revenue?",
             "The revenue is approximately $1M for this quarter.",
             ["Revenue data shows $1M"],
             reference_answer="The Q4 revenue was $1 million.",
         )
-        # Mock mode includes answer_correctness when reference provided
         assert result["answer_correctness"] == 0.65
         assert result["relevance"] == 0.85
         assert result["faithfulness"] == 0.80
@@ -1482,55 +1469,6 @@ class TestModelsExtended:
         )
 
         assert result.passed is False
-
-
-# =============================================================================
-# Judge Module Tests (Extended)
-# =============================================================================
-
-
-class TestJudgeExtended:
-    """Extended tests for judge module."""
-
-    def test_mock_evaluate_single_no_reference(self):
-        """Test mock evaluate without reference answer."""
-        from backend.eval.shared.ragas import _mock_evaluate_single
-
-        result = _mock_evaluate_single(
-            question="What is the status?",
-            answer="The status is active with enough content.",
-            contexts=["Status is active"],
-            reference_answer=None,  # No reference
-        )
-
-        assert result["context_recall"] == 0.0  # No reference = no recall
-        assert result["answer_correctness"] == 0.0  # No reference = no correctness
-
-    def test_mock_evaluate_single_short_answer(self):
-        """Test mock evaluate with short answer (< 10 chars)."""
-        from backend.eval.shared.ragas import _mock_evaluate_single
-
-        result = _mock_evaluate_single(
-            question="What?",
-            answer="Yes",  # Too short (< 10 chars)
-            contexts=["Some context"],
-        )
-
-        assert result["answer_relevancy"] == 0.0  # Short answer = no relevancy
-
-    def test_mock_evaluate_single_no_context_placeholder(self):
-        """Test mock evaluate with 'No context provided' placeholder."""
-        from backend.eval.shared.ragas import _mock_evaluate_single
-
-        result = _mock_evaluate_single(
-            question="What?",
-            answer="This is a good answer with enough content.",
-            contexts=["No context provided"],  # Placeholder context
-        )
-
-        # Should be treated as no context
-        assert result["context_precision"] == 0.0
-        assert result["answer_relevancy"] == 0.70  # Reduced score
 
 
 # =============================================================================
@@ -2112,17 +2050,6 @@ class TestJudgeModule:
 
         # Should not raise
         _suppress_event_loop_closed_errors()
-
-    def test_is_mock_mode(self, monkeypatch):
-        """Test _is_mock_mode returns correct value."""
-        from backend.eval.shared.ragas import _is_mock_mode
-
-        monkeypatch.setenv("MOCK_LLM", "1")
-        # Need to reimport or check current state
-        assert _is_mock_mode() is True
-
-        monkeypatch.setenv("MOCK_LLM", "0")
-        assert _is_mock_mode() is False
 
 
 # =============================================================================

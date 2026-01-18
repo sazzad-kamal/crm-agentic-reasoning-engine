@@ -1221,8 +1221,7 @@ class TestLangSmithPercentages:
         class MockClient:
             def list_runs(self, **kwargs):
                 return [
-                    MockRun("route", now, now + timedelta(milliseconds=100)),
-                    MockRun("fetch_rag", now, now + timedelta(milliseconds=400)),
+                    MockRun("fetch", now, now + timedelta(milliseconds=400)),
                     MockRun("answer", now, now + timedelta(milliseconds=300)),
                     MockRun("followup", now, now + timedelta(milliseconds=200)),
                 ]
@@ -1236,12 +1235,12 @@ class TestLangSmithPercentages:
 
         result = get_latency_percentages()
 
-        assert "routing" in result
-        assert "retrieval" in result
+        assert "fetch" in result
         assert "answer" in result
-        # Total = 100 + 400 + 300 + 200 = 1000
-        assert abs(result["routing"] - 0.10) < 0.01  # 100/1000
-        assert abs(result["retrieval"] - 0.40) < 0.01  # 400/1000
+        assert "followup" in result
+        # Total avg = 400 + 300 + 200 = 900ms
+        assert abs(result["fetch"] - 400 / 900) < 0.01
+        assert abs(result["answer"] - 300 / 900) < 0.01
 
     def test_get_latency_percentages_empty_breakdown(self, monkeypatch):
         """Test get_latency_percentages with empty breakdown."""

@@ -100,9 +100,9 @@ def print_summary(results: FlowEvalResults, latency_pcts: dict[str, float] | Non
         sections.append((
             "LangSmith (info)",
             [
-                ("  Routing", format_percentage(latency_pcts.get("routing", 0)), "-", None),
-                ("  Retrieval", format_percentage(latency_pcts.get("retrieval", 0)), "-", None),
+                ("  Fetch", format_percentage(latency_pcts.get("fetch", 0)), "-", None),
                 ("  Answer", format_percentage(latency_pcts.get("answer", 0)), "-", None),
+                ("  Followup", format_percentage(latency_pcts.get("followup", 0)), "-", None),
             ],
         ))
 

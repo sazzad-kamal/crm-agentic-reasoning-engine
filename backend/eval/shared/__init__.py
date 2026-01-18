@@ -20,11 +20,6 @@ def measure_latency_ms(start_time: float) -> float:
     return (time.time() - start_time) * 1000
 
 
-def safe_average(values: list[float], default: float = 0.0) -> float:
-    """Calculate average, returning default if list is empty."""
-    return sum(values) / len(values) if values else default
-
-
 def load_project_env() -> None:
     """Load .env from project root."""
     project_root = Path(__file__).parent.parent.parent.parent
@@ -41,6 +36,5 @@ __all__ = [
     # Utilities
     "is_mock_mode",
     "measure_latency_ms",
-    "safe_average",
     "load_project_env",
 ]

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from backend.eval.shared.formatting import console, print_debug_failures, print_eval_header
+from backend.eval.shared.formatting import console
 from backend.eval.shared.ragas import evaluate_single
 
 
@@ -27,13 +27,8 @@ def load_project_env() -> None:
 
 
 __all__ = [
-    # Formatting
     "console",
-    "print_debug_failures",
-    "print_eval_header",
-    # RAGAS
     "evaluate_single",
-    # Utilities
     "is_mock_mode",
     "measure_latency_ms",
     "load_project_env",

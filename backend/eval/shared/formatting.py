@@ -1,14 +1,10 @@
 """
 Formatting utilities for eval output.
 
-Rich console formatting helpers for tables, panels, and styled output.
+Rich console formatting helpers for tables and styled output.
 """
 
-from collections.abc import Callable
-from typing import Any
-
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
 
 # Shared console instance
@@ -34,49 +30,6 @@ def format_percentage(value: float, thresholds: tuple[float, float] = (0.9, 0.7)
     else:
         color = "red"
     return f"[{color}]{value:.1%}[/{color}]"
-
-
-def print_eval_header(title: str, subtitle: str) -> None:
-    """Print evaluation header panel."""
-    console.print(
-        Panel(
-            subtitle,
-            title=title,
-            border_style="blue",
-        )
-    )
-
-
-def print_debug_failures(
-    failures: list[dict[str, Any]],
-    title: str,
-    max_items: int = 10,
-    format_item: Callable[[int, dict[str, Any]], None] | None = None,
-) -> None:
-    """
-    Print debug output for failed items.
-
-    Args:
-        failures: List of failure dictionaries
-        title: Title for the debug section
-        max_items: Maximum number of items to show
-        format_item: Optional function to format each item (receives index, item)
-    """
-    if not failures:
-        return
-
-    console.print("\n" + "=" * 80)
-    console.print(f"[bold yellow]DEBUG: {title}[/bold yellow]")
-    console.print("=" * 80)
-
-    for i, item in enumerate(failures[:max_items]):
-        if format_item:
-            format_item(i, item)
-        else:
-            console.print(f"\n[bold cyan]--- Item {i + 1} ---[/bold cyan]")
-            for key, value in item.items():
-                console.print(f"[bold]{key}:[/bold] {value}")
-        console.print("-" * 40)
 
 
 def build_eval_table(
@@ -132,7 +85,5 @@ def build_eval_table(
 __all__ = [
     "console",
     "format_percentage",
-    "print_eval_header",
-    "print_debug_failures",
     "build_eval_table",
 ]

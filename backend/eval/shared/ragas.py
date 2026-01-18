@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import logging
+import math
 import random
 import sys
 import threading
 import time
 import warnings
-from typing import Any
+from contextlib import contextmanager
+from typing import Any, Generator
 
 from datasets import Dataset
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -31,10 +33,23 @@ with warnings.catch_warnings():
 
 logger = logging.getLogger(__name__)
 
-# Thread-safe singleton instances for RAGAS LLM/embeddings
+# Thread-safe singleton instances for RAGAS LLM/embeddings/metrics
 _ragas_llm = None
 _ragas_embeddings = None
+_ragas_metrics: dict[str, Any] | None = None
 _ragas_lock = threading.Lock()
+
+
+@contextmanager
+def _suppress_ragas_logging() -> Generator[None, None, None]:
+    """Temporarily suppress RAGAS logging, restoring original level on exit."""
+    ragas_logger = logging.getLogger("ragas")
+    original_level = ragas_logger.level
+    ragas_logger.setLevel(logging.ERROR)
+    try:
+        yield
+    finally:
+        ragas_logger.setLevel(original_level)
 
 
 # Suppress "Event loop is closed" errors from httpx/aiohttp during cleanup
@@ -110,6 +125,40 @@ def _get_ragas_embeddings() -> Any:
                 logger.info(f"Initializing RAGAS embeddings ({EMBEDDING_MODEL})")
                 _ragas_embeddings = LangchainEmbeddingsWrapper(OpenAIEmbeddings(model=EMBEDDING_MODEL))
     return _ragas_embeddings
+
+
+def _get_ragas_metrics(include_reference: bool = False) -> list[Any]:
+    """Get shared RAGAS metrics (thread-safe singleton).
+
+    Args:
+        include_reference: If True, include metrics that require reference answer
+                          (ContextRecall, AnswerCorrectness)
+
+    Returns:
+        List of RAGAS metric instances
+    """
+    global _ragas_metrics
+    if _ragas_metrics is None:
+        with _ragas_lock:
+            if _ragas_metrics is None:
+                llm = _get_ragas_llm()
+                embeddings = _get_ragas_embeddings()
+                logger.info("Initializing RAGAS metrics")
+                _ragas_metrics = {
+                    "base": [
+                        AnswerRelevancy(llm=llm, embeddings=embeddings),
+                        Faithfulness(llm=llm),
+                        ContextPrecision(llm=llm),
+                    ],
+                    "reference": [
+                        ContextRecall(llm=llm),
+                        AnswerCorrectness(llm=llm),
+                    ],
+                }
+
+    if include_reference:
+        return _ragas_metrics["base"] + _ragas_metrics["reference"]
+    return _ragas_metrics["base"]
 
 
 def evaluate_single(

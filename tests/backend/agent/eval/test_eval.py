@@ -333,33 +333,6 @@ class TestTables:
         assert len(table.columns) == 3  # Metric, Value, SLO
 
 
-class TestPrintFunctions:
-    """Tests for print/output functions (verify they don't crash)."""
-
-    def test_print_eval_header(self):
-        """Test print_eval_header runs without error."""
-        from backend.eval.shared.formatting import print_eval_header
-
-        print_eval_header("Test Header", "Test Subtitle")
-
-    def test_print_debug_failures_empty(self):
-        """Test print_debug_failures with empty list."""
-        from backend.eval.shared.formatting import print_debug_failures
-
-        print_debug_failures([], "No Failures")
-
-    def test_print_debug_failures_with_items(self):
-        """Test print_debug_failures with items."""
-        from backend.eval.shared.formatting import print_debug_failures
-
-        failures = [
-            {"id": "t1", "error": "Test error 1"},
-            {"id": "t2", "error": "Test error 2"},
-        ]
-
-        print_debug_failures(failures, "Test Failures")
-
-
 # =============================================================================
 # RAGAS Mock Mode Tests
 # =============================================================================
@@ -1382,23 +1355,6 @@ class TestFormattingExtended:
 
         table = build_eval_table("Test", sections)
         assert table.title == "Test"
-
-    def test_print_debug_failures_with_format_item(self):
-        """Test print_debug_failures with custom format_item function."""
-        from backend.eval.shared.formatting import print_debug_failures
-
-        format_called = {"count": 0}
-
-        def custom_format(i, item):
-            format_called["count"] += 1
-
-        failures = [
-            {"id": "t1", "error": "Error 1"},
-            {"id": "t2", "error": "Error 2"},
-        ]
-
-        print_debug_failures(failures, "Test", format_item=custom_format)
-        assert format_called["count"] == 2
 
 
 # =============================================================================

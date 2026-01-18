@@ -3,31 +3,31 @@
 from __future__ import annotations
 
 import asyncio
-import atexit
-import logging
 import platform
-import time
 from pathlib import Path
 
-import typer
-from rich.panel import Panel
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parents[3] / ".env")
 
 # Fix Windows asyncio cleanup issues with httpx/RAGAS
 # Use SelectorEventLoop instead of ProactorEventLoop to avoid "Event loop is closed" errors
 if platform.system() == "Windows":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-from backend.eval.shared import load_project_env
+import atexit
+import logging
+import time
 
-# Load environment before other imports
-load_project_env()
+import typer
+from rich.panel import Panel
 
 from backend.agent.fetch.rag.client import close_qdrant_client
 from backend.eval.integration.langsmith import get_latency_percentages
 from backend.eval.integration.output import check_qdrant_access, print_summary, save_results
 from backend.eval.integration.runner import run_flow_eval
 from backend.eval.integration.tree import get_tree_stats
-from backend.eval.shared.formatting import console, print_debug_failures
+from backend.eval.shared.formatting import console
 
 # Register cleanup to prevent shutdown errors
 atexit.register(close_qdrant_client)
@@ -139,38 +139,16 @@ def _run_eval(
 
     # Debug output for failing paths
     if debug and results.failed_paths:
-
-        def format_failed_path(i: int, item: dict) -> None:
-            console.print(f"\n[bold cyan]--- Path {item['path_id']} ---[/bold cyan]")
-            for j, step in enumerate(item["steps"]):
-                status = "PASS" if step["passed"] else "FAIL"
-                console.print(f"[bold]Q{j + 1}:[/bold] {step['question']}")
-                console.print(f"    [{status}] R={step['relevance_score']} F={step['faithfulness_score']}")
-                console.print(f"    [bold]Answer:[/bold] {step['answer'][:200]}...")
-                if step["judge_explanation"]:
-                    console.print(f"    [bold]Judge:[/bold] {step['judge_explanation']}")
-
-        print_debug_failures(
-            [
-                {
-                    "path_id": fp.path_id,
-                    "steps": [
-                        {
-                            "question": s.question,
-                            "passed": s.passed,
-                            "relevance_score": s.relevance_score,
-                            "faithfulness_score": s.faithfulness_score,
-                            "answer": s.answer,
-                            "judge_explanation": s.judge_explanation,
-                        }
-                        for s in fp.steps
-                    ],
-                }
-                for fp in results.failed_paths
-            ],
-            title="Full details for failed paths",
-            format_item=format_failed_path,
-        )
+        console.print("\n[bold yellow]DEBUG: Failed paths[/bold yellow]")
+        for fp in results.failed_paths[:10]:
+            console.print(f"\n[bold cyan]--- Path {fp.path_id} ---[/bold cyan]")
+            for j, s in enumerate(fp.steps):
+                status = "PASS" if s.passed else "FAIL"
+                console.print(f"[bold]Q{j + 1}:[/bold] {s.question}")
+                console.print(f"    [{status}] R={s.relevance_score} F={s.faithfulness_score}")
+                console.print(f"    [bold]Answer:[/bold] {s.answer[:200]}...")
+                if s.judge_explanation:
+                    console.print(f"    [bold]Judge:[/bold] {s.judge_explanation}")
 
     # Save if requested
     if output:

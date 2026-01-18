@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parents[3] / ".env")
+
 import logging
 
 import typer
-
-from backend.eval.shared import load_project_env
-
-# Load environment before other imports
-load_project_env()
 
 from backend.eval.fetch.runner import print_summary, run_sql_eval
 

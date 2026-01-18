@@ -13,7 +13,7 @@ from rich.table import Table
 
 from backend.eval.integration.models import FlowEvalResults, FlowResult, FlowStepResult
 from backend.eval.integration.tree import get_all_paths, get_expected_answer
-from backend.eval.shared.formatting import console, print_eval_header
+from backend.eval.shared.formatting import console
 from backend.eval.shared.ragas import evaluate_single
 
 logger = logging.getLogger(__name__)
@@ -329,12 +329,6 @@ def run_flow_eval(
     # Generate all paths
     all_paths = get_all_paths()
     paths_to_test = all_paths[:max_paths] if max_paths else all_paths
-
-    # Print header
-    print_eval_header(
-        "[bold blue]Conversation Flow Evaluation[/bold blue]",
-        "Testing multi-turn conversation paths with RAGAS metrics",
-    )
 
     config_table = Table(show_header=False, box=None, padding=(0, 2))
     config_table.add_column("Key", style="dim")

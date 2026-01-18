@@ -10,10 +10,10 @@ This is the single data-fetching node in the workflow that:
 import logging
 from typing import Any, cast
 
-from backend.agent.core.state import AgentState, format_conversation_for_prompt
 from backend.agent.fetch.planner import SQLPlan, get_sql_plan
 from backend.agent.fetch.sql.connection import get_connection
 from backend.agent.fetch.sql.executor import execute_sql
+from backend.agent.state import AgentState, format_conversation_for_prompt
 
 logger = logging.getLogger(__name__)
 

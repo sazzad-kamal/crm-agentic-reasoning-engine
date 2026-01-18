@@ -8,11 +8,12 @@ from pathlib import Path
 import anthropic
 from pydantic import BaseModel, Field
 
-from backend.agent.core.config import get_config
-from backend.agent.core.llm import load_prompt, parse_json_response
 from backend.agent.fetch.sql.schema import get_schema_sql
+from backend.core.llm import load_prompt, parse_json_response
 
 logger = logging.getLogger(__name__)
+
+_ROUTER_MODEL = "claude-sonnet-4-5-20241022"
 
 _DIR = Path(__file__).parent
 
@@ -36,8 +37,6 @@ def get_sql_plan(question: str, conversation_history: str = "") -> SQLPlan:
 
     Returns SQLPlan with SQL string and needs_rag flag.
     """
-    config = get_config()
-
     prompt = load_prompt(_DIR / "prompt.txt").format(
         today=datetime.now().strftime("%Y-%m-%d"),
         schema=get_schema_sql(),
@@ -46,7 +45,7 @@ def get_sql_plan(question: str, conversation_history: str = "") -> SQLPlan:
     )
 
     response = _get_client().messages.create(
-        model=config.router_model,
+        model=_ROUTER_MODEL,
         max_tokens=1024,
         messages=[{"role": "user", "content": f"{prompt}\n\nQuestion: {question}"}],
     )

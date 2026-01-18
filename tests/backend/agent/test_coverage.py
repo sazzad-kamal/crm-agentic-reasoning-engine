@@ -53,7 +53,7 @@ class TestFetchNode:
     def test_sql_planning_failure(self):
         """SQL planning failure returns error state."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.core.state import AgentState
+        from backend.agent.state import AgentState
 
         state: AgentState = {"question": "test question"}
 
@@ -68,7 +68,7 @@ class TestFetchNode:
     def test_successful_sql_execution(self):
         """Successful SQL execution populates results."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.core.state import AgentState
+        from backend.agent.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
 
         state: AgentState = {"question": "What deals are in the pipeline?"}
@@ -92,7 +92,7 @@ class TestFetchNode:
     def test_sql_execution_with_retry(self):
         """SQL execution retries on failure."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.core.state import AgentState
+        from backend.agent.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
 
         state: AgentState = {"question": "test"}
@@ -119,7 +119,7 @@ class TestFetchNode:
     def test_sql_execution_failure(self):
         """SQL execution exception is handled."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.core.state import AgentState
+        from backend.agent.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
 
         state: AgentState = {"question": "test"}
@@ -138,7 +138,7 @@ class TestFetchNode:
     def test_empty_sql_skips_execution(self):
         """Empty SQL skips execution step."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.core.state import AgentState
+        from backend.agent.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
 
         state: AgentState = {"question": "hello"}
@@ -154,7 +154,7 @@ class TestFetchNode:
     def test_rag_with_resolved_entities(self):
         """RAG is invoked when needs_rag=True and entities resolved."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.core.state import AgentState
+        from backend.agent.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
 
         state: AgentState = {"question": "What are Delta's notes?"}
@@ -180,7 +180,7 @@ class TestFetchNode:
     def test_rag_skipped_no_entities(self):
         """RAG skipped when needs_rag=True but no entities resolved."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.core.state import AgentState
+        from backend.agent.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
 
         state: AgentState = {"question": "test"}
@@ -209,7 +209,7 @@ class TestFetchNode:
     def test_rag_fetch_exception_handled(self):
         """RAG fetch exception is caught and returns empty result."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.core.state import AgentState
+        from backend.agent.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
 
         state: AgentState = {"question": "What are Delta's notes?"}
@@ -234,7 +234,7 @@ class TestFetchNode:
     def test_rag_with_contact_and_opportunity_ids(self):
         """RAG filters include contact_id and opportunity_id."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.core.state import AgentState
+        from backend.agent.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
 
         state: AgentState = {"question": "test"}
@@ -682,12 +682,10 @@ class TestGenerateFollowUpDisabled:
 
     @pytest.mark.no_mock_llm
     def test_returns_empty_when_disabled(self):
-        """Returns empty list when follow-ups are disabled in config."""
+        """Returns empty list when follow-ups are disabled."""
         from backend.agent.followup.llm import generate_follow_up_suggestions
 
-        with patch("backend.agent.followup.llm.get_config") as mock_config:
-            mock_config.return_value.enable_follow_up_suggestions = False
-
+        with patch("backend.agent.followup.llm._ENABLE_FOLLOW_UP_SUGGESTIONS", False):
             result = generate_follow_up_suggestions(
                 question="What's the pipeline?",
                 company_name="Acme",
@@ -831,50 +829,6 @@ class TestExecuteSql:
 
 
 # =============================================================================
-# core/config.py Tests
-# =============================================================================
-
-
-class TestAgentConfig:
-    """Tests for AgentConfig validation."""
-
-    def test_invalid_temperature_raises(self):
-        """Invalid temperature raises ValueError."""
-        from backend.agent.core.config import AgentConfig
-
-        with pytest.raises(ValueError, match="temperature"):
-            AgentConfig(llm_temperature=3.0)
-
-    def test_negative_temperature_raises(self):
-        """Negative temperature raises ValueError."""
-        from backend.agent.core.config import AgentConfig
-
-        with pytest.raises(ValueError, match="temperature"):
-            AgentConfig(llm_temperature=-0.5)
-
-
-class TestIsMockMode:
-    """Tests for is_mock_mode function."""
-
-    def test_mock_mode_enabled(self):
-        """Returns True when MOCK_LLM=1."""
-        from backend.agent.core.config import is_mock_mode
-
-        with patch.dict("os.environ", {"MOCK_LLM": "1"}):
-            assert is_mock_mode() is True
-
-    def test_mock_mode_disabled(self):
-        """Returns False when MOCK_LLM not set or 0."""
-        from backend.agent.core.config import is_mock_mode
-
-        with patch.dict("os.environ", {"MOCK_LLM": "0"}):
-            assert is_mock_mode() is False
-
-        with patch.dict("os.environ", {}, clear=True):
-            assert is_mock_mode() is False
-
-
-# =============================================================================
 # llm/client.py Tests
 # =============================================================================
 
@@ -884,7 +838,7 @@ class TestLoadPrompt:
 
     def test_load_prompt_reads_file(self):
         """load_prompt reads and returns ChatPromptTemplate."""
-        from backend.agent.core.llm import load_prompt
+        from backend.core.llm import load_prompt
         from langchain_core.prompts import ChatPromptTemplate
 
         # Use an existing prompt file from the codebase

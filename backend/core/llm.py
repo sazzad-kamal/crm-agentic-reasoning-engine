@@ -180,12 +180,12 @@ def parse_json_response(text: str) -> dict:
         ValueError: If JSON cannot be parsed
     """
     try:
-        return json.loads(text)
+        return json.loads(text)  # type: ignore[no-any-return]
     except json.JSONDecodeError:
         # Try to extract JSON from markdown code block
         if match := re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL):
-            return json.loads(match.group(1))
-        raise ValueError(f"Failed to parse JSON from response: {text[:200]}")
+            return json.loads(match.group(1))  # type: ignore[no-any-return]
+        raise ValueError(f"Failed to parse JSON from response: {text[:200]}") from None
 
 
 __all__ = [

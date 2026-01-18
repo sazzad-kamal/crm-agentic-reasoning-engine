@@ -8,7 +8,7 @@ Run with: pytest tests/backend/agent/test_conversation_history.py -v
 
 import pytest
 
-from backend.agent.core.state import AgentState, Message, format_conversation_for_prompt
+from backend.agent.state import AgentState, Message, format_conversation_for_prompt
 
 
 class TestMessageType:

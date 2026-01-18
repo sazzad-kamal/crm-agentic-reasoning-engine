@@ -7,7 +7,7 @@ import logging
 import threading
 from typing import Any
 
-from backend.agent.core.llm import parse_json_response
+from backend.core.llm import parse_json_response
 from backend.eval.shared import is_mock_mode
 
 logger = logging.getLogger(__name__)

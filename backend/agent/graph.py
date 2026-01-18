@@ -6,9 +6,9 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 
 from backend.agent.answer.node import answer_node
-from backend.agent.core.state import AgentState
 from backend.agent.fetch import fetch_node
 from backend.agent.followup.node import followup_node
+from backend.agent.state import AgentState
 
 
 # LangGraph event constants (not exported by langgraph package)

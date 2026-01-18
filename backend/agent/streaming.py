@@ -5,7 +5,6 @@ import logging
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from backend.agent.core.state import AgentState
 from backend.agent.graph import (
     ANSWER_NODE,
     GRAPH_NAME,
@@ -13,6 +12,7 @@ from backend.agent.graph import (
     agent_graph,
     build_thread_config,
 )
+from backend.agent.state import AgentState
 
 logger = logging.getLogger(__name__)
 

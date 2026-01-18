@@ -131,13 +131,10 @@ class TestFollowupNode:
     """Tests for followup_node function."""
 
     @patch('backend.agent.followup.node.generate_follow_up_suggestions')
-    @patch('backend.agent.followup.node.get_config')
-    def test_followup_node_generates_suggestions(self, mock_config, mock_generate):
+    def test_followup_node_generates_suggestions(self, mock_generate):
         """Generates follow-up suggestions."""
         from backend.agent.followup.node import followup_node
 
-        mock_config.return_value.enable_follow_up_suggestions = True
-        mock_config.return_value.max_followup_suggestions = 3
         mock_generate.return_value = [
             "What about their contacts?",
             "Show me recent activities",
@@ -154,30 +151,25 @@ class TestFollowupNode:
         assert "follow_up_suggestions" in result
         assert len(result["follow_up_suggestions"]) == 2
 
-    @patch('backend.agent.followup.node.get_config')
-    def test_followup_node_respects_disabled_setting(self, mock_config):
+    def test_followup_node_respects_disabled_setting(self):
         """Returns empty when suggestions disabled."""
         from backend.agent.followup.node import followup_node
 
-        mock_config.return_value.enable_follow_up_suggestions = False
+        with patch('backend.agent.followup.node._ENABLE_FOLLOW_UP_SUGGESTIONS', False):
+            state = {
+                "question": "Test",
+                "messages": [],
+            }
 
-        state = {
-            "question": "Test",
-            "messages": [],
-        }
+            result = followup_node(state)
 
-        result = followup_node(state)
-
-        assert result["follow_up_suggestions"] == []
+            assert result["follow_up_suggestions"] == []
 
     @patch('backend.agent.followup.node.generate_follow_up_suggestions')
-    @patch('backend.agent.followup.node.get_config')
-    def test_followup_node_limits_suggestions(self, mock_config, mock_generate):
-        """Limits suggestions to max_followup_suggestions."""
+    def test_followup_node_limits_suggestions(self, mock_generate):
+        """Limits suggestions to _MAX_FOLLOWUP_SUGGESTIONS."""
         from backend.agent.followup.node import followup_node
 
-        mock_config.return_value.enable_follow_up_suggestions = True
-        mock_config.return_value.max_followup_suggestions = 2
         mock_generate.return_value = [
             "Suggestion 1",
             "Suggestion 2",
@@ -185,24 +177,22 @@ class TestFollowupNode:
             "Suggestion 4",
         ]
 
-        state = {
-            "question": "Test",
-            "messages": [],
-            "sql_results": {},
-        }
+        with patch('backend.agent.followup.node._MAX_FOLLOWUP_SUGGESTIONS', 2):
+            state = {
+                "question": "Test",
+                "messages": [],
+                "sql_results": {},
+            }
 
-        result = followup_node(state)
+            result = followup_node(state)
 
-        assert len(result["follow_up_suggestions"]) == 2
+            assert len(result["follow_up_suggestions"]) == 2
 
     @patch('backend.agent.followup.node.generate_follow_up_suggestions')
-    @patch('backend.agent.followup.node.get_config')
-    def test_followup_node_filters_empty_suggestions(self, mock_config, mock_generate):
+    def test_followup_node_filters_empty_suggestions(self, mock_generate):
         """Filters out empty suggestions."""
         from backend.agent.followup.node import followup_node
 
-        mock_config.return_value.enable_follow_up_suggestions = True
-        mock_config.return_value.max_followup_suggestions = 5
         mock_generate.return_value = [
             "Valid suggestion",
             "",
@@ -222,12 +212,10 @@ class TestFollowupNode:
         assert len(result["follow_up_suggestions"]) == 2
 
     @patch('backend.agent.followup.node.generate_follow_up_suggestions')
-    @patch('backend.agent.followup.node.get_config')
-    def test_followup_node_handles_exception(self, mock_config, mock_generate):
+    def test_followup_node_handles_exception(self, mock_generate):
         """Handles exceptions gracefully."""
         from backend.agent.followup.node import followup_node
 
-        mock_config.return_value.enable_follow_up_suggestions = True
         mock_generate.side_effect = Exception("Generation failed")
 
         state = {
@@ -241,13 +229,10 @@ class TestFollowupNode:
         assert result["follow_up_suggestions"] == []
 
     @patch('backend.agent.followup.node.generate_follow_up_suggestions')
-    @patch('backend.agent.followup.node.get_config')
-    def test_followup_node_extracts_company_name_from_sql_results(self, mock_config, mock_generate):
+    def test_followup_node_extracts_company_name_from_sql_results(self, mock_generate):
         """Extracts company name from sql_results."""
         from backend.agent.followup.node import followup_node
 
-        mock_config.return_value.enable_follow_up_suggestions = True
-        mock_config.return_value.max_followup_suggestions = 3
         mock_generate.return_value = ["What about their pipeline?"]
 
         state = {
@@ -264,13 +249,10 @@ class TestFollowupNode:
         assert call_kwargs["company_name"] == "Acme Manufacturing"
 
     @patch('backend.agent.followup.node.generate_follow_up_suggestions')
-    @patch('backend.agent.followup.node.get_config')
-    def test_followup_node_builds_available_data_from_sql_results(self, mock_config, mock_generate):
+    def test_followup_node_builds_available_data_from_sql_results(self, mock_generate):
         """Builds available_data counts from sql_results."""
         from backend.agent.followup.node import followup_node
 
-        mock_config.return_value.enable_follow_up_suggestions = True
-        mock_config.return_value.max_followup_suggestions = 3
         mock_generate.return_value = []
 
         state = {
@@ -291,13 +273,10 @@ class TestFollowupNode:
         assert call_kwargs["available_data"]["activities"] == 1
 
     @patch('backend.agent.followup.node.generate_follow_up_suggestions')
-    @patch('backend.agent.followup.node.get_config')
-    def test_followup_node_counts_non_list_data_as_one(self, mock_config, mock_generate):
+    def test_followup_node_counts_non_list_data_as_one(self, mock_generate):
         """Non-list truthy data is counted as 1 in available_data."""
         from backend.agent.followup.node import followup_node
 
-        mock_config.return_value.enable_follow_up_suggestions = True
-        mock_config.return_value.max_followup_suggestions = 3
         mock_generate.return_value = []
 
         state = {

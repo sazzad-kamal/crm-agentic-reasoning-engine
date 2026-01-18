@@ -2,17 +2,17 @@
 
 import logging
 
-from backend.agent.core.config import get_config
-from backend.agent.core.state import AgentState, format_conversation_for_prompt
 from backend.agent.followup.llm import generate_follow_up_suggestions
+from backend.agent.state import AgentState, format_conversation_for_prompt
 
 logger = logging.getLogger(__name__)
 
+_ENABLE_FOLLOW_UP_SUGGESTIONS = True
+_MAX_FOLLOWUP_SUGGESTIONS = 3
+
 
 def followup_node(state: AgentState) -> AgentState:
-    config = get_config()
-
-    if not config.enable_follow_up_suggestions:
+    if not _ENABLE_FOLLOW_UP_SUGGESTIONS:
         logger.info("[Followup] Suggestions disabled in config")
         return {"follow_up_suggestions": []}
 
@@ -47,7 +47,7 @@ def followup_node(state: AgentState) -> AgentState:
         # Validate and limit suggestions
         if suggestions:
             suggestions = [s for s in suggestions if s and s.strip()]
-            suggestions = suggestions[: config.max_followup_suggestions]
+            suggestions = suggestions[:_MAX_FOLLOWUP_SUGGESTIONS]
 
         logger.info(f"[Followup] Generated {len(suggestions)} suggestions")
 

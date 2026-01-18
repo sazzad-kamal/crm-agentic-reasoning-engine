@@ -11,10 +11,12 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from backend.agent.core.config import get_config
-from backend.agent.core.llm import create_chain, load_prompt
+from backend.core.llm import create_chain, load_prompt
 
 logger = logging.getLogger(__name__)
+
+_LLM_MODEL = "gpt-4o-mini"
+_ENABLE_FOLLOW_UP_SUGGESTIONS = True
 
 FOLLOW_UP_PROMPT_TEMPLATE = load_prompt(Path(__file__).parent / "prompt.txt")
 
@@ -37,10 +39,9 @@ def _get_followup_chain() -> Any:
     """Get or create the followup chain."""
     global _followup_chain
     if _followup_chain is None:
-        config = get_config()
         _followup_chain = create_chain(
             FOLLOW_UP_PROMPT_TEMPLATE,
-            model=config.llm_model,
+            model=_LLM_MODEL,
             temperature=0.7,
             max_tokens=150,
             structured_output=FollowUpSuggestions,
@@ -68,9 +69,7 @@ def generate_follow_up_suggestions(
     Returns:
         List of up to 3 follow-up question suggestions
     """
-    config = get_config()
-
-    if not config.enable_follow_up_suggestions:
+    if not _ENABLE_FOLLOW_UP_SUGGESTIONS:
         return []
 
     # Try hardcoded tree first (fast, deterministic)

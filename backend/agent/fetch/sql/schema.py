@@ -18,7 +18,8 @@ _SCHEMA_PATH = Path(__file__).parent / "schema.yaml"
 def _load_schema() -> dict:
     """Load schema from YAML file (cached)."""
     with open(_SCHEMA_PATH) as f:
-        return yaml.safe_load(f)
+        result: dict = yaml.safe_load(f)
+        return result
 
 
 def get_table_names() -> list[str]:

@@ -11,6 +11,8 @@ import time
 import warnings
 from typing import Any
 
+from backend.core.llm import EMBEDDING_MODEL, FAST_MODEL
+
 logger = logging.getLogger(__name__)
 
 # Thread-safe singleton instances for RAGAS LLM/embeddings
@@ -146,8 +148,8 @@ def _get_ragas_llm() -> Any:
     if _ragas_llm is None:
         with _ragas_lock:
             if _ragas_llm is None:
-                logger.info("Initializing RAGAS LLM (gpt-4o-mini)")
-                _ragas_llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-4o-mini", temperature=0))
+                logger.info(f"Initializing RAGAS LLM ({FAST_MODEL})")
+                _ragas_llm = LangchainLLMWrapper(ChatOpenAI(model=FAST_MODEL, temperature=0))
     return _ragas_llm
 
 
@@ -157,8 +159,8 @@ def _get_ragas_embeddings() -> Any:
     if _ragas_embeddings is None:
         with _ragas_lock:
             if _ragas_embeddings is None:
-                logger.info("Initializing RAGAS embeddings (text-embedding-3-small)")
-                _ragas_embeddings = LangchainEmbeddingsWrapper(OpenAIEmbeddings(model="text-embedding-3-small"))
+                logger.info(f"Initializing RAGAS embeddings ({EMBEDDING_MODEL})")
+                _ragas_embeddings = LangchainEmbeddingsWrapper(OpenAIEmbeddings(model=EMBEDDING_MODEL))
     return _ragas_embeddings
 
 

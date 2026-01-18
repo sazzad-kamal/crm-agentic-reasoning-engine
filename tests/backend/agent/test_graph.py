@@ -38,7 +38,7 @@ class TestGraphIntegration:
     """Integration tests for the graph with mocked LLM."""
 
     @pytest.mark.integration
-    @patch("backend.agent.answer.llm.call_answer_chain")
+    @patch("backend.agent.answer.answerer.call_answer_chain")
     @patch("backend.agent.fetch.planner.get_sql_plan")
     def test_graph_execution(self, mock_planner, mock_answer_chain):
         """Test graph execution with company query."""

@@ -464,21 +464,21 @@ class TestFormatSqlResults:
 
     def test_format_none_results(self):
         """None results return placeholder."""
-        from backend.agent.answer.llm import _format_sql_results
+        from backend.agent.answer.answerer import _format_sql_results
 
         result = _format_sql_results(None)
         assert result == "(No data retrieved)"
 
     def test_format_empty_results(self):
         """Empty dict returns placeholder."""
-        from backend.agent.answer.llm import _format_sql_results
+        from backend.agent.answer.answerer import _format_sql_results
 
         result = _format_sql_results({})
         assert result == "(No data retrieved)"
 
     def test_format_valid_results(self):
         """Valid results return JSON string."""
-        from backend.agent.answer.llm import _format_sql_results
+        from backend.agent.answer.answerer import _format_sql_results
 
         data = {"companies": [{"name": "Acme"}]}
         result = _format_sql_results(data)
@@ -489,7 +489,7 @@ class TestFormatSqlResults:
 
     def test_format_results_with_exception(self):
         """Results that can't be JSON encoded return str()."""
-        from backend.agent.answer.llm import _format_sql_results
+        from backend.agent.answer.answerer import _format_sql_results
 
         # Object that can't be JSON serialized normally
         class BadObj:
@@ -503,7 +503,7 @@ class TestFormatSqlResults:
 
     def test_format_results_json_exception_fallback(self):
         """Test fallback to str() when json.dumps fails completely."""
-        from backend.agent.answer.llm import _format_sql_results
+        from backend.agent.answer.answerer import _format_sql_results
 
         # Create object that fails json.dumps even with default=str
         class FailAllObj:
@@ -575,7 +575,7 @@ class TestCallAnswerChain:
 
     def test_answer_chain_input_formatting(self):
         """Verify SQL results are formatted correctly for answer chain."""
-        from backend.agent.answer.llm import _format_sql_results
+        from backend.agent.answer.answerer import _format_sql_results
 
         # Test the formatting function
         data = {"companies": [{"name": "Acme", "revenue": 1000000}]}
@@ -590,7 +590,7 @@ class TestBuildAnswerInput:
 
     def test_with_account_context(self):
         """Test build_answer_input with account context."""
-        from backend.agent.answer.llm import build_answer_input
+        from backend.agent.answer.answerer import build_answer_input
 
         result = build_answer_input(
             question="test",
@@ -602,7 +602,7 @@ class TestBuildAnswerInput:
 
     def test_with_conversation_history(self):
         """Test build_answer_input with conversation history."""
-        from backend.agent.answer.llm import build_answer_input
+        from backend.agent.answer.answerer import build_answer_input
 
         result = build_answer_input(
             question="test",
@@ -614,7 +614,7 @@ class TestBuildAnswerInput:
 
     def test_without_optional_params(self):
         """Test build_answer_input without optional params."""
-        from backend.agent.answer.llm import build_answer_input
+        from backend.agent.answer.answerer import build_answer_input
 
         result = build_answer_input(question="test")
 
@@ -628,7 +628,7 @@ class TestGetAnswerChain:
 
     def test_get_answer_chain_returns_chain(self):
         """get_answer_chain returns the chain."""
-        from backend.agent.answer.llm import get_answer_chain
+        from backend.agent.answer.answerer import get_answer_chain
 
         # This will return the cached chain (created during module import)
         chain = get_answer_chain()
@@ -683,21 +683,21 @@ class TestFormatAvailableData:
 
     def test_none_data(self):
         """None data returns default message."""
-        from backend.agent.followup.llm import _format_available_data
+        from backend.agent.followup.suggester import _format_available_data
 
         result = _format_available_data(None, None)
         assert "No specific data available" in result
 
     def test_empty_data(self):
         """Empty dict returns default message."""
-        from backend.agent.followup.llm import _format_available_data
+        from backend.agent.followup.suggester import _format_available_data
 
         result = _format_available_data({}, None)
         assert "No specific data available" in result
 
     def test_data_with_contacts(self):
         """Data with contacts includes contacts line."""
-        from backend.agent.followup.llm import _format_available_data
+        from backend.agent.followup.suggester import _format_available_data
 
         result = _format_available_data({"contacts": 5}, "Acme")
         assert "Contacts: 5" in result
@@ -705,7 +705,7 @@ class TestFormatAvailableData:
 
     def test_data_with_all_fields(self):
         """Data with all fields formats correctly."""
-        from backend.agent.followup.llm import _format_available_data
+        from backend.agent.followup.suggester import _format_available_data
 
         data = {
             "contacts": 3,
@@ -726,7 +726,7 @@ class TestFormatAvailableData:
 
     def test_zero_values_excluded(self):
         """Zero values are not included."""
-        from backend.agent.followup.llm import _format_available_data
+        from backend.agent.followup.suggester import _format_available_data
 
         data = {"contacts": 0, "activities": 5}
         result = _format_available_data(data, None)

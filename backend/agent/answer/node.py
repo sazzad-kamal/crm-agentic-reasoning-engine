@@ -2,7 +2,7 @@
 
 import logging
 
-from backend.agent.answer.llm import call_answer_chain
+from backend.agent.answer.answerer import call_answer_chain
 from backend.agent.state import AgentState, format_conversation_for_prompt
 
 logger = logging.getLogger(__name__)

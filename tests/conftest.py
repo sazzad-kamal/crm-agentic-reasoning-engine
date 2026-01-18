@@ -245,10 +245,10 @@ def mock_llm(request):
             needs_rag=False,
         )
 
-    with patch("backend.agent.answer.llm.call_answer_chain", mock_call_answer_chain), \
-         patch("backend.agent.answer.llm.stream_answer_chain", mock_stream_answer_chain), \
+    with patch("backend.agent.answer.answerer.call_answer_chain", mock_call_answer_chain), \
+         patch("backend.agent.answer.answerer.stream_answer_chain", mock_stream_answer_chain), \
          patch("backend.agent.fetch.rag.search.search_entity_context", mock_search_entity_context), \
-         patch("backend.agent.followup.llm.generate_follow_up_suggestions", mock_generate_follow_up_suggestions), \
+         patch("backend.agent.followup.suggester.generate_follow_up_suggestions", mock_generate_follow_up_suggestions), \
          patch("backend.agent.fetch.planner.get_sql_plan", mock_get_sql_plan):
         yield
 

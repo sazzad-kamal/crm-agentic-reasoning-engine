@@ -2,7 +2,7 @@
 
 import logging
 
-from backend.agent.followup.llm import generate_follow_up_suggestions
+from backend.agent.followup.suggester import generate_follow_up_suggestions
 from backend.agent.state import AgentState, format_conversation_for_prompt
 
 logger = logging.getLogger(__name__)

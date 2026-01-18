@@ -26,6 +26,8 @@ _MAX_COMPLETION_TOKENS_PREFIXES = {"o1", "o3", "o4", "gpt-5"}
 # Models
 FAST_MODEL = "gpt-4o-mini"  # Fast, cost-efficient for text responses
 REASONING_MODEL = "claude-sonnet-4-5-20241022"  # Better at structured/reasoning tasks
+JUDGE_MODEL = "gpt-5.2"  # LLM judge for eval correctness
+EMBEDDING_MODEL = "text-embedding-3-small"  # Embeddings for RAGAS
 
 # Temperature settings
 DETERMINISTIC_TEMPERATURE = 0.1  # Consistent, factual responses
@@ -203,6 +205,8 @@ def parse_json_response(text: str) -> dict:
 __all__ = [
     "FAST_MODEL",
     "REASONING_MODEL",
+    "JUDGE_MODEL",
+    "EMBEDDING_MODEL",
     "DETERMINISTIC_TEMPERATURE",
     "CREATIVE_TEMPERATURE",
     "LONG_RESPONSE_MAX_TOKENS",

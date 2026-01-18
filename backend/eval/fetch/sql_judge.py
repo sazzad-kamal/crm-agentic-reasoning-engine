@@ -7,7 +7,7 @@ import logging
 import threading
 from typing import Any
 
-from backend.core.llm import parse_json_response
+from backend.core.llm import JUDGE_MODEL, parse_json_response
 from backend.eval.shared import is_mock_mode
 
 logger = logging.getLogger(__name__)
@@ -15,8 +15,6 @@ logger = logging.getLogger(__name__)
 # Thread-safe singleton for OpenAI client
 _openai_client = None
 _client_lock = threading.Lock()
-
-JUDGE_MODEL = "gpt-5.2"
 
 JUDGE_PROMPT = """You are evaluating whether SQL query results correctly answer a user's question about CRM data.
 

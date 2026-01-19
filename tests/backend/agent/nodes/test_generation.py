@@ -54,11 +54,12 @@ class TestAnswerNode:
 
         result = answer_node(state)
 
-        assert len(result["messages"]) == 3
-        assert result["messages"][-2]["role"] == "user"
-        assert result["messages"][-2]["content"] == "Tell me about Acme"
-        assert result["messages"][-1]["role"] == "assistant"
-        assert result["messages"][-1]["content"] == "Response text."
+        # Node returns only new messages; add_messages reducer appends them
+        assert len(result["messages"]) == 2
+        assert result["messages"][0]["role"] == "user"
+        assert result["messages"][0]["content"] == "Tell me about Acme"
+        assert result["messages"][1]["role"] == "assistant"
+        assert result["messages"][1]["content"] == "Response text."
 
     @patch('backend.agent.answer.node.call_answer_chain')
     def test_answer_node_handles_empty_answer(self, mock_chain):

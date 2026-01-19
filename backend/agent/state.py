@@ -5,7 +5,9 @@ This module defines the central state structure that flows through the graph.
 """
 
 import logging
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
+
+from langgraph.graph.message import add_messages
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +62,8 @@ class AgentState(TypedDict, total=False):
     # Input
     question: str
 
-    # Conversation history (persisted by LangGraph checkpointer)
-    messages: list[Message]
+    # Conversation history (reducer appends new messages)
+    messages: Annotated[list[Message], add_messages]
 
     # SQL results from fetch node
     sql_results: dict[str, Any]

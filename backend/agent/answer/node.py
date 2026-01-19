@@ -3,17 +3,9 @@
 import logging
 
 from backend.agent.answer.answerer import call_answer_chain
-from backend.agent.state import AgentState, Message, format_conversation_for_prompt
+from backend.agent.state import AgentState, format_conversation_for_prompt
 
 logger = logging.getLogger(__name__)
-
-
-def _build_messages(state: AgentState, answer: str) -> list[Message]:
-    """Build updated message list with user question and assistant answer."""
-    messages = list(state.get("messages", []))
-    messages.append({"role": "user", "content": state["question"]})
-    messages.append({"role": "assistant", "content": answer})
-    return messages
 
 
 def answer_node(state: AgentState) -> AgentState:
@@ -37,7 +29,10 @@ def answer_node(state: AgentState) -> AgentState:
 
         return {
             "answer": answer,
-            "messages": _build_messages(state, answer),
+            "messages": [
+                {"role": "user", "content": state["question"]},
+                {"role": "assistant", "content": answer},
+            ],
         }
 
     except Exception as e:
@@ -46,7 +41,10 @@ def answer_node(state: AgentState) -> AgentState:
 
         return {
             "answer": error_answer,
-            "messages": _build_messages(state, error_answer),
+            "messages": [
+                {"role": "user", "content": state["question"]},
+                {"role": "assistant", "content": error_answer},
+            ],
             "error": str(e),
         }
 

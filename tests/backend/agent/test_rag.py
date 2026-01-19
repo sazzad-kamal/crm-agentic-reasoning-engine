@@ -86,23 +86,17 @@ class TestRagIngest:
 class TestLlmClient:
     """Tests for backend.core.llm module."""
 
-    def test_get_chat_model_no_api_key(self):
-        """Test get_chat_model raises when no API key."""
-        from backend.core.llm import get_chat_model
-
-        # Clear cache
-        get_chat_model.cache_clear()
+    def test_create_chat_openai_no_api_key(self):
+        """Test _create_chat_openai raises when no API key."""
+        from backend.core.llm import _create_chat_openai
 
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValueError, match="OPENAI_API_KEY"):
-                get_chat_model("gpt-4o-mini", 0.0, 1024)
+                _create_chat_openai("gpt-4o-mini", 0.0, 1024, False)
 
-    def test_get_chat_model_with_api_key(self):
-        """Test get_chat_model creates ChatOpenAI with API key."""
-        from backend.core.llm import get_chat_model
-
-        # Clear cache
-        get_chat_model.cache_clear()
+    def test_create_chat_openai_with_api_key(self):
+        """Test _create_chat_openai creates ChatOpenAI with API key."""
+        from backend.core.llm import _create_chat_openai
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}), \
              patch("backend.core.llm.ChatOpenAI") as mock_chat:
@@ -110,7 +104,7 @@ class TestLlmClient:
             mock_instance = MagicMock()
             mock_chat.return_value = mock_instance
 
-            result = get_chat_model("gpt-4o-mini", 0.0, 1024)
+            result = _create_chat_openai("gpt-4o-mini", 0.0, 1024, False)
 
             assert result is mock_instance
             mock_chat.assert_called_once()
@@ -119,14 +113,9 @@ class TestLlmClient:
             assert call_kwargs["temperature"] == 0.0
             assert call_kwargs["max_tokens"] == 1024
 
-        # Clear cache for other tests
-        get_chat_model.cache_clear()
-
-    def test_get_chat_model_o1_uses_max_completion_tokens(self):
+    def test_create_chat_openai_o1_uses_max_completion_tokens(self):
         """Test that o1 models use max_completion_tokens parameter."""
-        from backend.core.llm import get_chat_model
-
-        get_chat_model.cache_clear()
+        from backend.core.llm import _create_chat_openai
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}), \
              patch("backend.core.llm.ChatOpenAI") as mock_chat:
@@ -134,63 +123,13 @@ class TestLlmClient:
             mock_instance = MagicMock()
             mock_chat.return_value = mock_instance
 
-            get_chat_model("o1-preview", 0.0, 1024)
+            _create_chat_openai("o1-preview", 0.0, 1024, False)
 
             call_kwargs = mock_chat.call_args[1]
             assert "max_completion_tokens" in call_kwargs
             assert call_kwargs["max_completion_tokens"] == 1024
             assert "max_tokens" not in call_kwargs
             assert "temperature" not in call_kwargs
-
-        get_chat_model.cache_clear()
-
-    def test_call_llm_with_system_prompt(self):
-        """Test call_llm with system prompt."""
-        from backend.core.llm import call_llm, get_chat_model
-
-        get_chat_model.cache_clear()
-
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}), \
-             patch("backend.core.llm.ChatOpenAI") as mock_chat:
-
-            mock_response = MagicMock()
-            mock_response.content = "Test response"
-            mock_instance = MagicMock()
-            mock_instance.invoke.return_value = mock_response
-            mock_chat.return_value = mock_instance
-
-            result = call_llm("Test prompt", system_prompt="System context")
-
-            assert result == "Test response"
-            # Should have 2 messages (system + human)
-            call_args = mock_instance.invoke.call_args[0][0]
-            assert len(call_args) == 2
-
-        get_chat_model.cache_clear()
-
-    def test_call_llm_without_system_prompt(self):
-        """Test call_llm without system prompt."""
-        from backend.core.llm import call_llm, get_chat_model
-
-        get_chat_model.cache_clear()
-
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}), \
-             patch("backend.core.llm.ChatOpenAI") as mock_chat:
-
-            mock_response = MagicMock()
-            mock_response.content = "Test response"
-            mock_instance = MagicMock()
-            mock_instance.invoke.return_value = mock_response
-            mock_chat.return_value = mock_instance
-
-            result = call_llm("Test prompt")
-
-            assert result == "Test response"
-            # Should have 1 message (human only)
-            call_args = mock_instance.invoke.call_args[0][0]
-            assert len(call_args) == 1
-
-        get_chat_model.cache_clear()
 
 
 class TestEvalFormatting:

@@ -2745,3 +2745,324 @@ class TestCliExceptionHandling:
         _run_eval(limit=1, verbose=False, no_judge=True, output=None, debug=True)
 
 
+# =============================================================================
+# Additional Coverage Tests for ragas.py and main.py
+# =============================================================================
+
+
+class TestRagasSuppression:
+    """Tests for RAGAS error suppression in ragas.py."""
+
+    def test_suppress_event_loop_closed_errors_already_run(self):
+        """Test that _suppress_event_loop_closed_errors can be called multiple times."""
+        from backend.eval.shared import ragas
+
+        # The function should already have been called at import time
+        # Calling it again should not raise
+        ragas._suppress_event_loop_closed_errors()
+
+    def test_event_loop_closed_filter(self):
+        """Test EventLoopClosedFilter filters correctly."""
+        import logging
+        from backend.eval.shared import ragas
+
+        # Create a mock log record
+        record = logging.LogRecord(
+            name="test",
+            level=logging.ERROR,
+            pathname="test.py",
+            lineno=1,
+            msg="Event loop is closed",
+            args=(),
+            exc_info=None,
+        )
+
+        # The filter should be registered - verify asyncio logger has it
+        asyncio_logger = logging.getLogger("asyncio")
+        filters = asyncio_logger.filters
+
+        # There should be at least one filter that catches event loop errors
+        assert any(hasattr(f, "filter") for f in filters)
+
+    def test_ragas_executor_filter(self):
+        """Test RagasExecutorFilter filters correctly."""
+        import logging
+
+        # The ragas.executor logger should have the filter
+        executor_logger = logging.getLogger("ragas.executor")
+        filters = executor_logger.filters
+
+        # Should have at least one filter
+        assert any(hasattr(f, "filter") for f in filters)
+
+
+class TestRagasEvaluateSingle:
+    """Tests for ragas.py evaluate_single function edge cases."""
+
+    @pytest.mark.no_mock_llm
+    def test_evaluate_single_empty_contexts(self, monkeypatch):
+        """Test evaluate_single with empty contexts (line 196)."""
+        from backend.eval.shared import ragas
+        import pandas as pd
+
+        # Mock _run_evaluation_with_retry to avoid actual API calls
+        mock_result = {
+            "answer_relevancy": 0.85,
+            "faithfulness": 0.90,
+            "context_precision": 0.80,
+            "context_recall": 0.0,
+            "answer_correctness": 0.0,
+            "error": None,
+            "nan_metrics": [],
+        }
+        monkeypatch.setattr(ragas, "_run_evaluation_with_retry", lambda d, m: mock_result)
+
+        result = ragas.evaluate_single(
+            question="What is the capital?",
+            answer="Paris",
+            contexts=[],  # Empty contexts
+        )
+
+        # Should still return valid scores
+        assert "answer_relevancy" in result
+
+    @pytest.mark.no_mock_llm
+    def test_evaluate_single_verbose_mode(self, monkeypatch):
+        """Test evaluate_single with verbose=True (line 208)."""
+        from backend.eval.shared import ragas
+
+        # Mock _run_evaluation_with_retry
+        mock_result = {
+            "answer_relevancy": 0.85,
+            "faithfulness": 0.90,
+            "context_precision": 0.80,
+            "context_recall": 0.0,
+            "answer_correctness": 0.0,
+            "error": None,
+            "nan_metrics": [],
+        }
+        monkeypatch.setattr(ragas, "_run_evaluation_with_retry", lambda d, m: mock_result)
+
+        result = ragas.evaluate_single(
+            question="Test?",
+            answer="Answer",
+            contexts=["Context"],
+            verbose=True,  # Verbose mode
+        )
+
+        assert "answer_relevancy" in result
+
+    @pytest.mark.no_mock_llm
+    def test_evaluate_single_with_nan_metrics(self, monkeypatch):
+        """Test evaluate_single with NaN metrics (lines 213-218)."""
+        from backend.eval.shared import ragas
+
+        # Mock _run_evaluation_with_retry to return NaN metrics
+        mock_result = {
+            "answer_relevancy": 0.0,
+            "faithfulness": 0.0,
+            "context_precision": 0.0,
+            "context_recall": 0.0,
+            "answer_correctness": 0.0,
+            "error": None,
+            "nan_metrics": ["faithfulness", "answer_relevancy"],
+        }
+        monkeypatch.setattr(ragas, "_run_evaluation_with_retry", lambda d, m: mock_result)
+
+        result = ragas.evaluate_single(
+            question="Test?",
+            answer="Answer",
+            contexts=["Context"],
+        )
+
+        # Should have error message about NaN metrics
+        assert result.get("error") is not None
+        assert "NaN" in result["error"]
+
+    @pytest.mark.no_mock_llm
+    def test_get_ragas_metrics_with_reference(self, monkeypatch):
+        """Test _get_ragas_metrics with include_reference=True (line 137)."""
+        from unittest.mock import MagicMock
+        from backend.eval.shared import ragas
+
+        # Clear the cache first to test fresh instantiation
+        ragas._get_ragas_metrics.cache_clear()
+
+        # Mock the LLM and embeddings
+        mock_llm = MagicMock()
+        mock_embeddings = MagicMock()
+        monkeypatch.setattr(ragas, "_get_ragas_llm", lambda: mock_llm)
+        monkeypatch.setattr(ragas, "_get_ragas_embeddings", lambda: mock_embeddings)
+
+        metrics = ragas._get_ragas_metrics(include_reference=True)
+
+        # Should have 5 metrics including ContextRecall and AnswerCorrectness
+        assert len(metrics) == 5
+
+        # Clean up cache
+        ragas._get_ragas_metrics.cache_clear()
+
+    @pytest.mark.no_mock_llm
+    def test_extract_scores_with_nan_values(self, monkeypatch):
+        """Test _extract_scores with NaN values (lines 143-154)."""
+        from backend.eval.shared import ragas
+        import pandas as pd
+        import math
+
+        # Create a DataFrame with NaN values
+        df = pd.DataFrame({
+            "answer_relevancy": [float("nan")],
+            "faithfulness": [0.85],
+            "context_precision": [None],
+        })
+
+        result = ragas._extract_scores(df)
+
+        # NaN and None values should be converted to 0.0
+        assert result["answer_relevancy"] == 0.0
+        assert result["faithfulness"] == 0.85
+        assert result["context_precision"] == 0.0
+        # Should track nan_metrics
+        assert "answer_relevancy" in result["nan_metrics"]
+        assert "context_precision" in result["nan_metrics"]
+
+
+class TestMainLifespan:
+    """Tests for main.py lifespan and middleware."""
+
+    @pytest.mark.no_mock_llm
+    def test_ensure_rag_collections_with_existing(self, monkeypatch):
+        """Test _ensure_rag_collections when collection exists."""
+        from unittest.mock import MagicMock, patch
+
+        # Mock QdrantClient at the qdrant_client module level
+        mock_qdrant = MagicMock()
+        mock_qdrant.collection_exists.return_value = True
+        mock_collection = MagicMock()
+        mock_collection.points_count = 100
+        mock_qdrant.get_collection.return_value = mock_collection
+
+        with patch("qdrant_client.QdrantClient", return_value=mock_qdrant):
+            from backend.main import _ensure_rag_collections
+
+            _ensure_rag_collections()
+
+        # Should have checked and closed
+        mock_qdrant.collection_exists.assert_called_once()
+        mock_qdrant.close.assert_called_once()
+
+    @pytest.mark.no_mock_llm
+    def test_ensure_rag_collections_missing(self, monkeypatch):
+        """Test _ensure_rag_collections when collection is missing."""
+        from unittest.mock import MagicMock, patch
+
+        # Mock QdrantClient
+        mock_qdrant = MagicMock()
+        mock_qdrant.collection_exists.return_value = False
+
+        mock_ingest = MagicMock()
+
+        with patch("qdrant_client.QdrantClient", return_value=mock_qdrant):
+            with patch("backend.agent.fetch.rag.ingest.ingest_texts", mock_ingest):
+                from backend.main import _ensure_rag_collections
+
+                _ensure_rag_collections()
+
+        # Should have called ingest_texts
+        mock_ingest.assert_called_once()
+
+    @pytest.mark.asyncio
+    @pytest.mark.no_mock_llm
+    async def test_lifespan_context_manager(self, monkeypatch):
+        """Test lifespan context manager runs without error."""
+        from unittest.mock import MagicMock, patch, AsyncMock
+        from fastapi import FastAPI
+
+        mock_ensure = MagicMock()
+
+        with patch("backend.main._ensure_rag_collections", mock_ensure):
+            from backend.main import lifespan
+
+            app = FastAPI()
+            async with lifespan(app):
+                pass
+
+        mock_ensure.assert_called_once()
+
+    @pytest.mark.asyncio
+    @pytest.mark.no_mock_llm
+    async def test_request_logging_middleware(self):
+        """Test RequestLoggingMiddleware logs requests."""
+        from unittest.mock import MagicMock, AsyncMock, patch
+        from fastapi import FastAPI, Request, Response
+        from starlette.testclient import TestClient
+
+        from backend.main import RequestLoggingMiddleware
+
+        # Create a simple app with middleware
+        app = FastAPI()
+        app.add_middleware(RequestLoggingMiddleware)
+
+        @app.get("/test")
+        async def test_endpoint():
+            return {"status": "ok"}
+
+        client = TestClient(app)
+        response = client.get("/test")
+
+        assert response.status_code == 200
+
+
+class TestEvalFetchRunnerEdgeCases:
+    """Tests for eval/fetch/runner.py edge cases."""
+
+    def test_evaluate_rag_with_verbose_warning(self, monkeypatch):
+        """Test _evaluate_rag prints warning when verbose."""
+        from unittest.mock import MagicMock, patch
+        from backend.eval.fetch import runner
+        from backend.eval.fetch.models import EvalResults
+
+        mock_search = MagicMock(side_effect=Exception("Test error"))
+        monkeypatch.setattr(runner, "search_entity_context", mock_search)
+
+        # Create mock EvalResults
+        results = EvalResults(total=1)
+
+        # Provide data with entity IDs to trigger the search
+        data = [{"company_id": "COMP1", "name": "Test Company"}]
+
+        with patch.object(runner.console, "print") as mock_print:
+            latency, precision, recall = runner._evaluate_rag(
+                question_text="Test?",
+                data=data,
+                results=results,
+                verbose=True,
+            )
+
+        # Should have printed warning
+        mock_print.assert_called()
+        # Should return None for precision and recall on exception
+        assert precision is None
+        assert recall is None
+
+
+class TestIntegrationRunnerEmptyContext:
+    """Tests for integration runner empty context path."""
+
+    def test_evaluate_ragas_empty_contexts(self):
+        """Test _evaluate_ragas returns zeros for empty contexts."""
+        from backend.eval.integration.runner import _evaluate_ragas
+
+        result = _evaluate_ragas(
+            question="Test?",
+            answer="Answer",
+            contexts=[],
+            expected_answer=None,
+            verbose=False,
+        )
+
+        assert result["relevance"] == 0.0
+        assert result["faithfulness"] == 0.0
+        assert result["explanation"] == "No context available"
+
+

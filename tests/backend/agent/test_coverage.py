@@ -823,3 +823,314 @@ class TestCreateChain:
         output = TestOutput(result="test", score=0.5)
         assert output.result == "test"
         assert output.score == 0.5
+
+
+# =============================================================================
+# Additional Coverage Tests
+# =============================================================================
+
+
+class TestCallAnswerChainDirect:
+    """Direct tests for call_answer_chain to cover lines 112-114."""
+
+    @pytest.mark.no_mock_llm
+    def test_call_answer_chain_returns_answer_and_latency(self, monkeypatch):
+        """Test call_answer_chain returns tuple of (answer, latency_ms)."""
+        from backend.agent.answer import answerer
+
+        # Mock the chain's invoke method
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = "Test answer"
+
+        monkeypatch.setattr(answerer, "get_answer_chain", lambda: mock_chain)
+
+        answer, latency_ms = answerer.call_answer_chain(
+            question="Test question",
+            sql_results={"data": []},
+            account_context="context",
+            conversation_history="",
+        )
+
+        assert answer == "Test answer"
+        assert isinstance(latency_ms, int)
+        assert latency_ms >= 0
+
+
+class TestQdrantClientDoubleCheck:
+    """Test double-checked locking in rag/client.py line 34."""
+
+    @pytest.mark.no_mock_llm
+    def test_get_qdrant_client_returns_cached_after_lock(self, monkeypatch):
+        """Test that get_qdrant_client returns cached client on second call within lock."""
+        from backend.agent.fetch.rag import client
+
+        # Reset the global client
+        original_client = client._qdrant_client
+        client._qdrant_client = None
+
+        try:
+            # First call creates the client
+            with patch.object(client, "QdrantClient") as mock_qdrant:
+                mock_instance = MagicMock()
+                mock_qdrant.return_value = mock_instance
+
+                result1 = client.get_qdrant_client()
+                result2 = client.get_qdrant_client()
+
+                # Should only create once
+                assert result1 is result2
+                mock_qdrant.assert_called_once()
+        finally:
+            client._qdrant_client = original_client
+
+
+class TestSearchReranking:
+    """Test reranking path in rag/search.py lines 95-97."""
+
+    @pytest.mark.no_mock_llm
+    def test_search_entity_context_with_reranking(self, monkeypatch):
+        """Test search_entity_context triggers reranking when nodes exceed top_k."""
+        import sys
+        from unittest.mock import patch, MagicMock
+
+        # Create mock nodes (more than RERANKER_TOP_K)
+        mock_nodes = [MagicMock() for _ in range(10)]
+        for i, node in enumerate(mock_nodes):
+            node.text = f"Content {i}"
+            node.metadata = {"type": "note", "source_id": f"note_{i}"}
+
+        mock_retriever = MagicMock()
+        mock_retriever.retrieve.return_value = mock_nodes
+
+        mock_reranker = MagicMock()
+        mock_reranker.postprocess_nodes.return_value = mock_nodes[:3]
+
+        mock_index = MagicMock()
+        mock_index.as_retriever.return_value = mock_retriever
+
+        # Clear the cache and mock components
+        from backend.agent.fetch.rag import search
+        search._get_rag_components.cache_clear()
+
+        with patch.object(search, "_get_rag_components", return_value=(mock_index, mock_reranker)):
+            with patch.object(search, "RERANKER_TOP_K", 3):
+                context, sources = search.search_entity_context(
+                    "test query",
+                    {"company_id": "COMP001"}
+                )
+
+        # Reranker should have been called since nodes > RERANKER_TOP_K
+        mock_reranker.postprocess_nodes.assert_called_once()
+
+
+class TestConnectionMissingCsv:
+    """Test connection.py line 33 - CSV file not found warning."""
+
+    def test_load_csvs_missing_file(self, monkeypatch, tmp_path):
+        """Test _load_csvs logs warning for missing CSV."""
+        from backend.agent.fetch.sql import connection
+
+        # Create a mock schema with a table that doesn't exist
+        mock_schema = {"nonexistent_table": ["col1", "col2"]}
+        monkeypatch.setattr(connection, "get_all_table_columns", lambda: mock_schema)
+        monkeypatch.setattr(connection, "get_table_names", lambda: ["nonexistent_table"])
+        monkeypatch.setattr(connection, "_CSV_PATH", tmp_path)
+
+        # Create a mock connection
+        mock_conn = MagicMock()
+
+        # Capture log output
+        with patch.object(connection.logger, "warning") as mock_log:
+            connection._load_csvs(mock_conn)
+            mock_log.assert_called()
+
+
+class TestSuggesterLlmFallback:
+    """Test suggester.py lines 93-94 - LLM fallback success path."""
+
+    @pytest.mark.no_mock_llm
+    def test_generate_follow_up_suggestions_llm_fallback(self, monkeypatch):
+        """Test LLM fallback when hardcoded tree has no match."""
+        from backend.agent.followup import suggester
+        from backend.agent.followup.suggester import FollowUpSuggestions
+
+        # Mock the hardcoded tree to return empty
+        monkeypatch.setattr(
+            "backend.agent.followup.tree.get_follow_ups",
+            lambda q: []
+        )
+
+        # Mock the chain to return suggestions
+        mock_result = FollowUpSuggestions(suggestions=["Q1?", "Q2?", "Q3?"])
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = mock_result
+
+        suggester._get_followup_chain.cache_clear()
+        monkeypatch.setattr(suggester, "_get_followup_chain", lambda: mock_chain)
+
+        result = suggester.generate_follow_up_suggestions(
+            question="Unknown question that's not in tree",
+            company_name="Test Co",
+            use_hardcoded_tree=True,
+        )
+
+        assert result == ["Q1?", "Q2?", "Q3?"]
+
+
+class TestDataApiMissingCsv:
+    """Test api/data.py line 24 - CSV file not found."""
+
+    def test_load_csv_missing_file(self, monkeypatch, tmp_path):
+        """Test load_csv returns empty when file doesn't exist."""
+        from backend.api import data
+
+        monkeypatch.setattr(data, "CSV_DIR", tmp_path)
+
+        result_data, result_columns = data.load_csv("nonexistent.csv")
+
+        assert result_data == []
+        assert result_columns == []
+
+
+class TestLlmPromptSectionParsing:
+    """Test core/llm.py line 162 - section parsing with existing section."""
+
+    def test_load_prompt_with_multiple_sections(self, tmp_path):
+        """Test load_prompt correctly parses multiple sections."""
+        from backend.core.llm import load_prompt
+
+        # Create a prompt file with multiple sections
+        prompt_file = tmp_path / "test_prompt.txt"
+        prompt_file.write_text("""[system]
+You are a helpful assistant.
+Be concise.
+
+[human]
+Question: {question}
+Data: {data}
+""")
+
+        result = load_prompt(prompt_file)
+
+        # Should have both system and human sections
+        assert len(result.messages) == 2
+
+    def test_load_prompt_with_human_before_system(self, tmp_path):
+        """Test load_prompt handles [human] then [system] to hit line 162."""
+        from backend.core.llm import load_prompt
+
+        # Create a prompt that has [human] before [system]
+        # This triggers line 162 when [system] is encountered after [human]
+        prompt_file = tmp_path / "test_prompt_reversed.txt"
+        prompt_file.write_text("""[human]
+Question: {question}
+
+[system]
+You are a helpful assistant.
+""")
+
+        result = load_prompt(prompt_file)
+
+        # Should have both sections
+        assert len(result.messages) == 2
+
+
+class TestHealthEndpoint:
+    """Test main.py line 99 - health endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_health_endpoint(self):
+        """Test /api/health returns ok status."""
+        from httpx import AsyncClient, ASGITransport
+        from backend.main import create_app
+
+        app = create_app()
+        transport = ASGITransport(app=app)
+
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/api/health")
+
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+
+
+class TestFetchRunnerVerboseOutput:
+    """Test fetch runner.py verbose output paths (lines 206, 211, 232-233)."""
+
+    def test_run_sql_eval_with_sql_error_verbose(self, monkeypatch):
+        """Test SQL error prints with verbose mode (line 206)."""
+        from backend.eval.fetch import runner
+        from backend.eval.fetch.models import Question
+
+        # Mock get_sql_plan to return a plan
+        mock_plan = MagicMock()
+        mock_plan.sql = "SELECT * FROM invalid"
+        mock_plan.needs_rag = False
+        monkeypatch.setattr(runner, "get_sql_plan", lambda x: mock_plan)
+
+        # Mock connection to raise an exception
+        mock_conn = MagicMock()
+        mock_conn.execute.side_effect = Exception("SQL syntax error")
+        monkeypatch.setattr(runner, "get_connection", lambda: mock_conn)
+
+        questions = [Question(text="Test?", difficulty=1)]
+
+        with patch.object(runner.console, "print") as mock_print:
+            results = runner.run_sql_eval(questions=questions, verbose=True)
+
+        # Should have printed SQL error
+        assert results.sql_failed == 1
+        mock_print.assert_called()
+
+    def test_run_sql_eval_with_planner_error_verbose(self, monkeypatch):
+        """Test planner error prints with verbose mode (line 211)."""
+        from backend.eval.fetch import runner
+        from backend.eval.fetch.models import Question
+
+        # Mock get_sql_plan to raise an exception
+        monkeypatch.setattr(
+            runner, "get_sql_plan", MagicMock(side_effect=Exception("Planner failed"))
+        )
+
+        questions = [Question(text="Test?", difficulty=1)]
+
+        with patch.object(runner.console, "print") as mock_print:
+            results = runner.run_sql_eval(questions=questions, verbose=True)
+
+        # Should have printed planner error
+        mock_print.assert_called()
+        assert len(results.cases) == 1
+        assert "Planner error" in results.cases[0].errors[0]
+
+    def test_run_sql_eval_with_verbose_errors_list(self, monkeypatch):
+        """Test verbose printing of error list (lines 232-233)."""
+        from backend.eval.fetch import runner
+        from backend.eval.fetch.models import Question
+
+        # Mock get_sql_plan to return a plan
+        mock_plan = MagicMock()
+        mock_plan.sql = "SELECT 1"
+        mock_plan.needs_rag = False
+        monkeypatch.setattr(runner, "get_sql_plan", lambda x: mock_plan)
+
+        # Mock connection that works but judge returns errors
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = [(1,)]
+        mock_result.description = [("col1",)]
+        mock_conn = MagicMock()
+        mock_conn.execute.return_value = mock_result
+        monkeypatch.setattr(runner, "get_connection", lambda: mock_conn)
+
+        # Mock judge to return failure with errors
+        monkeypatch.setattr(
+            runner, "judge_sql_results", lambda q, s, r: (False, ["Error 1", "Error 2"])
+        )
+
+        questions = [Question(text="Test?", difficulty=1)]
+
+        with patch.object(runner.console, "print") as mock_print:
+            results = runner.run_sql_eval(questions=questions, verbose=True)
+
+        # Should have printed each error in the list
+        assert not results.cases[0].passed
+        assert mock_print.call_count >= 2  # At least case header and errors

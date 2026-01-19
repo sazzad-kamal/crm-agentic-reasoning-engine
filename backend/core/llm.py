@@ -8,11 +8,9 @@ import json
 import logging
 import os
 import re
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
@@ -74,17 +72,6 @@ def _create_chat_openai(
     )
 
 
-@lru_cache(maxsize=16)
-def get_chat_model(
-    model: str,
-    temperature: float = 0.0,
-    max_tokens: int = 2000,
-    streaming: bool = False,
-) -> ChatOpenAI:
-    """Get a cached ChatOpenAI instance."""
-    return _create_chat_openai(model, temperature, max_tokens, streaming)
-
-
 def create_chain(
     prompt_template: Any,
     model: str,
@@ -100,43 +87,6 @@ def create_chain(
     if structured_output:
         return prompt_template | llm.with_structured_output(structured_output)
     return prompt_template | llm | StrOutputParser()
-
-
-def call_llm(
-    prompt: str,
-    system_prompt: str | None = None,
-    model: str = "gpt-4o-mini",
-    temperature: float = 0.0,
-    max_tokens: int = 1024,
-) -> str:
-    """Call an OpenAI chat model and return the response.
-
-    Simple message-based interface for eval and other non-chain use cases.
-
-    Args:
-        prompt: The user message / prompt
-        system_prompt: Optional system message
-        model: The model to use
-        temperature: Sampling temperature
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        The assistant's message content as a string
-    """
-    chat = get_chat_model(model, temperature, max_tokens, streaming=False)
-
-    messages: list = []
-    if system_prompt:
-        messages.append(SystemMessage(content=system_prompt))
-    messages.append(HumanMessage(content=prompt))
-
-    logger.debug(f"Calling LLM model={model}, prompt_len={len(prompt)}")
-
-    response = chat.invoke(messages)
-    result = response.content or ""
-
-    logger.debug(f"LLM response received, len={len(str(result))}")
-    return str(result)
 
 
 def load_prompt(path: Path) -> ChatPromptTemplate:
@@ -211,9 +161,7 @@ __all__ = [
     "CREATIVE_TEMPERATURE",
     "LONG_RESPONSE_MAX_TOKENS",
     "SHORT_RESPONSE_MAX_TOKENS",
-    "get_chat_model",
     "create_chain",
-    "call_llm",
     "load_prompt",
     "parse_json_response",
 ]

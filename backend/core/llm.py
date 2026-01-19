@@ -9,7 +9,7 @@ import os
 from functools import lru_cache
 from typing import Any
 
-import anthropic
+from langchain_anthropic import ChatAnthropic
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -25,12 +25,6 @@ _EMBEDDING_MODEL = "text-embedding-3-small"  # Embeddings for RAGAS
 # Max token limits
 LONG_RESPONSE_MAX_TOKENS = 1024  # Detailed answers
 SHORT_RESPONSE_MAX_TOKENS = 150  # Brief suggestions
-
-
-@lru_cache
-def _get_anthropic_client() -> anthropic.Anthropic:
-    """Get Anthropic client (cached singleton)."""
-    return anthropic.Anthropic()
 
 
 def create_chain(
@@ -67,22 +61,16 @@ def call_anthropic(
     system: str,
     user_message: str,
     output_schema: type[BaseModel],
-    max_tokens: int = 1024,
 ) -> BaseModel:
-    """Call Anthropic with tool use for structured output."""
-    response = _get_anthropic_client().messages.create(
-        model=_ANTHROPIC_MODEL,
-        max_tokens=max_tokens,
-        system=system,
-        messages=[{"role": "user", "content": user_message}],
-        tools=[{
-            "name": "output",
-            "description": "Structured output",
-            "input_schema": output_schema.model_json_schema(),
-        }],
-        tool_choice={"type": "tool", "name": "output"},
-    )
-    return output_schema(**response.content[0].input)  # type: ignore[union-attr]
+    """Call Anthropic with structured output."""
+    llm = ChatAnthropic(model=_ANTHROPIC_MODEL)  # type: ignore[call-arg]
+    chain = ChatPromptTemplate.from_messages([
+        ("system", system),
+        ("human", "{msg}"),
+    ]) | llm.with_structured_output(output_schema)
+    result = chain.invoke({"msg": user_message})
+    assert isinstance(result, BaseModel)
+    return result
 
 
 @lru_cache

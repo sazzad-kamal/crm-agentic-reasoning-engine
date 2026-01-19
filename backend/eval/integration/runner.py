@@ -91,7 +91,8 @@ def _invoke_agent(
     # Run agent with timeout to prevent hanging
     with ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(agent_graph.invoke, state, config=config)
-        return future.result(timeout=timeout)
+        result: dict[str, Any] = future.result(timeout=timeout)
+        return result
 
 
 class RagasMetrics(TypedDict):

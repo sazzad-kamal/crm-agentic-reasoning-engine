@@ -2,21 +2,41 @@
 
 import logging
 from datetime import datetime
-from pathlib import Path
 
 from pydantic import BaseModel, Field
 
 from backend.agent.fetch.sql.schema import get_schema_sql
-from backend.core.llm import (
-    REASONING_MODEL,
-    get_anthropic_client,
-    load_prompt,
-    parse_json_response,
-)
+from backend.core.llm import call_anthropic_structured
 
 logger = logging.getLogger(__name__)
 
-_DIR = Path(__file__).parent
+_SYSTEM_PROMPT = """Transform natural language requests into valid DuckDB SQL queries.
+
+Today: {today}
+
+## DATABASE SCHEMA
+
+```sql
+{schema}
+```
+
+## NOTES
+- "Recent" or "recently" means within the last 90 days
+
+## RAG KNOWLEDGE BASE
+The following private text is available via RAG search (not in SQL tables). Set needs_rag=true when the question requires this context:
+
+| Entity | Contains | Common Use Cases |
+|--------|----------|------------------|
+| company | Key contacts, decision dynamics, adoption status, renewal concerns, win-back notes, attached docs | "Why is X at risk?", "What's the background on X?", "How do we approach renewal?" |
+| contact | Communication preferences, concerns, objections, influence, technical requirements | "How should I approach Beth?", "What are Joe's concerns?", "Who is the champion?" |
+| opportunity | Deal risks, blockers, recommended next steps, dependencies, proposals/contracts | "What's blocking this deal?", "Why is this stuck?", "What should I do next?" |
+| activity | Call/meeting notes with context, concerns raised, action items, prep notes | "What was discussed in the call?", "What did we agree on?", "Any prep notes?" |
+| history | Past interaction summaries, outcomes, what was communicated | "What happened last time?", "Any previous discussions?", "Email history?" |
+
+Set needs_rag=false for pure data queries (counts, lists, values, dates, stages).
+
+{conversation_history}"""
 
 
 class SQLPlan(BaseModel):
@@ -32,24 +52,19 @@ def get_sql_plan(question: str, conversation_history: str = "") -> SQLPlan:
 
     Returns SQLPlan with SQL string and needs_rag flag.
     """
-    prompt = load_prompt(_DIR / "prompt.txt").format(
+    system_prompt = _SYSTEM_PROMPT.format(
         today=datetime.now().strftime("%Y-%m-%d"),
         schema=get_schema_sql(),
         conversation_history=conversation_history or "",
-        question=question,
     )
 
-    response = get_anthropic_client().messages.create(
-        model=REASONING_MODEL,
-        max_tokens=1024,
-        messages=[{"role": "user", "content": f"{prompt}\n\nQuestion: {question}"}],
+    result = call_anthropic_structured(
+        system=system_prompt,
+        user_message=question,
+        output_schema=SQLPlan,
     )
-
-    # Parse JSON from response
-    block = response.content[0]
-    text = block.text if hasattr(block, "text") else ""
-    data = parse_json_response(text)
-    result = SQLPlan(**data)
+    # call_anthropic_structured returns BaseModel, but we know it's SQLPlan
+    result = SQLPlan.model_validate(result)
     logger.info("SQL Planner: %s (needs_rag=%s)", result.sql[:80], result.needs_rag)
     return result
 

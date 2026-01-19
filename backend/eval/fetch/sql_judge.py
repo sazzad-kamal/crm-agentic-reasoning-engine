@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 
-from backend.core.llm import JUDGE_MODEL, get_openai_client, parse_json_response
+from backend.core.llm import call_openai_json
 
 logger = logging.getLogger(__name__)
 
@@ -70,8 +70,6 @@ def judge_sql_results(
         - passed: True if the results correctly answer the question
         - errors: List of issues found (empty if passed)
     """
-    client = get_openai_client()
-
     prompt = JUDGE_PROMPT.format(
         question=question,
         sql=sql or "No SQL provided",
@@ -81,30 +79,20 @@ def judge_sql_results(
     last_error: Exception | None = None
     for attempt in range(2):
         try:
-            response = client.chat.completions.create(
-                model=JUDGE_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=512,
-                temperature=0,
-            )
+            data = call_openai_json(prompt)
+            passed = bool(data.get("passed", False))
+            errors = data.get("errors", [])
+            reasoning = data.get("reasoning", "")
 
-            content = response.choices[0].message.content or ""
+            if not passed and reasoning and not errors:
+                errors = [reasoning]
 
-            try:
-                data = parse_json_response(content)
-                passed = bool(data.get("passed", False))
-                errors = data.get("errors", [])
-                reasoning = data.get("reasoning", "")
+            logger.debug(f"SQL Judge: passed={passed}, reasoning={reasoning[:100]}")
+            return passed, errors if isinstance(errors, list) else [str(errors)]
 
-                if not passed and reasoning and not errors:
-                    errors = [reasoning]
-
-                logger.debug(f"SQL Judge: passed={passed}, reasoning={reasoning[:100]}")
-                return passed, errors if isinstance(errors, list) else [str(errors)]
-
-            except (json.JSONDecodeError, ValueError):
-                logger.warning(f"SQL Judge: failed to parse JSON response: {content[:200]}")
-                return False, ["Judge failed to return valid JSON"]
+        except json.JSONDecodeError:
+            logger.warning("SQL Judge: failed to parse JSON response")
+            return False, ["Judge failed to return valid JSON"]
 
         except Exception as e:
             last_error = e

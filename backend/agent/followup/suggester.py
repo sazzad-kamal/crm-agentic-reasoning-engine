@@ -7,7 +7,6 @@ Uses hardcoded tree first, falls back to LLM for contextual suggestions.
 
 import logging
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -17,12 +16,32 @@ from backend.core.llm import (
     FAST_MODEL,
     SHORT_RESPONSE_MAX_TOKENS,
     create_chain,
-    load_prompt,
 )
 
 logger = logging.getLogger(__name__)
 
-FOLLOW_UP_PROMPT_TEMPLATE = load_prompt(Path(__file__).parent / "prompt.txt")
+_SYSTEM_PROMPT = "You are a helpful CRM assistant. Generate 3 follow-up question suggestions."
+
+_HUMAN_PROMPT = """Suggest 3 follow-up questions for the user.
+
+User's question: {question}
+Current company: {company}
+
+=== AVAILABLE DATA FOR THIS COMPANY ===
+{available_data}
+
+{conversation_history_section}
+
+GENERATE 3 QUESTIONS:
+1. First question: Drill deeper into current company's available data (use company name)
+2. Second question: Another angle on current company's data (use company name)
+3. Third question: Let user explore something NEW - different company or general CRM data question
+
+RULES:
+- Questions 1-2: ONLY ask about data types listed as available above
+- Question 3: Can be general (renewals, pipeline summary) or about CRM features
+- Always use company name, not "they" or "their"
+- Keep questions SHORT"""
 
 
 class FollowUpSuggestions(BaseModel):
@@ -39,7 +58,8 @@ class FollowUpSuggestions(BaseModel):
 def _get_followup_chain() -> Any:
     """Get or create the followup chain (cached singleton)."""
     chain = create_chain(
-        FOLLOW_UP_PROMPT_TEMPLATE,
+        system_prompt=_SYSTEM_PROMPT,
+        human_prompt=_HUMAN_PROMPT,
         model=FAST_MODEL,
         temperature=CREATIVE_TEMPERATURE,
         max_tokens=SHORT_RESPONSE_MAX_TOKENS,

@@ -1,21 +1,19 @@
 """
 Shared LLM client infrastructure.
 
-Provides ChatOpenAI factory and chain creation used by both agent/ and eval/.
+All LLM interactions should go through this module for consistency.
 """
 
 import json
 import logging
 import os
-import re
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
 import anthropic
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -89,15 +87,19 @@ def _create_chat_openai(
 
 
 def create_chain(
-    prompt_template: Any,
+    system_prompt: str,
+    human_prompt: str,
     model: str,
     temperature: float = 0.0,
     max_tokens: int = 2000,
     structured_output: type[BaseModel] | None = None,
     streaming: bool = True,
 ) -> Any:
-    """Create an LCEL chain with the given prompt template."""
-    # Don't use cached model for chains - create fresh for proper streaming
+    """Create an LCEL chain with the given prompts."""
+    prompt_template = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("human", human_prompt),
+    ])
     llm = _create_chat_openai(model, temperature, max_tokens, streaming)
 
     if structured_output:
@@ -105,67 +107,56 @@ def create_chain(
     return prompt_template | llm | StrOutputParser()
 
 
-def load_prompt(path: Path) -> ChatPromptTemplate:
-    """Load and parse a prompt.txt file into a ChatPromptTemplate.
-
-    The file should contain [system] and [human] section markers.
-
-    Args:
-        path: Path to the prompt.txt file
-
-    Returns:
-        ChatPromptTemplate with system and human messages
-    """
-    text = path.read_text(encoding="utf-8")
-
-    sections: dict[str, str] = {}
-    current_section: str | None = None
-    current_lines: list[str] = []
-
-    for line in text.split("\n"):
-        if line.strip() == "[system]":
-            if current_section:
-                sections[current_section] = "\n".join(current_lines).strip()
-            current_section = "system"
-            current_lines = []
-        elif line.strip() == "[human]":
-            if current_section:
-                sections[current_section] = "\n".join(current_lines).strip()
-            current_section = "human"
-            current_lines = []
-        else:
-            current_lines.append(line)
-
-    if current_section:
-        sections[current_section] = "\n".join(current_lines).strip()
-
-    return ChatPromptTemplate.from_messages(
-        [
-            ("system", sections.get("system", "")),
-            ("human", sections.get("human", "")),
-        ]
+def call_anthropic_structured(
+    system: str,
+    user_message: str,
+    output_schema: type[BaseModel],
+    model: str = REASONING_MODEL,
+    max_tokens: int = 1024,
+) -> BaseModel:
+    """Call Anthropic with tool use for structured output."""
+    response = get_anthropic_client().messages.create(
+        model=model,
+        max_tokens=max_tokens,
+        system=system,
+        messages=[{"role": "user", "content": user_message}],
+        tools=[{
+            "name": "output",
+            "description": "Structured output",
+            "input_schema": output_schema.model_json_schema(),
+        }],
+        tool_choice={"type": "tool", "name": "output"},
     )
+    return output_schema(**response.content[0].input)  # type: ignore[union-attr]
 
 
-def parse_json_response(text: str) -> dict:
-    """Parse JSON from LLM response, handling markdown code blocks.
+def call_openai_json(
+    prompt: str,
+    model: str = JUDGE_MODEL,
+    max_tokens: int = 512,
+    temperature: float = 0,
+) -> dict:
+    """Call OpenAI with JSON mode."""
+    response = get_openai_client().chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=max_tokens,
+        temperature=temperature,
+        response_format={"type": "json_object"},
+    )
+    return json.loads(response.choices[0].message.content or "{}")  # type: ignore[no-any-return]
 
-    Args:
-        text: Raw LLM response text
 
-    Returns:
-        Parsed JSON as dict
+@lru_cache
+def get_langchain_chat_openai(model: str = FAST_MODEL, temperature: float = 0) -> ChatOpenAI:
+    """Get LangChain ChatOpenAI (cached singleton)."""
+    return ChatOpenAI(model=model, temperature=temperature)
 
-    Raises:
-        ValueError: If JSON cannot be parsed
-    """
-    try:
-        return json.loads(text)  # type: ignore[no-any-return]
-    except json.JSONDecodeError:
-        # Try to extract JSON from markdown code block
-        if match := re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL):
-            return json.loads(match.group(1))  # type: ignore[no-any-return]
-        raise ValueError(f"Failed to parse JSON from response: {text[:200]}") from None
+
+@lru_cache
+def get_langchain_embeddings(model: str = EMBEDDING_MODEL) -> OpenAIEmbeddings:
+    """Get LangChain OpenAIEmbeddings (cached singleton)."""
+    return OpenAIEmbeddings(model=model)
 
 
 __all__ = [
@@ -180,6 +171,8 @@ __all__ = [
     "get_anthropic_client",
     "get_openai_client",
     "create_chain",
-    "load_prompt",
-    "parse_json_response",
+    "call_anthropic_structured",
+    "call_openai_json",
+    "get_langchain_chat_openai",
+    "get_langchain_embeddings",
 ]

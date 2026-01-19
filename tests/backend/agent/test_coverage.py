@@ -368,86 +368,45 @@ class TestGetSqlPlan:
 
     @pytest.mark.no_mock_llm
     def test_get_sql_plan_calls_anthropic(self):
-        """get_sql_plan calls Anthropic and parses response."""
-        from backend.agent.fetch.planner import get_sql_plan
-        from backend.core.llm import get_anthropic_client
+        """get_sql_plan calls call_anthropic_structured and returns SQLPlan."""
+        from backend.agent.fetch.planner import SQLPlan, get_sql_plan
 
-        get_anthropic_client.cache_clear()
+        mock_result = SQLPlan(sql="SELECT * FROM companies", needs_rag=False)
 
-        mock_block = MagicMock()
-        mock_block.text = '{"sql": "SELECT * FROM companies", "needs_rag": false}'
-
-        mock_response = MagicMock()
-        mock_response.content = [mock_block]
-
-        mock_client = MagicMock()
-        mock_client.messages.create.return_value = mock_response
-
-        with patch("backend.agent.fetch.planner.get_anthropic_client", return_value=mock_client), \
-             patch("backend.agent.fetch.planner.load_prompt") as mock_prompt:
-
-            mock_prompt.return_value.format.return_value = "test prompt"
+        with patch("backend.agent.fetch.planner.call_anthropic_structured", return_value=mock_result):
             result = get_sql_plan("What companies do we have?")
 
             assert result.sql == "SELECT * FROM companies"
             assert result.needs_rag is False
 
-        get_anthropic_client.cache_clear()
-
     @pytest.mark.no_mock_llm
-    def test_get_sql_plan_parses_markdown_json(self):
-        """get_sql_plan extracts JSON from markdown code blocks."""
-        from backend.agent.fetch.planner import get_sql_plan
-        from backend.core.llm import get_anthropic_client
+    def test_get_sql_plan_with_rag_flag(self):
+        """get_sql_plan correctly returns needs_rag=True."""
+        from backend.agent.fetch.planner import SQLPlan, get_sql_plan
 
-        get_anthropic_client.cache_clear()
+        mock_result = SQLPlan(sql="SELECT * FROM contacts", needs_rag=True)
 
-        mock_block = MagicMock()
-        mock_block.text = '```json\n{"sql": "SELECT * FROM contacts", "needs_rag": true}\n```'
-
-        mock_response = MagicMock()
-        mock_response.content = [mock_block]
-
-        mock_client = MagicMock()
-        mock_client.messages.create.return_value = mock_response
-
-        with patch("backend.agent.fetch.planner.get_anthropic_client", return_value=mock_client), \
-             patch("backend.agent.fetch.planner.load_prompt") as mock_prompt:
-
-            mock_prompt.return_value.format.return_value = "test prompt"
+        with patch("backend.agent.fetch.planner.call_anthropic_structured", return_value=mock_result):
             result = get_sql_plan("Who are the contacts?")
 
             assert result.sql == "SELECT * FROM contacts"
             assert result.needs_rag is True
 
-        get_anthropic_client.cache_clear()
-
     @pytest.mark.no_mock_llm
-    def test_get_sql_plan_raises_on_invalid_json(self):
-        """get_sql_plan raises ValueError on invalid JSON response."""
-        from backend.agent.fetch.planner import get_sql_plan
-        from backend.core.llm import get_anthropic_client
+    def test_get_sql_plan_passes_system_prompt(self):
+        """get_sql_plan passes system prompt with schema to call_anthropic_structured."""
+        from backend.agent.fetch.planner import SQLPlan, get_sql_plan
 
-        get_anthropic_client.cache_clear()
+        mock_result = SQLPlan(sql="SELECT 1", needs_rag=False)
 
-        mock_block = MagicMock()
-        mock_block.text = "not valid json at all"
+        with patch("backend.agent.fetch.planner.call_anthropic_structured", return_value=mock_result) as mock_call:
+            get_sql_plan("Test question")
 
-        mock_response = MagicMock()
-        mock_response.content = [mock_block]
-
-        mock_client = MagicMock()
-        mock_client.messages.create.return_value = mock_response
-
-        with patch("backend.agent.fetch.planner.get_anthropic_client", return_value=mock_client), \
-             patch("backend.agent.fetch.planner.load_prompt") as mock_prompt:
-
-            mock_prompt.return_value.format.return_value = "test prompt"
-
-            with pytest.raises(ValueError, match="Failed to parse JSON"):
-                get_sql_plan("What companies?")
-
-        get_anthropic_client.cache_clear()
+            # Verify call_anthropic_structured was called with system prompt containing schema
+            call_kwargs = mock_call.call_args.kwargs
+            assert "system" in call_kwargs
+            assert "DATABASE SCHEMA" in call_kwargs["system"]
+            assert call_kwargs["output_schema"] == SQLPlan
 
 
 # =============================================================================
@@ -778,23 +737,6 @@ class TestExecuteSql:
 # =============================================================================
 
 
-class TestLoadPrompt:
-    """Tests for load_prompt function."""
-
-    def test_load_prompt_reads_file(self):
-        """load_prompt reads and returns ChatPromptTemplate."""
-        from backend.core.llm import load_prompt
-        from langchain_core.prompts import ChatPromptTemplate
-
-        # Use an existing prompt file from the codebase
-        prompt_path = Path(__file__).parent.parent.parent.parent / "backend" / "agent" / "answer" / "prompt.txt"
-        if prompt_path.exists():
-            result = load_prompt(prompt_path)
-            # load_prompt returns a ChatPromptTemplate
-            assert isinstance(result, ChatPromptTemplate)
-            assert len(result.input_variables) > 0
-
-
 class TestCreateChain:
     """Tests for create_chain function.
 
@@ -993,49 +935,6 @@ class TestDataApiMissingCsv:
 
         assert result_data == []
         assert result_columns == []
-
-
-class TestLlmPromptSectionParsing:
-    """Test core/llm.py line 162 - section parsing with existing section."""
-
-    def test_load_prompt_with_multiple_sections(self, tmp_path):
-        """Test load_prompt correctly parses multiple sections."""
-        from backend.core.llm import load_prompt
-
-        # Create a prompt file with multiple sections
-        prompt_file = tmp_path / "test_prompt.txt"
-        prompt_file.write_text("""[system]
-You are a helpful assistant.
-Be concise.
-
-[human]
-Question: {question}
-Data: {data}
-""")
-
-        result = load_prompt(prompt_file)
-
-        # Should have both system and human sections
-        assert len(result.messages) == 2
-
-    def test_load_prompt_with_human_before_system(self, tmp_path):
-        """Test load_prompt handles [human] then [system] to hit line 162."""
-        from backend.core.llm import load_prompt
-
-        # Create a prompt that has [human] before [system]
-        # This triggers line 162 when [system] is encountered after [human]
-        prompt_file = tmp_path / "test_prompt_reversed.txt"
-        prompt_file.write_text("""[human]
-Question: {question}
-
-[system]
-You are a helpful assistant.
-""")
-
-        result = load_prompt(prompt_file)
-
-        # Should have both sections
-        assert len(result.messages) == 2
 
 
 class TestHealthEndpoint:

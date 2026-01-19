@@ -307,17 +307,11 @@ class TestJudgeSqlResults:
         """Test successful judgment that passes."""
         import backend.eval.fetch.sql_judge as sql_judge_module
 
-        mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(message=MagicMock(content='{"passed": true, "reasoning": "Good", "errors": []}'))
-        ]
-
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_response
-
-        monkeypatch.setattr(sql_judge_module, "get_openai_client", lambda: mock_client)
+        # call_openai_json returns dict directly
         monkeypatch.setattr(
-            sql_judge_module, "parse_json_response", lambda x: {"passed": True, "reasoning": "Good", "errors": []}
+            sql_judge_module,
+            "call_openai_json",
+            lambda prompt: {"passed": True, "reasoning": "Good", "errors": []},
         )
 
         from backend.eval.fetch.sql_judge import judge_sql_results
@@ -335,21 +329,10 @@ class TestJudgeSqlResults:
         """Test judgment that fails."""
         import backend.eval.fetch.sql_judge as sql_judge_module
 
-        mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(
-                message=MagicMock(content='{"passed": false, "reasoning": "Wrong count", "errors": ["Count mismatch"]}')
-            )
-        ]
-
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_response
-
-        monkeypatch.setattr(sql_judge_module, "get_openai_client", lambda: mock_client)
         monkeypatch.setattr(
             sql_judge_module,
-            "parse_json_response",
-            lambda x: {"passed": False, "reasoning": "Wrong count", "errors": ["Count mismatch"]},
+            "call_openai_json",
+            lambda prompt: {"passed": False, "reasoning": "Wrong count", "errors": ["Count mismatch"]},
         )
 
         from backend.eval.fetch.sql_judge import judge_sql_results
@@ -367,19 +350,10 @@ class TestJudgeSqlResults:
         """Test judgment failed with reasoning but no errors list."""
         import backend.eval.fetch.sql_judge as sql_judge_module
 
-        mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(message=MagicMock(content='{"passed": false, "reasoning": "Data is incomplete", "errors": []}'))
-        ]
-
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_response
-
-        monkeypatch.setattr(sql_judge_module, "get_openai_client", lambda: mock_client)
         monkeypatch.setattr(
             sql_judge_module,
-            "parse_json_response",
-            lambda x: {"passed": False, "reasoning": "Data is incomplete", "errors": []},
+            "call_openai_json",
+            lambda prompt: {"passed": False, "reasoning": "Data is incomplete", "errors": []},
         )
 
         from backend.eval.fetch.sql_judge import judge_sql_results
@@ -398,18 +372,10 @@ class TestJudgeSqlResults:
         """Test handling of invalid JSON response."""
         import backend.eval.fetch.sql_judge as sql_judge_module
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content="This is not JSON"))]
+        def raise_json_error(prompt):
+            raise json.JSONDecodeError("Invalid JSON", "", 0)
 
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_response
-
-        monkeypatch.setattr(sql_judge_module, "get_openai_client", lambda: mock_client)
-
-        def raise_value_error(x):
-            raise ValueError("Invalid JSON")
-
-        monkeypatch.setattr(sql_judge_module, "parse_json_response", raise_value_error)
+        monkeypatch.setattr(sql_judge_module, "call_openai_json", raise_json_error)
 
         from backend.eval.fetch.sql_judge import judge_sql_results
 
@@ -426,10 +392,13 @@ class TestJudgeSqlResults:
         """Test API error triggers retry and eventually fails."""
         import backend.eval.fetch.sql_judge as sql_judge_module
 
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = Exception("API connection error")
+        call_count = {"count": 0}
 
-        monkeypatch.setattr(sql_judge_module, "get_openai_client", lambda: mock_client)
+        def raise_api_error(prompt):
+            call_count["count"] += 1
+            raise Exception("API connection error")
+
+        monkeypatch.setattr(sql_judge_module, "call_openai_json", raise_api_error)
 
         from backend.eval.fetch.sql_judge import judge_sql_results
 
@@ -442,28 +411,21 @@ class TestJudgeSqlResults:
         assert passed is False
         assert any("API error" in e for e in errors)
         # Should have tried twice
-        assert mock_client.chat.completions.create.call_count == 2
+        assert call_count["count"] == 2
 
     def test_judge_sql_results_retry_succeeds(self, monkeypatch):
         """Test retry succeeds after first failure."""
         import backend.eval.fetch.sql_judge as sql_judge_module
 
-        mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(message=MagicMock(content='{"passed": true, "reasoning": "Good", "errors": []}'))
-        ]
+        call_count = {"count": 0}
 
-        mock_client = MagicMock()
-        # First call fails, second succeeds
-        mock_client.chat.completions.create.side_effect = [
-            Exception("Temporary error"),
-            mock_response,
-        ]
+        def retry_success(prompt):
+            call_count["count"] += 1
+            if call_count["count"] == 1:
+                raise Exception("Temporary error")
+            return {"passed": True, "reasoning": "Good", "errors": []}
 
-        monkeypatch.setattr(sql_judge_module, "get_openai_client", lambda: mock_client)
-        monkeypatch.setattr(
-            sql_judge_module, "parse_json_response", lambda x: {"passed": True, "reasoning": "Good", "errors": []}
-        )
+        monkeypatch.setattr(sql_judge_module, "call_openai_json", retry_success)
 
         from backend.eval.fetch.sql_judge import judge_sql_results
 
@@ -475,55 +437,39 @@ class TestJudgeSqlResults:
 
         assert passed is True
         assert errors == []
-        assert mock_client.chat.completions.create.call_count == 2
+        assert call_count["count"] == 2
 
     def test_judge_sql_results_no_sql(self, monkeypatch):
         """Test handling when SQL is empty."""
         import backend.eval.fetch.sql_judge as sql_judge_module
 
-        mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(message=MagicMock(content='{"passed": true, "reasoning": "OK", "errors": []}'))
-        ]
+        captured_prompt = {}
 
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_response
+        def capture_prompt(prompt):
+            captured_prompt["prompt"] = prompt
+            return {"passed": True, "reasoning": "OK", "errors": []}
 
-        monkeypatch.setattr(sql_judge_module, "get_openai_client", lambda: mock_client)
-        monkeypatch.setattr(
-            sql_judge_module, "parse_json_response", lambda x: {"passed": True, "reasoning": "OK", "errors": []}
-        )
+        monkeypatch.setattr(sql_judge_module, "call_openai_json", capture_prompt)
 
         from backend.eval.fetch.sql_judge import judge_sql_results
 
-        passed, errors = judge_sql_results(
+        judge_sql_results(
             question="Test",
             sql="",
             sql_results={"val": [1]},
         )
 
         # Check that "No SQL provided" was used in prompt
-        call_args = mock_client.chat.completions.create.call_args
-        messages = call_args.kwargs["messages"]
-        assert "No SQL provided" in messages[0]["content"]
+        assert "No SQL provided" in captured_prompt["prompt"]
 
     def test_judge_sql_results_errors_not_list(self, monkeypatch):
         """Test handling when errors is not a list."""
         import backend.eval.fetch.sql_judge as sql_judge_module
 
-        mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(message=MagicMock(content='{"passed": false, "reasoning": "Bad", "errors": "single error"}'))
-        ]
-
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_response
-
-        monkeypatch.setattr(sql_judge_module, "get_openai_client", lambda: mock_client)
         monkeypatch.setattr(
             sql_judge_module,
-            "parse_json_response",
-            lambda x: {"passed": False, "reasoning": "Bad", "errors": "single error"},
+            "call_openai_json",
+            lambda prompt: {"passed": False, "reasoning": "Bad", "errors": "single error"},
         )
 
         from backend.eval.fetch.sql_judge import judge_sql_results

@@ -56,7 +56,7 @@ If the data is empty or doesn't contain the answer, acknowledge this briefly."""
 
 
 @lru_cache
-def get_answer_chain() -> Any:
+def _get_answer_chain() -> Any:
     """Get or create the answer chain (cached singleton).
 
     Returns the LCEL chain directly so LangGraph's astream_events
@@ -83,7 +83,7 @@ def _format_sql_results(sql_results: dict[str, Any] | None) -> str:
         return str(sql_results)
 
 
-def build_answer_input(
+def _build_answer_input(
     question: str,
     sql_results: dict[str, Any] | None = None,
     account_context: str = "",
@@ -126,10 +126,10 @@ def call_answer_chain(
     Returns:
         Tuple of (answer string, latency in ms)
     """
-    chain = get_answer_chain()
+    chain = _get_answer_chain()
     start_time = time.time()
 
-    chain_input = build_answer_input(
+    chain_input = _build_answer_input(
         question=question,
         sql_results=sql_results,
         account_context=account_context,
@@ -143,8 +143,4 @@ def call_answer_chain(
     return answer, latency_ms
 
 
-__all__ = [
-    "get_answer_chain",
-    "build_answer_input",
-    "call_answer_chain",
-]
+__all__ = ["call_answer_chain"]

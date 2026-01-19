@@ -134,7 +134,4 @@ def _format_available_data(data: dict | None, company_name: str | None) -> str:
     return "\n".join(lines) if lines else "No specific data available. Suggest general CRM questions."
 
 
-__all__ = [
-    "FollowUpSuggestions",
-    "generate_follow_up_suggestions",
-]
+__all__ = ["generate_follow_up_suggestions"]

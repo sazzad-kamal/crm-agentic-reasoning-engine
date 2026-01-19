@@ -520,10 +520,10 @@ class TestBuildAnswerInput:
     """Tests for build_answer_input function."""
 
     def test_with_account_context(self):
-        """Test build_answer_input with account context."""
-        from backend.agent.answer.answerer import build_answer_input
+        """Test _build_answer_input with account context."""
+        from backend.agent.answer.answerer import _build_answer_input
 
-        result = build_answer_input(
+        result = _build_answer_input(
             question="test",
             account_context="Some account notes",
         )
@@ -532,10 +532,10 @@ class TestBuildAnswerInput:
         assert "Some account notes" in result["account_context_section"]
 
     def test_with_conversation_history(self):
-        """Test build_answer_input with conversation history."""
-        from backend.agent.answer.answerer import build_answer_input
+        """Test _build_answer_input with conversation history."""
+        from backend.agent.answer.answerer import _build_answer_input
 
-        result = build_answer_input(
+        result = _build_answer_input(
             question="test",
             conversation_history="User: Hi\nAssistant: Hello",
         )
@@ -544,10 +544,10 @@ class TestBuildAnswerInput:
         assert "User: Hi" in result["conversation_history_section"]
 
     def test_without_optional_params(self):
-        """Test build_answer_input without optional params."""
-        from backend.agent.answer.answerer import build_answer_input
+        """Test _build_answer_input without optional params."""
+        from backend.agent.answer.answerer import _build_answer_input
 
-        result = build_answer_input(question="test")
+        result = _build_answer_input(question="test")
 
         assert result["question"] == "test"
         assert result["account_context_section"] == ""
@@ -555,14 +555,14 @@ class TestBuildAnswerInput:
 
 
 class TestGetAnswerChain:
-    """Tests for get_answer_chain function."""
+    """Tests for _get_answer_chain function."""
 
     def test_get_answer_chain_returns_chain(self):
-        """get_answer_chain returns the chain."""
-        from backend.agent.answer.answerer import get_answer_chain
+        """_get_answer_chain returns the chain."""
+        from backend.agent.answer.answerer import _get_answer_chain
 
         # This will return the cached chain (created during module import)
-        chain = get_answer_chain()
+        chain = _get_answer_chain()
         # Just verify it returns something
         assert chain is not None
 
@@ -796,7 +796,7 @@ class TestCallAnswerChainDirect:
         mock_chain = MagicMock()
         mock_chain.invoke.return_value = "Test answer"
 
-        monkeypatch.setattr(answerer, "get_answer_chain", lambda: mock_chain)
+        monkeypatch.setattr(answerer, "_get_answer_chain", lambda: mock_chain)
 
         answer, latency_ms = answerer.call_answer_chain(
             question="Test question",

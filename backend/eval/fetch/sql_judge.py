@@ -7,7 +7,7 @@ import logging
 
 from pydantic import BaseModel, Field
 
-from backend.core.llm import create_chain
+from backend.core.llm import create_openai_chain
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ def judge_sql_results(
         - passed: True if the results correctly answer the question
         - errors: List of issues found (empty if passed)
     """
-    chain = create_chain(
+    chain = create_openai_chain(
         system_prompt=_SYSTEM_PROMPT,
         human_prompt=_HUMAN_PROMPT,
         max_tokens=512,

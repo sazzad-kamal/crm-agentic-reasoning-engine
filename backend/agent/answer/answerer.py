@@ -10,7 +10,7 @@ import time
 from functools import lru_cache
 from typing import Any
 
-from backend.core.llm import LONG_RESPONSE_MAX_TOKENS, create_chain
+from backend.core.llm import LONG_RESPONSE_MAX_TOKENS, create_openai_chain
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ def get_answer_chain() -> Any:
     Returns the LCEL chain directly so LangGraph's astream_events
     can capture on_chat_model_stream events for token streaming.
     """
-    chain = create_chain(
+    chain = create_openai_chain(
         system_prompt=_SYSTEM_PROMPT,
         human_prompt=_HUMAN_PROMPT,
         max_tokens=LONG_RESPONSE_MAX_TOKENS,

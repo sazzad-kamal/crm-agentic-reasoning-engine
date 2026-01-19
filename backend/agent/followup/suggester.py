@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from backend.core.llm import SHORT_RESPONSE_MAX_TOKENS, create_chain
+from backend.core.llm import SHORT_RESPONSE_MAX_TOKENS, create_openai_chain
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class FollowUpSuggestions(BaseModel):
 @lru_cache
 def _get_followup_chain() -> Any:
     """Get or create the followup chain (cached singleton)."""
-    chain = create_chain(
+    chain = create_openai_chain(
         system_prompt=_SYSTEM_PROMPT,
         human_prompt=_HUMAN_PROMPT,
         max_tokens=SHORT_RESPONSE_MAX_TOKENS,

@@ -6,9 +6,11 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from backend.agent.fetch.sql.schema import get_schema_sql
-from backend.core.llm import call_anthropic
+from backend.core.llm import create_anthropic_chain
 
 logger = logging.getLogger(__name__)
+
+_HUMAN_PROMPT = "{question}"
 
 _SYSTEM_PROMPT = """Transform natural language requests into valid DuckDB SQL queries.
 
@@ -58,13 +60,12 @@ def get_sql_plan(question: str, conversation_history: str = "") -> SQLPlan:
         conversation_history=conversation_history or "",
     )
 
-    result = call_anthropic(
-        system=system_prompt,
-        user_message=question,
-        output_schema=SQLPlan,
+    chain = create_anthropic_chain(
+        system_prompt=system_prompt,
+        human_prompt=_HUMAN_PROMPT,
+        structured_output=SQLPlan,
     )
-    # call_anthropic returns SQLPlan when output_schema is provided
-    assert isinstance(result, SQLPlan)
+    result: SQLPlan = chain.invoke({"question": question})
     logger.info("SQL Planner: %s (needs_rag=%s)", result.sql[:80], result.needs_rag)
     return result
 

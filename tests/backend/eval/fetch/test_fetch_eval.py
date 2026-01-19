@@ -291,7 +291,7 @@ class TestJudgeSqlResults:
         from backend.eval.fetch.sql_judge import JudgeResult, judge_sql_results
 
         mock_chain = self._mock_chain(JudgeResult(passed=True, reasoning="Good", errors=[]))
-        monkeypatch.setattr(sql_judge_module, "create_chain", lambda **kwargs: mock_chain)
+        monkeypatch.setattr(sql_judge_module, "create_openai_chain", lambda **kwargs: mock_chain)
 
         passed, errors = judge_sql_results(
             question="What is the count?",
@@ -310,7 +310,7 @@ class TestJudgeSqlResults:
         mock_chain = self._mock_chain(
             JudgeResult(passed=False, reasoning="Wrong count", errors=["Count mismatch"])
         )
-        monkeypatch.setattr(sql_judge_module, "create_chain", lambda **kwargs: mock_chain)
+        monkeypatch.setattr(sql_judge_module, "create_openai_chain", lambda **kwargs: mock_chain)
 
         passed, errors = judge_sql_results(
             question="What is the count?",
@@ -329,7 +329,7 @@ class TestJudgeSqlResults:
         mock_chain = self._mock_chain(
             JudgeResult(passed=False, reasoning="Data is incomplete", errors=[])
         )
-        monkeypatch.setattr(sql_judge_module, "create_chain", lambda **kwargs: mock_chain)
+        monkeypatch.setattr(sql_judge_module, "create_openai_chain", lambda **kwargs: mock_chain)
 
         passed, errors = judge_sql_results(
             question="What is the count?",
@@ -348,7 +348,7 @@ class TestJudgeSqlResults:
 
         mock_chain = MagicMock()
         mock_chain.invoke.side_effect = Exception("API connection error")
-        monkeypatch.setattr(sql_judge_module, "create_chain", lambda **kwargs: mock_chain)
+        monkeypatch.setattr(sql_judge_module, "create_openai_chain", lambda **kwargs: mock_chain)
 
         passed, errors = judge_sql_results(
             question="Test",
@@ -372,7 +372,7 @@ class TestJudgeSqlResults:
 
         mock_chain = MagicMock()
         mock_chain.invoke = capture_invoke
-        monkeypatch.setattr(sql_judge_module, "create_chain", lambda **kwargs: mock_chain)
+        monkeypatch.setattr(sql_judge_module, "create_openai_chain", lambda **kwargs: mock_chain)
 
         judge_sql_results(
             question="Test",

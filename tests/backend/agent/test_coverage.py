@@ -366,14 +366,21 @@ class TestStreamAgent:
 class TestGetSqlPlan:
     """Tests for get_sql_plan function."""
 
+    def _mock_chain(self, result):
+        """Create a mock chain that returns the given result."""
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = result
+        return mock_chain
+
     @pytest.mark.no_mock_llm
-    def test_get_sql_plan_calls_anthropic(self):
-        """get_sql_plan calls call_anthropic and returns SQLPlan."""
+    def test_get_sql_plan_returns_sql_plan(self):
+        """get_sql_plan creates chain and returns SQLPlan."""
         from backend.agent.fetch.planner import SQLPlan, get_sql_plan
 
         mock_result = SQLPlan(sql="SELECT * FROM companies", needs_rag=False)
+        mock_chain = self._mock_chain(mock_result)
 
-        with patch("backend.agent.fetch.planner.call_anthropic", return_value=mock_result):
+        with patch("backend.agent.fetch.planner.create_anthropic_chain", return_value=mock_chain):
             result = get_sql_plan("What companies do we have?")
 
             assert result.sql == "SELECT * FROM companies"
@@ -385,8 +392,9 @@ class TestGetSqlPlan:
         from backend.agent.fetch.planner import SQLPlan, get_sql_plan
 
         mock_result = SQLPlan(sql="SELECT * FROM contacts", needs_rag=True)
+        mock_chain = self._mock_chain(mock_result)
 
-        with patch("backend.agent.fetch.planner.call_anthropic", return_value=mock_result):
+        with patch("backend.agent.fetch.planner.create_anthropic_chain", return_value=mock_chain):
             result = get_sql_plan("Who are the contacts?")
 
             assert result.sql == "SELECT * FROM contacts"
@@ -394,19 +402,20 @@ class TestGetSqlPlan:
 
     @pytest.mark.no_mock_llm
     def test_get_sql_plan_passes_system_prompt(self):
-        """get_sql_plan passes system prompt with schema to call_anthropic."""
+        """get_sql_plan passes system prompt with schema to create_anthropic_chain."""
         from backend.agent.fetch.planner import SQLPlan, get_sql_plan
 
         mock_result = SQLPlan(sql="SELECT 1", needs_rag=False)
+        mock_chain = self._mock_chain(mock_result)
 
-        with patch("backend.agent.fetch.planner.call_anthropic", return_value=mock_result) as mock_call:
+        with patch("backend.agent.fetch.planner.create_anthropic_chain", return_value=mock_chain) as mock_create:
             get_sql_plan("Test question")
 
-            # Verify call_anthropic was called with system prompt containing schema
-            call_kwargs = mock_call.call_args.kwargs
-            assert "system" in call_kwargs
-            assert "DATABASE SCHEMA" in call_kwargs["system"]
-            assert call_kwargs["output_schema"] == SQLPlan
+            # Verify create_anthropic_chain was called with system prompt containing schema
+            call_kwargs = mock_create.call_args.kwargs
+            assert "system_prompt" in call_kwargs
+            assert "DATABASE SCHEMA" in call_kwargs["system_prompt"]
+            assert call_kwargs["structured_output"] == SQLPlan
 
 
 # =============================================================================
@@ -738,7 +747,7 @@ class TestExecuteSql:
 
 
 class TestCreateChain:
-    """Tests for create_chain function.
+    """Tests for create_openai_chain function.
 
     Note: Chain creation requires LLM API access. These tests verify
     the expected input/output patterns.

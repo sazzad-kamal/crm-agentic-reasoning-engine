@@ -31,7 +31,6 @@ _HUMAN_ROLE = "human"
 LONG_RESPONSE_MAX_TOKENS = 1024  # Detailed answers
 SHORT_RESPONSE_MAX_TOKENS = 150  # Brief suggestions
 
-
 def create_openai_chain(
     system_prompt: str,
     human_prompt: str,

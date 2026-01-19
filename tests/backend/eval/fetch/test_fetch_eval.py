@@ -307,10 +307,10 @@ class TestJudgeSqlResults:
         """Test successful judgment that passes."""
         import backend.eval.fetch.sql_judge as sql_judge_module
 
-        # call_openai_json returns dict directly
+        # call_openai returns dict directly
         monkeypatch.setattr(
             sql_judge_module,
-            "call_openai_json",
+            "call_openai",
             lambda prompt: {"passed": True, "reasoning": "Good", "errors": []},
         )
 
@@ -331,7 +331,7 @@ class TestJudgeSqlResults:
 
         monkeypatch.setattr(
             sql_judge_module,
-            "call_openai_json",
+            "call_openai",
             lambda prompt: {"passed": False, "reasoning": "Wrong count", "errors": ["Count mismatch"]},
         )
 
@@ -352,7 +352,7 @@ class TestJudgeSqlResults:
 
         monkeypatch.setattr(
             sql_judge_module,
-            "call_openai_json",
+            "call_openai",
             lambda prompt: {"passed": False, "reasoning": "Data is incomplete", "errors": []},
         )
 
@@ -375,7 +375,7 @@ class TestJudgeSqlResults:
         def raise_json_error(prompt):
             raise json.JSONDecodeError("Invalid JSON", "", 0)
 
-        monkeypatch.setattr(sql_judge_module, "call_openai_json", raise_json_error)
+        monkeypatch.setattr(sql_judge_module, "call_openai", raise_json_error)
 
         from backend.eval.fetch.sql_judge import judge_sql_results
 
@@ -398,7 +398,7 @@ class TestJudgeSqlResults:
             call_count["count"] += 1
             raise Exception("API connection error")
 
-        monkeypatch.setattr(sql_judge_module, "call_openai_json", raise_api_error)
+        monkeypatch.setattr(sql_judge_module, "call_openai", raise_api_error)
 
         from backend.eval.fetch.sql_judge import judge_sql_results
 
@@ -425,7 +425,7 @@ class TestJudgeSqlResults:
                 raise Exception("Temporary error")
             return {"passed": True, "reasoning": "Good", "errors": []}
 
-        monkeypatch.setattr(sql_judge_module, "call_openai_json", retry_success)
+        monkeypatch.setattr(sql_judge_module, "call_openai", retry_success)
 
         from backend.eval.fetch.sql_judge import judge_sql_results
 
@@ -449,7 +449,7 @@ class TestJudgeSqlResults:
             captured_prompt["prompt"] = prompt
             return {"passed": True, "reasoning": "OK", "errors": []}
 
-        monkeypatch.setattr(sql_judge_module, "call_openai_json", capture_prompt)
+        monkeypatch.setattr(sql_judge_module, "call_openai", capture_prompt)
 
         from backend.eval.fetch.sql_judge import judge_sql_results
 
@@ -468,7 +468,7 @@ class TestJudgeSqlResults:
 
         monkeypatch.setattr(
             sql_judge_module,
-            "call_openai_json",
+            "call_openai",
             lambda prompt: {"passed": False, "reasoning": "Bad", "errors": "single error"},
         )
 

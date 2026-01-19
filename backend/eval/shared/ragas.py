@@ -17,12 +17,7 @@ from ragas.embeddings import LangchainEmbeddingsWrapper
 from ragas.llms import LangchainLLMWrapper
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from backend.core.llm import (
-    EMBEDDING_MODEL,
-    FAST_MODEL,
-    get_langchain_chat_openai,
-    get_langchain_embeddings,
-)
+from backend.core.llm import get_langchain_chat_openai, get_langchain_embeddings
 
 # Import metric CLASSES (not singleton instances) for thread-safe instantiation
 with warnings.catch_warnings():
@@ -106,14 +101,14 @@ _suppress_event_loop_closed_errors()
 @lru_cache
 def _get_ragas_llm() -> Any:
     """Get shared LLM for RAGAS (cached singleton)."""
-    logger.info(f"Initializing RAGAS LLM ({FAST_MODEL})")
+    logger.info("Initializing RAGAS LLM")
     return LangchainLLMWrapper(get_langchain_chat_openai())
 
 
 @lru_cache
 def _get_ragas_embeddings() -> Any:
     """Get shared embeddings for RAGAS (cached singleton)."""
-    logger.info(f"Initializing RAGAS embeddings ({EMBEDDING_MODEL})")
+    logger.info("Initializing RAGAS embeddings")
     return LangchainEmbeddingsWrapper(get_langchain_embeddings())
 
 

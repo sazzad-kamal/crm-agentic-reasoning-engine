@@ -368,12 +368,12 @@ class TestGetSqlPlan:
 
     @pytest.mark.no_mock_llm
     def test_get_sql_plan_calls_anthropic(self):
-        """get_sql_plan calls call_anthropic_structured and returns SQLPlan."""
+        """get_sql_plan calls call_anthropic and returns SQLPlan."""
         from backend.agent.fetch.planner import SQLPlan, get_sql_plan
 
         mock_result = SQLPlan(sql="SELECT * FROM companies", needs_rag=False)
 
-        with patch("backend.agent.fetch.planner.call_anthropic_structured", return_value=mock_result):
+        with patch("backend.agent.fetch.planner.call_anthropic", return_value=mock_result):
             result = get_sql_plan("What companies do we have?")
 
             assert result.sql == "SELECT * FROM companies"
@@ -386,7 +386,7 @@ class TestGetSqlPlan:
 
         mock_result = SQLPlan(sql="SELECT * FROM contacts", needs_rag=True)
 
-        with patch("backend.agent.fetch.planner.call_anthropic_structured", return_value=mock_result):
+        with patch("backend.agent.fetch.planner.call_anthropic", return_value=mock_result):
             result = get_sql_plan("Who are the contacts?")
 
             assert result.sql == "SELECT * FROM contacts"
@@ -394,15 +394,15 @@ class TestGetSqlPlan:
 
     @pytest.mark.no_mock_llm
     def test_get_sql_plan_passes_system_prompt(self):
-        """get_sql_plan passes system prompt with schema to call_anthropic_structured."""
+        """get_sql_plan passes system prompt with schema to call_anthropic."""
         from backend.agent.fetch.planner import SQLPlan, get_sql_plan
 
         mock_result = SQLPlan(sql="SELECT 1", needs_rag=False)
 
-        with patch("backend.agent.fetch.planner.call_anthropic_structured", return_value=mock_result) as mock_call:
+        with patch("backend.agent.fetch.planner.call_anthropic", return_value=mock_result) as mock_call:
             get_sql_plan("Test question")
 
-            # Verify call_anthropic_structured was called with system prompt containing schema
+            # Verify call_anthropic was called with system prompt containing schema
             call_kwargs = mock_call.call_args.kwargs
             assert "system" in call_kwargs
             assert "DATABASE SCHEMA" in call_kwargs["system"]

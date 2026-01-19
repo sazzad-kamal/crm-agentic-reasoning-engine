@@ -11,12 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from backend.core.llm import (
-    CREATIVE_TEMPERATURE,
-    FAST_MODEL,
-    SHORT_RESPONSE_MAX_TOKENS,
-    create_chain,
-)
+from backend.core.llm import SHORT_RESPONSE_MAX_TOKENS, create_chain
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +55,6 @@ def _get_followup_chain() -> Any:
     chain = create_chain(
         system_prompt=_SYSTEM_PROMPT,
         human_prompt=_HUMAN_PROMPT,
-        model=FAST_MODEL,
-        temperature=CREATIVE_TEMPERATURE,
         max_tokens=SHORT_RESPONSE_MAX_TOKENS,
         structured_output=FollowUpSuggestions,
     )

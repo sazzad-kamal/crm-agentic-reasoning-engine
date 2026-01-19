@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 
-from backend.core.llm import call_openai_json
+from backend.core.llm import call_openai
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +79,7 @@ def judge_sql_results(
     last_error: Exception | None = None
     for attempt in range(2):
         try:
-            data = call_openai_json(prompt)
+            data = call_openai(prompt)
             passed = bool(data.get("passed", False))
             errors = data.get("errors", [])
             reasoning = data.get("reasoning", "")

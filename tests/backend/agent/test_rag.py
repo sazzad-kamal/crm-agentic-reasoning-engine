@@ -86,17 +86,17 @@ class TestRagIngest:
 class TestLlmClient:
     """Tests for backend.core.llm module."""
 
-    def test_create_chat_openai_no_api_key(self):
-        """Test _create_chat_openai raises when no API key."""
-        from backend.core.llm import _create_chat_openai
+    def test_create_chain_no_api_key(self):
+        """Test create_chain raises when no API key."""
+        from backend.core.llm import create_chain
 
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValueError, match="OPENAI_API_KEY"):
-                _create_chat_openai("gpt-4o-mini", 0.0, 1024, False)
+                create_chain("system", "human", max_tokens=1024)
 
-    def test_create_chat_openai_with_api_key(self):
-        """Test _create_chat_openai creates ChatOpenAI with API key."""
-        from backend.core.llm import _create_chat_openai
+    def test_create_chain_with_api_key(self):
+        """Test create_chain creates ChatOpenAI with API key."""
+        from backend.core.llm import create_chain
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}), \
              patch("backend.core.llm.ChatOpenAI") as mock_chat:
@@ -104,18 +104,19 @@ class TestLlmClient:
             mock_instance = MagicMock()
             mock_chat.return_value = mock_instance
 
-            result = _create_chat_openai("gpt-4o-mini", 0.0, 1024, False)
+            create_chain("system", "human", max_tokens=1024)
 
-            assert result is mock_instance
             mock_chat.assert_called_once()
             call_kwargs = mock_chat.call_args[1]
-            assert call_kwargs["model"] == "gpt-4o-mini"
-            assert call_kwargs["temperature"] == 0.0
-            assert call_kwargs["max_tokens"] == 1024
+            # Model is hardcoded to gpt-5.2
+            assert call_kwargs["model"] == "gpt-5.2"
+            # GPT-5 uses max_completion_tokens
+            assert call_kwargs["max_completion_tokens"] == 1024
+            assert "temperature" not in call_kwargs
 
-    def test_create_chat_openai_o1_uses_max_completion_tokens(self):
-        """Test that o1 models use max_completion_tokens parameter."""
-        from backend.core.llm import _create_chat_openai
+    def test_create_chain_uses_max_completion_tokens(self):
+        """Test that create_chain uses max_completion_tokens for GPT-5."""
+        from backend.core.llm import create_chain
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}), \
              patch("backend.core.llm.ChatOpenAI") as mock_chat:
@@ -123,7 +124,7 @@ class TestLlmClient:
             mock_instance = MagicMock()
             mock_chat.return_value = mock_instance
 
-            _create_chat_openai("o1-preview", 0.0, 1024, False)
+            create_chain("system", "human", max_tokens=1024)
 
             call_kwargs = mock_chat.call_args[1]
             assert "max_completion_tokens" in call_kwargs

@@ -6,7 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from backend.agent.fetch.sql.schema import get_schema_sql
-from backend.core.llm import call_anthropic_structured
+from backend.core.llm import call_anthropic
 
 logger = logging.getLogger(__name__)
 
@@ -58,13 +58,13 @@ def get_sql_plan(question: str, conversation_history: str = "") -> SQLPlan:
         conversation_history=conversation_history or "",
     )
 
-    result = call_anthropic_structured(
+    result = call_anthropic(
         system=system_prompt,
         user_message=question,
         output_schema=SQLPlan,
     )
-    # call_anthropic_structured returns BaseModel, but we know it's SQLPlan
-    result = SQLPlan.model_validate(result)
+    # call_anthropic returns SQLPlan when output_schema is provided
+    assert isinstance(result, SQLPlan)
     logger.info("SQL Planner: %s (needs_rag=%s)", result.sql[:80], result.needs_rag)
     return result
 

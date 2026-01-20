@@ -24,11 +24,11 @@ Today: {today}
 ```
 
 ## RAG KNOWLEDGE BASE
-Private context available via RAG search (not in SQL tables).
+Additional context available via RAG search (not in SQL tables).
 
 Decision:
-- needs_rag=true: Question requires context, notes, background, or qualitative info
-- needs_rag=false: Pure data queries (counts, lists, values, dates, stages)
+- needs_rag=true: "Why is this deal stuck?", "What are their concerns?", "How should I approach them?"
+- needs_rag=false: "How many opportunities?", "What's the close date?", "List contacts at X"
 
 Available context:
 {rag_schema}

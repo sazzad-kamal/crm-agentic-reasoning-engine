@@ -44,18 +44,13 @@ Bad (robotic): "Based on the provided data, I can confirm that..."
 Bad (padded): "Great question! Let me look into that for you. So, basically..."
 """
 
-_HUMAN_PROMPT = """Answer the user's question using ONLY the provided data below.
-
-User's question: {question}
+_HUMAN_PROMPT = """User's question: {question}
 
 {conversation_history_section}
 
 {sql_results_section}
 
-{rag_context_section}
-
-Please provide a helpful, grounded response following the rules in your system prompt.
-If the data is empty or doesn't contain the answer, acknowledge this briefly."""
+{rag_context_section}"""
 
 
 @lru_cache

@@ -24,12 +24,19 @@ GENERATE 3 QUESTIONS:
 
 RULES:
 - Keep questions SHORT and actionable
-- Questions should be natural follow-ups to what was asked
-- Mix specific follow-ups with broader exploration options"""
 
-_HUMAN_PROMPT = """Suggest 3 follow-up questions for the user.
+EXAMPLES:
+User asked: "What opportunities does Acme Corp have?"
+1. "What's the close date for Acme's largest deal?" (deeper)
+2. "Who's the champion at Acme Corp?" (different angle)
+3. "Which companies have deals closing this quarter?" (explore new)
 
-User's question: {question}
+User asked: "Why is the Beta Tech deal stuck?"
+1. "What objections has Beta Tech raised?" (deeper)
+2. "When was our last contact with Beta Tech?" (different angle)
+3. "What other deals are at risk right now?" (explore new)"""
+
+_HUMAN_PROMPT = """User's question: {question}
 
 {conversation_history_section}"""
 

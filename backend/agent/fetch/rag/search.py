@@ -114,6 +114,35 @@ def search_entity_context(
         return "", []
 
 
+_RAG_ENTITY_KEYS = {"company_id", "contact_id", "opportunity_id"}
+
+
+def fetch_rag_context(question: str, entity_ids: dict[str, str]) -> str:
+    """Fetch RAG context for resolved entities.
+
+    Filters entity_ids to valid RAG keys and retrieves context.
+    Returns empty string if no valid IDs or on error.
+
+    Args:
+        question: User's question
+        entity_ids: Dict of entity IDs from SQL results
+
+    Returns:
+        Context string (empty if no context found)
+    """
+    filters = {k: v for k, v in entity_ids.items() if k in _RAG_ENTITY_KEYS}
+    if not filters:
+        return ""
+
+    try:
+        context, _ = search_entity_context(question, filters)
+        return context
+    except Exception as e:
+        logger.warning(f"RAG fetch failed: {e}")
+        return ""
+
+
 __all__ = [
     "search_entity_context",
+    "fetch_rag_context",
 ]

@@ -12,17 +12,10 @@ def followup_node(state: AgentState) -> AgentState:
     """Generate follow-up suggestions based on current state."""
     logger.info("[Followup] Generating suggestions...")
 
-    sql_results = state.get("sql_results", {})
-    company_info = sql_results.get("company_info") or sql_results.get("companies") or []
-    company_name = company_info[0].get("name") if company_info else None
-    available_data = {k: len(v) if isinstance(v, list) else 1 for k, v in sql_results.items() if v}
-
     try:
         suggestions = generate_follow_up_suggestions(
             question=state["question"],
-            company_name=company_name,
             conversation_history=format_conversation_for_prompt(state.get("messages", [])),
-            available_data=available_data,
         )
 
         # Filter empty suggestions

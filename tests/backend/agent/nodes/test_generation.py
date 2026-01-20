@@ -144,7 +144,6 @@ class TestFollowupNode:
         state = {
             "question": "Tell me about Acme",
             "messages": [],
-            "sql_results": {"company_info": [{"name": "Acme Corp"}]},
         }
 
         result = followup_node(state)
@@ -167,7 +166,6 @@ class TestFollowupNode:
         state = {
             "question": "Test",
             "messages": [],
-            "sql_results": {},
         }
 
         result = followup_node(state)
@@ -185,7 +183,6 @@ class TestFollowupNode:
         state = {
             "question": "Test",
             "messages": [],
-            "sql_results": {},
         }
 
         result = followup_node(state)
@@ -193,73 +190,22 @@ class TestFollowupNode:
         assert result["follow_up_suggestions"] == []
 
     @patch('backend.agent.followup.node.generate_follow_up_suggestions')
-    def test_followup_node_extracts_company_name_from_sql_results(self, mock_generate):
-        """Extracts company name from sql_results."""
+    def test_followup_node_passes_question_and_history(self, mock_generate):
+        """Passes question and conversation history to suggester."""
         from backend.agent.followup.node import followup_node
 
-        mock_generate.return_value = ["What about their pipeline?"]
+        mock_generate.return_value = ["Follow-up question?"]
 
         state = {
             "question": "Tell me about Acme",
-            "messages": [],
-            "sql_results": {
-                "company_info": [{"name": "Acme Manufacturing", "company_id": "ACME-001"}],
-            },
+            "messages": [
+                {"role": "user", "content": "Previous question"},
+                {"role": "assistant", "content": "Previous answer"},
+            ],
         }
 
         followup_node(state)
 
         call_kwargs = mock_generate.call_args[1]
-        assert call_kwargs["company_name"] == "Acme Manufacturing"
-
-    @patch('backend.agent.followup.node.generate_follow_up_suggestions')
-    def test_followup_node_builds_available_data_from_sql_results(self, mock_generate):
-        """Builds available_data counts from sql_results."""
-        from backend.agent.followup.node import followup_node
-
-        mock_generate.return_value = []
-
-        state = {
-            "question": "Test",
-            "messages": [],
-            "sql_results": {
-                "contacts": [{"name": "John"}, {"name": "Jane"}],
-                "activities": [{"type": "Call"}],
-                "opportunities": [],
-                "history": [{"type": "Note"}],
-            },
-        }
-
-        followup_node(state)
-
-        call_kwargs = mock_generate.call_args[1]
-        assert call_kwargs["available_data"]["contacts"] == 2
-        assert call_kwargs["available_data"]["activities"] == 1
-
-    @patch('backend.agent.followup.node.generate_follow_up_suggestions')
-    def test_followup_node_counts_non_list_data_as_one(self, mock_generate):
-        """Non-list truthy data is counted as 1 in available_data."""
-        from backend.agent.followup.node import followup_node
-
-        mock_generate.return_value = []
-
-        state = {
-            "question": "Test",
-            "messages": [],
-            "sql_results": {
-                "contacts": [{"name": "John"}],  # List - should count as 1
-                "summary": "Pipeline summary text",  # String - should count as 1
-                "total_value": 50000,  # Number - should count as 1
-                "empty_field": "",  # Empty string - should not be counted
-                "null_field": None,  # None - should not be counted
-            },
-        }
-
-        followup_node(state)
-
-        call_kwargs = mock_generate.call_args[1]
-        assert call_kwargs["available_data"]["contacts"] == 1
-        assert call_kwargs["available_data"]["summary"] == 1
-        assert call_kwargs["available_data"]["total_value"] == 1
-        assert "empty_field" not in call_kwargs["available_data"]
-        assert "null_field" not in call_kwargs["available_data"]
+        assert call_kwargs["question"] == "Tell me about Acme"
+        assert "conversation_history" in call_kwargs

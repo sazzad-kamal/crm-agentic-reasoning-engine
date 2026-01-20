@@ -11,14 +11,12 @@ import logging
 from typing import Any, cast
 
 from backend.agent.fetch.planner import SQLPlan, get_sql_plan
-from backend.agent.fetch.rag.search import search_entity_context
+from backend.agent.fetch.rag.search import fetch_rag_context
 from backend.agent.fetch.sql.connection import get_connection
 from backend.agent.fetch.sql.executor import execute_sql
 from backend.agent.state import AgentState, format_conversation_for_prompt
 
 logger = logging.getLogger(__name__)
-
-_RAG_ENTITY_KEYS = {"company_id", "contact_id", "opportunity_id"}
 
 
 def _execute_sql_with_retry(
@@ -60,28 +58,6 @@ def _execute_sql_with_retry(
         return [], {}, str(e)
 
 
-def _fetch_rag(question: str, entity_ids: dict[str, str]) -> str:
-    """Fetch RAG context for resolved entities.
-
-    Returns:
-        Context string (empty if no context found).
-    """
-    filters = {k: v for k, v in entity_ids.items() if k in _RAG_ENTITY_KEYS}
-    if not filters:
-        logger.info("[Fetch] RAG skipped (no entity IDs resolved)")
-        return ""
-
-    logger.info(f"[Fetch] Retrieving RAG context with filters={filters}")
-
-    try:
-        context, _ = search_entity_context(question, filters)
-        logger.info("[Fetch] RAG complete")
-        return context
-    except Exception as e:
-        logger.warning(f"RAG fetch failed: {e}")
-        return ""
-
-
 def fetch_node(state: AgentState) -> AgentState:
     """Unified fetch node that plans SQL, executes queries, and retrieves RAG context."""
     question = state["question"]
@@ -113,7 +89,7 @@ def fetch_node(state: AgentState) -> AgentState:
 
     # Step 3: Fetch RAG using resolved IDs
     if sql_plan.needs_rag:
-        context = _fetch_rag(question, entity_ids)
+        context = fetch_rag_context(question, entity_ids)
         if context:
             result["rag_context"] = context
     else:

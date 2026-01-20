@@ -483,3 +483,79 @@ class TestToolEntityRag:
         assert "Enterprise customer" in context
         assert "champions" in context
         assert "expansion" in context
+
+
+class TestFetchRagContext:
+    """Tests for fetch_rag_context function."""
+
+    @pytest.mark.no_mock_llm
+    def test_fetch_rag_context_returns_context_string(self):
+        """Test fetch_rag_context returns only context string."""
+        from backend.agent.fetch.rag import search
+
+        with patch.object(search, "search_entity_context") as mock_search:
+            mock_search.return_value = ("Meeting notes content", [{"type": "note", "id": "1"}])
+
+            result = search.fetch_rag_context("What happened?", {"company_id": "COMP001"})
+
+        assert result == "Meeting notes content"
+        mock_search.assert_called_once_with("What happened?", {"company_id": "COMP001"})
+
+    @pytest.mark.no_mock_llm
+    def test_fetch_rag_context_filters_valid_keys(self):
+        """Test fetch_rag_context only passes valid RAG keys."""
+        from backend.agent.fetch.rag import search
+
+        with patch.object(search, "search_entity_context") as mock_search:
+            mock_search.return_value = ("Context", [])
+
+            # Pass extra keys that should be filtered out
+            search.fetch_rag_context(
+                "Question",
+                {
+                    "company_id": "COMP001",
+                    "contact_id": "CONT001",
+                    "opportunity_id": "OPP001",
+                    "activity_id": "ACT001",  # Should be filtered
+                    "user_id": "USER001",  # Should be filtered
+                }
+            )
+
+        # Only valid keys should be passed
+        mock_search.assert_called_once_with(
+            "Question",
+            {"company_id": "COMP001", "contact_id": "CONT001", "opportunity_id": "OPP001"}
+        )
+
+    @pytest.mark.no_mock_llm
+    def test_fetch_rag_context_no_valid_keys(self):
+        """Test fetch_rag_context returns empty string if no valid keys."""
+        from backend.agent.fetch.rag import search
+
+        with patch.object(search, "search_entity_context") as mock_search:
+            # No valid keys - only activity_id which is not in _RAG_ENTITY_KEYS
+            result = search.fetch_rag_context("Question", {"activity_id": "ACT001"})
+
+        assert result == ""
+        mock_search.assert_not_called()
+
+    @pytest.mark.no_mock_llm
+    def test_fetch_rag_context_empty_entity_ids(self):
+        """Test fetch_rag_context returns empty string for empty dict."""
+        from backend.agent.fetch.rag import search
+
+        with patch.object(search, "search_entity_context") as mock_search:
+            result = search.fetch_rag_context("Question", {})
+
+        assert result == ""
+        mock_search.assert_not_called()
+
+    @pytest.mark.no_mock_llm
+    def test_fetch_rag_context_exception_handling(self):
+        """Test fetch_rag_context returns empty string on exception."""
+        from backend.agent.fetch.rag import search
+
+        with patch.object(search, "search_entity_context", side_effect=Exception("RAG error")):
+            result = search.fetch_rag_context("Question", {"company_id": "COMP001"})
+
+        assert result == ""

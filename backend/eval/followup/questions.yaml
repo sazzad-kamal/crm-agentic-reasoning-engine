@@ -1,0 +1,60 @@
+# Evaluation questions for follow-up suggestion generation
+# Each question tests whether the followup node can generate relevant, diverse suggestions
+
+questions:
+  # Company overview questions
+  - text: "Tell me about Acme Corp"
+    context: "Company overview request"
+
+  - text: "What's happening with Beta Inc?"
+    context: "Company status inquiry"
+
+  - text: "Give me a summary of Delta Technologies"
+    context: "Company summary request"
+
+  # Contact-related questions
+  - text: "Who are the contacts at Acme?"
+    context: "Contact lookup"
+
+  - text: "Show me John Smith's details"
+    context: "Specific contact inquiry"
+
+  - text: "List all contacts for Delta"
+    context: "Contact list request"
+
+  # Opportunity/Deal questions
+  - text: "What deals do we have with Acme?"
+    context: "Opportunity lookup"
+
+  - text: "Show me the open opportunities"
+    context: "Pipeline overview"
+
+  - text: "What's the status of the Enterprise deal?"
+    context: "Specific deal inquiry"
+
+  # Activity questions
+  - text: "What recent activities happened with Beta?"
+    context: "Activity history"
+
+  - text: "Show me the last interactions with Acme"
+    context: "Recent touchpoints"
+
+  # Pipeline/Forecast questions
+  - text: "What's the pipeline for Q1?"
+    context: "Pipeline forecast"
+
+  - text: "Show me upcoming renewals"
+    context: "Renewal tracking"
+
+  - text: "What's the total deal value this quarter?"
+    context: "Revenue forecast"
+
+  # General/Exploratory questions
+  - text: "How many companies do we have?"
+    context: "General CRM inquiry"
+
+  - text: "Show me recent updates"
+    context: "General activity overview"
+
+  - text: "What needs my attention?"
+    context: "Action items inquiry"

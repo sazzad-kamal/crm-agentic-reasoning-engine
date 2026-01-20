@@ -163,14 +163,14 @@ class TestFetchNode:
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
              patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
-             patch("backend.agent.fetch.node.search_entity_context") as mock_rag:
+             patch("backend.agent.fetch.node.fetch_rag_context") as mock_rag:
 
             mock_exec.return_value = (
                 [{"company_id": "delta_1"}],
                 {"company_id": "delta_1"},
                 None,
             )
-            mock_rag.return_value = ("RAG context", [{"type": "note", "id": "n1", "label": "Note"}])
+            mock_rag.return_value = "RAG context"
 
             result = fetch_node(state)
 
@@ -189,14 +189,14 @@ class TestFetchNode:
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
              patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
-             patch("backend.agent.fetch.node.search_entity_context") as mock_rag:
+             patch("backend.agent.fetch.node.fetch_rag_context") as mock_rag:
 
-            # No resolved IDs
+            # No resolved IDs - fetch_rag_context returns empty for no valid keys
             mock_exec.return_value = ([{"count": 10}], {}, None)
+            mock_rag.return_value = ""
 
             result = fetch_node(state)
 
-            mock_rag.assert_not_called()
             assert result.get("rag_context", "") == ""
 
     def test_rag_fetch_exception_handled(self):
@@ -211,14 +211,15 @@ class TestFetchNode:
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
              patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
-             patch("backend.agent.fetch.node.search_entity_context") as mock_rag:
+             patch("backend.agent.fetch.node.fetch_rag_context") as mock_rag:
 
             mock_exec.return_value = (
                 [{"company_id": "delta_1"}],
                 {"company_id": "delta_1"},
                 None,
             )
-            mock_rag.side_effect = Exception("RAG service unavailable")
+            # fetch_rag_context returns empty string on error (handles exceptions internally)
+            mock_rag.return_value = ""
 
             result = fetch_node(state)
 
@@ -236,21 +237,21 @@ class TestFetchNode:
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
              patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
-             patch("backend.agent.fetch.node.search_entity_context") as mock_rag:
+             patch("backend.agent.fetch.node.fetch_rag_context") as mock_rag:
 
             mock_exec.return_value = (
                 [{"contact_id": "cont_1", "opportunity_id": "opp_1"}],
                 {"contact_id": "cont_1", "opportunity_id": "opp_1"},
                 None,
             )
-            mock_rag.return_value = ("context", [])
+            mock_rag.return_value = "context"
 
             result = fetch_node(state)
 
             call_args = mock_rag.call_args
-            filters = call_args[0][1]
-            assert "contact_id" in filters
-            assert "opportunity_id" in filters
+            entity_ids = call_args[0][1]
+            assert "contact_id" in entity_ids
+            assert "opportunity_id" in entity_ids
 
 
 # =============================================================================
@@ -494,61 +495,6 @@ class TestGenerateFollowUpSuggestions:
         use_hardcoded_tree = False
         would_check_tree = use_hardcoded_tree
         assert would_check_tree is False
-
-
-class TestFormatAvailableData:
-    """Tests for _format_available_data function."""
-
-    def test_none_data(self):
-        """None data returns default message."""
-        from backend.agent.followup.suggester import _format_available_data
-
-        result = _format_available_data(None, None)
-        assert "No specific data available" in result
-
-    def test_empty_data(self):
-        """Empty dict returns default message."""
-        from backend.agent.followup.suggester import _format_available_data
-
-        result = _format_available_data({}, None)
-        assert "No specific data available" in result
-
-    def test_data_with_contacts(self):
-        """Data with contacts includes contacts line."""
-        from backend.agent.followup.suggester import _format_available_data
-
-        result = _format_available_data({"contacts": 5}, "Acme")
-        assert "Contacts: 5" in result
-        assert "Acme" in result
-
-    def test_data_with_all_fields(self):
-        """Data with all fields formats correctly."""
-        from backend.agent.followup.suggester import _format_available_data
-
-        data = {
-            "contacts": 3,
-            "activities": 10,
-            "opportunities": 2,
-            "history": 15,
-            "renewals": 1,
-        }
-        result = _format_available_data(data, "Test Co")
-
-        assert "Contacts:" in result
-        assert "Activities:" in result
-        assert "Opportunities:" in result
-        assert "History:" in result
-        assert "Renewals:" in result
-
-    def test_zero_values_excluded(self):
-        """Zero values are not included."""
-        from backend.agent.followup.suggester import _format_available_data
-
-        data = {"contacts": 0, "activities": 5}
-        result = _format_available_data(data, None)
-
-        assert "Contacts" not in result
-        assert "Activities:" in result
 
 
 # =============================================================================
@@ -808,7 +754,6 @@ class TestSuggesterLlmFallback:
 
         result = suggester.generate_follow_up_suggestions(
             question="Unknown question that's not in tree",
-            company_name="Test Co",
             use_hardcoded_tree=True,
         )
 

@@ -17,23 +17,20 @@ logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = """You are a helpful CRM assistant that suggests follow-up questions.
 
-GENERATE 3 QUESTIONS:
-1. First question: Drill deeper into the topic the user asked about
-2. Second question: Another angle on the same topic
-3. Third question: Let user explore something NEW - different company or general CRM data question
-
-RULES:
-- Keep questions SHORT and actionable
+GENERATE 3 SHORT QUESTIONS:
+1. Drill into specifics of what they asked
+2. Related aspect of the same entity (company/deal/contact)
+3. Explore something NEW - different entity or broader CRM question
 
 EXAMPLES:
 User asked: "What opportunities does Acme Corp have?"
-1. "What's the close date for Acme's largest deal?" (deeper)
-2. "Who's the champion at Acme Corp?" (different angle)
+1. "What's the close date for Acme's largest deal?" (specifics)
+2. "Who's the champion at Acme Corp?" (same company, people aspect)
 3. "Which companies have deals closing this quarter?" (explore new)
 
 User asked: "Why is the Beta Tech deal stuck?"
-1. "What objections has Beta Tech raised?" (deeper)
-2. "When was our last contact with Beta Tech?" (different angle)
+1. "What's the timeline to close Beta Tech?" (specifics)
+2. "When was our last contact with Beta Tech?" (same deal, activity aspect)
 3. "What other deals are at risk right now?" (explore new)"""
 
 _HUMAN_PROMPT = """User's question: {question}

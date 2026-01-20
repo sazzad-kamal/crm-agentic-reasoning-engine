@@ -116,8 +116,8 @@ test.describe('Data Explorer Table', () => {
     await page.goto('/');
     const browseButton = page.getByRole('button', { name: /browse.*data/i });
     await browseButton.click();
-    // Wait for data to load
-    await page.waitForResponse(resp => resp.url().includes('/api/data/companies'));
+    // Wait for table to be visible (data loaded)
+    await expect(page.locator('.data-table')).toBeVisible({ timeout: 15000 });
   });
 
   test('displays company data in table', async ({ page }) => {
@@ -162,7 +162,8 @@ test.describe('Data Explorer Expandable Rows', () => {
     await page.goto('/');
     const browseButton = page.getByRole('button', { name: /browse.*data/i });
     await browseButton.click();
-    await page.waitForResponse(resp => resp.url().includes('/api/data/companies'));
+    // Wait for table to be visible (data loaded)
+    await expect(page.locator('.data-table')).toBeVisible({ timeout: 15000 });
   });
 
   test('shows expand button for rows with nested data', async ({ page }) => {
@@ -209,10 +210,10 @@ test.describe('Data Explorer Ask AI Integration', () => {
     await page.goto('/');
     const browseButton = page.getByRole('button', { name: /browse.*data/i });
     await browseButton.click();
-    // Wait for data to load and table to render
-    await page.waitForResponse(resp => resp.url().includes('/api/data/companies'));
+    // Wait for table to be visible (data loaded)
+    await expect(page.locator('.data-table')).toBeVisible({ timeout: 15000 });
     // Wait for table rows to appear
-    await page.locator('.data-table__row').first().waitFor({ state: 'visible' });
+    await page.locator('.data-table__row').first().waitFor({ state: 'visible', timeout: 15000 });
   });
 
   test('shows Ask AI buttons in table', async ({ page }) => {
@@ -243,18 +244,19 @@ test.describe('Data Explorer Ask AI Integration', () => {
 test.describe('Data Explorer API Integration', () => {
   test('loads companies data from API', async ({ page }) => {
     await page.goto('/');
-    
-    // Set up response interception
+
+    // Set up response interception BEFORE clicking
     const responsePromise = page.waitForResponse(
-      resp => resp.url().includes('/api/data/companies') && resp.status() === 200
+      resp => resp.url().includes('/api/data/companies') && resp.status() === 200,
+      { timeout: 30000 }
     );
-    
+
     const browseButton = page.getByRole('button', { name: /browse.*data/i });
     await browseButton.click();
-    
+
     const response = await responsePromise;
     const data = await response.json();
-    
+
     expect(data.data).toBeDefined();
     expect(data.total).toBeGreaterThan(0);
   });
@@ -263,19 +265,24 @@ test.describe('Data Explorer API Integration', () => {
     await page.goto('/');
     const browseButton = page.getByRole('button', { name: /browse.*data/i });
     await browseButton.click();
-    
+
+    // Wait for companies data first
+    await expect(page.locator('.data-table')).toBeVisible({ timeout: 15000 });
+
     // Switch to opportunities tab
     const oppTab = page.getByRole('tab', { name: /opportunities/i });
-    
+
+    // Set up response interception BEFORE clicking tab
     const responsePromise = page.waitForResponse(
-      resp => resp.url().includes('/api/data/opportunities') && resp.status() === 200
+      resp => resp.url().includes('/api/data/opportunities') && resp.status() === 200,
+      { timeout: 30000 }
     );
-    
+
     await oppTab.click();
-    
+
     const response = await responsePromise;
     const data = await response.json();
-    
+
     expect(data.data).toBeDefined();
     expect(data.total).toBeGreaterThan(0);
   });

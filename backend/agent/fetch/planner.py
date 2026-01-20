@@ -46,6 +46,22 @@ class SQLPlan(BaseModel):
     needs_rag: bool = Field(default=False, description="Whether RAG context is needed")
 
 
+def _get_planner_chain():
+    """Get the planner chain (not cached - system prompt includes dynamic date)."""
+    system_prompt = _SYSTEM_PROMPT.format(
+        today=datetime.now().strftime("%Y-%m-%d"),
+        schema=get_schema_sql(),
+        rag_schema=get_rag_schema(),
+    )
+    chain = create_anthropic_chain(
+        system_prompt=system_prompt,
+        human_prompt=_HUMAN_PROMPT,
+        structured_output=SQLPlan,
+    )
+    logger.debug("Created planner chain")
+    return chain
+
+
 def get_sql_plan(
     question: str,
     conversation_history: str = "",
@@ -61,12 +77,6 @@ def get_sql_plan(
 
     Returns SQLPlan with SQL string and needs_rag flag.
     """
-    system_prompt = _SYSTEM_PROMPT.format(
-        today=datetime.now().strftime("%Y-%m-%d"),
-        schema=get_schema_sql(),
-        rag_schema=get_rag_schema(),
-    )
-
     # Build conversation history section with optional error context
     history_section = ""
     if conversation_history:
@@ -74,12 +84,7 @@ def get_sql_plan(
     if previous_error:
         history_section += f"\n[PREVIOUS QUERY FAILED]\n{previous_error}\nPlease fix the query."
 
-    chain = create_anthropic_chain(
-        system_prompt=system_prompt,
-        human_prompt=_HUMAN_PROMPT,
-        structured_output=SQLPlan,
-    )
-    result: SQLPlan = chain.invoke({
+    result: SQLPlan = _get_planner_chain().invoke({
         "question": question,
         "conversation_history_section": history_section,
     })

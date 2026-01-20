@@ -70,7 +70,7 @@ def generate_follow_up_suggestions(
         use_hardcoded_tree: Whether to try hardcoded tree first
 
     Returns:
-        List of up to 3 follow-up question suggestions
+        List of exactly 3 follow-up question suggestions
     """
     # Try hardcoded tree first (fast, deterministic)
     if use_hardcoded_tree:
@@ -79,7 +79,7 @@ def generate_follow_up_suggestions(
         follow_ups = get_follow_ups(question)
         if follow_ups:
             logger.debug(f"Using hardcoded follow-ups for: {question[:50]}...")
-            return follow_ups[:3]
+            return follow_ups
 
     # LLM fallback for contextual suggestions
     try:
@@ -92,7 +92,7 @@ def generate_follow_up_suggestions(
         })
 
         logger.debug(f"Generated {len(result.suggestions)} follow-up suggestions via LLM")
-        return result.suggestions[:3]
+        return result.suggestions
 
     except Exception as e:
         logger.warning(f"Follow-up generation failed: {e}")

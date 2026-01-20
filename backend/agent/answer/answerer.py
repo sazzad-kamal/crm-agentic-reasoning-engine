@@ -31,19 +31,18 @@ FORMATTING:
 - Dates: March 31, 2026
 
 EXAMPLES:
-Good (grounded + concise):
-"Beta Tech has 3 open opportunities totaling $245,000.
+User asked: "What opportunities does Beta Tech have?"
+Good: "Beta Tech has 3 open opportunities totaling $245,000.
 - Largest: Enterprise renewal ($150,000, closes March 31)
 - Champion: Sarah Chen (VP Engineering)
 - Risk: Competitor evaluation in progress"
-
-Good (missing data):
-"Renewal amount is not available in the current data."
-
-Bad (vague numbers): "They have several opportunities"
-Bad (over-explaining): "I don't have that information; amounts are tracked in the system but..."
-Bad (robotic): "Based on the provided data, I can confirm that..."
+Bad (vague): "They have several opportunities"
+Bad (robotic): "Based on the provided data, I can confirm that Beta Tech has opportunities..."
 Bad (padded): "Great question! Let me look into that for you. So, basically..."
+
+User asked: "What's the renewal amount for Acme Corp?"
+Good: "Renewal amount is not available in the current data."
+Bad (over-explaining): "I don't have that information; amounts are tracked in the system but..."
 """
 
 _HUMAN_PROMPT = """User's question: {question}

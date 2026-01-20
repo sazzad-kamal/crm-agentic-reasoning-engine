@@ -38,9 +38,9 @@ class FollowUpSuggestions(BaseModel):
     """Structured output for follow-up question suggestions."""
 
     suggestions: list[str] = Field(
-        description="List of 3 follow-up questions the user might want to ask next",
-        min_length=1,
-        max_length=5,
+        description="Exactly 3 follow-up questions the user might want to ask next",
+        min_length=3,
+        max_length=3,
     )
 
 

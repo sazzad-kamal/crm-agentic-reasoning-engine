@@ -19,25 +19,30 @@ Your job is to answer questions using ONLY the provided CRM data context.
 GROUNDING RULES:
 - Use EXACT numbers and dates from context - never say "several", "some", "multiple", "recent"
 - When asked "how many", extract the explicit count from the data
-- If specific data isn't in the context, just say it's not available - don't over-explain
-
-EXAMPLES:
-Good: "Beta Tech has 3 open opportunities totaling $245,000"
-Good: "Last activity: call on December 15, 2024 with John Smith"
-Good: "Renewal amount is not available in the current data."
-Bad: "They have several opportunities" (vague)
-Bad: "Amount: I don't have that information; amounts are tracked in..." (over-explaining)
+- If specific data isn't in the context, say it's not available - don't over-explain
 
 RESPONSE STYLE:
 - Lead with the key answer in 1 sentence
 - Use bullet points for supporting details
 - Be conversational and natural, not robotic
 - Keep it SHORT - no padding or filler
+- Currency: $1,250,000 | Dates: March 31, 2026
 
-FORMATTING:
-- Currency: $1,250,000
-- Dates: March 31, 2026
-- If no data found, acknowledge briefly and offer to help differently"""
+EXAMPLES:
+Good (grounded + concise):
+"Beta Tech has 3 open opportunities totaling $245,000.
+- Largest: Enterprise renewal ($150,000, closes March 31)
+- Champion: Sarah Chen (VP Engineering)
+- Risk: Competitor evaluation in progress"
+
+Good (missing data):
+"Renewal amount is not available in the current data."
+
+Bad (vague numbers): "They have several opportunities"
+Bad (over-explaining): "I don't have that information; amounts are tracked in the system but..."
+Bad (robotic): "Based on the provided data, I can confirm that..."
+Bad (padded): "Great question! Let me look into that for you. So, basically..."
+"""
 
 _HUMAN_PROMPT = """Answer the user's question using ONLY the provided data below.
 
@@ -45,10 +50,9 @@ User's question: {question}
 
 {conversation_history_section}
 
-=== CRM DATA (SQL Query Results) ===
-{sql_results}
+{sql_results_section}
 
-{account_context_section}
+{rag_context_section}
 
 Please provide a helpful, grounded response following the rules in your system prompt.
 If the data is empty or doesn't contain the answer, acknowledge this briefly."""
@@ -80,8 +84,8 @@ def call_answer_chain(
     result: str = _get_answer_chain().invoke({
         "question": question,
         "conversation_history_section": f"=== RECENT CONVERSATION ===\n{conversation_history}\n" if conversation_history else "",
-        "sql_results": json.dumps(sql_results, indent=2, default=str) if sql_results else "(No data retrieved)",
-        "account_context_section": f"=== ACCOUNT CONTEXT (RAG) ===\n{rag_context}\n" if rag_context else "",
+        "sql_results_section": f"=== CRM DATA ===\n{json.dumps(sql_results, indent=2, default=str)}\n" if sql_results else "",
+        "rag_context_section": f"=== CONTEXT NOTES ===\n{rag_context}\n" if rag_context else "",
     })
     return result
 

@@ -11,8 +11,6 @@ from backend.core.llm import create_anthropic_chain
 
 logger = logging.getLogger(__name__)
 
-_HUMAN_PROMPT = "{question}"
-
 _SYSTEM_PROMPT = """Transform natural language requests into valid DuckDB SQL queries and decide if RAG context is needed.
 
 Today: {today}
@@ -34,10 +32,11 @@ Available context:
 {rag_schema}
 
 ## NOTES
-- "Recent" or "recently" means within the last 90 days
+- "Recent" or "recently" means within the last 90 days"""
 
-## CONVERSATION HISTORY
-{conversation_history}"""
+_HUMAN_PROMPT = """User's question: {question}
+
+{conversation_history_section}"""
 
 
 class SQLPlan(BaseModel):
@@ -62,23 +61,28 @@ def get_sql_plan(
 
     Returns SQLPlan with SQL string and needs_rag flag.
     """
-    error_context = ""
-    if previous_error:
-        error_context = f"\n\n[PREVIOUS QUERY FAILED]\n{previous_error}\nPlease fix the query."
-
     system_prompt = _SYSTEM_PROMPT.format(
         today=datetime.now().strftime("%Y-%m-%d"),
         schema=get_schema_sql(),
         rag_schema=get_rag_schema(),
-        conversation_history=(conversation_history or "") + error_context,
     )
+
+    # Build conversation history section with optional error context
+    history_section = ""
+    if conversation_history:
+        history_section = f"=== CONVERSATION HISTORY ===\n{conversation_history}\n"
+    if previous_error:
+        history_section += f"\n[PREVIOUS QUERY FAILED]\n{previous_error}\nPlease fix the query."
 
     chain = create_anthropic_chain(
         system_prompt=system_prompt,
         human_prompt=_HUMAN_PROMPT,
         structured_output=SQLPlan,
     )
-    result: SQLPlan = chain.invoke({"question": question})
+    result: SQLPlan = chain.invoke({
+        "question": question,
+        "conversation_history_section": history_section,
+    })
     logger.info("SQL Planner: %s (needs_rag=%s)", result.sql[:80], result.needs_rag)
     return result
 

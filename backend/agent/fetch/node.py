@@ -42,7 +42,8 @@ def _execute_sql_with_retry(
             logger.info(f"[Fetch] Retrying failed query: {error}")
             retry_plan = get_sql_plan(
                 question=question,
-                conversation_history=f"{history}\n\n[PREVIOUS QUERY FAILED]\n{error}\nPlease fix the query.",
+                conversation_history=history,
+                previous_error=error,
             )
             retry_rows, retry_ids, retry_error = execute_sql(retry_plan, conn)
 

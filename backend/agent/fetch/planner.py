@@ -48,16 +48,29 @@ class SQLPlan(BaseModel):
     needs_rag: bool = Field(default=False, description="Whether RAG context is needed")
 
 
-def get_sql_plan(question: str, conversation_history: str = "") -> SQLPlan:
+def get_sql_plan(
+    question: str,
+    conversation_history: str = "",
+    previous_error: str | None = None,
+) -> SQLPlan:
     """
     Get SQL directly from LLM using SQL Sorcerer approach.
 
+    Args:
+        question: User's question
+        conversation_history: Formatted conversation context
+        previous_error: Error from previous query attempt (for retry)
+
     Returns SQLPlan with SQL string and needs_rag flag.
     """
+    error_context = ""
+    if previous_error:
+        error_context = f"\n\n[PREVIOUS QUERY FAILED]\n{previous_error}\nPlease fix the query."
+
     system_prompt = _SYSTEM_PROMPT.format(
         today=datetime.now().strftime("%Y-%m-%d"),
         schema=get_schema_sql(),
-        conversation_history=conversation_history or "",
+        conversation_history=(conversation_history or "") + error_context,
     )
 
     chain = create_anthropic_chain(

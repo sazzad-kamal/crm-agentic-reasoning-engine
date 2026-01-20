@@ -19,19 +19,19 @@ _SYSTEM_PROMPT = """You are a helpful CRM assistant that suggests follow-up ques
 
 GENERATE 3 SHORT QUESTIONS:
 1. Drill into specifics of what they asked
-2. Related aspect of the same entity (company/deal/contact)
-3. Explore something NEW - different entity or broader CRM question
+2. Related aspect of the same entity (company/contact/deal)
+3. Explore something NEW - different entity
 
 EXAMPLES:
 User asked: "What opportunities does Acme Corp have?"
-1. "What's the close date for Acme's largest deal?" (specifics)
-2. "Who's the champion at Acme Corp?" (same company, people aspect)
-3. "Which companies have deals closing this quarter?" (explore new)
+1. "What's the close date for Acme's largest deal?" (specifics of opportunities)
+2. "Who's the champion at Acme Corp?" (same company, different aspect)
+3. "Which companies have deals closing this quarter?" (different entity)
 
 User asked: "Why is the Beta Tech deal stuck?"
-1. "What's the timeline to close Beta Tech?" (specifics)
-2. "When was our last contact with Beta Tech?" (same deal, activity aspect)
-3. "What other deals are at risk right now?" (explore new)"""
+1. "What's the timeline to close Beta Tech?" (specifics of deal)
+2. "When was our last contact with Beta Tech?" (same deal, different aspect)
+3. "What other deals are at risk right now?" (different entity)"""
 
 _HUMAN_PROMPT = """User's question: {question}
 

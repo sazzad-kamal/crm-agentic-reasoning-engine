@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 _HUMAN_PROMPT = "{question}"
 
-_SYSTEM_PROMPT = """Transform natural language requests into valid DuckDB SQL queries.
+_SYSTEM_PROMPT = """Transform natural language requests into valid DuckDB SQL queries and decide if RAG context is needed.
 
 Today: {today}
 
@@ -23,16 +23,20 @@ Today: {today}
 {schema}
 ```
 
+## RAG KNOWLEDGE BASE
+Private context available via RAG search (not in SQL tables).
+
+Decision:
+- needs_rag=true: Question requires context, notes, background, or qualitative info
+- needs_rag=false: Pure data queries (counts, lists, values, dates, stages)
+
+Available context:
+{rag_schema}
+
 ## NOTES
 - "Recent" or "recently" means within the last 90 days
 
-## RAG KNOWLEDGE BASE
-The following private text is available via RAG search (not in SQL tables). Set needs_rag=true when the question requires this context:
-
-{rag_schema}
-
-Set needs_rag=false for pure data queries (counts, lists, values, dates, stages).
-
+## CONVERSATION HISTORY
 {conversation_history}"""
 
 

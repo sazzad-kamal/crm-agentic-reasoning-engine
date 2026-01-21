@@ -14,7 +14,7 @@ tables:
       region: "VARCHAR"
       renewal_date: "DATE"
       health_flags: "VARCHAR CHECK (health_flags IN ('healthy', 'at-risk-low-activity', 'at-risk-renewal-soon'))"
-    exclude: [notes]
+      notes: "TEXT"
 
   contacts:
     columns:
@@ -27,7 +27,7 @@ tables:
       job_title: "VARCHAR"
       role: "VARCHAR CHECK (role IN ('Decision Maker', 'Champion', 'Technical Contact', 'Executive'))"
       lifecycle_stage: "VARCHAR CHECK (lifecycle_stage IN ('Lead', 'MQL', 'SQL', 'Customer'))"
-    exclude: [notes]
+      notes: "TEXT"
 
   opportunities:
     columns:
@@ -41,7 +41,7 @@ tables:
       owner: "VARCHAR"
       expected_close_date: "DATE"
       days_in_stage: "INT"
-    exclude: [notes]
+      notes: "TEXT"
 
   activities:
     columns:
@@ -55,7 +55,7 @@ tables:
       owner: "VARCHAR"
       priority: "VARCHAR CHECK (priority IN ('High', 'Medium', 'Low'))"
       status: "VARCHAR CHECK (status IN ('Pending', 'Completed', 'Cancelled'))"
-    exclude: [notes]
+      notes: "TEXT"
 
   history:
     columns:
@@ -68,4 +68,4 @@ tables:
       source: "VARCHAR"
       occurred_at: "DATETIME"
       owner: "VARCHAR"
-    exclude: [notes]
+      notes: "TEXT"

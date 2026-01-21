@@ -1,6 +1,5 @@
 # Fetch Node Evaluation Questions
-# 50 SQL questions (10 per difficulty level 1-5)
-# 10 RAG-only questions (2 per difficulty level 1-5)
+# 60 SQL questions (10 per difficulty level 1-5, plus 10 notes-based questions)
 
 questions:
   # =============================================================================
@@ -36,6 +35,13 @@ questions:
   - text: "What is the priority of the Crown Foods renewal check-in activity?"
     difficulty: 1
 
+  # Notes-based questions (formerly RAG-only, now use notes column in SQL)
+  - text: "What are the notes about Anna Lopez?"
+    difficulty: 1
+
+  - text: "What are the notes about Acme Manufacturing?"
+    difficulty: 1
+
   # =============================================================================
   # SQL DIFFICULTY 2: Joins, basic aggregations
   # =============================================================================
@@ -67,6 +73,13 @@ questions:
     difficulty: 2
 
   - text: "How many high priority activities are open?"
+    difficulty: 2
+
+  # Notes-based questions
+  - text: "What are the key details about the Beta Tech new rollout opportunity?"
+    difficulty: 2
+
+  - text: "What information do we have about Lisa Ng at Beta Tech?"
     difficulty: 2
 
   # =============================================================================
@@ -102,6 +115,13 @@ questions:
   - text: "How many history entries exist per company?"
     difficulty: 3
 
+  # Notes-based questions
+  - text: "Why did Green Energy churn and what is the win-back strategy?"
+    difficulty: 3
+
+  - text: "What are the concerns and opportunities related to Delta Health's expansion?"
+    difficulty: 3
+
   # =============================================================================
   # SQL DIFFICULTY 4: Subqueries, complex filters
   # =============================================================================
@@ -133,6 +153,13 @@ questions:
     difficulty: 4
 
   - text: "What companies have opportunities closing in the next 60 days?"
+    difficulty: 4
+
+  # Notes-based questions
+  - text: "What contacts have expressed concerns about pricing across all companies?"
+    difficulty: 4
+
+  - text: "Which opportunities are at risk and why based on history and activities?"
     difficulty: 4
 
   # =============================================================================
@@ -168,57 +195,9 @@ questions:
   - text: "Which account owners have the highest win rate on opportunities?"
     difficulty: 5
 
-  # =============================================================================
-  # RAG-ONLY DIFFICULTY 1: Simple entity lookup
-  # =============================================================================
-  - text: "What are the notes about Anna Lopez?"
-    rag_only: true
-    difficulty: 1
-
-  - text: "What are the notes about Acme Manufacturing?"
-    rag_only: true
-    difficulty: 1
-
-  # =============================================================================
-  # RAG-ONLY DIFFICULTY 2: Multi-field retrieval
-  # =============================================================================
-  - text: "What are the key details about the Beta Tech new rollout opportunity?"
-    rag_only: true
-    difficulty: 2
-
-  - text: "What information do we have about Lisa Ng at Beta Tech?"
-    rag_only: true
-    difficulty: 2
-
-  # =============================================================================
-  # RAG-ONLY DIFFICULTY 3: Cross-document reasoning
-  # =============================================================================
-  - text: "Why did Green Energy churn and what is the win-back strategy?"
-    rag_only: true
-    difficulty: 3
-
-  - text: "What are the concerns and opportunities related to Delta Health's expansion?"
-    rag_only: true
-    difficulty: 3
-
-  # =============================================================================
-  # RAG-ONLY DIFFICULTY 4: Complex semantic matching
-  # =============================================================================
-  - text: "What contacts have expressed concerns about pricing across all companies?"
-    rag_only: true
-    difficulty: 4
-
-  - text: "Which opportunities are at risk and why based on history and activities?"
-    rag_only: true
-    difficulty: 4
-
-  # =============================================================================
-  # RAG-ONLY DIFFICULTY 5: Multi-hop reasoning
-  # =============================================================================
+  # Notes-based questions
   - text: "Based on all interactions, what is the recommended approach for the Acme Manufacturing upgrade deal?"
-    rag_only: true
     difficulty: 5
 
   - text: "Considering all touchpoints, which companies are most likely to expand and why?"
-    rag_only: true
     difficulty: 5

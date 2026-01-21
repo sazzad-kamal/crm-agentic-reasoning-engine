@@ -1,4 +1,4 @@
-"""Fetch node evaluation - tests SQL planner and RAG in isolation."""
+"""Fetch node evaluation - tests SQL planner in isolation."""
 
 from __future__ import annotations
 
@@ -8,85 +8,23 @@ from pathlib import Path
 import yaml
 
 from backend.agent.fetch.planner import get_sql_plan
-from backend.agent.fetch.rag.search import search_entity_context
 from backend.agent.fetch.sql.connection import get_connection
 from backend.eval.fetch.models import CaseResult, EvalResults, Question
 from backend.eval.fetch.sql_judge import judge_sql_results
-from backend.eval.shared import console, evaluate_single
-from backend.eval.shared.formatting import build_eval_table
+from backend.eval.shared.formatting import build_eval_table, console
 
 # Path to questions file
 QUESTIONS_PATH = Path(__file__).parent / "questions.yaml"
 
 
-def _evaluate_rag(
-    question_text: str,
-    data: list[dict],
-    results: EvalResults,
-    verbose: bool,
-) -> tuple[float, float | None, float | None]:
-    """
-    Evaluate RAG quality for a question.
-
-    Args:
-        question_text: The question being evaluated
-        data: SQL query results containing entity IDs
-        results: EvalResults object to update counters
-        verbose: Whether to print warnings
-
-    Returns:
-        Tuple of (latency_ms, precision, recall)
-    """
-    rag_start = time.time()
-    rag_precision: float | None = None
-    rag_recall: float | None = None
-
-    # Get entity IDs from data for RAG filtering
-    entity_ids = {}
-    if data:
-        row = data[0]
-        for key in ("company_id", "contact_id", "opportunity_id"):
-            if key in row and row[key]:
-                entity_ids[key] = str(row[key])
-
-    if not entity_ids:
-        return 0.0, None, None
-
-    try:
-        context, _ = search_entity_context(question_text, entity_ids)
-        rag_latency = (time.time() - rag_start) * 1000
-        results.rag_invoked += 1
-
-        # Evaluate RAG quality with RAGAS
-        if context:
-            chunks = context.split("\n\n---\n\n")
-            ragas_scores = evaluate_single(
-                question=question_text,
-                answer=context,
-                contexts=chunks,
-            )
-            precision_val = ragas_scores.get("context_precision", 0.0)
-            recall_val = ragas_scores.get("context_recall", 0.0)
-            rag_precision = float(precision_val) if isinstance(precision_val, (int, float)) else 0.0
-            rag_recall = float(recall_val) if isinstance(recall_val, (int, float)) else 0.0
-
-        return rag_latency, rag_precision, rag_recall
-    except Exception as e:
-        if verbose:
-            console.print(f"    [yellow]RAG warning: {e}[/yellow]")
-        return (time.time() - rag_start) * 1000, None, None
-
-
 def load_questions(
     difficulty_filter: list[int] | None = None,
-    rag_only_filter: bool | None = None,
 ) -> list[Question]:
     """
     Load questions from YAML file.
 
     Args:
         difficulty_filter: Only include questions with these difficulty levels
-        rag_only_filter: If True, only RAG questions; if False, only SQL; if None, all
 
     Returns:
         List of Question objects
@@ -99,15 +37,10 @@ def load_questions(
         q = Question(
             text=item["text"],
             difficulty=item.get("difficulty", 1),
-            rag_only=item.get("rag_only", False),
         )
 
         # Apply filters
         if difficulty_filter and q.difficulty not in difficulty_filter:
-            continue
-        if rag_only_filter is True and not q.rag_only:
-            continue
-        if rag_only_filter is False and q.rag_only:
             continue
 
         questions.append(q)
@@ -120,7 +53,6 @@ def run_sql_eval(
     verbose: bool = False,
     limit: int | None = None,
     difficulty_filter: list[int] | None = None,
-    rag_only_filter: bool | None = None,
 ) -> EvalResults:
     """
     Run fetch node evaluation.
@@ -135,13 +67,12 @@ def run_sql_eval(
         verbose: Print detailed output
         limit: Max number of questions to test
         difficulty_filter: Only test questions with these difficulty levels
-        rag_only_filter: If True, only RAG questions; if False, only SQL; if None, all
 
     Returns:
         EvalResults with per-case and aggregate metrics
     """
     if questions is None:
-        questions = load_questions(difficulty_filter=difficulty_filter, rag_only_filter=rag_only_filter)
+        questions = load_questions(difficulty_filter=difficulty_filter)
 
     if limit:
         questions = questions[:limit]
@@ -162,9 +93,6 @@ def run_sql_eval(
         sql = ""
         sql_gen_latency = 0.0
         sql_exec_latency = 0.0
-        rag_latency = 0.0
-        rag_precision = None
-        rag_recall = None
         data: list[dict] = []
         passed = False
         errors: list[str] = []
@@ -190,12 +118,6 @@ def run_sql_eval(
                 sql_results = {"query": data}
                 passed, errors = judge_sql_results(question.text, sql, sql_results)
 
-                # Evaluate RAG if needed
-                if plan.needs_rag:
-                    rag_latency, rag_precision, rag_recall = _evaluate_rag(
-                        question.text, data, results, verbose
-                    )
-
                 if passed:
                     results.passed += 1
 
@@ -214,17 +136,13 @@ def run_sql_eval(
         case = CaseResult(
             question=question.text,
             difficulty=question.difficulty,
-            rag_only=question.rag_only,
             sql=sql,
             passed=passed,
             row_count=len(data),
             errors=errors,
             sql_gen_latency_ms=sql_gen_latency,
             sql_exec_latency_ms=sql_exec_latency,
-            rag_latency_ms=rag_latency,
             total_latency_ms=total_latency,
-            rag_precision=rag_precision,
-            rag_recall=rag_recall,
         )
 
         if verbose:
@@ -233,8 +151,7 @@ def run_sql_eval(
                     console.print(f"    [yellow]{err}[/yellow]")
             else:
                 status = "[green]PASS[/green]" if passed else "[red]FAIL[/red]"
-                rag_info = f", RAG={rag_latency:.0f}ms" if rag_latency > 0 else ""
-                console.print(f"  {status} ({len(data)} rows, {total_latency:.0f}ms{rag_info})")
+                console.print(f"  {status} ({len(data)} rows, {total_latency:.0f}ms)")
 
         results.cases.append(case)
 
@@ -248,7 +165,7 @@ def print_summary(results: EvalResults) -> None:
     """Print evaluation summary with detailed metrics."""
     # Build sections for the table
     sql_passed = results.sql_correctness >= 0.9
-    sections = [
+    sections: list[tuple[str, list[tuple[str, str, str | None, bool | None]]]] = [
         (
             "SQL",
             [
@@ -257,32 +174,13 @@ def print_summary(results: EvalResults) -> None:
                 ("  Exec latency", f"{results.avg_sql_exec_latency_ms:.0f}ms", None, None),
             ],
         ),
-    ]
-
-    # Add RAG section if applicable
-    if results.rag_invoked > 0:
-        rag_precision_passed = results.avg_rag_precision >= 0.8
-        rag_recall_passed = results.avg_rag_recall >= 0.7
-        sections.append(
-            (
-                "RAG",
-                [
-                    ("  Precision", f"{results.avg_rag_precision * 100:.1f}%", ">=80.0%", rag_precision_passed),
-                    ("  Recall", f"{results.avg_rag_recall * 100:.1f}%", ">=70.0%", rag_recall_passed),
-                    ("  Latency", f"{results.avg_rag_latency_ms:.0f}ms", None, None),
-                ],
-            )
-        )
-
-    # Add latency section
-    sections.append(
         (
             "Latency",
             [
                 ("  Avg total", f"{results.avg_total_latency_ms:.0f}ms", None, None),
             ],
-        )
-    )
+        ),
+    ]
 
     # Build and print table
     pass_rate_passed = results.pass_rate >= 0.85
@@ -298,8 +196,6 @@ def print_summary(results: EvalResults) -> None:
         f"\nTotal: {results.total}, Passed: {results.passed}, Failed: {results.failed}"
     )
     console.print(f"SQL Executed: {results.sql_executed}, SQL Failed: {results.sql_failed}")
-    if results.rag_invoked > 0:
-        console.print(f"RAG Invoked: {results.rag_invoked}")
 
     # Failed cases
     failed = [c for c in results.cases if not c.passed]

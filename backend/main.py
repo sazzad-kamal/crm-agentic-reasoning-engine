@@ -34,28 +34,9 @@ for lib in ["httpx", "httpcore", "openai", "urllib3"]:
 logger = logging.getLogger(__name__)
 
 
-def _ensure_rag_collections() -> None:
-    from qdrant_client import QdrantClient
-
-    from backend.agent.fetch.rag.config import QDRANT_PATH, TEXT_COLLECTION
-    from backend.agent.fetch.rag.ingest import ingest_texts
-
-    qdrant = QdrantClient(path=str(QDRANT_PATH))
-    exists = qdrant.collection_exists(TEXT_COLLECTION)
-    count = qdrant.get_collection(TEXT_COLLECTION).points_count if exists else 0
-    qdrant.close()
-
-    if not exists or count == 0:
-        logger.info("Ingesting text collection...")
-        ingest_texts()
-    else:
-        logger.info(f"Text collection ready ({count} points)")
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info(f"Starting {APP_NAME}")
-    _ensure_rag_collections()
     yield
     logger.info("Shutting down...")
 

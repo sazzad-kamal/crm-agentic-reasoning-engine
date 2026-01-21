@@ -15,56 +15,18 @@ load_dotenv(Path(__file__).parents[3] / ".env")
 if platform.system() == "Windows":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-import atexit
 import logging
 import time
 
 import typer
-from rich.panel import Panel
 
-from backend.agent.fetch.rag.client import close_qdrant_client
 from backend.eval.integration.langsmith import get_latency_percentages
-from backend.eval.integration.output import check_qdrant_access, print_summary, save_results
+from backend.eval.integration.output import print_summary, save_results
 from backend.eval.integration.runner import run_flow_eval
 from backend.eval.integration.tree import get_tree_stats
 from backend.eval.shared.formatting import console
 
-# Register cleanup to prevent shutdown errors
-atexit.register(close_qdrant_client)
-
 app = typer.Typer()
-
-
-def ensure_qdrant_collections() -> None:
-    """Ensure Qdrant collections exist, ingesting data if needed."""
-    from backend.agent.fetch.rag.client import close_qdrant_client, get_qdrant_client
-    from backend.agent.fetch.rag.config import QDRANT_PATH, TEXT_COLLECTION
-    from backend.agent.fetch.rag.ingest import ingest_texts
-
-    QDRANT_PATH.mkdir(parents=True, exist_ok=True)
-    qdrant = get_qdrant_client()
-
-    collection_exists = (
-        qdrant.collection_exists(TEXT_COLLECTION)
-        and (qdrant.get_collection(TEXT_COLLECTION).points_count or 0) > 0
-    )
-
-    if collection_exists:
-        print("Qdrant collections ready.")
-        return
-
-    # Close singleton before ingest (ingest needs exclusive access to local storage)
-    close_qdrant_client()
-
-    print("Ingesting texts into Qdrant...")
-    ingest_texts()
-
-    # Verify collection was created (this creates a fresh singleton)
-    qdrant = get_qdrant_client()
-    if not qdrant.collection_exists(TEXT_COLLECTION):
-        raise RuntimeError(f"Failed to create collection {TEXT_COLLECTION}")
-    count = qdrant.get_collection(TEXT_COLLECTION).points_count or 0
-    print(f"  Text collection created ({count} points)")
 
 
 def _run_eval(
@@ -76,36 +38,6 @@ def _run_eval(
 ) -> None:
     """Run the flow evaluation."""
     eval_start_time = time.time()
-
-    # Check if Qdrant is accessible
-    if not check_qdrant_access():
-        console.print(
-            Panel(
-                "[red bold]ERROR: Qdrant storage is locked by another process![/red bold]\n\n"
-                "[bold]Solutions:[/bold]\n"
-                "  1. Stop the backend server: Ctrl+C in the uvicorn terminal\n"
-                "  2. Close any Jupyter notebooks using RAG",
-                border_style="red",
-            )
-        )
-        return
-
-    # Warmup: trigger model loading (suppress expected "no results" warning)
-    console.print("\n[dim]Warming up models...[/dim]")
-    try:
-        from backend.agent.fetch.rag.search import search_entity_context
-
-        # Temporarily suppress RAG warnings during warmup (expected to fail with fake company)
-        rag_logger = logging.getLogger("backend.agent.fetch.rag.search")
-        original_level = rag_logger.level
-        rag_logger.setLevel(logging.ERROR)
-        try:
-            search_entity_context("warmup", {"company_id": "test_company"})
-        finally:
-            rag_logger.setLevel(original_level)
-        console.print("[dim]Models loaded.[/dim]")
-    except Exception as e:
-        console.print(f"[yellow]Warning: Model preload failed: {e}[/yellow]")
 
     # Show tree stats
     stats = get_tree_stats()
@@ -176,7 +108,4 @@ def main(
 
 
 if __name__ == "__main__":
-    print("Checking Qdrant collections...")
-    ensure_qdrant_collections()
-    print()
     app()

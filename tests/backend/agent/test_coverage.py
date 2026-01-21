@@ -15,38 +15,6 @@ from pathlib import Path
 # =============================================================================
 
 
-class TestFetchRagContext:
-    """Tests for _fetch_rag_context function.
-
-    Note: _fetch_rag_context is already covered via TestFetchNode tests
-    that exercise the RAG path. These tests verify the chunk splitting logic.
-    """
-
-    def test_chunk_splitting_logic(self):
-        """Verify chunk splitting on separator."""
-        # The chunk split logic in _fetch_rag_context uses "\n\n---\n\n"
-        context = "chunk1\n\n---\n\nchunk2\n\n---\n\nchunk3"
-        chunks = context.split("\n\n---\n\n") if context else []
-
-        assert len(chunks) == 3
-        assert chunks[0] == "chunk1"
-        assert chunks[1] == "chunk2"
-        assert chunks[2] == "chunk3"
-
-    def test_empty_context_no_chunks(self):
-        """Empty context returns empty chunks."""
-        context = ""
-        chunks = context.split("\n\n---\n\n") if context else []
-        assert chunks == []
-
-    def test_single_chunk_no_separator(self):
-        """Context without separator returns single chunk."""
-        context = "single chunk content"
-        chunks = context.split("\n\n---\n\n") if context else []
-        assert len(chunks) == 1
-        assert chunks[0] == "single chunk content"
-
-
 class TestFetchNode:
     """Tests for fetch_node orchestrator function."""
 
@@ -72,7 +40,7 @@ class TestFetchNode:
         from backend.agent.fetch.planner import SQLPlan
 
         state: AgentState = {"question": "What deals are in the pipeline?"}
-        mock_plan = SQLPlan(sql="SELECT * FROM opportunities", needs_rag=False)
+        mock_plan = SQLPlan(sql="SELECT * FROM opportunities")
 
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
@@ -80,7 +48,6 @@ class TestFetchNode:
 
             mock_exec.return_value = (
                 [{"opportunity_id": "opp_1", "value": 1000}],
-                {"company_id": "comp_1"},
                 None,
             )
 
@@ -100,12 +67,12 @@ class TestFetchNode:
 
         def mock_get_sql_plan(*args, **kwargs):
             call_count[0] += 1
-            return SQLPlan(sql="SELECT * FROM companies", needs_rag=False)
+            return SQLPlan(sql="SELECT * FROM companies")
 
         def mock_execute(*args, **kwargs):
             if call_count[0] == 1:
-                return ([], {}, "syntax error")
-            return ([{"company_id": "c1"}], {"company_id": "c1"}, None)
+                return ([], "syntax error")
+            return ([{"company_id": "c1"}], None)
 
         with patch("backend.agent.fetch.node.get_sql_plan", side_effect=mock_get_sql_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
@@ -123,7 +90,7 @@ class TestFetchNode:
         from backend.agent.fetch.planner import SQLPlan
 
         state: AgentState = {"question": "test"}
-        mock_plan = SQLPlan(sql="SELECT * FROM companies", needs_rag=False)
+        mock_plan = SQLPlan(sql="SELECT * FROM companies")
 
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection") as mock_conn:
@@ -142,7 +109,7 @@ class TestFetchNode:
         from backend.agent.fetch.planner import SQLPlan
 
         state: AgentState = {"question": "hello"}
-        mock_plan = SQLPlan(sql="", needs_rag=False)
+        mock_plan = SQLPlan(sql="")
 
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.execute_sql") as mock_exec:
@@ -150,108 +117,6 @@ class TestFetchNode:
             result = fetch_node(state)
 
             mock_exec.assert_not_called()
-
-    def test_rag_with_resolved_entities(self):
-        """RAG is invoked when needs_rag=True and entities resolved."""
-        from backend.agent.fetch.node import fetch_node
-        from backend.agent.state import AgentState
-        from backend.agent.fetch.planner import SQLPlan
-
-        state: AgentState = {"question": "What are Delta's notes?"}
-        mock_plan = SQLPlan(sql="SELECT * FROM companies WHERE name = 'Delta'", needs_rag=True)
-
-        with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
-             patch("backend.agent.fetch.node.get_connection"), \
-             patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
-             patch("backend.agent.fetch.node.fetch_rag_context") as mock_rag:
-
-            mock_exec.return_value = (
-                [{"company_id": "delta_1"}],
-                {"company_id": "delta_1"},
-                None,
-            )
-            mock_rag.return_value = "RAG context"
-
-            result = fetch_node(state)
-
-            mock_rag.assert_called_once()
-            assert result["rag_context"] == "RAG context"
-
-    def test_rag_skipped_no_entities(self):
-        """RAG skipped when needs_rag=True but no entities resolved."""
-        from backend.agent.fetch.node import fetch_node
-        from backend.agent.state import AgentState
-        from backend.agent.fetch.planner import SQLPlan
-
-        state: AgentState = {"question": "test"}
-        mock_plan = SQLPlan(sql="SELECT COUNT(*) FROM companies", needs_rag=True)
-
-        with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
-             patch("backend.agent.fetch.node.get_connection"), \
-             patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
-             patch("backend.agent.fetch.node.fetch_rag_context") as mock_rag:
-
-            # No resolved IDs - fetch_rag_context returns empty for no valid keys
-            mock_exec.return_value = ([{"count": 10}], {}, None)
-            mock_rag.return_value = ""
-
-            result = fetch_node(state)
-
-            assert result.get("rag_context", "") == ""
-
-    def test_rag_fetch_exception_handled(self):
-        """RAG fetch exception is caught and returns empty result."""
-        from backend.agent.fetch.node import fetch_node
-        from backend.agent.state import AgentState
-        from backend.agent.fetch.planner import SQLPlan
-
-        state: AgentState = {"question": "What are Delta's notes?"}
-        mock_plan = SQLPlan(sql="SELECT * FROM companies WHERE name = 'Delta'", needs_rag=True)
-
-        with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
-             patch("backend.agent.fetch.node.get_connection"), \
-             patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
-             patch("backend.agent.fetch.node.fetch_rag_context") as mock_rag:
-
-            mock_exec.return_value = (
-                [{"company_id": "delta_1"}],
-                {"company_id": "delta_1"},
-                None,
-            )
-            # fetch_rag_context returns empty string on error (handles exceptions internally)
-            mock_rag.return_value = ""
-
-            result = fetch_node(state)
-
-            assert result.get("rag_context", "") == ""
-
-    def test_rag_with_contact_and_opportunity_ids(self):
-        """RAG filters include contact_id and opportunity_id."""
-        from backend.agent.fetch.node import fetch_node
-        from backend.agent.state import AgentState
-        from backend.agent.fetch.planner import SQLPlan
-
-        state: AgentState = {"question": "test"}
-        mock_plan = SQLPlan(sql="SELECT * FROM contacts", needs_rag=True)
-
-        with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
-             patch("backend.agent.fetch.node.get_connection"), \
-             patch("backend.agent.fetch.node.execute_sql") as mock_exec, \
-             patch("backend.agent.fetch.node.fetch_rag_context") as mock_rag:
-
-            mock_exec.return_value = (
-                [{"contact_id": "cont_1", "opportunity_id": "opp_1"}],
-                {"contact_id": "cont_1", "opportunity_id": "opp_1"},
-                None,
-            )
-            mock_rag.return_value = "context"
-
-            result = fetch_node(state)
-
-            call_args = mock_rag.call_args
-            entity_ids = call_args[0][1]
-            assert "contact_id" in entity_ids
-            assert "opportunity_id" in entity_ids
 
 
 # =============================================================================
@@ -378,35 +243,20 @@ class TestGetSqlPlan:
         """get_sql_plan creates chain and returns SQLPlan."""
         from backend.agent.fetch.planner import SQLPlan, get_sql_plan
 
-        mock_result = SQLPlan(sql="SELECT * FROM companies", needs_rag=False)
+        mock_result = SQLPlan(sql="SELECT * FROM companies")
         mock_chain = self._mock_chain(mock_result)
 
         with patch("backend.agent.fetch.planner.create_anthropic_chain", return_value=mock_chain):
             result = get_sql_plan("What companies do we have?")
 
             assert result.sql == "SELECT * FROM companies"
-            assert result.needs_rag is False
-
-    @pytest.mark.no_mock_llm
-    def test_get_sql_plan_with_rag_flag(self):
-        """get_sql_plan correctly returns needs_rag=True."""
-        from backend.agent.fetch.planner import SQLPlan, get_sql_plan
-
-        mock_result = SQLPlan(sql="SELECT * FROM contacts", needs_rag=True)
-        mock_chain = self._mock_chain(mock_result)
-
-        with patch("backend.agent.fetch.planner.create_anthropic_chain", return_value=mock_chain):
-            result = get_sql_plan("Who are the contacts?")
-
-            assert result.sql == "SELECT * FROM contacts"
-            assert result.needs_rag is True
 
     @pytest.mark.no_mock_llm
     def test_get_sql_plan_passes_system_prompt(self):
         """get_sql_plan passes system prompt with schema to create_anthropic_chain."""
         from backend.agent.fetch.planner import SQLPlan, get_sql_plan
 
-        mock_result = SQLPlan(sql="SELECT 1", needs_rag=False)
+        mock_result = SQLPlan(sql="SELECT 1")
         mock_chain = self._mock_chain(mock_result)
 
         with patch("backend.agent.fetch.planner.create_anthropic_chain", return_value=mock_chain) as mock_create:
@@ -498,39 +348,6 @@ class TestGenerateFollowUpSuggestions:
 
 
 # =============================================================================
-# fetch/rag/ingest.py Tests
-# =============================================================================
-
-
-class TestIngestTexts:
-    """Tests for ingest_texts function."""
-
-    def test_empty_documents_returns_zero(self):
-        """Empty documents after parsing returns 0."""
-        from backend.agent.fetch.rag import ingest
-
-        mock_jsonl_content = ""  # Empty file
-
-        with patch.object(ingest, "JSONL_PATH") as mock_path, \
-             patch("builtins.open", MagicMock(return_value=MagicMock(__enter__=lambda s: iter([]), __exit__=lambda *a: None))):
-
-            mock_path.exists.return_value = True
-
-            # Mock all llama_index imports
-            with patch.dict("sys.modules", {
-                "llama_index.core": MagicMock(),
-                "llama_index.core.node_parser": MagicMock(),
-                "llama_index.embeddings.huggingface": MagicMock(),
-                "llama_index.vector_stores.qdrant": MagicMock(),
-            }):
-                # This should return 0 for no documents
-                with patch.object(ingest, "close_qdrant_client"):
-                    result = ingest.ingest_texts()
-                    # Will return 0 because mock file has no content
-                    assert result == 0
-
-
-# =============================================================================
 # fetch/sql/executor.py Tests
 # =============================================================================
 
@@ -543,7 +360,7 @@ class TestExecuteSql:
         from backend.agent.fetch.sql.executor import execute_sql
         from backend.agent.fetch.planner import SQLPlan
 
-        plan = SQLPlan(sql="SELECT * FROM companies", needs_rag=False)
+        plan = SQLPlan(sql="SELECT * FROM companies")
 
         mock_conn = MagicMock()
         mock_result = MagicMock()
@@ -562,12 +379,12 @@ class TestExecuteSql:
         from backend.agent.fetch.sql.executor import execute_sql
         from backend.agent.fetch.planner import SQLPlan
 
-        plan = SQLPlan(sql="SELECT * FROM companies", needs_rag=False)
+        plan = SQLPlan(sql="SELECT * FROM companies")
 
         mock_conn = MagicMock()
         mock_conn.execute.side_effect = RuntimeError("Database error")
 
-        rows, ids, error = execute_sql(plan, mock_conn)
+        rows, error = execute_sql(plan, mock_conn)
 
         assert rows == []
         assert error is not None
@@ -632,79 +449,11 @@ class TestCallAnswerChainDirect:
 
         answer = answerer.call_answer_chain(
             question="Test question",
-            sql_results={"data": []},
-            rag_context="context",
+            sql_results={"rows": []},
             conversation_history="",
         )
 
         assert answer == "Test answer"
-
-
-class TestQdrantClientDoubleCheck:
-    """Test double-checked locking in rag/client.py line 34."""
-
-    @pytest.mark.no_mock_llm
-    def test_get_qdrant_client_returns_cached_after_lock(self, monkeypatch):
-        """Test that get_qdrant_client returns cached client on second call within lock."""
-        from backend.agent.fetch.rag import client
-
-        # Reset the global client
-        original_client = client._qdrant_client
-        client._qdrant_client = None
-
-        try:
-            # First call creates the client
-            with patch.object(client, "QdrantClient") as mock_qdrant:
-                mock_instance = MagicMock()
-                mock_qdrant.return_value = mock_instance
-
-                result1 = client.get_qdrant_client()
-                result2 = client.get_qdrant_client()
-
-                # Should only create once
-                assert result1 is result2
-                mock_qdrant.assert_called_once()
-        finally:
-            client._qdrant_client = original_client
-
-
-class TestSearchReranking:
-    """Test reranking path in rag/search.py lines 95-97."""
-
-    @pytest.mark.no_mock_llm
-    def test_search_entity_context_with_reranking(self, monkeypatch):
-        """Test search_entity_context triggers reranking when nodes exceed top_k."""
-        import sys
-        from unittest.mock import patch, MagicMock
-
-        # Create mock nodes (more than RERANKER_TOP_K)
-        mock_nodes = [MagicMock() for _ in range(10)]
-        for i, node in enumerate(mock_nodes):
-            node.text = f"Content {i}"
-            node.metadata = {"type": "note", "source_id": f"note_{i}"}
-
-        mock_retriever = MagicMock()
-        mock_retriever.retrieve.return_value = mock_nodes
-
-        mock_reranker = MagicMock()
-        mock_reranker.postprocess_nodes.return_value = mock_nodes[:3]
-
-        mock_index = MagicMock()
-        mock_index.as_retriever.return_value = mock_retriever
-
-        # Clear the cache and mock components
-        from backend.agent.fetch.rag import search
-        search._get_rag_components.cache_clear()
-
-        with patch.object(search, "_get_rag_components", return_value=(mock_index, mock_reranker)):
-            with patch.object(search, "RERANKER_TOP_K", 3):
-                context, sources = search.search_entity_context(
-                    "test query",
-                    {"company_id": "COMP001"}
-                )
-
-        # Reranker should have been called since nodes > RERANKER_TOP_K
-        mock_reranker.postprocess_nodes.assert_called_once()
 
 
 class TestConnectionMissingCsv:
@@ -805,7 +554,6 @@ class TestFetchRunnerVerboseOutput:
         # Mock get_sql_plan to return a plan
         mock_plan = MagicMock()
         mock_plan.sql = "SELECT * FROM invalid"
-        mock_plan.needs_rag = False
         monkeypatch.setattr(runner, "get_sql_plan", lambda x: mock_plan)
 
         # Mock connection to raise an exception
@@ -850,7 +598,6 @@ class TestFetchRunnerVerboseOutput:
         # Mock get_sql_plan to return a plan
         mock_plan = MagicMock()
         mock_plan.sql = "SELECT 1"
-        mock_plan.needs_rag = False
         monkeypatch.setattr(runner, "get_sql_plan", lambda x: mock_plan)
 
         # Mock connection that works but judge returns errors

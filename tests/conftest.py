@@ -167,18 +167,6 @@ def mock_llm(request):
         question = kwargs.get("question", args[0] if args else "")
         return _mock_answer_response(question)
 
-    def mock_search_entity_context(question: str, filters: dict[str, str]) -> tuple[str, list[dict]]:
-        """Mock for search_entity_context used by _fetch_rag_if_needed."""
-        company_id = filters.get("company_id", "unknown")
-        context = (
-            "Based on the account notes, the customer mentioned concerns about "
-            "integration timeline during our last call."
-        )
-        return (
-            context,
-            [{"type": "account_note", "id": f"{company_id}_notes", "label": "Account Notes"}],
-        )
-
     def mock_generate_follow_up_suggestions(
         question: str,
         company_id: str | None = None,
@@ -201,48 +189,27 @@ def mock_llm(request):
     ) -> SQLPlan:
         """Mock SQL planner that returns reasonable SQL queries."""
         q = question.lower()
-        needs_rag = False
 
         # Detect if asking about specific company
         company_names = ["acme", "beta", "crown", "delta", "echo"]
         if any(name in q for name in company_names):
-            needs_rag = True
             name = next(n for n in company_names if n in q)
-            return SQLPlan(
-                sql=f"SELECT * FROM companies WHERE name ILIKE '%{name}%'",
-                needs_rag=needs_rag,
-            )
+            return SQLPlan(sql=f"SELECT * FROM companies WHERE name ILIKE '%{name}%'")
 
         # Detect aggregate queries
         if "renewal" in q:
-            return SQLPlan(
-                sql="SELECT * FROM companies WHERE renewal_date IS NOT NULL ORDER BY renewal_date",
-                needs_rag=False,
-            )
+            return SQLPlan(sql="SELECT * FROM companies WHERE renewal_date IS NOT NULL ORDER BY renewal_date")
         elif "pipeline" in q:
-            return SQLPlan(
-                sql="SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') ORDER BY value DESC",
-                needs_rag=False,
-            )
+            return SQLPlan(sql="SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') ORDER BY value DESC")
         elif any(kw in q for kw in ["forecast", "weighted"]):
-            return SQLPlan(
-                sql="SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') ORDER BY value DESC",
-                needs_rag=False,
-            )
+            return SQLPlan(sql="SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') ORDER BY value DESC")
         elif any(kw in q for kw in ["at risk", "at-risk", "stalled"]):
-            return SQLPlan(
-                sql="SELECT * FROM companies WHERE health_flags LIKE '%at-risk%'",
-                needs_rag=False,
-            )
+            return SQLPlan(sql="SELECT * FROM companies WHERE health_flags LIKE '%at-risk%'")
 
         # Default: return companies query
-        return SQLPlan(
-            sql="SELECT * FROM companies",
-            needs_rag=False,
-        )
+        return SQLPlan(sql="SELECT * FROM companies")
 
     with patch("backend.agent.answer.answerer.call_answer_chain", mock_call_answer_chain), \
-         patch("backend.agent.fetch.rag.search.search_entity_context", mock_search_entity_context), \
          patch("backend.agent.followup.suggester.generate_follow_up_suggestions", mock_generate_follow_up_suggestions), \
          patch("backend.agent.fetch.planner.get_sql_plan", mock_get_sql_plan):
         yield

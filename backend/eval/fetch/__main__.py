@@ -1,4 +1,4 @@
-"""CLI for fetch node evaluation."""
+"""CLI for fetch node evaluation (tests SQL planner in isolation)."""
 
 from __future__ import annotations
 

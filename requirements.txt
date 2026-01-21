@@ -42,16 +42,6 @@ langchain-openai>=0.2.0
 langgraph>=0.2.0
 
 # -----------------------------------------------------------------------------
-# Vector Store & RAG (LlamaIndex + Qdrant)
-# -----------------------------------------------------------------------------
-llama-index-core>=0.12.0
-llama-index-vector-stores-qdrant>=0.4.0
-llama-index-embeddings-huggingface>=0.4.0
-qdrant-client>=1.7.0
-sentence-transformers>=2.2.0  # For cross-encoder reranking
-fastembed>=0.3.0  # For BM25 sparse embeddings in hybrid search
-
-# -----------------------------------------------------------------------------
 # Environment & CLI
 # -----------------------------------------------------------------------------
 python-dotenv>=1.0.0

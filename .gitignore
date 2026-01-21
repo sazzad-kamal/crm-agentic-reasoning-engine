@@ -30,8 +30,6 @@ Thumbs.db
 
 # Generated data (can be recreated by running scripts)
 data/processed/
-data/qdrant/
-backend/data/qdrant/
 backend/agent/eval/output/
 
 # Test artifacts

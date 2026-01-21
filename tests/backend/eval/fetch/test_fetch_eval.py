@@ -22,14 +22,6 @@ class TestQuestion:
         q = Question(text="What is the stage?", difficulty=1)
         assert q.text == "What is the stage?"
         assert q.difficulty == 1
-        assert q.rag_only is False
-
-    def test_question_rag_only(self):
-        """Test Question with rag_only=True."""
-        q = Question(text="What are the notes?", difficulty=2, rag_only=True)
-        assert q.text == "What are the notes?"
-        assert q.difficulty == 2
-        assert q.rag_only is True
 
 
 class TestCaseResult:
@@ -40,13 +32,11 @@ class TestCaseResult:
         case = CaseResult(
             question="Test question",
             difficulty=1,
-            rag_only=False,
             sql="SELECT * FROM companies",
             passed=True,
         )
         assert case.question == "Test question"
         assert case.difficulty == 1
-        assert case.rag_only is False
         assert case.sql == "SELECT * FROM companies"
         assert case.passed is True
         assert case.row_count == 0
@@ -57,32 +47,24 @@ class TestCaseResult:
         case = CaseResult(
             question="Test question",
             difficulty=3,
-            rag_only=False,
             sql="SELECT * FROM companies",
             passed=True,
             row_count=5,
             errors=[],
             sql_gen_latency_ms=100.0,
             sql_exec_latency_ms=50.0,
-            rag_latency_ms=200.0,
-            total_latency_ms=350.0,
-            rag_precision=0.85,
-            rag_recall=0.75,
+            total_latency_ms=150.0,
         )
         assert case.row_count == 5
         assert case.sql_gen_latency_ms == 100.0
         assert case.sql_exec_latency_ms == 50.0
-        assert case.rag_latency_ms == 200.0
-        assert case.total_latency_ms == 350.0
-        assert case.rag_precision == 0.85
-        assert case.rag_recall == 0.75
+        assert case.total_latency_ms == 150.0
 
     def test_case_result_with_errors(self):
         """Test CaseResult with errors."""
         case = CaseResult(
             question="Test question",
             difficulty=2,
-            rag_only=False,
             sql="INVALID SQL",
             passed=False,
             errors=["SQL error: syntax error", "Validation failed"],
@@ -102,7 +84,6 @@ class TestEvalResults:
         assert results.passed == 0
         assert results.sql_executed == 0
         assert results.sql_failed == 0
-        assert results.rag_invoked == 0
         assert results.cases == []
 
     def test_failed_property(self):
@@ -124,31 +105,31 @@ class TestEvalResults:
         """Test sql_correctness property."""
         results = EvalResults()
         results.cases = [
-            CaseResult(question="Q1", difficulty=1, rag_only=False, sql="SELECT 1", passed=True, errors=[]),
-            CaseResult(question="Q2", difficulty=1, rag_only=False, sql="SELECT 2", passed=True, errors=[]),
-            CaseResult(question="Q3", difficulty=1, rag_only=False, sql="SELECT 3", passed=False, errors=["Error"]),
+            CaseResult(question="Q1", difficulty=1, sql="SELECT 1", passed=True, errors=[]),
+            CaseResult(question="Q2", difficulty=1, sql="SELECT 2", passed=True, errors=[]),
+            CaseResult(question="Q3", difficulty=1, sql="SELECT 3", passed=False, errors=["Error"]),
         ]
         # 2 out of 3 SQL questions passed
         assert results.sql_correctness == pytest.approx(2 / 3)
 
-    def test_sql_correctness_with_rag_only(self):
-        """Test sql_correctness excludes rag_only questions."""
+    def test_sql_correctness_with_errors(self):
+        """Test sql_correctness includes all cases."""
         results = EvalResults()
         results.cases = [
-            CaseResult(question="Q1", difficulty=1, rag_only=False, sql="SELECT 1", passed=True, errors=[]),
-            CaseResult(question="Q2", difficulty=1, rag_only=True, sql="", passed=True, errors=[]),
-            CaseResult(question="Q3", difficulty=1, rag_only=False, sql="SELECT 3", passed=False, errors=["Err"]),
+            CaseResult(question="Q1", difficulty=1, sql="SELECT 1", passed=True, errors=[]),
+            CaseResult(question="Q2", difficulty=1, sql="SELECT 2", passed=True, errors=[]),
+            CaseResult(question="Q3", difficulty=1, sql="SELECT 3", passed=False, errors=["Err"]),
         ]
-        # Only 2 SQL questions, 1 passed
-        assert results.sql_correctness == 0.5
+        # 2 out of 3 cases passed with no errors
+        assert results.sql_correctness == pytest.approx(2 / 3)
 
-    def test_sql_correctness_no_sql_questions(self):
-        """Test sql_correctness with no SQL questions."""
+    def test_sql_correctness_all_passed(self):
+        """Test sql_correctness when all cases passed."""
         results = EvalResults()
         results.cases = [
-            CaseResult(question="Q1", difficulty=1, rag_only=True, sql="", passed=True, errors=[]),
+            CaseResult(question="Q1", difficulty=1, sql="SELECT 1", passed=True, errors=[]),
         ]
-        assert results.sql_correctness == 0.0
+        assert results.sql_correctness == 1.0
 
     def test_compute_aggregates_empty_cases(self):
         """Test compute_aggregates with empty cases."""
@@ -164,7 +145,6 @@ class TestEvalResults:
             CaseResult(
                 question="Q1",
                 difficulty=1,
-                rag_only=False,
                 sql="SELECT 1",
                 passed=True,
                 sql_gen_latency_ms=100.0,
@@ -174,7 +154,6 @@ class TestEvalResults:
             CaseResult(
                 question="Q2",
                 difficulty=1,
-                rag_only=False,
                 sql="SELECT 2",
                 passed=True,
                 sql_gen_latency_ms=200.0,
@@ -187,51 +166,6 @@ class TestEvalResults:
         assert results.avg_sql_gen_latency_ms == 150.0
         assert results.avg_sql_exec_latency_ms == 75.0
         assert results.avg_total_latency_ms == 225.0
-
-    def test_compute_aggregates_rag_metrics(self):
-        """Test compute_aggregates computes RAG averages."""
-        results = EvalResults()
-        results.cases = [
-            CaseResult(
-                question="Q1",
-                difficulty=1,
-                rag_only=False,
-                sql="SELECT 1",
-                passed=True,
-                rag_latency_ms=100.0,
-                rag_precision=0.9,
-                rag_recall=0.8,
-            ),
-            CaseResult(
-                question="Q2",
-                difficulty=1,
-                rag_only=False,
-                sql="SELECT 2",
-                passed=True,
-                rag_latency_ms=200.0,
-                rag_precision=0.7,
-                rag_recall=0.6,
-            ),
-            CaseResult(
-                question="Q3",
-                difficulty=1,
-                rag_only=False,
-                sql="SELECT 3",
-                passed=True,
-                rag_latency_ms=0.0,  # No RAG
-                rag_precision=None,
-                rag_recall=None,
-            ),
-        ]
-        results.compute_aggregates()
-
-        # RAG latency average: (100 + 200) / 2 = 150
-        assert results.avg_rag_latency_ms == 150.0
-        assert results.rag_invoked == 2
-        # Precision average: (0.9 + 0.7) / 2 = 0.8
-        assert results.avg_rag_precision == 0.8
-        # Recall average: (0.8 + 0.6) / 2 = 0.7
-        assert results.avg_rag_recall == 0.7
 
 
 # =============================================================================
@@ -400,7 +334,6 @@ questions:
     difficulty: 1
   - text: "Question 2"
     difficulty: 2
-    rag_only: true
   - text: "Question 3"
     difficulty: 3
 """
@@ -416,7 +349,6 @@ questions:
         questions = load_questions()
         assert len(questions) == 3
         assert questions[0].text == "Question 1"
-        assert questions[1].rag_only is True
 
     def test_load_questions_difficulty_filter(self, monkeypatch, tmp_path):
         """Test filtering by difficulty."""
@@ -443,147 +375,6 @@ questions:
         assert questions[0].difficulty == 1
         assert questions[1].difficulty == 5
 
-    def test_load_questions_rag_only_true(self, monkeypatch, tmp_path):
-        """Test filtering for rag_only=True."""
-        yaml_content = """
-questions:
-  - text: "SQL Question"
-    difficulty: 1
-  - text: "RAG Question"
-    difficulty: 1
-    rag_only: true
-"""
-        yaml_file = tmp_path / "questions.yaml"
-        yaml_file.write_text(yaml_content)
-
-        import backend.eval.fetch.runner as runner_module
-
-        monkeypatch.setattr(runner_module, "QUESTIONS_PATH", yaml_file)
-
-        from backend.eval.fetch.runner import load_questions
-
-        questions = load_questions(rag_only_filter=True)
-        assert len(questions) == 1
-        assert questions[0].rag_only is True
-
-    def test_load_questions_rag_only_false(self, monkeypatch, tmp_path):
-        """Test filtering for rag_only=False (SQL only)."""
-        yaml_content = """
-questions:
-  - text: "SQL Question"
-    difficulty: 1
-  - text: "RAG Question"
-    difficulty: 1
-    rag_only: true
-"""
-        yaml_file = tmp_path / "questions.yaml"
-        yaml_file.write_text(yaml_content)
-
-        import backend.eval.fetch.runner as runner_module
-
-        monkeypatch.setattr(runner_module, "QUESTIONS_PATH", yaml_file)
-
-        from backend.eval.fetch.runner import load_questions
-
-        questions = load_questions(rag_only_filter=False)
-        assert len(questions) == 1
-        assert questions[0].rag_only is False
-
-
-class TestEvaluateRag:
-    """Tests for _evaluate_rag function."""
-
-    def test_evaluate_rag_no_data(self):
-        """Test RAG evaluation with no data."""
-        from backend.eval.fetch.runner import _evaluate_rag
-
-        results = EvalResults()
-        latency, precision, recall = _evaluate_rag("Test question", [], results, False)
-
-        assert latency == 0.0
-        assert precision is None
-        assert recall is None
-
-    def test_evaluate_rag_no_entity_ids(self):
-        """Test RAG evaluation with no entity IDs in data."""
-        from backend.eval.fetch.runner import _evaluate_rag
-
-        results = EvalResults()
-        data = [{"name": "Test", "value": 123}]  # No company_id, contact_id, etc.
-        latency, precision, recall = _evaluate_rag("Test question", data, results, False)
-
-        assert latency == 0.0
-        assert precision is None
-        assert recall is None
-
-    def test_evaluate_rag_with_entity_ids(self, monkeypatch):
-        """Test RAG evaluation with valid entity IDs."""
-        import backend.eval.fetch.runner as runner_module
-
-        mock_search = MagicMock(return_value=("Some context\n\n---\n\nMore context", []))
-        monkeypatch.setattr(runner_module, "search_entity_context", mock_search)
-
-        mock_evaluate = MagicMock(return_value={"context_precision": 0.9, "context_recall": 0.8})
-        monkeypatch.setattr(runner_module, "evaluate_single", mock_evaluate)
-
-        from backend.eval.fetch.runner import _evaluate_rag
-
-        results = EvalResults()
-        # Note: keys must exactly match what the function looks for
-        data = [{"company_id": "ACME-001", "name": "Acme"}]
-        latency, precision, recall = _evaluate_rag("Test question", data, results, False)
-
-        # Verify the search was called with correct entity_ids
-        mock_search.assert_called_once()
-        call_args = mock_search.call_args
-        assert call_args[0][0] == "Test question"
-        assert "company_id" in call_args[0][1]
-
-        assert latency >= 0  # Latency can be very small in tests
-        assert precision == 0.9
-        assert recall == 0.8
-        assert results.rag_invoked == 1
-
-    def test_evaluate_rag_empty_context(self, monkeypatch):
-        """Test RAG evaluation with empty context returned."""
-        import backend.eval.fetch.runner as runner_module
-
-        mock_search = MagicMock(return_value=("", []))
-        monkeypatch.setattr(runner_module, "search_entity_context", mock_search)
-
-        from backend.eval.fetch.runner import _evaluate_rag
-
-        results = EvalResults()
-        data = [{"company_id": "ACME-001"}]
-        latency, precision, recall = _evaluate_rag("Test question", data, results, False)
-
-        # Verify search was called
-        mock_search.assert_called_once()
-
-        # Should still record latency but no precision/recall without evaluate_single call
-        assert latency >= 0  # Can be very small in tests
-        assert precision is None
-        assert recall is None
-        assert results.rag_invoked == 1
-
-    def test_evaluate_rag_exception(self, monkeypatch):
-        """Test RAG evaluation handles exceptions."""
-        import backend.eval.fetch.runner as runner_module
-
-        mock_search = MagicMock(side_effect=Exception("RAG error"))
-        monkeypatch.setattr(runner_module, "search_entity_context", mock_search)
-
-        from backend.eval.fetch.runner import _evaluate_rag
-
-        results = EvalResults()
-        data = [{"company_id": "ACME-001"}]
-        latency, precision, recall = _evaluate_rag("Test question", data, results, verbose=False)
-
-        # Should return latency but None for metrics
-        assert latency >= 0
-        assert precision is None
-        assert recall is None
-
 
 class TestRunSqlEval:
     """Tests for run_sql_eval function."""
@@ -593,13 +384,12 @@ class TestRunSqlEval:
         import backend.eval.fetch.runner as runner_module
 
         questions = [
-            Question(text="Test question 1", difficulty=1, rag_only=False),
+            Question(text="Test question 1", difficulty=1),
         ]
 
         # Mock get_sql_plan
         mock_plan = MagicMock()
         mock_plan.sql = "SELECT 1"
-        mock_plan.needs_rag = False
         mock_get_sql_plan = MagicMock(return_value=mock_plan)
         monkeypatch.setattr(runner_module, "get_sql_plan", mock_get_sql_plan)
 
@@ -634,7 +424,7 @@ class TestRunSqlEval:
             Question(text=f"Question {i}", difficulty=1) for i in range(10)
         ]
 
-        mock_plan = MagicMock(sql="SELECT 1", needs_rag=False)
+        mock_plan = MagicMock(sql="SELECT 1")
         monkeypatch.setattr(runner_module, "get_sql_plan", MagicMock(return_value=mock_plan))
 
         mock_result = MagicMock()
@@ -677,7 +467,7 @@ class TestRunSqlEval:
 
         questions = [Question(text="Test", difficulty=1)]
 
-        mock_plan = MagicMock(sql="INVALID SQL", needs_rag=False)
+        mock_plan = MagicMock(sql="INVALID SQL")
         monkeypatch.setattr(runner_module, "get_sql_plan", MagicMock(return_value=mock_plan))
 
         mock_conn = MagicMock()
@@ -693,36 +483,6 @@ class TestRunSqlEval:
         assert results.sql_failed == 1
         assert any("SQL error" in e for e in results.cases[0].errors)
 
-    def test_run_sql_eval_with_rag(self, monkeypatch):
-        """Test SQL evaluation that triggers RAG."""
-        import backend.eval.fetch.runner as runner_module
-
-        questions = [Question(text="Test", difficulty=1)]
-
-        mock_plan = MagicMock(sql="SELECT * FROM companies", needs_rag=True)
-        monkeypatch.setattr(runner_module, "get_sql_plan", MagicMock(return_value=mock_plan))
-
-        mock_result = MagicMock()
-        mock_result.fetchall.return_value = [("ACME-001", "Acme")]
-        mock_result.description = [("company_id",), ("name",)]
-        mock_conn = MagicMock()
-        mock_conn.execute.return_value = mock_result
-        monkeypatch.setattr(runner_module, "get_connection", MagicMock(return_value=mock_conn))
-        monkeypatch.setattr(runner_module, "judge_sql_results", MagicMock(return_value=(True, [])))
-
-        # Mock _evaluate_rag
-        mock_evaluate_rag = MagicMock(return_value=(100.0, 0.9, 0.8))
-        monkeypatch.setattr(runner_module, "_evaluate_rag", mock_evaluate_rag)
-
-        from backend.eval.fetch.runner import run_sql_eval
-
-        results = run_sql_eval(questions=questions, verbose=False)
-
-        assert results.passed == 1
-        assert results.cases[0].rag_latency_ms == 100.0
-        assert results.cases[0].rag_precision == 0.9
-        assert results.cases[0].rag_recall == 0.8
-
     def test_run_sql_eval_loads_questions(self, monkeypatch, tmp_path):
         """Test run_sql_eval loads questions when not provided."""
         import backend.eval.fetch.runner as runner_module
@@ -736,7 +496,7 @@ questions:
         yaml_file.write_text(yaml_content)
         monkeypatch.setattr(runner_module, "QUESTIONS_PATH", yaml_file)
 
-        mock_plan = MagicMock(sql="SELECT 1", needs_rag=False)
+        mock_plan = MagicMock(sql="SELECT 1")
         monkeypatch.setattr(runner_module, "get_sql_plan", MagicMock(return_value=mock_plan))
 
         mock_result = MagicMock()
@@ -760,7 +520,7 @@ questions:
 
         questions = [Question(text="Verbose test", difficulty=2)]
 
-        mock_plan = MagicMock(sql="SELECT 1", needs_rag=False)
+        mock_plan = MagicMock(sql="SELECT 1")
         monkeypatch.setattr(runner_module, "get_sql_plan", MagicMock(return_value=mock_plan))
 
         mock_result = MagicMock()
@@ -789,45 +549,15 @@ class TestPrintSummary:
             passed=9,
             sql_executed=10,
             sql_failed=0,
-            rag_invoked=0,
         )
         results.cases = [
-            CaseResult(question="Q", difficulty=1, rag_only=False, sql="SELECT 1", passed=True, errors=[])
+            CaseResult(question="Q", difficulty=1, sql="SELECT 1", passed=True, errors=[])
             for _ in range(9)
         ]
         results.cases.append(
-            CaseResult(question="Q", difficulty=1, rag_only=False, sql="SELECT 1", passed=False, errors=["Err"])
+            CaseResult(question="Q", difficulty=1, sql="SELECT 1", passed=False, errors=["Err"])
         )
         results.compute_aggregates()
-
-        # Should not raise
-        print_summary(results)
-
-    def test_print_summary_with_rag(self, monkeypatch):
-        """Test summary printing with RAG metrics."""
-        from backend.eval.fetch.runner import print_summary
-
-        results = EvalResults(
-            total=5,
-            passed=4,
-            sql_executed=5,
-            sql_failed=0,
-            rag_invoked=3,
-            avg_rag_precision=0.85,
-            avg_rag_recall=0.75,
-            avg_rag_latency_ms=150.0,
-        )
-        results.cases = [
-            CaseResult(
-                question="Q",
-                difficulty=1,
-                rag_only=False,
-                sql="SELECT 1",
-                passed=True,
-                rag_latency_ms=150.0,
-            )
-            for _ in range(5)
-        ]
 
         # Should not raise
         print_summary(results)
@@ -841,7 +571,6 @@ class TestPrintSummary:
             CaseResult(
                 question="Passed question",
                 difficulty=1,
-                rag_only=False,
                 sql="SELECT 1",
                 passed=True,
                 errors=[],
@@ -849,7 +578,6 @@ class TestPrintSummary:
             CaseResult(
                 question="Failed question 1",
                 difficulty=2,
-                rag_only=False,
                 sql="SELECT bad",
                 passed=False,
                 errors=["SQL error"],
@@ -857,7 +585,6 @@ class TestPrintSummary:
             CaseResult(
                 question="Failed question 2",
                 difficulty=3,
-                rag_only=False,
                 sql="SELECT worse",
                 passed=False,
                 errors=["Another error"],
@@ -877,7 +604,6 @@ class TestPrintSummary:
             CaseResult(
                 question=f"Failed question {i}",
                 difficulty=1,
-                rag_only=False,
                 sql=f"SELECT {i}",
                 passed=False,
                 errors=[f"Error {i}"],

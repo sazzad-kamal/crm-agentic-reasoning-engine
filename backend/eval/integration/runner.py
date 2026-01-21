@@ -192,8 +192,6 @@ def test_single_question(
         sql_results = result.get("sql_results", {})
         if sql_results:
             contexts.append(json.dumps(sql_results, indent=2, default=str))
-        if rag_context := result.get("rag_context", ""):
-            contexts.append(rag_context)
 
         # Get expected answer for answer_correctness metric
         expected_answer = get_expected_answer(question)

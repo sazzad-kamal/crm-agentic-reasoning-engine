@@ -76,11 +76,8 @@ class AgentState(TypedDict, total=False):
     # Conversation history (reducer appends new messages)
     messages: Annotated[list[Message], add_messages]
 
-    # SQL results from fetch node
+    # SQL results from fetch node (includes notes columns)
     sql_results: dict[str, Any]
-
-    # RAG context (entity-scoped notes)
-    rag_context: str
 
     # Final outputs
     answer: str

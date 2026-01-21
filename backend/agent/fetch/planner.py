@@ -5,13 +5,12 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from backend.agent.fetch.rag.schema import get_rag_schema
 from backend.agent.fetch.sql.schema import get_schema_sql
 from backend.core.llm import create_anthropic_chain
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """Transform natural language requests into valid DuckDB SQL queries and decide if RAG context is needed.
+_SYSTEM_PROMPT = """Transform natural language requests into valid DuckDB SQL queries.
 
 Today: {today}
 
@@ -21,17 +20,9 @@ Today: {today}
 {schema}
 ```
 
-## RAG KNOWLEDGE BASE
-Additional context available via RAG search (not in SQL tables).
-
-Decision:
-- needs_rag=true: "Why is this deal stuck?", "What are their concerns?", "How should I approach them?"
-- needs_rag=false: "How many opportunities?", "What's the close date?", "List contacts at X"
-
-Available context:
-{rag_schema}
-
 ## NOTES
+- Each table has a "notes" column containing free-text context (insights, concerns, history)
+- Include notes in SELECT when the question asks about qualitative information
 - "Recent" or "recently" means within the last 90 days"""
 
 _HUMAN_PROMPT = """User's question: {question}
@@ -40,10 +31,9 @@ _HUMAN_PROMPT = """User's question: {question}
 
 
 class SQLPlan(BaseModel):
-    """LLM output containing SQL query and RAG flag."""
+    """LLM output containing SQL query."""
 
     sql: str = Field(description="The SQL query to execute")
-    needs_rag: bool = Field(default=False, description="Whether RAG context is needed")
 
 
 def _get_planner_chain():
@@ -51,7 +41,6 @@ def _get_planner_chain():
     system_prompt = _SYSTEM_PROMPT.format(
         today=datetime.now().strftime("%Y-%m-%d"),
         schema=get_schema_sql(),
-        rag_schema=get_rag_schema(),
     )
     chain = create_anthropic_chain(
         system_prompt=system_prompt,
@@ -88,7 +77,7 @@ def get_sql_plan(
         "question": question,
         "conversation_history_section": history_section,
     })
-    logger.info("SQL Planner: %s (needs_rag=%s)", result.sql[:80], result.needs_rag)
+    logger.info("SQL Planner: %s", result.sql[:80])
     return result
 
 

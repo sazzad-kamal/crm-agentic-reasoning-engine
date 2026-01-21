@@ -46,9 +46,8 @@ class TestGraphIntegration:
 
         mock_planner.return_value = SQLPlan(
             sql="SELECT * FROM companies WHERE name ILIKE '%acme%'",
-            needs_rag=True,
         )
-        mock_answer_chain.return_value = ("Acme Manufacturing is doing well.", 100)
+        mock_answer_chain.return_value = "Acme Manufacturing is doing well."
 
         result = _invoke_agent("What's the status of Acme?")
 

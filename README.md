@@ -1,12 +1,12 @@
 # Acme CRM AI Companion
 
-An AI-powered CRM companion application with RAG (Retrieval-Augmented Generation) and intelligent agent capabilities. Built with FastAPI backend and React frontend.
+An AI-powered CRM companion application with intelligent SQL-based data retrieval and agent capabilities. Built with FastAPI backend and React frontend.
 
 ## 🚀 Features
 
 - **Intelligent Chat Interface**: Natural language queries about CRM data
-- **RAG Pipeline**: Hybrid search with Qdrant vectors + BM25 sparse retrieval
-- **LLM-Powered Routing**: Smart query classification for optimal data retrieval
+- **SQL-Based Data Access**: DuckDB-powered queries with notes included in results
+- **LLM-Powered SQL Planning**: Smart query generation for optimal data retrieval
 - **Agent Orchestration**: Multi-step reasoning with tool execution
 - **Real-time Progress Tracking**: Visual feedback during query processing
 - **Comprehensive CRM Data**: Companies, contacts, activities, opportunities, renewals
@@ -27,7 +27,7 @@ acme-crm-ai-companion/
 │   │   ├── orchestrator.py  # Main agent pipeline
 │   │   ├── llm_router.py    # LLM-based query routing
 │   │   ├── datastore.py     # DuckDB CRM data store
-│   │   ├── rag_tools.py     # RAG retrieval tools
+│   │   ├── fetch/           # Data fetching (SQL planning & execution)
 │   │   ├── schemas.py       # Pydantic models
 │   │   ├── prompts.py       # System prompts
 │   │   ├── streaming.py     # SSE streaming
@@ -60,10 +60,8 @@ acme-crm-ai-companion/
 - **Framework**: FastAPI with uvicorn
 - **Data Validation**: Pydantic v2
 - **Database**: DuckDB (in-memory SQL for CSV data)
-- **Vector Store**: Qdrant
-- **Embeddings**: sentence-transformers (BAAI/bge-small-en-v1.5)
-- **Reranking**: Cross-encoder (BAAI/bge-reranker-base)
-- **LLM**: OpenAI GPT-5.2 (answers), GPT-5-nano (routing/HyDE)
+- **LLM**: OpenAI GPT-5.2 (answers), GPT-5-nano (routing)
+- **Agent Framework**: LangGraph
 - **Retry Logic**: Tenacity
 
 ### Frontend
@@ -224,13 +222,14 @@ GitHub Actions workflows:
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │                   Agent Orchestrator                     │   │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐ │   │
-│  │  │  Router  │→ │  Tools   │→ │   RAG    │→ │   LLM   │ │   │
+│  │  │  Fetch   │→ │   SQL    │→ │  Answer  │→ │Followup │ │   │
+│  │  │  Node    │  │ Executor │  │  Chain   │  │ Node    │ │   │
 │  │  └──────────┘  └──────────┘  └──────────┘  └─────────┘ │   │
 │  └─────────────────────────────────────────────────────────┘   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐ │
-│  │  DuckDB     │  │   Qdrant    │  │    OpenAI API           │ │
-│  │  (CRM Data) │  │  (Vectors)  │  │    (LLM)                │ │
-│  └─────────────┘  └─────────────┘  └─────────────────────────┘ │
+│  ┌─────────────────────────┐  ┌─────────────────────────────┐ │
+│  │       DuckDB            │  │        OpenAI API           │ │
+│  │  (CRM Data + Notes)     │  │          (LLM)              │ │
+│  └─────────────────────────┘  └─────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -244,6 +243,7 @@ GitHub Actions workflows:
 | Activities | "Recent activities for Global Industries" |
 | Account Search | "Show me all Enterprise accounts" |
 | Contacts | "Who are the decision makers at Global Industries?" |
+| Notes | "What are the notes about Acme Manufacturing?" |
 
 ## 🤝 Contributing
 
@@ -262,6 +262,5 @@ This project is for demonstration purposes.
 ## 🙏 Acknowledgments
 
 - OpenAI for GPT models
-- Qdrant for vector search
 - FastAPI for the excellent web framework
 - React team for the frontend framework

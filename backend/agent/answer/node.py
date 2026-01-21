@@ -9,14 +9,13 @@ logger = logging.getLogger(__name__)
 
 
 def answer_node(state: AgentState) -> AgentState:
-    """Synthesize answer from SQL results and RAG context."""
+    """Synthesize answer from SQL results."""
     logger.info("[Answer] Synthesizing response...")
 
     try:
         answer = call_answer_chain(
             question=state["question"],
             sql_results=state.get("sql_results", {}),
-            rag_context=state.get("rag_context", ""),
             conversation_history=format_conversation_for_prompt(state.get("messages", [])),
         )
 

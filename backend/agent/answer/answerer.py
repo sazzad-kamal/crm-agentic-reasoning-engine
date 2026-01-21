@@ -42,9 +42,7 @@ _HUMAN_PROMPT = """User's question: {question}
 
 {conversation_history_section}
 
-{sql_results_section}
-
-{rag_context_section}"""
+{sql_results_section}"""
 
 
 @cache
@@ -66,7 +64,6 @@ def _get_answer_chain() -> Any:
 def call_answer_chain(
     question: str,
     sql_results: dict[str, Any] | None = None,
-    rag_context: str = "",
     conversation_history: str = "",
 ) -> str:
     """Call the answer chain and return the answer string."""
@@ -74,7 +71,6 @@ def call_answer_chain(
         "question": question,
         "conversation_history_section": f"=== RECENT CONVERSATION ===\n{conversation_history}\n" if conversation_history else "",
         "sql_results_section": f"=== CRM DATA ===\n{json.dumps(sql_results, indent=2, default=str)}\n" if sql_results else "",
-        "rag_context_section": f"=== CONTEXT NOTES ===\n{rag_context}\n" if rag_context else "",
     })
     return result
 

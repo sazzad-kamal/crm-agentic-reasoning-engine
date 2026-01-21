@@ -269,23 +269,3 @@ def save_results(results: FlowEvalResults, output_path: Path) -> None:
         json.dump(data, f, indent=2)
 
     console.print(f"[dim]Results saved to {output_path}[/dim]")
-
-
-def check_qdrant_access() -> bool:
-    """
-    Check if Qdrant storage is accessible (not locked by another process).
-
-    Returns:
-        True if accessible, False if locked
-    """
-    try:
-        from backend.agent.fetch.rag.client import get_qdrant_client
-
-        client = get_qdrant_client()
-        client.get_collections()
-        return True
-    except Exception as e:
-        if "already accessed" in str(e).lower():
-            return False
-        logger.warning(f"Qdrant check error: {e}")
-        return True

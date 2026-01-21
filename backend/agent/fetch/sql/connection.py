@@ -1,7 +1,7 @@
 """
 Minimal DuckDB connection manager with CSV loading.
 
-Loads CSV files with schema columns only (excludes notes column).
+Loads CSV files with all schema columns including notes.
 """
 
 import logging
@@ -18,7 +18,7 @@ _CSV_PATH = Path(__file__).parent.parent.parent.parent / "data" / "csv"
 
 
 def _load_csvs(conn: duckdb.DuckDBPyConnection) -> None:
-    """Load CSV files into DuckDB with schema columns only (excludes notes)."""
+    """Load CSV files into DuckDB with all schema columns."""
     table_columns = get_all_table_columns()
     for table in get_table_names():
         csv_file = _CSV_PATH / f"{table}.csv"

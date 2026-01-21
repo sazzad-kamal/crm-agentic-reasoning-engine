@@ -10,7 +10,6 @@ class Question(BaseModel):
 
     text: str
     difficulty: int
-    rag_only: bool = False
 
 
 class CaseResult(BaseModel):
@@ -18,7 +17,6 @@ class CaseResult(BaseModel):
 
     question: str
     difficulty: int
-    rag_only: bool
     sql: str
     passed: bool
     row_count: int = 0
@@ -27,12 +25,7 @@ class CaseResult(BaseModel):
     # Latency tracking (milliseconds)
     sql_gen_latency_ms: float = 0.0
     sql_exec_latency_ms: float = 0.0
-    rag_latency_ms: float = 0.0
     total_latency_ms: float = 0.0
-
-    # RAG metrics (optional, only when RAG is invoked)
-    rag_precision: float | None = None
-    rag_recall: float | None = None
 
 
 class EvalResults(BaseModel):
@@ -42,18 +35,12 @@ class EvalResults(BaseModel):
     passed: int = 0
     sql_executed: int = 0
     sql_failed: int = 0
-    rag_invoked: int = 0
     cases: list[CaseResult] = Field(default_factory=list)
 
     # Latency stats (averages in milliseconds)
     avg_sql_gen_latency_ms: float = 0.0
     avg_sql_exec_latency_ms: float = 0.0
-    avg_rag_latency_ms: float = 0.0
     avg_total_latency_ms: float = 0.0
-
-    # RAG aggregate metrics
-    avg_rag_precision: float = 0.0
-    avg_rag_recall: float = 0.0
 
     @property
     def failed(self) -> int:
@@ -66,11 +53,10 @@ class EvalResults(BaseModel):
     @property
     def sql_correctness(self) -> float:
         """Percentage of SQL queries that executed successfully and passed judge."""
-        sql_questions = [c for c in self.cases if not c.rag_only]
-        if not sql_questions:
+        if not self.cases:
             return 0.0
-        passed_sql = sum(1 for c in sql_questions if c.passed and not c.errors)
-        return passed_sql / len(sql_questions)
+        passed_sql = sum(1 for c in self.cases if c.passed and not c.errors)
+        return passed_sql / len(self.cases)
 
     def compute_aggregates(self) -> None:
         """Compute aggregate metrics from individual case results."""
@@ -80,27 +66,11 @@ class EvalResults(BaseModel):
         # Latency averages
         total_sql_gen = sum(c.sql_gen_latency_ms for c in self.cases)
         total_sql_exec = sum(c.sql_exec_latency_ms for c in self.cases)
-        total_rag = sum(c.rag_latency_ms for c in self.cases if c.rag_latency_ms > 0)
         total_latency = sum(c.total_latency_ms for c in self.cases)
 
         self.avg_sql_gen_latency_ms = total_sql_gen / len(self.cases)
         self.avg_sql_exec_latency_ms = total_sql_exec / len(self.cases)
         self.avg_total_latency_ms = total_latency / len(self.cases)
-
-        # RAG latency average (only for cases where RAG was invoked)
-        rag_cases = [c for c in self.cases if c.rag_latency_ms > 0]
-        if rag_cases:
-            self.avg_rag_latency_ms = total_rag / len(rag_cases)
-            self.rag_invoked = len(rag_cases)
-
-        # RAG precision/recall averages (only for cases with metrics)
-        precisions = [c.rag_precision for c in self.cases if c.rag_precision is not None]
-        recalls = [c.rag_recall for c in self.cases if c.rag_recall is not None]
-
-        if precisions:
-            self.avg_rag_precision = sum(precisions) / len(precisions)
-        if recalls:
-            self.avg_rag_recall = sum(recalls) / len(recalls)
 
 
 __all__ = ["Question", "CaseResult", "EvalResults"]

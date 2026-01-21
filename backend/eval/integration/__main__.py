@@ -13,7 +13,7 @@ load_dotenv(Path(__file__).parents[3] / ".env")
 # Fix Windows asyncio cleanup issues with httpx/RAGAS
 # Use SelectorEventLoop instead of ProactorEventLoop to avoid "Event loop is closed" errors
 if platform.system() == "Windows":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  # type: ignore[attr-defined]
 
 import logging
 import time

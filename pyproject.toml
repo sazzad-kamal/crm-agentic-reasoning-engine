@@ -68,6 +68,9 @@ omit = [
     "backend/eval/judge.py",
 ]
 
+[tool.pyright]
+reportMissingModuleSource = false
+
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",

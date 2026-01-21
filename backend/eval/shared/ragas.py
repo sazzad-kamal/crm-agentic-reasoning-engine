@@ -8,7 +8,7 @@ import sys
 import warnings
 from collections.abc import Generator
 from contextlib import contextmanager
-from functools import lru_cache
+from functools import cache
 from typing import Any, cast
 
 from datasets import Dataset
@@ -98,21 +98,21 @@ def _suppress_event_loop_closed_errors() -> None:
 _suppress_event_loop_closed_errors()
 
 
-@lru_cache
+@cache
 def _get_ragas_llm() -> Any:
     """Get shared LLM for RAGAS (cached singleton)."""
     logger.info("Initializing RAGAS LLM")
     return LangchainLLMWrapper(get_langchain_chat_openai())
 
 
-@lru_cache
+@cache
 def _get_ragas_embeddings() -> Any:
     """Get shared embeddings for RAGAS (cached singleton)."""
     logger.info("Initializing RAGAS embeddings")
     return LangchainEmbeddingsWrapper(get_langchain_embeddings())
 
 
-@lru_cache
+@cache
 def _get_ragas_metrics(include_reference: bool = False) -> tuple[Any, ...]:
     """Get shared RAGAS metrics (cached singleton).
 

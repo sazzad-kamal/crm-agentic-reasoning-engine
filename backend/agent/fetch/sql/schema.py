@@ -6,7 +6,7 @@ Loads schema.yaml and provides:
 - get_all_table_columns(): For connection.py views
 """
 
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 
 import yaml
@@ -14,7 +14,7 @@ import yaml
 _SCHEMA_PATH = Path(__file__).parent / "schema.yaml"
 
 
-@lru_cache
+@cache
 def _load_schema() -> dict:
     """Load schema from YAML file (cached)."""
     with open(_SCHEMA_PATH) as f:

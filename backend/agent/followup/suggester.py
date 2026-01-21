@@ -6,7 +6,7 @@ Uses hardcoded tree first, falls back to LLM for contextual suggestions.
 """
 
 import logging
-from functools import lru_cache
+from functools import cache
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -48,7 +48,7 @@ class FollowUpSuggestions(BaseModel):
     )
 
 
-@lru_cache
+@cache
 def _get_followup_chain() -> Any:
     """Get or create the followup chain (cached singleton)."""
     chain = create_openai_chain(

@@ -5,7 +5,7 @@ All LLM interactions should go through this module for consistency.
 """
 
 import logging
-from functools import lru_cache
+from functools import cache
 from typing import Any
 
 from langchain_anthropic import ChatAnthropic
@@ -74,13 +74,13 @@ def create_anthropic_chain(
     return prompt_template | llm.with_structured_output(structured_output)
 
 
-@lru_cache
+@cache
 def get_langchain_chat_openai() -> ChatOpenAI:
     """Get LangChain ChatOpenAI (cached singleton)."""
     return ChatOpenAI(model=_OPENAI_MODEL)
 
 
-@lru_cache
+@cache
 def get_langchain_embeddings() -> OpenAIEmbeddings:
     """Get LangChain OpenAIEmbeddings (cached singleton)."""
     return OpenAIEmbeddings(model=_EMBEDDING_MODEL)

@@ -6,7 +6,7 @@ Chain creation and invocation for answer generation.
 
 import json
 import logging
-from functools import lru_cache
+from functools import cache
 from typing import Any
 
 from backend.core.llm import LONG_RESPONSE_MAX_TOKENS, create_openai_chain
@@ -47,7 +47,7 @@ _HUMAN_PROMPT = """User's question: {question}
 {rag_context_section}"""
 
 
-@lru_cache
+@cache
 def _get_answer_chain() -> Any:
     """Get or create the answer chain (cached singleton).
 

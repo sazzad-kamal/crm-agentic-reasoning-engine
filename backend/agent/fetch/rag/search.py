@@ -6,7 +6,7 @@ Provides:
 """
 
 import logging
-from functools import lru_cache
+from functools import cache
 
 from qdrant_client.models import FieldCondition, Filter, MatchValue
 
@@ -23,7 +23,7 @@ from backend.agent.fetch.rag.config import (
 logger = logging.getLogger(__name__)
 
 
-@lru_cache
+@cache
 def _get_rag_components():
     """Initialize and cache RAG components (embedding model, vector index, reranker)."""
     from llama_index.core import Settings, VectorStoreIndex

@@ -4,7 +4,6 @@ import pytest
 import duckdb
 
 from backend.agent.fetch.sql.executor import execute_sql
-from backend.agent.fetch.planner import SQLPlan
 
 
 @pytest.fixture
@@ -61,9 +60,7 @@ class TestExecuteSql:
 
     def test_simple_select(self, duckdb_connection):
         """Executes simple SELECT query."""
-        plan = SQLPlan(sql="SELECT * FROM companies")
-
-        rows, error = execute_sql(plan, duckdb_connection)
+        rows, error = execute_sql("SELECT * FROM companies", duckdb_connection)
 
         assert error is None
         assert len(rows) == 3
@@ -71,9 +68,10 @@ class TestExecuteSql:
 
     def test_filtered_query(self, duckdb_connection):
         """Executes filtered query."""
-        plan = SQLPlan(sql="SELECT * FROM companies WHERE company_id = 'ACME-MFG'")
-
-        rows, error = execute_sql(plan, duckdb_connection)
+        rows, error = execute_sql(
+            "SELECT * FROM companies WHERE company_id = 'ACME-MFG'",
+            duckdb_connection,
+        )
 
         assert error is None
         assert len(rows) == 1
@@ -81,27 +79,14 @@ class TestExecuteSql:
 
     def test_adds_limit(self, duckdb_connection):
         """Adds LIMIT to queries without one."""
-        plan = SQLPlan(sql="SELECT * FROM companies")
-
-        rows, error = execute_sql(plan, duckdb_connection, max_rows=2)
+        rows, error = execute_sql("SELECT * FROM companies", duckdb_connection, max_rows=2)
 
         assert error is None
         assert len(rows) <= 2
 
-    def test_empty_sql(self, duckdb_connection):
-        """Handles empty SQL."""
-        plan = SQLPlan(sql="")
-
-        rows, error = execute_sql(plan, duckdb_connection)
-
-        assert rows == []
-        assert error is None
-
     def test_handles_error(self, duckdb_connection):
         """Returns error message on failure."""
-        plan = SQLPlan(sql="SELECT * FROM nonexistent_table")
-
-        rows, error = execute_sql(plan, duckdb_connection)
+        rows, error = execute_sql("SELECT * FROM nonexistent_table", duckdb_connection)
 
         assert rows == []
         assert error is not None
@@ -109,15 +94,13 @@ class TestExecuteSql:
 
     def test_join_query(self, duckdb_connection):
         """Executes JOIN query."""
-        plan = SQLPlan(
-            sql="""
-                SELECT c.*, co.name as company_name
-                FROM contacts c
-                JOIN companies co ON c.company_id = co.company_id
-            """,
-        )
+        sql = """
+            SELECT c.*, co.name as company_name
+            FROM contacts c
+            JOIN companies co ON c.company_id = co.company_id
+        """
 
-        rows, error = execute_sql(plan, duckdb_connection)
+        rows, error = execute_sql(sql, duckdb_connection)
 
         assert error is None
         assert len(rows) == 2
@@ -134,9 +117,10 @@ class TestExecuteSqlWithRealData:
 
     def test_filter_contacts_by_role(self, real_connection):
         """Find contacts by role."""
-        plan = SQLPlan(sql="SELECT * FROM contacts WHERE role = 'Decision Maker'")
-
-        rows, error = execute_sql(plan, real_connection)
+        rows, error = execute_sql(
+            "SELECT * FROM contacts WHERE role = 'Decision Maker'",
+            real_connection,
+        )
 
         assert error is None
         assert len(rows) > 0
@@ -145,9 +129,7 @@ class TestExecuteSqlWithRealData:
 
     def test_get_activities(self, real_connection):
         """Get activities from real data."""
-        plan = SQLPlan(sql="SELECT * FROM activities")
-
-        rows, error = execute_sql(plan, real_connection)
+        rows, error = execute_sql("SELECT * FROM activities", real_connection)
 
         assert error is None
         assert len(rows) > 0

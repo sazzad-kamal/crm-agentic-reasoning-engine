@@ -1,30 +1,29 @@
 """SQL query executor - executes SQL queries against DuckDB."""
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import duckdb
-
-if TYPE_CHECKING:
-    from backend.agent.fetch.planner import SQLPlan
 
 logger = logging.getLogger(__name__)
 
 
 def execute_sql(
-    plan: "SQLPlan",
+    sql: str,
     conn: duckdb.DuckDBPyConnection,
     max_rows: int = 100,
 ) -> tuple[list[dict[str, Any]], str | None]:
-    """Execute SQL plan against DuckDB.
+    """Execute SQL query against DuckDB.
+
+    Args:
+        sql: SQL query string (caller should validate non-empty)
+        conn: DuckDB connection
+        max_rows: Maximum rows to return
 
     Returns:
         Tuple of (rows, error_msg)
     """
-    if not plan.sql or not plan.sql.strip():
-        return [], None
-
-    sql = plan.sql.strip()
+    sql = sql.strip()
     if "LIMIT" not in sql.upper():
         sql = f"{sql} LIMIT {max_rows}"
 

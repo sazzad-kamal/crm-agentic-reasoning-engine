@@ -33,7 +33,7 @@ def _execute_sql_with_retry(
 
     try:
         conn = get_connection()
-        rows, error = execute_sql(sql_plan, conn)
+        rows, error = execute_sql(sql_plan.sql, conn)
 
         # Retry with error feedback if query failed
         if error:
@@ -43,7 +43,8 @@ def _execute_sql_with_retry(
                 conversation_history=history,
                 previous_error=error,
             )
-            rows, error = execute_sql(retry_plan, conn)
+            if retry_plan.sql:
+                rows, error = execute_sql(retry_plan.sql, conn)
             if not error:
                 logger.info("[Fetch] Retry succeeded")
 

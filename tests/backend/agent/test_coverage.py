@@ -358,9 +358,6 @@ class TestExecuteSql:
     def test_adds_limit_to_sql(self):
         """Adds LIMIT clause to SQL without one."""
         from backend.agent.fetch.sql.executor import execute_sql
-        from backend.agent.fetch.planner import SQLPlan
-
-        plan = SQLPlan(sql="SELECT * FROM companies")
 
         mock_conn = MagicMock()
         mock_result = MagicMock()
@@ -368,7 +365,7 @@ class TestExecuteSql:
         mock_result.description = [("id",)]
         mock_conn.execute.return_value = mock_result
 
-        execute_sql(plan, mock_conn, max_rows=50)
+        execute_sql("SELECT * FROM companies", mock_conn, max_rows=50)
 
         # Check that LIMIT was added to the SQL
         call_args = mock_conn.execute.call_args[0][0]
@@ -377,14 +374,11 @@ class TestExecuteSql:
     def test_sql_execution_generic_exception(self):
         """Test generic exception handling during SQL execution."""
         from backend.agent.fetch.sql.executor import execute_sql
-        from backend.agent.fetch.planner import SQLPlan
-
-        plan = SQLPlan(sql="SELECT * FROM companies")
 
         mock_conn = MagicMock()
         mock_conn.execute.side_effect = RuntimeError("Database error")
 
-        rows, error = execute_sql(plan, mock_conn)
+        rows, error = execute_sql("SELECT * FROM companies", mock_conn)
 
         assert rows == []
         assert error is not None

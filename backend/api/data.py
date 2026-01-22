@@ -23,7 +23,8 @@ def load_csv(name: str) -> tuple[list[dict[str, Any]], list[str]]:
     if not path.exists():
         return [], []
     df = pd.read_csv(path)
-    return df.to_dict("records"), df.columns.tolist()
+    records: list[dict[str, Any]] = df.to_dict("records")  # type: ignore[assignment]
+    return records, df.columns.tolist()
 
 
 @router.get("/data/companies", response_model=DataResponse, summary="Get all companies")

@@ -6,10 +6,10 @@ followup_node (backend/agent/followup/node.py).
 """
 
 import os
+from unittest.mock import MagicMock, patch
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
-from unittest.mock import patch, MagicMock
 
 os.environ["MOCK_LLM"] = "1"
 

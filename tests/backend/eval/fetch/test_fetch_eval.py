@@ -8,7 +8,6 @@ import pytest
 
 from backend.eval.fetch.models import CaseResult, EvalResults, Question
 
-
 # =============================================================================
 # Tests for models.py
 # =============================================================================
@@ -30,41 +29,31 @@ class TestCaseResult:
     def test_case_result_basic(self):
         """Test basic CaseResult creation."""
         case = CaseResult(
-            question="Test question",
-            difficulty=1,
+            question=Question(text="Test question", difficulty=1),
             sql="SELECT * FROM companies",
             passed=True,
         )
-        assert case.question == "Test question"
-        assert case.difficulty == 1
+        assert case.question.text == "Test question"
+        assert case.question.difficulty == 1
         assert case.sql == "SELECT * FROM companies"
         assert case.passed is True
-        assert case.row_count == 0
         assert case.errors == []
 
     def test_case_result_with_metrics(self):
         """Test CaseResult with all metrics."""
         case = CaseResult(
-            question="Test question",
-            difficulty=3,
+            question=Question(text="Test question", difficulty=3),
             sql="SELECT * FROM companies",
             passed=True,
-            row_count=5,
             errors=[],
-            sql_gen_latency_ms=100.0,
-            sql_exec_latency_ms=50.0,
-            total_latency_ms=150.0,
+            latency_ms=150.0,
         )
-        assert case.row_count == 5
-        assert case.sql_gen_latency_ms == 100.0
-        assert case.sql_exec_latency_ms == 50.0
-        assert case.total_latency_ms == 150.0
+        assert case.latency_ms == 150.0
 
     def test_case_result_with_errors(self):
         """Test CaseResult with errors."""
         case = CaseResult(
-            question="Test question",
-            difficulty=2,
+            question=Question(text="Test question", difficulty=2),
             sql="INVALID SQL",
             passed=False,
             errors=["SQL error: syntax error", "Validation failed"],
@@ -82,8 +71,6 @@ class TestEvalResults:
         results = EvalResults()
         assert results.total == 0
         assert results.passed == 0
-        assert results.sql_executed == 0
-        assert results.sql_failed == 0
         assert results.cases == []
 
     def test_failed_property(self):
@@ -101,71 +88,33 @@ class TestEvalResults:
         results = EvalResults(total=0, passed=0)
         assert results.pass_rate == 0.0
 
-    def test_sql_correctness_property(self):
-        """Test sql_correctness property."""
-        results = EvalResults()
-        results.cases = [
-            CaseResult(question="Q1", difficulty=1, sql="SELECT 1", passed=True, errors=[]),
-            CaseResult(question="Q2", difficulty=1, sql="SELECT 2", passed=True, errors=[]),
-            CaseResult(question="Q3", difficulty=1, sql="SELECT 3", passed=False, errors=["Error"]),
-        ]
-        # 2 out of 3 SQL questions passed
-        assert results.sql_correctness == pytest.approx(2 / 3)
-
-    def test_sql_correctness_with_errors(self):
-        """Test sql_correctness includes all cases."""
-        results = EvalResults()
-        results.cases = [
-            CaseResult(question="Q1", difficulty=1, sql="SELECT 1", passed=True, errors=[]),
-            CaseResult(question="Q2", difficulty=1, sql="SELECT 2", passed=True, errors=[]),
-            CaseResult(question="Q3", difficulty=1, sql="SELECT 3", passed=False, errors=["Err"]),
-        ]
-        # 2 out of 3 cases passed with no errors
-        assert results.sql_correctness == pytest.approx(2 / 3)
-
-    def test_sql_correctness_all_passed(self):
-        """Test sql_correctness when all cases passed."""
-        results = EvalResults()
-        results.cases = [
-            CaseResult(question="Q1", difficulty=1, sql="SELECT 1", passed=True, errors=[]),
-        ]
-        assert results.sql_correctness == 1.0
-
     def test_compute_aggregates_empty_cases(self):
         """Test compute_aggregates with empty cases."""
         results = EvalResults()
         results.compute_aggregates()
         # Should not raise, values stay at defaults
-        assert results.avg_sql_gen_latency_ms == 0.0
+        assert results.avg_latency_ms == 0.0
 
     def test_compute_aggregates_latency(self):
         """Test compute_aggregates computes latency averages."""
         results = EvalResults()
         results.cases = [
             CaseResult(
-                question="Q1",
-                difficulty=1,
+                question=Question(text="Q1", difficulty=1),
                 sql="SELECT 1",
                 passed=True,
-                sql_gen_latency_ms=100.0,
-                sql_exec_latency_ms=50.0,
-                total_latency_ms=150.0,
+                latency_ms=150.0,
             ),
             CaseResult(
-                question="Q2",
-                difficulty=1,
+                question=Question(text="Q2", difficulty=1),
                 sql="SELECT 2",
                 passed=True,
-                sql_gen_latency_ms=200.0,
-                sql_exec_latency_ms=100.0,
-                total_latency_ms=300.0,
+                latency_ms=300.0,
             ),
         ]
         results.compute_aggregates()
 
-        assert results.avg_sql_gen_latency_ms == 150.0
-        assert results.avg_sql_exec_latency_ms == 75.0
-        assert results.avg_total_latency_ms == 225.0
+        assert results.avg_latency_ms == 225.0
 
 
 # =============================================================================
@@ -350,42 +299,22 @@ questions:
         assert len(questions) == 3
         assert questions[0].text == "Question 1"
 
-    def test_load_questions_difficulty_filter(self, monkeypatch, tmp_path):
-        """Test filtering by difficulty."""
-        yaml_content = """
-questions:
-  - text: "Easy"
-    difficulty: 1
-  - text: "Medium"
-    difficulty: 3
-  - text: "Hard"
-    difficulty: 5
-"""
-        yaml_file = tmp_path / "questions.yaml"
-        yaml_file.write_text(yaml_content)
-
-        import backend.eval.fetch.runner as runner_module
-
-        monkeypatch.setattr(runner_module, "QUESTIONS_PATH", yaml_file)
-
-        from backend.eval.fetch.runner import load_questions
-
-        questions = load_questions(difficulty_filter=[1, 5])
-        assert len(questions) == 2
-        assert questions[0].difficulty == 1
-        assert questions[1].difficulty == 5
-
 
 class TestRunSqlEval:
     """Tests for run_sql_eval function."""
 
-    def test_run_sql_eval_basic(self, monkeypatch):
+    def test_run_sql_eval_basic(self, monkeypatch, tmp_path):
         """Test basic SQL evaluation run."""
         import backend.eval.fetch.runner as runner_module
 
-        questions = [
-            Question(text="Test question 1", difficulty=1),
-        ]
+        yaml_content = """
+questions:
+  - text: "Test question 1"
+    difficulty: 1
+"""
+        yaml_file = tmp_path / "questions.yaml"
+        yaml_file.write_text(yaml_content)
+        monkeypatch.setattr(runner_module, "QUESTIONS_PATH", yaml_file)
 
         # Mock get_sql_plan
         mock_plan = MagicMock()
@@ -408,90 +337,20 @@ class TestRunSqlEval:
 
         from backend.eval.fetch.runner import run_sql_eval
 
-        results = run_sql_eval(questions=questions, verbose=False)
+        results = run_sql_eval(verbose=False)
 
         assert results.total == 1
         assert results.passed == 1
-        assert results.sql_executed == 1
         assert len(results.cases) == 1
         assert results.cases[0].passed is True
 
-    def test_run_sql_eval_with_limit(self, monkeypatch):
+    def test_run_sql_eval_with_limit(self, monkeypatch, tmp_path):
         """Test SQL evaluation with limit."""
         import backend.eval.fetch.runner as runner_module
 
-        questions = [
-            Question(text=f"Question {i}", difficulty=1) for i in range(10)
-        ]
-
-        mock_plan = MagicMock(sql="SELECT 1")
-        monkeypatch.setattr(runner_module, "get_sql_plan", MagicMock(return_value=mock_plan))
-
-        mock_result = MagicMock()
-        mock_result.fetchall.return_value = [(1,)]
-        mock_result.description = [("v",)]
-        mock_conn = MagicMock()
-        mock_conn.execute.return_value = mock_result
-        monkeypatch.setattr(runner_module, "get_connection", MagicMock(return_value=mock_conn))
-        monkeypatch.setattr(runner_module, "judge_sql_results", MagicMock(return_value=(True, [])))
-
-        from backend.eval.fetch.runner import run_sql_eval
-
-        results = run_sql_eval(questions=questions, limit=3)
-
-        assert results.total == 3
-        assert len(results.cases) == 3
-
-    def test_run_sql_eval_planner_error(self, monkeypatch):
-        """Test handling planner errors."""
-        import backend.eval.fetch.runner as runner_module
-
-        questions = [Question(text="Test", difficulty=1)]
-
-        mock_get_sql_plan = MagicMock(side_effect=Exception("Planner failed"))
-        monkeypatch.setattr(runner_module, "get_sql_plan", mock_get_sql_plan)
-        monkeypatch.setattr(runner_module, "get_connection", MagicMock())
-
-        from backend.eval.fetch.runner import run_sql_eval
-
-        results = run_sql_eval(questions=questions, verbose=False)
-
-        assert results.total == 1
-        assert results.passed == 0
-        assert results.cases[0].passed is False
-        assert any("Planner error" in e for e in results.cases[0].errors)
-
-    def test_run_sql_eval_sql_error(self, monkeypatch):
-        """Test handling SQL execution errors."""
-        import backend.eval.fetch.runner as runner_module
-
-        questions = [Question(text="Test", difficulty=1)]
-
-        mock_plan = MagicMock(sql="INVALID SQL")
-        monkeypatch.setattr(runner_module, "get_sql_plan", MagicMock(return_value=mock_plan))
-
-        mock_conn = MagicMock()
-        mock_conn.execute.side_effect = Exception("SQL syntax error")
-        monkeypatch.setattr(runner_module, "get_connection", MagicMock(return_value=mock_conn))
-
-        from backend.eval.fetch.runner import run_sql_eval
-
-        results = run_sql_eval(questions=questions, verbose=False)
-
-        assert results.total == 1
-        assert results.passed == 0
-        assert results.sql_failed == 1
-        assert any("SQL error" in e for e in results.cases[0].errors)
-
-    def test_run_sql_eval_loads_questions(self, monkeypatch, tmp_path):
-        """Test run_sql_eval loads questions when not provided."""
-        import backend.eval.fetch.runner as runner_module
-
-        yaml_content = """
-questions:
-  - text: "Auto loaded question"
-    difficulty: 1
-"""
+        yaml_content = "questions:\n" + "\n".join(
+            [f"  - text: \"Question {i}\"\n    difficulty: 1" for i in range(10)]
+        )
         yaml_file = tmp_path / "questions.yaml"
         yaml_file.write_text(yaml_content)
         monkeypatch.setattr(runner_module, "QUESTIONS_PATH", yaml_file)
@@ -509,32 +368,64 @@ questions:
 
         from backend.eval.fetch.runner import run_sql_eval
 
-        results = run_sql_eval(questions=None, difficulty_filter=[1])
+        results = run_sql_eval(limit=3)
 
-        assert results.total == 1
-        assert results.cases[0].question == "Auto loaded question"
+        assert results.total == 3
+        assert len(results.cases) == 3
 
-    def test_run_sql_eval_verbose_output(self, monkeypatch, capsys):
-        """Test verbose output during evaluation."""
+    def test_run_sql_eval_planner_error(self, monkeypatch, tmp_path):
+        """Test handling planner errors."""
         import backend.eval.fetch.runner as runner_module
 
-        questions = [Question(text="Verbose test", difficulty=2)]
+        yaml_content = """
+questions:
+  - text: "Test"
+    difficulty: 1
+"""
+        yaml_file = tmp_path / "questions.yaml"
+        yaml_file.write_text(yaml_content)
+        monkeypatch.setattr(runner_module, "QUESTIONS_PATH", yaml_file)
 
-        mock_plan = MagicMock(sql="SELECT 1")
-        monkeypatch.setattr(runner_module, "get_sql_plan", MagicMock(return_value=mock_plan))
-
-        mock_result = MagicMock()
-        mock_result.fetchall.return_value = [(1,)]
-        mock_result.description = [("v",)]
-        mock_conn = MagicMock()
-        mock_conn.execute.return_value = mock_result
-        monkeypatch.setattr(runner_module, "get_connection", MagicMock(return_value=mock_conn))
-        monkeypatch.setattr(runner_module, "judge_sql_results", MagicMock(return_value=(True, [])))
+        mock_get_sql_plan = MagicMock(side_effect=Exception("Planner failed"))
+        monkeypatch.setattr(runner_module, "get_sql_plan", mock_get_sql_plan)
+        monkeypatch.setattr(runner_module, "get_connection", MagicMock())
 
         from backend.eval.fetch.runner import run_sql_eval
 
-        run_sql_eval(questions=questions, verbose=True)
-        # The function uses rich console, so we just verify it doesn't error with verbose=True
+        results = run_sql_eval(verbose=False)
+
+        assert results.total == 1
+        assert results.passed == 0
+        assert results.cases[0].passed is False
+        assert any("Planner error" in e for e in results.cases[0].errors)
+
+    def test_run_sql_eval_sql_error(self, monkeypatch, tmp_path):
+        """Test handling SQL execution errors."""
+        import backend.eval.fetch.runner as runner_module
+
+        yaml_content = """
+questions:
+  - text: "Test"
+    difficulty: 1
+"""
+        yaml_file = tmp_path / "questions.yaml"
+        yaml_file.write_text(yaml_content)
+        monkeypatch.setattr(runner_module, "QUESTIONS_PATH", yaml_file)
+
+        mock_plan = MagicMock(sql="INVALID SQL")
+        monkeypatch.setattr(runner_module, "get_sql_plan", MagicMock(return_value=mock_plan))
+
+        mock_conn = MagicMock()
+        mock_conn.execute.side_effect = Exception("SQL syntax error")
+        monkeypatch.setattr(runner_module, "get_connection", MagicMock(return_value=mock_conn))
+
+        from backend.eval.fetch.runner import run_sql_eval
+
+        results = run_sql_eval(verbose=False)
+
+        assert results.total == 1
+        assert results.passed == 0
+        assert any("SQL error" in e for e in results.cases[0].errors)
 
 
 class TestPrintSummary:
@@ -547,15 +438,23 @@ class TestPrintSummary:
         results = EvalResults(
             total=10,
             passed=9,
-            sql_executed=10,
-            sql_failed=0,
         )
         results.cases = [
-            CaseResult(question="Q", difficulty=1, sql="SELECT 1", passed=True, errors=[])
+            CaseResult(
+                question=Question(text="Q", difficulty=1),
+                sql="SELECT 1",
+                passed=True,
+                errors=[],
+            )
             for _ in range(9)
         ]
         results.cases.append(
-            CaseResult(question="Q", difficulty=1, sql="SELECT 1", passed=False, errors=["Err"])
+            CaseResult(
+                question=Question(text="Q", difficulty=1),
+                sql="SELECT 1",
+                passed=False,
+                errors=["Err"],
+            )
         )
         results.compute_aggregates()
 
@@ -569,22 +468,19 @@ class TestPrintSummary:
         results = EvalResults(total=3, passed=1)
         results.cases = [
             CaseResult(
-                question="Passed question",
-                difficulty=1,
+                question=Question(text="Passed question", difficulty=1),
                 sql="SELECT 1",
                 passed=True,
                 errors=[],
             ),
             CaseResult(
-                question="Failed question 1",
-                difficulty=2,
+                question=Question(text="Failed question 1", difficulty=2),
                 sql="SELECT bad",
                 passed=False,
                 errors=["SQL error"],
             ),
             CaseResult(
-                question="Failed question 2",
-                difficulty=3,
+                question=Question(text="Failed question 2", difficulty=3),
                 sql="SELECT worse",
                 passed=False,
                 errors=["Another error"],
@@ -602,8 +498,7 @@ class TestPrintSummary:
         results = EvalResults(total=15, passed=0)
         results.cases = [
             CaseResult(
-                question=f"Failed question {i}",
-                difficulty=1,
+                question=Question(text=f"Failed question {i}", difficulty=1),
                 sql=f"SELECT {i}",
                 passed=False,
                 errors=[f"Error {i}"],
@@ -626,67 +521,27 @@ class TestMainCli:
 
     def test_main_basic(self, monkeypatch):
         """Test main function runs without error."""
-        import backend.eval.fetch.__main__ as main_module
+        import backend.eval.fetch.runner as runner_module
 
         mock_results = EvalResults(total=1, passed=1)
 
-        monkeypatch.setattr(main_module, "run_sql_eval", MagicMock(return_value=mock_results))
-        monkeypatch.setattr(main_module, "print_summary", MagicMock())
+        monkeypatch.setattr(runner_module, "run_sql_eval", MagicMock(return_value=mock_results))
+        monkeypatch.setattr(runner_module, "print_summary", MagicMock())
 
         # Should not raise
-        main_module.main(limit=1, verbose=False, difficulty=None)
-
-    def test_main_with_difficulty_filter(self, monkeypatch):
-        """Test main function with difficulty filter."""
-        import backend.eval.fetch.__main__ as main_module
-
-        mock_results = EvalResults(total=1, passed=1)
-        mock_run_sql_eval = MagicMock(return_value=mock_results)
-
-        monkeypatch.setattr(main_module, "run_sql_eval", mock_run_sql_eval)
-        monkeypatch.setattr(main_module, "print_summary", MagicMock())
-
-        main_module.main(limit=None, verbose=False, difficulty="1,3,5")
-
-        # Verify difficulty filter was parsed correctly
-        call_kwargs = mock_run_sql_eval.call_args.kwargs
-        assert call_kwargs["difficulty_filter"] == [1, 3, 5]
-
-    def test_main_with_single_difficulty(self, monkeypatch):
-        """Test main function with single difficulty."""
-        import backend.eval.fetch.__main__ as main_module
-
-        mock_results = EvalResults(total=1, passed=1)
-        mock_run_sql_eval = MagicMock(return_value=mock_results)
-
-        monkeypatch.setattr(main_module, "run_sql_eval", mock_run_sql_eval)
-        monkeypatch.setattr(main_module, "print_summary", MagicMock())
-
-        main_module.main(limit=None, verbose=True, difficulty="2")
-
-        call_kwargs = mock_run_sql_eval.call_args.kwargs
-        assert call_kwargs["difficulty_filter"] == [2]
-
-    def test_main_invalid_difficulty(self, monkeypatch):
-        """Test main function with invalid difficulty filter."""
-        from backend.eval.fetch.__main__ import main
-
-        import typer
-
-        with pytest.raises(typer.Exit):
-            main(limit=None, verbose=False, difficulty="invalid")
+        runner_module.main(limit=1, verbose=False)
 
     def test_main_with_verbose(self, monkeypatch):
         """Test main function with verbose flag."""
-        import backend.eval.fetch.__main__ as main_module
+        import backend.eval.fetch.runner as runner_module
 
         mock_results = EvalResults(total=1, passed=1)
         mock_run_sql_eval = MagicMock(return_value=mock_results)
 
-        monkeypatch.setattr(main_module, "run_sql_eval", mock_run_sql_eval)
-        monkeypatch.setattr(main_module, "print_summary", MagicMock())
+        monkeypatch.setattr(runner_module, "run_sql_eval", mock_run_sql_eval)
+        monkeypatch.setattr(runner_module, "print_summary", MagicMock())
 
-        main_module.main(limit=5, verbose=True, difficulty=None)
+        runner_module.main(limit=5, verbose=True)
 
         call_kwargs = mock_run_sql_eval.call_args.kwargs
         assert call_kwargs["verbose"] is True

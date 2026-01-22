@@ -27,16 +27,15 @@ def make_invoke_mock(result: dict[str, Any]) -> dict[str, Any]:
 
 
 from backend.eval.integration.models import (
-    _latency_score,
-    FlowStepResult,
-    FlowResult,
-    FlowEvalResults,
+    SLO_FLOW_FAITHFULNESS,
     SLO_FLOW_PATH_PASS_RATE,
     SLO_FLOW_QUESTION_PASS_RATE,
     SLO_FLOW_RELEVANCE,
-    SLO_FLOW_FAITHFULNESS,
+    FlowEvalResults,
+    FlowResult,
+    FlowStepResult,
+    _latency_score,
 )
-
 
 # =============================================================================
 # Latency Score Helper Tests
@@ -1635,8 +1634,9 @@ class TestRunnerExceptions:
 
     def test_judge_answer_timeout(self, monkeypatch):
         """Test judge_answer handles timeout."""
-        from backend.eval.integration.runner import judge_answer
         from concurrent.futures import TimeoutError as FuturesTimeoutError
+
+        from backend.eval.integration.runner import judge_answer
 
         def mock_evaluate_single_timeout(*args, **kwargs):
             raise TimeoutError("Timed out")
@@ -1675,7 +1675,7 @@ class TestCliModuleExtended:
 
     def test_fetch_command(self, monkeypatch):
         """Test fetch command runs without error."""
-        from backend.eval.fetch.__main__ import main as fetch_main
+        from backend.eval.fetch.runner import main as fetch_main
 
         def mock_run_sql_eval(**kwargs):
             from dataclasses import dataclass
@@ -1701,7 +1701,7 @@ class TestCliModuleExtended:
         monkeypatch.setattr(backend.eval.fetch.runner, "print_summary", mock_print_summary)
 
         # Should not raise
-        fetch_main(limit=1, verbose=False, difficulty=None)
+        fetch_main(limit=1, verbose=False)
 
     def test_main_command(self, monkeypatch):
         """Test main command calls _run_eval."""
@@ -1779,8 +1779,9 @@ class TestTreePathFinding:
 
     def test_compute_max_depth_no_descendants(self, monkeypatch):
         """Test _compute_max_depth when starters have no descendants."""
-        import backend.eval.integration.tree
         import networkx as nx
+
+        import backend.eval.integration.tree
 
         # Create a minimal graph with only starters (no descendants)
         mock_g = nx.DiGraph()
@@ -1793,8 +1794,9 @@ class TestTreePathFinding:
 
     def test_find_paths_with_nx_no_path(self, monkeypatch):
         """Test _find_paths handles NetworkXNoPath exception."""
-        import backend.eval.integration.tree
         import networkx as nx
+
+        import backend.eval.integration.tree
 
         # Create a simple graph with a path
         mock_g = nx.DiGraph()
@@ -1821,8 +1823,9 @@ class TestTreeValidationEdgeCases:
 
     def test_validate_tree_starter_not_in_graph(self, monkeypatch):
         """Test validate_tree when starter is not in graph."""
-        import backend.eval.integration.tree
         import networkx as nx
+
+        import backend.eval.integration.tree
 
         # Create empty graph but have starters defined
         mock_g = nx.DiGraph()
@@ -1834,8 +1837,9 @@ class TestTreeValidationEdgeCases:
 
     def test_validate_tree_orphaned_question(self, monkeypatch):
         """Test validate_tree detects orphaned questions."""
-        import backend.eval.integration.tree
         import networkx as nx
+
+        import backend.eval.integration.tree
 
         # Create graph with connected and orphaned nodes
         mock_g = nx.DiGraph()
@@ -1849,8 +1853,9 @@ class TestTreeValidationEdgeCases:
 
     def test_validate_tree_cycle_detection(self, monkeypatch):
         """Test validate_tree detects cycles."""
-        import backend.eval.integration.tree
         import networkx as nx
+
+        import backend.eval.integration.tree
 
         # Create graph with a cycle
         mock_g = nx.DiGraph()
@@ -1865,8 +1870,9 @@ class TestTreeValidationEdgeCases:
 
     def test_validate_tree_wrong_out_degree(self, monkeypatch):
         """Test validate_tree detects wrong number of follow-ups."""
-        import backend.eval.integration.tree
         import networkx as nx
+
+        import backend.eval.integration.tree
 
         # Create graph where node has 2 follow-ups (not 0 or 3)
         mock_g = nx.DiGraph()
@@ -2098,6 +2104,7 @@ class TestTreeNetworkPaths:
     def test_compute_max_depth_no_path_between_nodes(self, monkeypatch):
         """Test _compute_max_depth when no path exists between starter and descendant."""
         import networkx as nx
+
         import backend.eval.integration.tree as tree_module
 
         # Create a graph with disconnected components
@@ -2116,6 +2123,7 @@ class TestTreeNetworkPaths:
     def test_find_paths_disconnected_nodes(self, monkeypatch):
         """Test _find_paths with disconnected subgraph."""
         import networkx as nx
+
         import backend.eval.integration.tree as tree_module
 
         # Create a graph where path finding might fail
@@ -2158,8 +2166,8 @@ class TestRunnerTimeoutHandling:
 
     def test_run_flow_eval_concurrent_exception(self, monkeypatch):
         """Test run_flow_eval handles exceptions in concurrent futures."""
-        from backend.eval.integration.runner import run_flow_eval
         from backend.eval.integration.models import FlowResult, FlowStepResult
+        from backend.eval.integration.runner import run_flow_eval
 
         call_count = {"count": 0}
 
@@ -2212,6 +2220,7 @@ class TestRagasSuppression:
     def test_event_loop_closed_filter(self):
         """Test EventLoopClosedFilter filters correctly."""
         import logging
+
         from backend.eval.integration import ragas
 
         # Create a mock log record
@@ -2250,8 +2259,9 @@ class TestRagasEvaluateSingle:
     @pytest.mark.no_mock_llm
     def test_evaluate_single_empty_contexts(self, monkeypatch):
         """Test evaluate_single with empty contexts (line 196)."""
-        from backend.eval.integration import ragas
         import pandas as pd
+
+        from backend.eval.integration import ragas
 
         # Mock _run_evaluation_with_retry to avoid actual API calls
         mock_result = {
@@ -2331,6 +2341,7 @@ class TestRagasEvaluateSingle:
     def test_get_ragas_metrics_with_reference(self, monkeypatch):
         """Test _get_ragas_metrics with include_reference=True (line 137)."""
         from unittest.mock import MagicMock
+
         from backend.eval.integration import ragas
 
         # Clear the cache first to test fresh instantiation
@@ -2353,9 +2364,11 @@ class TestRagasEvaluateSingle:
     @pytest.mark.no_mock_llm
     def test_extract_scores_with_nan_values(self, monkeypatch):
         """Test _extract_scores with NaN values (lines 143-154)."""
-        from backend.eval.integration import ragas
-        import pandas as pd
         import math
+
+        import pandas as pd
+
+        from backend.eval.integration import ragas
 
         # Create a DataFrame with NaN values
         df = pd.DataFrame({
@@ -2382,7 +2395,8 @@ class TestMainMiddleware:
     @pytest.mark.no_mock_llm
     async def test_request_logging_middleware(self):
         """Test RequestLoggingMiddleware logs requests."""
-        from unittest.mock import MagicMock, AsyncMock, patch
+        from unittest.mock import AsyncMock, MagicMock, patch
+
         from fastapi import FastAPI, Request, Response
         from starlette.testclient import TestClient
 

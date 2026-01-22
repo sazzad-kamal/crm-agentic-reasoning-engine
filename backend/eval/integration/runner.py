@@ -12,9 +12,9 @@ from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, T
 from rich.table import Table
 
 from backend.eval.integration.models import FlowEvalResults, FlowResult, FlowStepResult
+from backend.eval.integration.ragas import evaluate_single
 from backend.eval.integration.tree import get_all_paths, get_expected_answer
 from backend.eval.shared.formatting import console
-from backend.eval.integration.ragas import evaluate_single
 
 logger = logging.getLogger(__name__)
 

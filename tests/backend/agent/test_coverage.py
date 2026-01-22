@@ -5,10 +5,10 @@ Tests are organized by module to cover all uncovered lines.
 """
 
 import json
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch, PropertyMock
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
+import pytest
 
 # =============================================================================
 # fetch/node.py Tests
@@ -36,8 +36,8 @@ class TestFetchNode:
     def test_successful_sql_execution(self):
         """Successful SQL execution populates results."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
+        from backend.agent.state import AgentState
 
         state: AgentState = {"question": "What deals are in the pipeline?"}
         mock_plan = SQLPlan(sql="SELECT * FROM opportunities")
@@ -59,8 +59,8 @@ class TestFetchNode:
     def test_sql_execution_with_retry(self):
         """SQL execution retries on failure."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
+        from backend.agent.state import AgentState
 
         state: AgentState = {"question": "test"}
         call_count = [0]
@@ -86,8 +86,8 @@ class TestFetchNode:
     def test_sql_execution_failure(self):
         """SQL execution exception is handled."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
+        from backend.agent.state import AgentState
 
         state: AgentState = {"question": "test"}
         mock_plan = SQLPlan(sql="SELECT * FROM companies")
@@ -105,8 +105,8 @@ class TestFetchNode:
     def test_empty_sql_skips_execution(self):
         """Empty SQL skips execution step."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.state import AgentState
         from backend.agent.fetch.planner import SQLPlan
+        from backend.agent.state import AgentState
 
         state: AgentState = {"question": "hello"}
         mock_plan = SQLPlan(sql="")
@@ -508,7 +508,8 @@ class TestHealthEndpoint:
     @pytest.mark.asyncio
     async def test_health_endpoint(self):
         """Test /api/health returns ok status."""
-        from httpx import AsyncClient, ASGITransport
+        from httpx import ASGITransport, AsyncClient
+
         from backend.main import create_app
 
         app = create_app()
@@ -524,10 +525,14 @@ class TestHealthEndpoint:
 class TestFetchRunnerVerboseOutput:
     """Test fetch runner.py verbose output paths (lines 206, 211, 232-233)."""
 
-    def test_run_sql_eval_with_sql_error_verbose(self, monkeypatch):
+    def test_run_sql_eval_with_sql_error_verbose(self, monkeypatch, tmp_path):
         """Test SQL error prints with verbose mode (line 206)."""
         from backend.eval.fetch import runner
-        from backend.eval.fetch.models import Question
+
+        # Create questions.yaml in tmp_path
+        questions_file = tmp_path / "questions.yaml"
+        questions_file.write_text("questions:\n  - text: Test?\n    difficulty: 1\n")
+        monkeypatch.setattr(runner, "QUESTIONS_PATH", questions_file)
 
         # Mock get_sql_plan to return a plan
         mock_plan = MagicMock()
@@ -539,39 +544,43 @@ class TestFetchRunnerVerboseOutput:
         mock_conn.execute.side_effect = Exception("SQL syntax error")
         monkeypatch.setattr(runner, "get_connection", lambda: mock_conn)
 
-        questions = [Question(text="Test?", difficulty=1)]
-
         with patch.object(runner.console, "print") as mock_print:
-            results = runner.run_sql_eval(questions=questions, verbose=True)
+            results = runner.run_sql_eval(verbose=True)
 
         # Should have printed SQL error
-        assert results.sql_failed == 1
+        assert any("SQL error" in e for e in results.cases[0].errors)
         mock_print.assert_called()
 
-    def test_run_sql_eval_with_planner_error_verbose(self, monkeypatch):
+    def test_run_sql_eval_with_planner_error_verbose(self, monkeypatch, tmp_path):
         """Test planner error prints with verbose mode (line 211)."""
         from backend.eval.fetch import runner
-        from backend.eval.fetch.models import Question
+
+        # Create questions.yaml in tmp_path
+        questions_file = tmp_path / "questions.yaml"
+        questions_file.write_text("questions:\n  - text: Test?\n    difficulty: 1\n")
+        monkeypatch.setattr(runner, "QUESTIONS_PATH", questions_file)
 
         # Mock get_sql_plan to raise an exception
         monkeypatch.setattr(
             runner, "get_sql_plan", MagicMock(side_effect=Exception("Planner failed"))
         )
 
-        questions = [Question(text="Test?", difficulty=1)]
-
         with patch.object(runner.console, "print") as mock_print:
-            results = runner.run_sql_eval(questions=questions, verbose=True)
+            results = runner.run_sql_eval(verbose=True)
 
         # Should have printed planner error
         mock_print.assert_called()
         assert len(results.cases) == 1
         assert "Planner error" in results.cases[0].errors[0]
 
-    def test_run_sql_eval_with_verbose_errors_list(self, monkeypatch):
+    def test_run_sql_eval_with_verbose_errors_list(self, monkeypatch, tmp_path):
         """Test verbose printing of error list (lines 232-233)."""
         from backend.eval.fetch import runner
-        from backend.eval.fetch.models import Question
+
+        # Create questions.yaml in tmp_path
+        questions_file = tmp_path / "questions.yaml"
+        questions_file.write_text("questions:\n  - text: Test?\n    difficulty: 1\n")
+        monkeypatch.setattr(runner, "QUESTIONS_PATH", questions_file)
 
         # Mock get_sql_plan to return a plan
         mock_plan = MagicMock()
@@ -591,10 +600,8 @@ class TestFetchRunnerVerboseOutput:
             runner, "judge_sql_results", lambda q, s, r: (False, ["Error 1", "Error 2"])
         )
 
-        questions = [Question(text="Test?", difficulty=1)]
-
         with patch.object(runner.console, "print") as mock_print:
-            results = runner.run_sql_eval(questions=questions, verbose=True)
+            results = runner.run_sql_eval(verbose=True)
 
         # Should have printed each error in the list
         assert not results.cases[0].passed

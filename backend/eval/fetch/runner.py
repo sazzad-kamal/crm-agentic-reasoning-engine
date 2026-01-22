@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from pathlib import Path
 
+import typer
 import yaml
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parents[3] / ".env")
 
 from backend.agent.fetch.planner import get_sql_plan
 from backend.agent.fetch.sql.connection import get_connection
@@ -17,63 +22,29 @@ from backend.eval.shared.formatting import build_eval_table, console
 QUESTIONS_PATH = Path(__file__).parent / "questions.yaml"
 
 
-def load_questions(
-    difficulty_filter: list[int] | None = None,
-) -> list[Question]:
-    """
-    Load questions from YAML file.
-
-    Args:
-        difficulty_filter: Only include questions with these difficulty levels
-
-    Returns:
-        List of Question objects
-    """
+def load_questions() -> list[Question]:
+    """Load questions from YAML file."""
     with open(QUESTIONS_PATH) as f:
         data = yaml.safe_load(f)
 
-    questions = []
-    for item in data.get("questions", []):
-        q = Question(
-            text=item["text"],
-            difficulty=item.get("difficulty", 1),
-        )
-
-        # Apply filters
-        if difficulty_filter and q.difficulty not in difficulty_filter:
-            continue
-
-        questions.append(q)
-
-    return questions
+    return [
+        Question(text=item["text"], difficulty=item.get("difficulty", 1))
+        for item in data.get("questions", [])
+    ]
 
 
 def run_sql_eval(
-    questions: list[Question] | None = None,
-    verbose: bool = False,
     limit: int | None = None,
-    difficulty_filter: list[int] | None = None,
+    verbose: bool = False,
 ) -> EvalResults:
-    """
-    Run fetch node evaluation.
+    """Run fetch node evaluation.
 
     For each question:
     1. Generate SQL via get_sql_plan()
     2. Execute SQL against DuckDB
     3. Validate results using LLM judge
-
-    Args:
-        questions: List of questions to test (default: from questions.yaml)
-        verbose: Print detailed output
-        limit: Max number of questions to test
-        difficulty_filter: Only test questions with these difficulty levels
-
-    Returns:
-        EvalResults with per-case and aggregate metrics
     """
-    if questions is None:
-        questions = load_questions(difficulty_filter=difficulty_filter)
-
+    questions = load_questions()
     if limit:
         questions = questions[:limit]
 
@@ -87,42 +58,27 @@ def run_sql_eval(
                 f"[dim](d={question.difficulty})[/dim]"
             )
 
-        case_start = time.time()
-
-        # Initialize case variables
+        start = time.time()
         sql = ""
-        sql_gen_latency = 0.0
-        sql_exec_latency = 0.0
         data: list[dict] = []
         passed = False
         errors: list[str] = []
 
         try:
-            # Get SQL from planner
-            sql_gen_start = time.time()
             plan = get_sql_plan(question.text)
             sql = plan.sql
-            sql_gen_latency = (time.time() - sql_gen_start) * 1000
 
-            # Execute SQL
             try:
-                sql_exec_start = time.time()
                 result = conn.execute(sql)
                 rows = result.fetchall()
                 columns = [desc[0] for desc in result.description]
                 data = [dict(zip(columns, row, strict=True)) for row in rows]
-                sql_exec_latency = (time.time() - sql_exec_start) * 1000
-                results.sql_executed += 1
 
-                # Validate using LLM judge
-                sql_results = {"query": data}
-                passed, errors = judge_sql_results(question.text, sql, sql_results)
-
+                passed, errors = judge_sql_results(question.text, sql, {"query": data})
                 if passed:
                     results.passed += 1
 
             except Exception as e:
-                results.sql_failed += 1
                 errors.append(f"SQL error: {e}")
                 if verbose:
                     console.print(f"  [red]SQL ERROR[/red]: {e}")
@@ -132,17 +88,13 @@ def run_sql_eval(
             if verbose:
                 console.print(f"  [red]PLANNER ERROR[/red]: {e}")
 
-        total_latency = (time.time() - case_start) * 1000
+        latency = (time.time() - start) * 1000
         case = CaseResult(
-            question=question.text,
-            difficulty=question.difficulty,
+            question=question,
             sql=sql,
             passed=passed,
-            row_count=len(data),
             errors=errors,
-            sql_gen_latency_ms=sql_gen_latency,
-            sql_exec_latency_ms=sql_exec_latency,
-            total_latency_ms=total_latency,
+            latency_ms=latency,
         )
 
         if verbose:
@@ -151,7 +103,7 @@ def run_sql_eval(
                     console.print(f"    [yellow]{err}[/yellow]")
             else:
                 status = "[green]PASS[/green]" if passed else "[red]FAIL[/red]"
-                console.print(f"  {status} ({len(data)} rows, {total_latency:.0f}ms)")
+                console.print(f"  {status} ({len(data)} rows, {latency:.0f}ms)")
 
         results.cases.append(case)
 
@@ -162,40 +114,18 @@ def run_sql_eval(
 
 
 def print_summary(results: EvalResults) -> None:
-    """Print evaluation summary with detailed metrics."""
-    # Build sections for the table
-    sql_passed = results.sql_correctness >= 0.9
-    sections: list[tuple[str, list[tuple[str, str, str | None, bool | None]]]] = [
-        (
-            "SQL",
-            [
-                ("  Correctness", f"{results.sql_correctness * 100:.1f}%", ">=90.0%", sql_passed),
-                ("  Gen latency", f"{results.avg_sql_gen_latency_ms:.0f}ms", None, None),
-                ("  Exec latency", f"{results.avg_sql_exec_latency_ms:.0f}ms", None, None),
-            ],
-        ),
-        (
-            "Latency",
-            [
-                ("  Avg total", f"{results.avg_total_latency_ms:.0f}ms", None, None),
-            ],
-        ),
-    ]
-
-    # Build and print table
+    """Print evaluation summary."""
     pass_rate_passed = results.pass_rate >= 0.85
     table = build_eval_table(
         title="Fetch Node Evaluation Summary",
-        sections=sections,
+        sections=[],
         aggregate_row=("Pass Rate", f"{results.pass_rate * 100:.1f}%", ">=85.0%", pass_rate_passed),
     )
     console.print(table)
-
-    # Stats
     console.print(
-        f"\nTotal: {results.total}, Passed: {results.passed}, Failed: {results.failed}"
+        f"\nTotal: {results.total}, Passed: {results.passed}, Failed: {results.failed}, "
+        f"Avg latency: {results.avg_latency_ms:.0f}ms"
     )
-    console.print(f"SQL Executed: {results.sql_executed}, SQL Failed: {results.sql_failed}")
 
     # Failed cases
     failed = [c for c in results.cases if not c.passed]
@@ -205,7 +135,7 @@ def print_summary(results: EvalResults) -> None:
         # Show up to 10 failed cases
         for i, c in enumerate(failed[:10], 1):
             error = "; ".join(c.errors)
-            console.print(f"[bold cyan]{i}. {c.question}[/bold cyan] [dim](d={c.difficulty})[/dim]")
+            console.print(f"[bold cyan]{i}. {c.question.text}[/bold cyan] [dim](d={c.question.difficulty})[/dim]")
             console.print(f"   [red]Error:[/red] {error}")
             if c.sql:
                 console.print(f"   [dim]SQL:[/dim] {c.sql[:200]}...")
@@ -215,4 +145,14 @@ def print_summary(results: EvalResults) -> None:
             console.print(f"[dim]... and {len(failed) - 10} more failures[/dim]")
 
 
-__all__ = ["run_sql_eval", "print_summary", "load_questions"]
+def main(
+    limit: int = typer.Option(None, "--limit", "-l", help="Limit number of questions"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output"),
+) -> None:
+    """Run fetch node evaluation."""
+    logging.basicConfig(level=logging.WARNING)
+    print_summary(run_sql_eval(limit=limit, verbose=verbose))
+
+
+if __name__ == "__main__":
+    typer.run(main)

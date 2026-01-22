@@ -1,7 +1,7 @@
 """Tests for SQL query executor."""
 
-import pytest
 import duckdb
+import pytest
 
 from backend.agent.fetch.sql.executor import execute_sql
 

@@ -8,10 +8,10 @@ This module provides common fixtures used across test files:
 """
 
 import os
-import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
-from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+from fastapi.testclient import TestClient
 
 # =============================================================================
 # Environment Setup

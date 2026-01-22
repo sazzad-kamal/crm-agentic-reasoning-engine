@@ -4,17 +4,17 @@ Tests for backend.api.chat module.
 Tests the chat and streaming endpoints.
 """
 
-import os
 import json
+import os
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
 from fastapi.testclient import TestClient
 
 # Set mock mode before imports
 os.environ["MOCK_LLM"] = "1"
 
 from backend.main import app
-
 
 # =============================================================================
 # Fixtures

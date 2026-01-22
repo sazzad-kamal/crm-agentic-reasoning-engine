@@ -5,8 +5,9 @@ Tests the LangGraph workflow construction and execution.
 """
 
 import os
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 # Set mock mode
 os.environ["MOCK_LLM"] = "1"

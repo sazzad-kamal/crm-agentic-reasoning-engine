@@ -14,6 +14,7 @@ load_dotenv(Path(__file__).parents[3] / ".env")
 
 from backend.agent.fetch.planner import get_sql_plan
 from backend.agent.fetch.sql.connection import get_connection
+from backend.agent.fetch.sql.executor import execute_sql
 from backend.eval.fetch.models import CaseResult, EvalResults, Question
 from backend.eval.fetch.sql_judge import judge_sql_results
 from backend.eval.shared.formatting import build_eval_table, console
@@ -67,21 +68,16 @@ def run_sql_eval(
         try:
             plan = get_sql_plan(question.text)
             sql = plan.sql
+            data, sql_error = execute_sql(sql, conn)
 
-            try:
-                result = conn.execute(sql)
-                rows = result.fetchall()
-                columns = [desc[0] for desc in result.description]
-                data = [dict(zip(columns, row, strict=True)) for row in rows]
-
+            if sql_error:
+                errors.append(f"SQL error: {sql_error}")
+                if verbose:
+                    console.print(f"  [red]SQL ERROR[/red]: {sql_error}")
+            else:
                 passed, errors = judge_sql_results(question.text, sql, {"query": data})
                 if passed:
                     results.passed += 1
-
-            except Exception as e:
-                errors.append(f"SQL error: {e}")
-                if verbose:
-                    console.print(f"  [red]SQL ERROR[/red]: {e}")
 
         except Exception as e:
             errors.append(f"Planner error: {e}")

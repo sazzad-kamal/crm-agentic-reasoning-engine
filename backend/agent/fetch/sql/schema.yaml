@@ -22,7 +22,7 @@ tables:
   contacts:
     columns:
       contact_id: "VARCHAR PRIMARY KEY"
-      company_id: "VARCHAR REFERENCES companies(company_id)"
+      company_id: "VARCHAR NOT NULL REFERENCES companies(company_id)"
       first_name: "VARCHAR"
       last_name: "VARCHAR"
       email: "VARCHAR"
@@ -37,7 +37,7 @@ tables:
   opportunities:
     columns:
       opportunity_id: "VARCHAR PRIMARY KEY"
-      company_id: "VARCHAR REFERENCES companies(company_id)"
+      company_id: "VARCHAR NOT NULL REFERENCES companies(company_id)"
       contact_id: "VARCHAR REFERENCES contacts(contact_id)"
       name: "VARCHAR"
       stage: "VARCHAR CHECK (stage IN ('New', 'Discovery', 'Qualified', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'))"
@@ -56,7 +56,7 @@ tables:
   activities:
     columns:
       activity_id: "VARCHAR PRIMARY KEY"
-      company_id: "VARCHAR REFERENCES companies(company_id)"
+      company_id: "VARCHAR NOT NULL REFERENCES companies(company_id)"
       contact_id: "VARCHAR REFERENCES contacts(contact_id)"
       opportunity_id: "VARCHAR REFERENCES opportunities(opportunity_id)"
       type: "VARCHAR CHECK (type IN ('Call', 'Email', 'Meeting', 'Task'))"
@@ -72,7 +72,7 @@ tables:
   history:
     columns:
       history_id: "VARCHAR PRIMARY KEY"
-      company_id: "VARCHAR REFERENCES companies(company_id)"
+      company_id: "VARCHAR NOT NULL REFERENCES companies(company_id)"
       contact_id: "VARCHAR REFERENCES contacts(contact_id)"
       opportunity_id: "VARCHAR REFERENCES opportunities(opportunity_id)"
       type: "VARCHAR CHECK (type IN ('Call', 'Email', 'Meeting', 'Note'))"

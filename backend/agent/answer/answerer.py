@@ -19,8 +19,8 @@ _SYSTEM_PROMPT = """You are a CRM assistant. Answer questions using ONLY the pro
 RULES:
 - Use exact numbers/dates from context
 - If data isn't available, say so briefly
-- Lead with key answer, use bullets for details
-- Keep it short and conversational
+- Lead with key answer point
+- Keep answers concise (2-4 sentences max, bullets when needed for details)
 
 FORMAT: Currency $1,250,000 | Dates: March 31, 2026
 

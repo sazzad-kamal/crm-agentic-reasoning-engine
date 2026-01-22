@@ -8,6 +8,7 @@ followup_node (backend/agent/followup/node.py).
 import os
 
 import pytest
+from langchain_core.messages import AIMessage, HumanMessage
 from unittest.mock import patch, MagicMock
 
 os.environ["MOCK_LLM"] = "1"
@@ -48,7 +49,7 @@ class TestAnswerNode:
 
         state = {
             "question": "Tell me about Acme",
-            "messages": [{"role": "user", "content": "Previous message"}],
+            "messages": [HumanMessage(content="Previous message")],
             "sql_results": {},
         }
 
@@ -56,10 +57,10 @@ class TestAnswerNode:
 
         # Node returns only new messages; add_messages reducer appends them
         assert len(result["messages"]) == 2
-        assert result["messages"][0]["role"] == "user"
-        assert result["messages"][0]["content"] == "Tell me about Acme"
-        assert result["messages"][1]["role"] == "assistant"
-        assert result["messages"][1]["content"] == "Response text."
+        assert result["messages"][0].type == "human"
+        assert result["messages"][0].content == "Tell me about Acme"
+        assert result["messages"][1].type == "ai"
+        assert result["messages"][1].content == "Response text."
 
     @patch('backend.agent.answer.node.call_answer_chain')
     def test_answer_node_handles_empty_answer(self, mock_chain):
@@ -241,8 +242,8 @@ class TestFollowupNode:
         state = {
             "question": "Tell me about Acme",
             "messages": [
-                {"role": "user", "content": "Previous question"},
-                {"role": "assistant", "content": "Previous answer"},
+                HumanMessage(content="Previous question"),
+                AIMessage(content="Previous answer"),
             ],
         }
 

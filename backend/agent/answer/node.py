@@ -2,6 +2,8 @@
 
 import logging
 
+from langchain_core.messages import AIMessage, HumanMessage
+
 from backend.agent.answer.answerer import call_answer_chain, extract_suggested_action
 from backend.agent.state import AgentState, format_conversation_for_prompt
 
@@ -32,8 +34,8 @@ def answer_node(state: AgentState) -> AgentState:
         return {
             "answer": answer,
             "messages": [
-                {"role": "user", "content": state["question"]},
-                {"role": "assistant", "content": answer},
+                HumanMessage(content=state["question"]),
+                AIMessage(content=answer),
             ],
             "suggested_actions": [action] if action else [],
         }
@@ -45,8 +47,8 @@ def answer_node(state: AgentState) -> AgentState:
         return {
             "answer": error_answer,
             "messages": [
-                {"role": "user", "content": state["question"]},
-                {"role": "assistant", "content": error_answer},
+                HumanMessage(content=state["question"]),
+                AIMessage(content=error_answer),
             ],
             "suggested_actions": [],
             "error": str(e),

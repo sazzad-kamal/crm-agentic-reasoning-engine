@@ -6,29 +6,9 @@ Tests that conversation history flows correctly through the agent using LangGrap
 Run with: pytest tests/backend/agent/test_conversation_history.py -v
 """
 
-import pytest
+from langchain_core.messages import AIMessage, HumanMessage
 
-from backend.agent.state import AgentState, Message, format_conversation_for_prompt
-
-
-class TestMessageType:
-    """Tests for the Message TypedDict."""
-
-    def test_message_structure(self):
-        """Test that Message has the expected structure."""
-        msg: Message = {
-            "role": "user",
-            "content": "Hello",
-        }
-        assert msg["role"] == "user"
-        assert msg["content"] == "Hello"
-
-    def test_message_roles(self):
-        """Test both user and assistant roles."""
-        user_msg: Message = {"role": "user", "content": "Hi"}
-        assistant_msg: Message = {"role": "assistant", "content": "Hello!"}
-        assert user_msg["role"] == "user"
-        assert assistant_msg["role"] == "assistant"
+from backend.agent.state import AgentState, format_conversation_for_prompt
 
 
 class TestAgentStateWithMessages:
@@ -44,15 +24,16 @@ class TestAgentStateWithMessages:
 
     def test_state_with_messages(self):
         """Test creating state with conversation history."""
-        messages: list[Message] = [
-            {"role": "user", "content": "Tell me about Acme"},
-            {"role": "assistant", "content": "Acme is..."},
+        messages = [
+            HumanMessage(content="Tell me about Acme"),
+            AIMessage(content="Acme is..."),
         ]
         state: AgentState = {
             "question": "What about their contacts?",
             "messages": messages,
         }
         assert len(state["messages"]) == 2
+
 
 class TestFormatConversationForPrompt:
     """Tests for format_conversation_for_prompt function."""
@@ -64,18 +45,16 @@ class TestFormatConversationForPrompt:
 
     def test_format_single_turn(self):
         """Test formatting a single turn."""
-        messages: list[Message] = [
-            {"role": "user", "content": "What is Acme's status?"},
-        ]
+        messages = [HumanMessage(content="What is Acme's status?")]
         result = format_conversation_for_prompt(messages)
         assert "User: What is Acme's status?" in result
 
     def test_format_multi_turn(self):
         """Test formatting multiple turns."""
-        messages: list[Message] = [
-            {"role": "user", "content": "Tell me about Acme"},
-            {"role": "assistant", "content": "Acme Manufacturing is a mid-market account"},
-            {"role": "user", "content": "What about their contacts?"},
+        messages = [
+            HumanMessage(content="Tell me about Acme"),
+            AIMessage(content="Acme Manufacturing is a mid-market account"),
+            HumanMessage(content="What about their contacts?"),
         ]
         result = format_conversation_for_prompt(messages)
 
@@ -83,29 +62,20 @@ class TestFormatConversationForPrompt:
         assert "Assistant: Acme Manufacturing is a mid-market account" in result
         assert "User: What about their contacts?" in result
 
-    def test_format_truncates_long_content(self):
-        """Test that long content is truncated."""
-        long_content = "A" * 250
-        messages: list[Message] = [
-            {"role": "assistant", "content": long_content},
-        ]
+    def test_format_preserves_full_content(self):
+        """Test that full content is preserved without truncation."""
+        long_content = "A" * 500
+        messages = [AIMessage(content=long_content)]
         result = format_conversation_for_prompt(messages)
 
-        assert "..." in result
-        # Should be truncated to ~200 chars + "..."
-        assert "A" * 200 in result
+        # Should preserve full content
+        assert long_content in result
 
-    def test_format_respects_max_messages(self):
-        """Test that only recent messages are included."""
-        messages: list[Message] = [
-            {"role": "user", "content": f"Question {i}"}
-            for i in range(10)
-        ]
-        result = format_conversation_for_prompt(messages, max_messages=3)
+    def test_format_includes_all_messages(self):
+        """Test that all messages are included."""
+        messages = [HumanMessage(content=f"Question {i}") for i in range(10)]
+        result = format_conversation_for_prompt(messages)
 
-        # Should only have the last 3
-        assert "Question 7" in result
-        assert "Question 8" in result
-        assert "Question 9" in result
-        assert "Question 0" not in result
-        assert "Question 6" not in result
+        # Should include all 10 messages
+        for i in range(10):
+            assert f"Question {i}" in result

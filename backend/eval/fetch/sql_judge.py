@@ -23,12 +23,12 @@ _SYSTEM_PROMPT = """Compare two SQL queries for semantic equivalence (same rows,
 Check:
 - Tables and joins
 - Columns selected
-- Filters and conditions
-- Aggregations and grouping
+- Filters
+- Aggregations
 - Ordering and limits
 
 Ignore:
-- Aliases, column order, condition order
+- Aliases, column order, filter order
 - Syntax style (JOIN vs comma-join, = vs IN)
 
 If not equivalent, list specific differences."""
@@ -59,14 +59,13 @@ def judge_sql_equivalence(
     chain = create_openai_chain(
         system_prompt=_SYSTEM_PROMPT,
         human_prompt=_HUMAN_PROMPT,
-        max_tokens=512,
         structured_output=JudgeResult,
         streaming=False,
     )
 
     try:
         result: JudgeResult = chain.invoke({
-            "generated_sql": generated_sql or "No SQL generated",
+            "generated_sql": generated_sql,
             "expected_sql": expected_sql,
         })
 

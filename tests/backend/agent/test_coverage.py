@@ -597,7 +597,7 @@ class TestFetchRunnerVerboseOutput:
 
         # Mock judge to return failure with errors
         monkeypatch.setattr(
-            runner, "judge_sql_results", lambda q, s, r: (False, ["Error 1", "Error 2"])
+            runner, "judge_sql_equivalence", lambda q, g, e: (False, ["Error 1", "Error 2"])
         )
 
         with patch("builtins.print") as mock_print:

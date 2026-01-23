@@ -22,6 +22,20 @@ class TestQuestion:
         assert q.text == "What is the stage?"
         assert q.difficulty == 1
 
+    def test_question_with_expected_sql(self):
+        """Test Question with expected_sql field."""
+        q = Question(
+            text="What is the plan?",
+            difficulty=1,
+            expected_sql="SELECT plan FROM companies",
+        )
+        assert q.expected_sql == "SELECT plan FROM companies"
+
+    def test_question_expected_sql_optional(self):
+        """Test expected_sql is optional."""
+        q = Question(text="Test", difficulty=1)
+        assert q.expected_sql is None
+
 
 class TestCaseResult:
     """Tests for CaseResult dataclass."""
@@ -122,45 +136,8 @@ class TestEvalResults:
 # =============================================================================
 
 
-class TestFormatResults:
-    """Tests for _format_results function."""
-
-    def test_format_results_empty(self):
-        """Test formatting empty results."""
-        from backend.eval.fetch.sql_judge import _format_results
-
-        result = _format_results({})
-        assert result == "No results returned"
-
-    def test_format_results_none(self):
-        """Test formatting None results."""
-        from backend.eval.fetch.sql_judge import _format_results
-
-        result = _format_results(None)
-        assert result == "No results returned"
-
-    def test_format_results_normal(self):
-        """Test formatting normal results."""
-        from backend.eval.fetch.sql_judge import _format_results
-
-        data = {"column1": [1, 2, 3], "column2": ["a", "b", "c"]}
-        result = _format_results(data)
-        assert "column1" in result
-        assert "column2" in result
-
-    def test_format_results_truncation(self):
-        """Test results are truncated when too large."""
-        from backend.eval.fetch.sql_judge import _format_results
-
-        # Create large data that exceeds 4000 chars
-        data = {"column": ["x" * 100] * 100}
-        result = _format_results(data)
-        assert "... (truncated)" in result
-        assert len(result) <= 4100  # 4000 + truncation message
-
-
-class TestJudgeSqlResults:
-    """Tests for judge_sql_results function."""
+class TestJudgeSqlEquivalence:
+    """Tests for judge_sql_equivalence function."""
 
     def _mock_chain(self, result):
         """Create a mock chain that returns the given JudgeResult."""
@@ -168,81 +145,77 @@ class TestJudgeSqlResults:
         mock_chain.invoke.return_value = result
         return mock_chain
 
-    def test_judge_sql_results_passed(self, monkeypatch):
+    def test_judge_sql_equivalence_passed(self, monkeypatch):
         """Test successful judgment that passes."""
         import backend.eval.fetch.sql_judge as sql_judge_module
-        from backend.eval.fetch.sql_judge import JudgeResult, judge_sql_results
+        from backend.eval.fetch.sql_judge import JudgeResult, judge_sql_equivalence
 
         mock_chain = self._mock_chain(JudgeResult(passed=True, errors=[]))
         monkeypatch.setattr(sql_judge_module, "create_openai_chain", lambda **kwargs: mock_chain)
 
-        passed, errors = judge_sql_results(
-            question="What is the count?",
-            sql="SELECT COUNT(*) FROM companies",
-            sql_results={"count": [5]},
+        passed, errors = judge_sql_equivalence(
+            generated_sql="SELECT COUNT(*) FROM companies",
+            expected_sql="SELECT COUNT(*) FROM companies",
         )
 
         assert passed is True
         assert errors == []
 
-    def test_judge_sql_results_failed(self, monkeypatch):
+    def test_judge_sql_equivalence_failed(self, monkeypatch):
         """Test judgment that fails."""
         import backend.eval.fetch.sql_judge as sql_judge_module
-        from backend.eval.fetch.sql_judge import JudgeResult, judge_sql_results
+        from backend.eval.fetch.sql_judge import JudgeResult, judge_sql_equivalence
 
-        mock_chain = self._mock_chain(JudgeResult(passed=False, errors=["Count mismatch"]))
+        mock_chain = self._mock_chain(JudgeResult(passed=False, errors=["Different table queried"]))
         monkeypatch.setattr(sql_judge_module, "create_openai_chain", lambda **kwargs: mock_chain)
 
-        passed, errors = judge_sql_results(
-            question="What is the count?",
-            sql="SELECT COUNT(*) FROM companies",
-            sql_results={"count": [5]},
+        passed, errors = judge_sql_equivalence(
+            generated_sql="SELECT COUNT(*) FROM contacts",
+            expected_sql="SELECT COUNT(*) FROM companies",
         )
 
         assert passed is False
-        assert "Count mismatch" in errors
+        assert "Different table queried" in errors
 
-    def test_judge_sql_results_api_error(self, monkeypatch):
+    def test_judge_sql_equivalence_api_error(self, monkeypatch):
         """Test API error returns failure."""
         import backend.eval.fetch.sql_judge as sql_judge_module
-        from backend.eval.fetch.sql_judge import judge_sql_results
+        from backend.eval.fetch.sql_judge import judge_sql_equivalence
 
         mock_chain = MagicMock()
         mock_chain.invoke.side_effect = Exception("API connection error")
         monkeypatch.setattr(sql_judge_module, "create_openai_chain", lambda **kwargs: mock_chain)
 
-        passed, errors = judge_sql_results(
-            question="Test",
-            sql="SELECT 1",
-            sql_results={"val": [1]},
+        passed, errors = judge_sql_equivalence(
+            generated_sql="SELECT 1",
+            expected_sql="SELECT 1",
         )
 
         assert passed is False
         assert any("API error" in e for e in errors)
 
-    def test_judge_sql_results_no_sql(self, monkeypatch):
-        """Test handling when SQL is empty."""
+    def test_judge_sql_equivalence_empty_generated(self, monkeypatch):
+        """Test handling when generated SQL is empty."""
         import backend.eval.fetch.sql_judge as sql_judge_module
-        from backend.eval.fetch.sql_judge import JudgeResult, judge_sql_results
+        from backend.eval.fetch.sql_judge import JudgeResult, judge_sql_equivalence
 
         captured_args = {}
 
         def capture_invoke(inputs):
             captured_args.update(inputs)
-            return JudgeResult(passed=True, errors=[])
+            return JudgeResult(passed=False, errors=["No SQL generated"])
 
         mock_chain = MagicMock()
         mock_chain.invoke = capture_invoke
         monkeypatch.setattr(sql_judge_module, "create_openai_chain", lambda **kwargs: mock_chain)
 
-        judge_sql_results(
-            question="Test",
-            sql="",
-            sql_results={"val": [1]},
+        judge_sql_equivalence(
+            generated_sql="",
+            expected_sql="SELECT 1",
         )
 
-        # Check that "No SQL provided" was used
-        assert captured_args["sql"] == "No SQL provided"
+        # Check that "No SQL generated" was used
+        assert captured_args["generated_sql"] == "No SQL generated"
 
 
 # =============================================================================
@@ -259,10 +232,13 @@ class TestLoadQuestions:
 questions:
   - text: "Question 1"
     difficulty: 1
+    expected_sql: "SELECT 1"
   - text: "Question 2"
     difficulty: 2
+    expected_sql: "SELECT 2"
   - text: "Question 3"
     difficulty: 3
+    expected_sql: "SELECT 3"
 """
         yaml_file = tmp_path / "questions.yaml"
         yaml_file.write_text(yaml_content)
@@ -276,6 +252,27 @@ questions:
         questions = load_questions()
         assert len(questions) == 3
         assert questions[0].text == "Question 1"
+        assert questions[0].expected_sql == "SELECT 1"
+
+    def test_load_questions_with_expected_sql(self, monkeypatch, tmp_path):
+        """Test loading questions with expected_sql."""
+        yaml_content = """
+questions:
+  - text: "What is the plan?"
+    difficulty: 1
+    expected_sql: "SELECT plan FROM companies WHERE name = 'Acme'"
+"""
+        yaml_file = tmp_path / "questions.yaml"
+        yaml_file.write_text(yaml_content)
+
+        import backend.eval.fetch.runner as runner_module
+
+        monkeypatch.setattr(runner_module, "QUESTIONS_PATH", yaml_file)
+
+        from backend.eval.fetch.runner import load_questions
+
+        questions = load_questions()
+        assert questions[0].expected_sql == "SELECT plan FROM companies WHERE name = 'Acme'"
 
 
 class TestRunSqlEval:
@@ -289,6 +286,7 @@ class TestRunSqlEval:
 questions:
   - text: "Test question 1"
     difficulty: 1
+    expected_sql: "SELECT 1"
 """
         yaml_file = tmp_path / "questions.yaml"
         yaml_file.write_text(yaml_content)
@@ -311,7 +309,7 @@ questions:
 
         # Mock judge
         mock_judge = MagicMock(return_value=(True, []))
-        monkeypatch.setattr(runner_module, "judge_sql_results", mock_judge)
+        monkeypatch.setattr(runner_module, "judge_sql_equivalence", mock_judge)
 
         from backend.eval.fetch.runner import run_sql_eval
 
@@ -327,7 +325,7 @@ questions:
         import backend.eval.fetch.runner as runner_module
 
         yaml_content = "questions:\n" + "\n".join(
-            [f"  - text: \"Question {i}\"\n    difficulty: 1" for i in range(10)]
+            [f'  - text: "Question {i}"\n    difficulty: 1\n    expected_sql: "SELECT {i}"' for i in range(10)]
         )
         yaml_file = tmp_path / "questions.yaml"
         yaml_file.write_text(yaml_content)
@@ -342,7 +340,7 @@ questions:
         mock_conn = MagicMock()
         mock_conn.execute.return_value = mock_result
         monkeypatch.setattr(runner_module, "get_connection", MagicMock(return_value=mock_conn))
-        monkeypatch.setattr(runner_module, "judge_sql_results", MagicMock(return_value=(True, [])))
+        monkeypatch.setattr(runner_module, "judge_sql_equivalence", MagicMock(return_value=(True, [])))
 
         from backend.eval.fetch.runner import run_sql_eval
 
@@ -359,6 +357,7 @@ questions:
 questions:
   - text: "Test"
     difficulty: 1
+    expected_sql: "SELECT 1"
 """
         yaml_file = tmp_path / "questions.yaml"
         yaml_file.write_text(yaml_content)
@@ -385,6 +384,7 @@ questions:
 questions:
   - text: "Test"
     difficulty: 1
+    expected_sql: "SELECT 1"
 """
         yaml_file = tmp_path / "questions.yaml"
         yaml_file.write_text(yaml_content)
@@ -404,6 +404,50 @@ questions:
         assert results.total == 1
         assert results.passed == 0
         assert any("SQL error" in e for e in results.cases[0].errors)
+
+    def test_run_sql_eval_uses_expected_sql(self, monkeypatch, tmp_path):
+        """Test that eval passes expected_sql to judge."""
+        import backend.eval.fetch.runner as runner_module
+
+        yaml_content = """
+questions:
+  - text: "What is the plan?"
+    difficulty: 1
+    expected_sql: "SELECT plan FROM companies"
+"""
+        yaml_file = tmp_path / "questions.yaml"
+        yaml_file.write_text(yaml_content)
+        monkeypatch.setattr(runner_module, "QUESTIONS_PATH", yaml_file)
+
+        mock_plan = MagicMock(sql="SELECT plan FROM companies WHERE id = 1")
+        monkeypatch.setattr(runner_module, "get_sql_plan", MagicMock(return_value=mock_plan))
+
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = [("Pro",)]
+        mock_result.description = [("plan",)]
+        mock_conn = MagicMock()
+        mock_conn.execute.return_value = mock_result
+        monkeypatch.setattr(runner_module, "get_connection", MagicMock(return_value=mock_conn))
+
+        # Capture judge call
+        captured_calls = []
+
+        def mock_judge(generated_sql, expected_sql):
+            captured_calls.append({
+                "generated_sql": generated_sql,
+                "expected_sql": expected_sql,
+            })
+            return (True, [])
+
+        monkeypatch.setattr(runner_module, "judge_sql_equivalence", mock_judge)
+
+        from backend.eval.fetch.runner import run_sql_eval
+
+        run_sql_eval(verbose=False)
+
+        assert len(captured_calls) == 1
+        assert captured_calls[0]["expected_sql"] == "SELECT plan FROM companies"
+        assert captured_calls[0]["generated_sql"] == "SELECT plan FROM companies WHERE id = 1"
 
 
 class TestPrintSummary:

@@ -10,6 +10,7 @@ class Question(BaseModel):
 
     text: str
     difficulty: int = 1
+    expected_sql: str | None = None  # Optional expected SQL for semantic comparison
 
 
 class CaseResult(BaseModel):

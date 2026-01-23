@@ -1,5 +1,5 @@
 # Fetch Node Evaluation Questions
-# 60 SQL questions (10 per difficulty level 1-5, plus 10 notes-based questions)
+# Each question includes expected SQL for semantic comparison
 
 questions:
   # =============================================================================
@@ -7,197 +7,257 @@ questions:
   # =============================================================================
   - text: "What is Acme Manufacturing's plan?"
     difficulty: 1
+    expected_sql: "SELECT plan FROM companies WHERE name = 'Acme Manufacturing'"
 
   - text: "What is Beta Tech Solutions' status?"
     difficulty: 1
+    expected_sql: "SELECT status FROM companies WHERE name = 'Beta Tech Solutions'"
 
   - text: "What industry is Crown Foods in?"
     difficulty: 1
+    expected_sql: "SELECT industry FROM companies WHERE name = 'Crown Foods'"
 
   - text: "What is Delta Health's renewal date?"
     difficulty: 1
+    expected_sql: "SELECT renewal_date FROM companies WHERE name LIKE '%Delta Health%'"
 
   - text: "What region is Fusion Retail in?"
     difficulty: 1
+    expected_sql: "SELECT region FROM companies WHERE name LIKE '%Fusion Retail%'"
 
   - text: "What is the email for Anna Lopez?"
     difficulty: 1
+    expected_sql: "SELECT email FROM contacts WHERE first_name = 'Anna' AND last_name = 'Lopez'"
 
   - text: "What is Joe Smith's job title?"
     difficulty: 1
+    expected_sql: "SELECT job_title FROM contacts WHERE first_name = 'Joe' AND last_name = 'Smith'"
 
   - text: "What is the stage of the Acme Manufacturing upgrade opportunity?"
     difficulty: 1
+    expected_sql: "SELECT stage FROM opportunities WHERE name LIKE '%Acme%' AND name LIKE '%upgrade%'"
 
   - text: "What is the value of the Beta Tech new rollout opportunity?"
     difficulty: 1
+    expected_sql: "SELECT amount FROM opportunities WHERE name LIKE '%Beta Tech%' AND name LIKE '%rollout%'"
 
   - text: "What is the priority of the Crown Foods renewal check-in activity?"
     difficulty: 1
+    expected_sql: "SELECT priority FROM activities a JOIN companies c ON a.company_id = c.company_id WHERE c.name = 'Crown Foods' AND a.subject LIKE '%renewal%check%'"
 
-  # Notes-based questions (formerly RAG-only, now use notes column in SQL)
+  # Notes-based questions
   - text: "What are the notes about Anna Lopez?"
     difficulty: 1
+    expected_sql: "SELECT notes FROM contacts WHERE first_name = 'Anna' AND last_name = 'Lopez'"
 
   - text: "What are the notes about Acme Manufacturing?"
     difficulty: 1
+    expected_sql: "SELECT notes FROM companies WHERE name = 'Acme Manufacturing'"
 
   # =============================================================================
   # SQL DIFFICULTY 2: Joins, basic aggregations
   # =============================================================================
   - text: "How many contacts does Acme Manufacturing have?"
     difficulty: 2
+    expected_sql: "SELECT COUNT(*) FROM contacts c JOIN companies co ON c.company_id = co.company_id WHERE co.name = 'Acme Manufacturing'"
 
   - text: "What is the total value of all opportunities for Beta Tech?"
     difficulty: 2
+    expected_sql: "SELECT SUM(amount) FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE c.name LIKE '%Beta Tech%'"
 
   - text: "How many open activities does Delta Health have?"
     difficulty: 2
+    expected_sql: "SELECT COUNT(*) FROM activities a JOIN companies c ON a.company_id = c.company_id WHERE c.name LIKE '%Delta Health%' AND a.status = 'Open'"
 
   - text: "What is the total pipeline value for all active companies?"
     difficulty: 2
+    expected_sql: "SELECT SUM(o.amount) FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE c.status = 'Active' AND o.stage NOT IN ('Closed Won', 'Closed Lost')"
 
   - text: "How many opportunities are in the Proposal stage?"
     difficulty: 2
+    expected_sql: "SELECT COUNT(*) FROM opportunities WHERE stage = 'Proposal'"
 
   - text: "What are the contact names at Crown Foods?"
     difficulty: 2
+    expected_sql: "SELECT first_name, last_name FROM contacts c JOIN companies co ON c.company_id = co.company_id WHERE co.name = 'Crown Foods'"
 
   - text: "Which companies have at-risk health status?"
     difficulty: 2
+    expected_sql: "SELECT name FROM companies WHERE health_status LIKE '%at-risk%'"
 
   - text: "How many contacts have the role Champion?"
     difficulty: 2
+    expected_sql: "SELECT COUNT(*) FROM contacts WHERE role = 'Champion'"
 
   - text: "What is the average opportunity value?"
     difficulty: 2
+    expected_sql: "SELECT AVG(amount) FROM opportunities"
 
   - text: "How many high priority activities are open?"
     difficulty: 2
+    expected_sql: "SELECT COUNT(*) FROM activities WHERE priority = 'High' AND status = 'Open'"
 
   # Notes-based questions
   - text: "What are the key details about the Beta Tech new rollout opportunity?"
     difficulty: 2
+    expected_sql: "SELECT * FROM opportunities WHERE name LIKE '%Beta Tech%' AND name LIKE '%rollout%'"
 
   - text: "What information do we have about Lisa Ng at Beta Tech?"
     difficulty: 2
+    expected_sql: "SELECT * FROM contacts WHERE first_name = 'Lisa' AND last_name = 'Ng'"
 
   # =============================================================================
   # SQL DIFFICULTY 3: Multiple joins, GROUP BY
   # =============================================================================
   - text: "Which company has the most contacts?"
     difficulty: 3
+    expected_sql: "SELECT co.name, COUNT(*) as contact_count FROM contacts c JOIN companies co ON c.company_id = co.company_id GROUP BY co.company_id, co.name ORDER BY contact_count DESC LIMIT 1"
 
   - text: "What is the total opportunity value per company?"
     difficulty: 3
+    expected_sql: "SELECT c.name, SUM(o.amount) as total_value FROM opportunities o JOIN companies c ON o.company_id = c.company_id GROUP BY c.company_id, c.name"
 
   - text: "How many activities does each account owner have?"
     difficulty: 3
+    expected_sql: "SELECT c.account_owner, COUNT(*) as activity_count FROM activities a JOIN companies c ON a.company_id = c.company_id GROUP BY c.account_owner"
 
   - text: "Which companies have opportunities in the Negotiation stage?"
     difficulty: 3
+    expected_sql: "SELECT DISTINCT c.name FROM companies c JOIN opportunities o ON c.company_id = o.company_id WHERE o.stage = 'Negotiation'"
 
   - text: "What is the breakdown of opportunities by stage?"
     difficulty: 3
+    expected_sql: "SELECT stage, COUNT(*) as count FROM opportunities GROUP BY stage"
 
   - text: "How many contacts per company have the Decision Maker role?"
     difficulty: 3
+    expected_sql: "SELECT co.name, COUNT(*) as decision_maker_count FROM contacts c JOIN companies co ON c.company_id = co.company_id WHERE c.role = 'Decision Maker' GROUP BY co.company_id, co.name"
 
   - text: "What are the companies with renewal dates in Q1 2026?"
     difficulty: 3
+    expected_sql: "SELECT name, renewal_date FROM companies WHERE renewal_date >= '2026-01-01' AND renewal_date <= '2026-03-31'"
 
   - text: "Which contacts at Beta Tech are in the Customer lifecycle stage?"
     difficulty: 3
+    expected_sql: "SELECT c.first_name, c.last_name FROM contacts c JOIN companies co ON c.company_id = co.company_id WHERE co.name LIKE '%Beta Tech%' AND c.lifecycle_stage = 'Customer'"
 
   - text: "What is the total pipeline value by region?"
     difficulty: 3
+    expected_sql: "SELECT c.region, SUM(o.amount) as pipeline_value FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE o.stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY c.region"
 
   - text: "How many history entries exist per company?"
     difficulty: 3
+    expected_sql: "SELECT c.name, COUNT(*) as history_count FROM history h JOIN companies c ON h.company_id = c.company_id GROUP BY c.company_id, c.name"
 
   # Notes-based questions
   - text: "Why did Green Energy churn and what is the win-back strategy?"
     difficulty: 3
+    expected_sql: "SELECT notes FROM companies WHERE name LIKE '%Green Energy%'"
 
   - text: "What are the concerns and opportunities related to Delta Health's expansion?"
     difficulty: 3
+    expected_sql: "SELECT o.name, o.notes FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE c.name LIKE '%Delta Health%'"
 
   # =============================================================================
   # SQL DIFFICULTY 4: Subqueries, complex filters
   # =============================================================================
   - text: "Which companies have more than 2 opportunities?"
     difficulty: 4
+    expected_sql: "SELECT c.name, COUNT(*) as opp_count FROM companies c JOIN opportunities o ON c.company_id = o.company_id GROUP BY c.company_id, c.name HAVING COUNT(*) > 2"
 
   - text: "What contacts belong to companies with churned status?"
     difficulty: 4
+    expected_sql: "SELECT ct.first_name, ct.last_name, c.name FROM contacts ct JOIN companies c ON ct.company_id = c.company_id WHERE c.status = 'Churned'"
 
   - text: "Which opportunities have value above the average?"
     difficulty: 4
+    expected_sql: "SELECT name, amount FROM opportunities WHERE amount > (SELECT AVG(amount) FROM opportunities)"
 
   - text: "What are the contacts at companies with at-risk health status?"
     difficulty: 4
+    expected_sql: "SELECT ct.first_name, ct.last_name, c.name FROM contacts ct JOIN companies c ON ct.company_id = c.company_id WHERE c.health_status LIKE '%at-risk%'"
 
   - text: "Which account owners manage companies with total pipeline over $30k?"
     difficulty: 4
+    expected_sql: "SELECT c.account_owner, SUM(o.amount) as total_pipeline FROM companies c JOIN opportunities o ON c.company_id = o.company_id WHERE o.stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY c.account_owner HAVING SUM(o.amount) > 30000"
 
   - text: "What opportunities are tied to contacts with Executive role?"
     difficulty: 4
+    expected_sql: "SELECT o.name, o.amount, o.stage FROM opportunities o JOIN contacts c ON o.contact_id = c.contact_id WHERE c.role = 'Executive'"
 
   - text: "Which companies have both renewal and expansion opportunities?"
     difficulty: 4
+    expected_sql: "SELECT c.name FROM companies c WHERE EXISTS (SELECT 1 FROM opportunities o WHERE o.company_id = c.company_id AND o.type = 'Renewal') AND EXISTS (SELECT 1 FROM opportunities o WHERE o.company_id = c.company_id AND o.type = 'Expansion')"
 
   - text: "What is the highest value opportunity per industry?"
     difficulty: 4
+    expected_sql: "SELECT c.industry, MAX(o.amount) as max_value FROM opportunities o JOIN companies c ON o.company_id = c.company_id GROUP BY c.industry"
 
   - text: "Which contacts have open high-priority activities?"
     difficulty: 4
+    expected_sql: "SELECT DISTINCT ct.first_name, ct.last_name FROM contacts ct JOIN activities a ON ct.contact_id = a.contact_id WHERE a.priority = 'High' AND a.status = 'Open'"
 
   - text: "What companies have opportunities closing in the next 60 days?"
     difficulty: 4
+    expected_sql: "SELECT DISTINCT c.name FROM companies c JOIN opportunities o ON c.company_id = o.company_id WHERE o.expected_close_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '60 days'"
 
   # Notes-based questions
   - text: "What contacts have expressed concerns about pricing across all companies?"
     difficulty: 4
+    expected_sql: "SELECT first_name, last_name, notes FROM contacts WHERE notes LIKE '%pric%'"
 
   - text: "Which opportunities are at risk and why based on history and activities?"
     difficulty: 4
+    expected_sql: "SELECT o.name, o.notes, c.health_status FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE c.health_status LIKE '%at-risk%' OR o.notes LIKE '%risk%'"
 
   # =============================================================================
   # SQL DIFFICULTY 5: CTEs, window functions, multi-step logic
   # =============================================================================
   - text: "Rank companies by total pipeline value and show their rank?"
     difficulty: 5
+    expected_sql: "SELECT c.name, SUM(o.amount) as total_pipeline, RANK() OVER (ORDER BY SUM(o.amount) DESC) as rank FROM companies c JOIN opportunities o ON c.company_id = o.company_id WHERE o.stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY c.company_id, c.name"
 
   - text: "What is the running total of opportunity values by created date?"
     difficulty: 5
+    expected_sql: "SELECT name, created_at, amount, SUM(amount) OVER (ORDER BY created_at) as running_total FROM opportunities ORDER BY created_at"
 
   - text: "Which contacts have the most activities compared to others in the same company?"
     difficulty: 5
+    expected_sql: "WITH contact_activities AS (SELECT ct.contact_id, ct.first_name, ct.last_name, ct.company_id, COUNT(a.activity_id) as activity_count FROM contacts ct LEFT JOIN activities a ON ct.contact_id = a.contact_id GROUP BY ct.contact_id, ct.first_name, ct.last_name, ct.company_id) SELECT first_name, last_name, activity_count, RANK() OVER (PARTITION BY company_id ORDER BY activity_count DESC) as rank FROM contact_activities"
 
   - text: "What is the average deal amount by company segment?"
     difficulty: 5
+    expected_sql: "SELECT c.segment, AVG(o.amount) as avg_deal_amount FROM opportunities o JOIN companies c ON o.company_id = c.company_id GROUP BY c.segment"
 
   - text: "Show opportunities along with the previous opportunity value for the same company?"
     difficulty: 5
+    expected_sql: "SELECT o.name, o.amount, c.name as company_name, LAG(o.amount) OVER (PARTITION BY o.company_id ORDER BY o.created_at) as previous_amount FROM opportunities o JOIN companies c ON o.company_id = c.company_id ORDER BY c.name, o.created_at"
 
   - text: "What percentage of total pipeline does each company represent?"
     difficulty: 5
+    expected_sql: "SELECT c.name, SUM(o.amount) as pipeline, SUM(o.amount) * 100.0 / (SELECT SUM(amount) FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost')) as percentage FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE o.stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY c.company_id, c.name"
 
   - text: "Which companies have improved their opportunity count over time?"
     difficulty: 5
+    expected_sql: "WITH opp_by_quarter AS (SELECT company_id, DATE_TRUNC('quarter', created_at) as quarter, COUNT(*) as opp_count FROM opportunities GROUP BY company_id, DATE_TRUNC('quarter', created_at)) SELECT c.name FROM companies c JOIN opp_by_quarter o1 ON c.company_id = o1.company_id JOIN opp_by_quarter o2 ON c.company_id = o2.company_id AND o2.quarter > o1.quarter WHERE o2.opp_count > o1.opp_count"
 
   - text: "Rank contacts by their company's total pipeline value?"
     difficulty: 5
+    expected_sql: "WITH company_pipeline AS (SELECT c.company_id, c.name as company_name, SUM(o.amount) as pipeline FROM companies c LEFT JOIN opportunities o ON c.company_id = o.company_id WHERE o.stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY c.company_id, c.name) SELECT ct.first_name, ct.last_name, cp.company_name, cp.pipeline, RANK() OVER (ORDER BY cp.pipeline DESC) as rank FROM contacts ct JOIN company_pipeline cp ON ct.company_id = cp.company_id"
 
   - text: "What is the month-over-month change in total opportunity value?"
     difficulty: 5
+    expected_sql: "WITH monthly_totals AS (SELECT DATE_TRUNC('month', created_at) as month, SUM(amount) as total FROM opportunities GROUP BY DATE_TRUNC('month', created_at)) SELECT month, total, total - LAG(total) OVER (ORDER BY month) as mom_change FROM monthly_totals ORDER BY month"
 
   - text: "Which account owners have the highest win rate on opportunities?"
     difficulty: 5
+    expected_sql: "SELECT o.owner, COUNT(CASE WHEN stage = 'Closed Won' THEN 1 END) * 100.0 / COUNT(*) as win_rate FROM opportunities o WHERE o.stage IN ('Closed Won', 'Closed Lost') GROUP BY o.owner ORDER BY win_rate DESC"
 
   # Notes-based questions
   - text: "Based on all interactions, what is the recommended approach for the Acme Manufacturing upgrade deal?"
     difficulty: 5
+    expected_sql: "SELECT o.name, o.notes as opportunity_notes, h.notes as history_notes, a.notes as activity_notes FROM opportunities o LEFT JOIN history h ON o.opportunity_id = h.opportunity_id LEFT JOIN activities a ON o.opportunity_id = a.opportunity_id JOIN companies c ON o.company_id = c.company_id WHERE c.name = 'Acme Manufacturing' AND o.name LIKE '%upgrade%'"
 
   - text: "Considering all touchpoints, which companies are most likely to expand and why?"
     difficulty: 5
+    expected_sql: "SELECT c.name, c.notes as company_notes, o.notes as opportunity_notes FROM companies c LEFT JOIN opportunities o ON c.company_id = o.company_id AND o.type = 'Expansion' WHERE c.status = 'Active' AND c.health_status = 'healthy'"

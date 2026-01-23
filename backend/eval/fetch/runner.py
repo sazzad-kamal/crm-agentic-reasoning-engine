@@ -20,7 +20,7 @@ from backend.agent.fetch.planner import get_sql_plan
 from backend.agent.fetch.sql.connection import get_connection
 from backend.agent.fetch.sql.executor import execute_sql
 from backend.eval.fetch.models import CaseResult, EvalResults, Question
-from backend.eval.fetch.sql_judge import judge_sql_results
+from backend.eval.fetch.sql_judge import judge_sql_equivalence
 
 # Path to questions file
 QUESTIONS_PATH = Path(__file__).parent / "questions.yaml"
@@ -32,7 +32,11 @@ def load_questions() -> list[Question]:
         data = yaml.safe_load(f)
 
     return [
-        Question(text=item["text"], difficulty=item.get("difficulty", 1))
+        Question(
+            text=item["text"],
+            difficulty=item.get("difficulty", 1),
+            expected_sql=item.get("expected_sql"),
+        )
         for item in data.get("questions", [])
     ]
 
@@ -42,6 +46,11 @@ def _eval_question(
     conn: duckdb.DuckDBPyConnection,
 ) -> tuple[CaseResult, int]:
     """Evaluate a single question.
+
+    Flow:
+    1. Generate SQL from question
+    2. Execute SQL to catch runtime errors (and get row_count for debug)
+    3. Compare generated SQL to expected SQL semantically
 
     Returns:
         Tuple of (CaseResult, row_count)
@@ -53,15 +62,22 @@ def _eval_question(
     errors: list[str] = []
 
     try:
+        # Step 1: Generate SQL
         plan = get_sql_plan(question.text)
         sql = plan.sql
+
+        # Step 2: Execute SQL (validates it runs without error)
         data, sql_error = execute_sql(sql, conn)
         row_count = len(data)
 
         if sql_error:
             errors.append(f"SQL error: {sql_error}")
         else:
-            passed, errors = judge_sql_results(question.text, sql, {"query": data})
+            # Step 3: Compare generated SQL to expected SQL
+            passed, errors = judge_sql_equivalence(
+                generated_sql=sql,
+                expected_sql=question.expected_sql or "",
+            )
 
     except Exception as e:
         errors.append(f"Planner error: {e}")

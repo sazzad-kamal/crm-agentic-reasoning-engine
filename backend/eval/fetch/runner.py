@@ -5,9 +5,12 @@ from __future__ import annotations
 import logging
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import duckdb
 import typer
+
+if TYPE_CHECKING:
+    import duckdb
 import yaml
 from dotenv import load_dotenv
 
@@ -80,7 +83,7 @@ def run_sql_eval(
 ) -> EvalResults:
     """Run fetch node evaluation."""
     questions = load_questions()
-    if limit:
+    if limit is not None:
         questions = questions[:limit]
 
     results = EvalResults(total=len(questions))
@@ -100,8 +103,7 @@ def run_sql_eval(
                 for err in case.errors:
                     print(f"    {err}")
             else:
-                status = "PASS" if case.passed else "FAIL"
-                print(f"  {status} ({row_count} rows, {case.latency_ms:.0f}ms)")
+                print(f"  PASS ({row_count} rows, {case.latency_ms:.0f}ms)")
 
         results.cases.append(case)
 

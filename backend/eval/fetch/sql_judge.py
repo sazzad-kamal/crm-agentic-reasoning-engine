@@ -16,8 +16,7 @@ class JudgeResult(BaseModel):
     """Structured output from the SQL judge."""
 
     passed: bool = Field(description="Whether the results correctly answer the question")
-    reasoning: str = Field(description="Brief explanation of the judgment")
-    errors: list[str] = Field(default_factory=list, description="List of issues found")
+    errors: list[str] = Field(default_factory=list, description="List of issues found (required if passed=false)")
 
 _SYSTEM_PROMPT = """You are evaluating whether SQL query results correctly answer a user's question about CRM data.
 
@@ -32,8 +31,8 @@ Consider:
 - If asking for aggregations, are the values reasonable?
 - If asking for filtered data, is the filter correctly applied?
 
-If passed=true, errors should be an empty list.
-If passed=false, list specific issues found."""
+If passed=true, errors must be an empty list.
+If passed=false, errors must list specific issues found (required)."""
 
 _HUMAN_PROMPT = """## Question
 {question}
@@ -90,12 +89,8 @@ def judge_sql_results(
             "results": _format_results(sql_results),
         })
 
-        errors = result.errors
-        if not result.passed and result.reasoning and not errors:
-            errors = [result.reasoning]
-
-        logger.debug(f"SQL Judge: passed={result.passed}, reasoning={result.reasoning[:100]}")
-        return result.passed, errors
+        logger.debug(f"SQL Judge: passed={result.passed}, errors={result.errors}")
+        return result.passed, result.errors
 
     except Exception as e:
         logger.warning(f"SQL Judge error: {e}")

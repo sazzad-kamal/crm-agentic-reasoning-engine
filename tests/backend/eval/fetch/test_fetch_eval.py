@@ -173,7 +173,7 @@ class TestJudgeSqlResults:
         import backend.eval.fetch.sql_judge as sql_judge_module
         from backend.eval.fetch.sql_judge import JudgeResult, judge_sql_results
 
-        mock_chain = self._mock_chain(JudgeResult(passed=True, reasoning="Good", errors=[]))
+        mock_chain = self._mock_chain(JudgeResult(passed=True, errors=[]))
         monkeypatch.setattr(sql_judge_module, "create_openai_chain", lambda **kwargs: mock_chain)
 
         passed, errors = judge_sql_results(
@@ -190,9 +190,7 @@ class TestJudgeSqlResults:
         import backend.eval.fetch.sql_judge as sql_judge_module
         from backend.eval.fetch.sql_judge import JudgeResult, judge_sql_results
 
-        mock_chain = self._mock_chain(
-            JudgeResult(passed=False, reasoning="Wrong count", errors=["Count mismatch"])
-        )
+        mock_chain = self._mock_chain(JudgeResult(passed=False, errors=["Count mismatch"]))
         monkeypatch.setattr(sql_judge_module, "create_openai_chain", lambda **kwargs: mock_chain)
 
         passed, errors = judge_sql_results(
@@ -203,26 +201,6 @@ class TestJudgeSqlResults:
 
         assert passed is False
         assert "Count mismatch" in errors
-
-    def test_judge_sql_results_failed_with_reasoning_no_errors(self, monkeypatch):
-        """Test judgment failed with reasoning but no errors list."""
-        import backend.eval.fetch.sql_judge as sql_judge_module
-        from backend.eval.fetch.sql_judge import JudgeResult, judge_sql_results
-
-        mock_chain = self._mock_chain(
-            JudgeResult(passed=False, reasoning="Data is incomplete", errors=[])
-        )
-        monkeypatch.setattr(sql_judge_module, "create_openai_chain", lambda **kwargs: mock_chain)
-
-        passed, errors = judge_sql_results(
-            question="What is the count?",
-            sql="SELECT COUNT(*) FROM companies",
-            sql_results={"count": [5]},
-        )
-
-        assert passed is False
-        # Reasoning should be used as error when errors list is empty
-        assert "Data is incomplete" in errors
 
     def test_judge_sql_results_api_error(self, monkeypatch):
         """Test API error returns failure."""
@@ -251,7 +229,7 @@ class TestJudgeSqlResults:
 
         def capture_invoke(inputs):
             captured_args.update(inputs)
-            return JudgeResult(passed=True, reasoning="OK", errors=[])
+            return JudgeResult(passed=True, errors=[])
 
         mock_chain = MagicMock()
         mock_chain.invoke = capture_invoke

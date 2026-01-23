@@ -144,7 +144,8 @@ def print_summary(results: EvalResults) -> None:
             print_failed_case(i, c.question.text, c.question.difficulty)
             print_error("Error", error, indent=3)
             if c.sql:
-                print_dim(f"SQL: {c.sql[:200]}...", indent=3)
+                sql_preview = c.sql[:200] + "..." if len(c.sql) > 200 else c.sql
+                print_dim(f"SQL: {sql_preview}", indent=3)
             console.print()
 
         if len(failed) > 10:

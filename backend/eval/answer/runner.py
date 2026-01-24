@@ -139,14 +139,20 @@ def print_summary(results: EvalResults) -> None:
             if c.errors:
                 print(f"   Error: {'; '.join(c.errors)}")
             else:
-                print(f"   RAGAS: F={c.faithfulness_score:.2f} R={c.relevance_score:.2f}")
-                if c.suggested_action and not c.action_passed:
+                ragas_failed = c.faithfulness_score < 0.6 or c.relevance_score < 0.6
+                action_failed = c.suggested_action and not c.action_passed
+
+                if ragas_failed:
+                    print(f"   RAGAS: F={c.faithfulness_score:.2f} R={c.relevance_score:.2f}")
+                    if c.answer:
+                        print(f"   Answer: {c.answer[:100]}...")
+                if action_failed:
                     print(
-                        f"   Action FAILED: rel={c.action_relevance:.2f} "
+                        f"   Action: rel={c.action_relevance:.2f} "
                         f"act={c.action_actionability:.2f} app={c.action_appropriateness:.2f}"
                     )
-            if c.answer:
-                print(f"   Answer: {c.answer[:100]}...")
+                    if c.suggested_action:
+                        print(f"   Suggested: {c.suggested_action[:100]}...")
             print()
 
         if len(failed) > 10:

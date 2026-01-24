@@ -630,8 +630,8 @@ class TestPrintSummary:
         # Should not raise, should show "... and X more failures"
         print_summary(results)
 
-    def test_print_summary_action_failure(self, capsys):
-        """Test summary printing shows action failure details."""
+    def test_print_summary_action_failure_only(self, capsys):
+        """Test summary shows action details when only action fails."""
         from backend.eval.answer.runner import print_summary
 
         results = EvalResults(total=1, passed=0)
@@ -641,7 +641,7 @@ class TestPrintSummary:
                 answer="There are 5 pending deals...",
                 suggested_action="Send email to all contacts",
                 latency_ms=100,
-                faithfulness_score=0.85,
+                faithfulness_score=0.85,  # RAGAS passes
                 relevance_score=0.82,
                 action_relevance=0.45,
                 action_actionability=0.30,
@@ -654,10 +654,73 @@ class TestPrintSummary:
         print_summary(results)
         captured = capsys.readouterr()
 
-        assert "Action FAILED" in captured.out
-        assert "rel=0.45" in captured.out
-        assert "act=0.30" in captured.out
-        assert "app=0.55" in captured.out
+        # Extract failed cases section
+        failed_section = captured.out.split("Failed Cases")[1]
+
+        # Should show action metrics and suggested action, but NOT RAGAS scores in failure
+        assert "Action: rel=0.45" in failed_section
+        assert "Suggested: Send email" in failed_section
+        assert "   RAGAS:" not in failed_section  # RAGAS passed, don't show in failure
+
+    def test_print_summary_ragas_failure_only(self, capsys):
+        """Test summary shows RAGAS and answer when only RAGAS fails."""
+        from backend.eval.answer.runner import print_summary
+
+        results = EvalResults(total=1, passed=0)
+        results.cases = [
+            CaseResult(
+                question="What is the revenue?",
+                answer="Revenue is $1M...",
+                suggested_action=None,  # No action
+                latency_ms=100,
+                faithfulness_score=0.45,  # RAGAS fails
+                relevance_score=0.50,
+            ),
+        ]
+        results.compute_aggregates()
+
+        print_summary(results)
+        captured = capsys.readouterr()
+
+        # Extract failed cases section
+        failed_section = captured.out.split("Failed Cases")[1]
+
+        assert "RAGAS: F=0.45 R=0.50" in failed_section
+        assert "Answer: Revenue is $1M" in failed_section
+        assert "   Action:" not in failed_section  # No action, don't show
+
+    def test_print_summary_both_failures(self, capsys):
+        """Test summary shows all 4 when both RAGAS and action fail."""
+        from backend.eval.answer.runner import print_summary
+
+        results = EvalResults(total=1, passed=0)
+        results.cases = [
+            CaseResult(
+                question="Schedule follow-up for deals",
+                answer="There are pending deals...",
+                suggested_action="Send email",
+                latency_ms=100,
+                faithfulness_score=0.45,  # RAGAS fails
+                relevance_score=0.50,
+                action_relevance=0.30,  # Action fails
+                action_actionability=0.25,
+                action_appropriateness=0.40,
+                action_passed=False,
+            ),
+        ]
+        results.compute_aggregates()
+
+        print_summary(results)
+        captured = capsys.readouterr()
+
+        # Extract failed cases section
+        failed_section = captured.out.split("Failed Cases")[1]
+
+        # Should show all 4: RAGAS, answer, action metrics, suggested action
+        assert "RAGAS: F=0.45 R=0.50" in failed_section
+        assert "Answer: There are pending" in failed_section
+        assert "Action: rel=0.30" in failed_section
+        assert "Suggested: Send email" in failed_section
 
 
 class TestEvalCaseExceptionHandling:

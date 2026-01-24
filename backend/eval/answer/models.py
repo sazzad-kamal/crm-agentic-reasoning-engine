@@ -2,7 +2,17 @@
 
 from __future__ import annotations
 
+from enum import Enum
+
 from pydantic import BaseModel, Field, computed_field
+
+
+class EvalMode(str, Enum):
+    """Evaluation mode - what to evaluate."""
+
+    ANSWER = "answer"  # RAGAS only
+    ACTION = "action"  # Action judge only
+    BOTH = "both"  # Both RAGAS and action
 
 
 class Question(BaseModel):
@@ -21,6 +31,7 @@ class CaseResult(BaseModel):
     answer: str
     suggested_action: str | None
     latency_ms: int
+    eval_mode: EvalMode = EvalMode.BOTH
     # RAGAS metrics
     faithfulness_score: float = 0.0
     relevance_score: float = 0.0
@@ -36,10 +47,18 @@ class CaseResult(BaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def passed(self) -> bool:
-        """Pass if RAGAS scores are good AND action passes (if present)."""
+        """Pass based on eval_mode: answer=RAGAS only, action=action only, both=both."""
+        if self.errors:
+            return False
+
         ragas_ok = self.faithfulness_score >= 0.6 and self.relevance_score >= 0.6
         action_ok = self.action_passed if self.suggested_action else True
-        return ragas_ok and action_ok and not self.errors
+
+        if self.eval_mode == EvalMode.ANSWER:
+            return ragas_ok
+        if self.eval_mode == EvalMode.ACTION:
+            return action_ok
+        return ragas_ok and action_ok  # BOTH
 
 
 class EvalResults(BaseModel):
@@ -92,4 +111,4 @@ class EvalResults(BaseModel):
             self.action_pass_rate = sum(1 for c in action_cases if c.action_passed) / len(action_cases)
 
 
-__all__ = ["Question", "CaseResult", "EvalResults"]
+__all__ = ["EvalMode", "Question", "CaseResult", "EvalResults"]

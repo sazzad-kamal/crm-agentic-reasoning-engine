@@ -149,6 +149,53 @@ class TestCaseResult:
         )
         assert case.passed is False
 
+    def test_case_result_passed_answer_mode_only(self):
+        """Test passed in answer-only mode ignores action failure."""
+        from backend.eval.answer.models import EvalMode
+
+        case = CaseResult(
+            question="Test question",
+            answer="Test answer",
+            suggested_action="Call customer",
+            latency_ms=100,
+            eval_mode=EvalMode.ANSWER,
+            faithfulness_score=0.8,  # RAGAS passes
+            relevance_score=0.9,
+            action_passed=False,  # Action fails but ignored
+        )
+        assert case.passed is True  # Passes because only RAGAS checked
+
+    def test_case_result_passed_action_mode_only(self):
+        """Test passed in action-only mode ignores RAGAS failure."""
+        from backend.eval.answer.models import EvalMode
+
+        case = CaseResult(
+            question="Test question",
+            answer="Test answer",
+            suggested_action="Call customer",
+            latency_ms=100,
+            eval_mode=EvalMode.ACTION,
+            faithfulness_score=0.3,  # RAGAS fails but ignored
+            relevance_score=0.4,
+            action_passed=True,  # Action passes
+        )
+        assert case.passed is True  # Passes because only action checked
+
+    def test_case_result_passed_action_mode_no_action(self):
+        """Test passed in action-only mode with no suggested action."""
+        from backend.eval.answer.models import EvalMode
+
+        case = CaseResult(
+            question="Test question",
+            answer="Test answer",
+            suggested_action=None,  # No action
+            latency_ms=100,
+            eval_mode=EvalMode.ACTION,
+            faithfulness_score=0.3,
+            relevance_score=0.4,
+        )
+        assert case.passed is True  # No action = passes action check
+
 
 class TestEvalResults:
     """Tests for EvalResults dataclass."""
@@ -863,7 +910,7 @@ class TestMainCli:
         monkeypatch.setattr(runner_module, "print_summary", MagicMock())
 
         # Should not raise
-        runner_module.main(limit=1, verbose=False)
+        runner_module.main(limit=1, verbose=False, eval="both")
 
     def test_main_with_verbose(self, monkeypatch):
         """Test main function with verbose flag."""
@@ -875,8 +922,24 @@ class TestMainCli:
         monkeypatch.setattr(runner_module, "run_answer_eval", mock_run_answer_eval)
         monkeypatch.setattr(runner_module, "print_summary", MagicMock())
 
-        runner_module.main(limit=5, verbose=True)
+        runner_module.main(limit=5, verbose=True, eval="both")
 
         call_kwargs = mock_run_answer_eval.call_args.kwargs
         assert call_kwargs["verbose"] is True
         assert call_kwargs["limit"] == 5
+
+    def test_main_with_eval_mode(self, monkeypatch):
+        """Test main function with eval mode."""
+        import backend.eval.answer.runner as runner_module
+        from backend.eval.answer.models import EvalMode
+
+        mock_results = EvalResults(total=1, passed=1)
+        mock_run_answer_eval = MagicMock(return_value=mock_results)
+
+        monkeypatch.setattr(runner_module, "run_answer_eval", mock_run_answer_eval)
+        monkeypatch.setattr(runner_module, "print_summary", MagicMock())
+
+        runner_module.main(limit=3, verbose=False, eval="answer")
+
+        call_kwargs = mock_run_answer_eval.call_args.kwargs
+        assert call_kwargs["eval_mode"] == EvalMode.ANSWER

@@ -18,7 +18,7 @@ from backend.agent.answer.answerer import call_answer_chain, extract_suggested_a
 from backend.agent.fetch.sql.connection import get_connection
 from backend.agent.fetch.sql.executor import execute_sql
 from backend.eval.answer.judge import judge_suggested_action
-from backend.eval.answer.models import CaseResult, EvalResults, Question
+from backend.eval.answer.models import CaseResult, EvalMode, EvalResults, Question
 from backend.eval.shared.ragas import evaluate_single
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,9 @@ def load_questions() -> list[Question]:
     return [Question(**item) for item in data.get("questions", [])]
 
 
-def _eval_case(question: Question, conn: duckdb.DuckDBPyConnection) -> CaseResult:
+def _eval_case(
+    question: Question, conn: duckdb.DuckDBPyConnection, eval_mode: EvalMode = EvalMode.BOTH
+) -> CaseResult:
     """Evaluate single question: run expected SQL, generate answer, judge."""
     start = time.time()
     errors: list[str] = []
@@ -48,6 +50,7 @@ def _eval_case(question: Question, conn: duckdb.DuckDBPyConnection) -> CaseResul
                 answer="",
                 suggested_action=None,
                 latency_ms=0,
+                eval_mode=eval_mode,
                 errors=errors,
             )
 
@@ -55,14 +58,16 @@ def _eval_case(question: Question, conn: duckdb.DuckDBPyConnection) -> CaseResul
         raw_answer = call_answer_chain(question.text, sql_results={"rows": sql_results})
         answer, suggested_action = extract_suggested_action(raw_answer)
 
-        # Step 3: RAGAS evaluation
-        contexts = [json.dumps(sql_results, default=str)] if sql_results else []
-        ref_answer = question.expected_answer if question.expected_answer else None
-        ragas = evaluate_single(question.text, answer, contexts, reference_answer=ref_answer)
+        # Step 3: RAGAS evaluation (skip if action-only mode)
+        ragas: dict = {"faithfulness": 0.0, "answer_relevancy": 0.0, "answer_correctness": 0.0}
+        if eval_mode in (EvalMode.ANSWER, EvalMode.BOTH):
+            contexts = [json.dumps(sql_results, default=str)] if sql_results else []
+            ref_answer = question.expected_answer if question.expected_answer else None
+            ragas = evaluate_single(question.text, answer, contexts, reference_answer=ref_answer)
 
-        # Step 4: Action judge (if action present)
+        # Step 4: Action judge (skip if answer-only mode)
         action_metrics = (False, 0.0, 0.0, 0.0, "")
-        if suggested_action:
+        if eval_mode in (EvalMode.ACTION, EvalMode.BOTH) and suggested_action:
             action_metrics = judge_suggested_action(question.text, answer, suggested_action)
 
         latency = int((time.time() - start) * 1000)
@@ -71,6 +76,7 @@ def _eval_case(question: Question, conn: duckdb.DuckDBPyConnection) -> CaseResul
             answer=answer,
             suggested_action=suggested_action,
             latency_ms=latency,
+            eval_mode=eval_mode,
             faithfulness_score=ragas["faithfulness"],  # type: ignore[arg-type]
             relevance_score=ragas["answer_relevancy"],  # type: ignore[arg-type]
             answer_correctness_score=ragas.get("answer_correctness", 0.0),  # type: ignore[arg-type]
@@ -87,11 +93,14 @@ def _eval_case(question: Question, conn: duckdb.DuckDBPyConnection) -> CaseResul
             answer="",
             suggested_action=None,
             latency_ms=int((time.time() - start) * 1000),
+            eval_mode=eval_mode,
             errors=[f"Error: {e}"],
         )
 
 
-def run_answer_eval(limit: int | None = None, verbose: bool = False) -> EvalResults:
+def run_answer_eval(
+    limit: int | None = None, verbose: bool = False, eval_mode: EvalMode = EvalMode.BOTH
+) -> EvalResults:
     """Run answer node evaluation."""
     questions = load_questions()
     if limit:
@@ -101,7 +110,7 @@ def run_answer_eval(limit: int | None = None, verbose: bool = False) -> EvalResu
     conn = get_connection()
 
     for q in questions:
-        case = _eval_case(q, conn)
+        case = _eval_case(q, conn, eval_mode=eval_mode)
         results.cases.append(case)
         if case.passed:
             results.passed += 1
@@ -113,25 +122,28 @@ def run_answer_eval(limit: int | None = None, verbose: bool = False) -> EvalResu
     return results
 
 
-def print_summary(results: EvalResults) -> None:
+def print_summary(results: EvalResults, eval_mode: EvalMode = EvalMode.BOTH) -> None:
     """Print evaluation summary."""
     passed = results.pass_rate >= 0.80
     status = "PASS" if passed else "FAIL"
 
-    print("\nAnswer Node Evaluation")
+    mode_label = f" ({eval_mode.value} only)" if eval_mode != EvalMode.BOTH else ""
+    print(f"\nAnswer Node Evaluation{mode_label}")
     print(f"Pass Rate: {results.pass_rate * 100:.1f}% (>=80.0% SLO) {status}")
     print(
         f"Total: {results.total}, Passed: {results.passed}, Failed: {results.failed}, "
         f"Avg latency: {results.avg_latency_ms:.0f}ms"
     )
-    print(
-        f"RAGAS: F={results.avg_faithfulness:.2f} R={results.avg_relevance:.2f} "
-        f"C={results.avg_answer_correctness:.2f} ({results.ragas_pass_rate * 100:.0f}%)"
-    )
-    print(
-        f"Action: rel={results.avg_action_relevance:.2f} act={results.avg_action_actionability:.2f} "
-        f"app={results.avg_action_appropriateness:.2f} ({results.action_pass_rate * 100:.0f}%)"
-    )
+    if eval_mode in (EvalMode.ANSWER, EvalMode.BOTH):
+        print(
+            f"RAGAS: F={results.avg_faithfulness:.2f} R={results.avg_relevance:.2f} "
+            f"C={results.avg_answer_correctness:.2f} ({results.ragas_pass_rate * 100:.0f}%)"
+        )
+    if eval_mode in (EvalMode.ACTION, EvalMode.BOTH):
+        print(
+            f"Action: rel={results.avg_action_relevance:.2f} act={results.avg_action_actionability:.2f} "
+            f"app={results.avg_action_appropriateness:.2f} ({results.action_pass_rate * 100:.0f}%)"
+        )
 
     # Failed cases
     failed = [c for c in results.cases if not c.passed]
@@ -146,11 +158,11 @@ def print_summary(results: EvalResults) -> None:
                 ragas_failed = c.faithfulness_score < 0.6 or c.relevance_score < 0.6
                 action_failed = c.suggested_action and not c.action_passed
 
-                if ragas_failed:
+                if eval_mode in (EvalMode.ANSWER, EvalMode.BOTH) and ragas_failed:
                     print(f"   RAGAS: F={c.faithfulness_score:.2f} R={c.relevance_score:.2f}")
                     if c.answer:
                         print(f"   Answer: {c.answer[:100]}...")
-                if action_failed:
+                if eval_mode in (EvalMode.ACTION, EvalMode.BOTH) and action_failed:
                     print(
                         f"   Action: rel={c.action_relevance:.2f} "
                         f"act={c.action_actionability:.2f} app={c.action_appropriateness:.2f}"
@@ -166,10 +178,13 @@ def print_summary(results: EvalResults) -> None:
 def main(
     limit: int = typer.Option(None, "--limit", "-l", help="Limit number of questions"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output"),
+    eval: str = typer.Option("both", "--eval", "-e", help="Eval mode: answer, action, or both"),
 ) -> None:
     """Run answer node evaluation."""
     logging.basicConfig(level=logging.WARNING)
-    print_summary(run_answer_eval(limit=limit, verbose=verbose))
+    eval_mode = EvalMode(eval)
+    results = run_answer_eval(limit=limit, verbose=verbose, eval_mode=eval_mode)
+    print_summary(results, eval_mode=eval_mode)
 
 
 if __name__ == "__main__":

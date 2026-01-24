@@ -110,10 +110,10 @@ questions:
     expected_sql: "SELECT first_name, last_name FROM contacts c JOIN companies co ON c.company_id = co.company_id WHERE co.name = 'Crown Foods'"
     expected_answer: "The contacts at Crown Foods are Maria Silva, Alex Dupont, and Nina Foster."
 
-  - text: "How many high priority activities are open?"
+  - text: "Who owns the Crown Foods opportunities?"
     difficulty: 2
-    expected_sql: "SELECT COUNT(*) FROM activities WHERE priority = 'High' AND status = 'Open'"
-    expected_answer: "There are 7 open high priority activities."
+    expected_sql: "SELECT o.name, o.owner FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE c.name = 'Crown Foods'"
+    expected_answer: "Both Crown Foods opportunities (Subscription renewal and Warehouse expansion) are owned by jsmith."
 
   # Notes-based questions
   - text: "What are the key details about the Beta Tech new rollout opportunity?"
@@ -154,89 +154,94 @@ questions:
     expected_sql: "SELECT DISTINCT c.name FROM companies c JOIN opportunities o ON c.company_id = o.company_id WHERE o.stage = 'Negotiation'"
     expected_answer: "Beta Tech Solutions has opportunities in the Negotiation stage."
 
-  - text: "What is the breakdown of opportunities by stage?"
-    difficulty: 3
-    expected_sql: "SELECT stage, COUNT(*) as count FROM opportunities GROUP BY stage"
-    expected_answer: "The breakdown of opportunities by stage is: Discovery (4), Proposal (2), Qualified (4), Negotiation (1), Closed Won (1), Closed Lost (2), and New (1)."
-
   - text: "How many contacts per company have the Decision Maker role?"
     difficulty: 3
     expected_sql: "SELECT co.name, COUNT(*) as decision_maker_count FROM contacts c JOIN companies co ON c.company_id = co.company_id WHERE c.role = 'Decision Maker' GROUP BY co.company_id, co.name"
     expected_answer: "Companies with Decision Maker contacts: Acme Manufacturing has 1, Crown Foods has 1, Delta Health has 1, Eastern Travel has 1, Green Energy has 1, and Harbor Logistics has 1."
-
-  - text: "What are the companies with renewal dates in Q1 2026?"
-    difficulty: 3
-    expected_sql: "SELECT name, renewal_date FROM companies WHERE renewal_date >= '2026-01-01' AND renewal_date <= '2026-03-31'"
-    expected_answer: "Companies with renewal dates in Q1 2026 are: Crown Foods (January 31, 2026), Delta Health (February 1, 2026), Beta Tech Solutions (February 15, 2026), Eastern Travel (February 28, 2026), Harbor Logistics (March 15, 2026), and Acme Manufacturing (March 31, 2026)."
-
-  - text: "Which contacts at Beta Tech are in the Customer lifecycle stage?"
-    difficulty: 3
-    expected_sql: "SELECT c.first_name, c.last_name FROM contacts c JOIN companies co ON c.company_id = co.company_id WHERE co.name LIKE '%Beta Tech%' AND c.lifecycle_stage = 'Customer'"
-    expected_answer: "The contacts at Beta Tech in the Customer lifecycle stage are Lisa Ng, Omar Haddad, and Sam Clarke."
 
   - text: "What is the total pipeline value by region?"
     difficulty: 3
     expected_sql: "SELECT c.region, SUM(o.amount) as pipeline_value FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE o.stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY c.region"
     expected_answer: "The total pipeline value by region is: North America $118,000, Europe $52,000, and Asia $8,000."
 
+  - text: "How many opportunities does each industry have?"
+    difficulty: 3
+    expected_sql: "SELECT c.industry, COUNT(*) as opp_count FROM opportunities o JOIN companies c ON o.company_id = c.company_id GROUP BY c.industry"
+    expected_answer: "The opportunity count by industry is: Manufacturing has 2, Software has 2, Food & Beverage has 2, Healthcare has 2, Travel has 1, Retail has 2, Energy has 2, and Logistics has 1."
+
+  - text: "What is the average opportunity value by company status?"
+    difficulty: 3
+    expected_sql: "SELECT c.status, AVG(o.amount) as avg_value FROM opportunities o JOIN companies c ON o.company_id = c.company_id GROUP BY c.status"
+    expected_answer: "The average opportunity value by company status is: Active companies have an average of $19,455, Trial companies have an average of $8,000, and Churned companies have an average of $27,500."
+
+  - text: "Which companies have activities due in January 2026?"
+    difficulty: 3
+    expected_sql: "SELECT DISTINCT c.name FROM companies c JOIN activities a ON c.company_id = a.company_id WHERE a.due_date >= '2026-01-01' AND a.due_date < '2026-02-01'"
+    expected_answer: "Companies with activities due in January 2026 are Acme Manufacturing, Beta Tech Solutions, Crown Foods, Delta Health, and Fusion Retail."
+
   # Notes-based questions
-  - text: "Why did Green Energy churn and what is the win-back strategy?"
-    difficulty: 3
-    expected_sql: "SELECT notes FROM companies WHERE name LIKE '%Green Energy%'"
-    expected_answer: "Green Energy churned due to budget cuts from solar division losses. Carlos expressed interest in returning after Q4 budget cycle. The product was a good fit but timing was wrong. They are a win-back candidate."
-
-  - text: "What are the concerns and opportunities related to Delta Health's expansion?"
-    difficulty: 3
-    expected_sql: "SELECT o.name, o.notes FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE c.name LIKE '%Delta Health%'"
-    expected_answer: "Delta Health has an expansion opportunity for 3 additional clinic locations valued at $15,000. Following successful renewal, Erin Cho mentioned plans to expand in Q1 2026. The key risk is budget approval from corporate, and they need multi-location pricing and training packages."
-
   - text: "What concerns has Maria Silva raised about Crown Foods?"
     difficulty: 3
     expected_sql: "SELECT ct.notes, c.notes as company_notes FROM contacts ct JOIN companies c ON ct.company_id = c.company_id WHERE ct.first_name = 'Maria' AND ct.last_name = 'Silva'"
     expected_answer: "Maria Silva is a quick decision maker who values reliability. She is frustrated with recent mobile app performance issues. Otherwise she is happy with the product and likely to renew. Crown Foods is flagged as at-risk-renewal-soon due to these mobile app concerns."
 
+  - text: "What are Erin Cho's notes and her company's health status?"
+    difficulty: 3
+    expected_sql: "SELECT ct.notes, c.health_status FROM contacts ct JOIN companies c ON ct.company_id = c.company_id WHERE ct.first_name = 'Erin' AND ct.last_name = 'Cho'"
+    expected_answer: "Erin Cho champions expansion to additional clinics but needs board approval. She agreed to advocate internally for grandfathered pricing. She is a key relationship for growth. Delta Health's health status is at-risk-renewal-soon."
+
+  - text: "What is the breakdown of history events by type?"
+    difficulty: 3
+    expected_sql: "SELECT type, COUNT(*) as event_count FROM history GROUP BY type"
+    expected_answer: "The breakdown of history events by type is: Call (15), Email (11), Meeting (6), and Note (9)."
+
   # =============================================================================
   # SQL DIFFICULTY 4: Subqueries, complex filters
   # =============================================================================
-  - text: "What contacts belong to companies with churned status?"
-    difficulty: 4
-    expected_sql: "SELECT ct.first_name, ct.last_name, c.name FROM contacts ct JOIN companies c ON ct.company_id = c.company_id WHERE c.status = 'Churned'"
-    expected_answer: "The contacts at Green Energy (churned company) are Carlos Mendez, Linda Park, and Tom Baker."
-
   - text: "Which opportunities have value above the average?"
     difficulty: 4
     expected_sql: "SELECT name, amount FROM opportunities WHERE amount > (SELECT AVG(amount) FROM opportunities)"
     expected_answer: "Opportunities with value above the average ($18,769) are: Beta Tech New rollout ($32,000), Acme Manufacturing Annual renewal ($24,000), Delta Health Renewal ($22,000), Green Energy Renewal 2025 ($20,000), Green Energy Solar division rollout ($35,000), Harbor Logistics Initial rollout ($26,000), and Fusion Retail Annual renewal ($28,000)."
 
-  - text: "What are the contacts at companies with at-risk health status?"
+  - text: "Which companies have more than one opportunity?"
     difficulty: 4
-    expected_sql: "SELECT ct.first_name, ct.last_name, c.name FROM contacts ct JOIN companies c ON ct.company_id = c.company_id WHERE c.health_status LIKE '%at-risk%'"
-    expected_answer: "The contacts at at-risk companies are: Crown Foods (Maria Silva, Alex Dupont, Nina Foster) and Delta Health (Erin Cho, Mike Rivera, Priya Sharma)."
+    expected_sql: "SELECT c.name, COUNT(*) as opp_count FROM companies c JOIN opportunities o ON c.company_id = o.company_id GROUP BY c.company_id, c.name HAVING COUNT(*) > 1"
+    expected_answer: "Companies with more than one opportunity are: Acme Manufacturing (2), Beta Tech Solutions (2), Crown Foods (2), Delta Health (2), Fusion Retail (2), and Green Energy (2)."
+
+  - text: "What companies have no closed lost opportunities?"
+    difficulty: 4
+    expected_sql: "SELECT name FROM companies WHERE company_id NOT IN (SELECT DISTINCT company_id FROM opportunities WHERE stage = 'Closed Lost')"
+    expected_answer: "Companies with no closed lost opportunities are: Acme Manufacturing, Beta Tech Solutions, Crown Foods, Delta Health, Eastern Travel, Fusion Retail, and Harbor Logistics."
+
+  - text: "Which contacts belong to companies with total pipeline over $35,000?"
+    difficulty: 4
+    expected_sql: "SELECT ct.first_name, ct.last_name, c.name FROM contacts ct JOIN companies c ON ct.company_id = c.company_id WHERE c.company_id IN (SELECT c2.company_id FROM companies c2 JOIN opportunities o ON c2.company_id = o.company_id WHERE o.stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY c2.company_id HAVING SUM(o.amount) > 35000)"
+    expected_answer: "Contacts at companies with pipeline over $35,000 include: Beta Tech ($40,000) - Lisa Ng, Omar Haddad, Sam Clarke; Acme Manufacturing ($39,000) - Anna Lopez, Joe Smith, Beth Turner; and Delta Health ($37,000) - Erin Cho, Mike Rivera, Priya Sharma."
+
+  - text: "What companies have opportunities in multiple stages?"
+    difficulty: 4
+    expected_sql: "SELECT c.name, COUNT(DISTINCT o.stage) as stage_count FROM companies c JOIN opportunities o ON c.company_id = o.company_id GROUP BY c.company_id, c.name HAVING COUNT(DISTINCT o.stage) > 1"
+    expected_answer: "Companies with opportunities in multiple stages are: Acme Manufacturing (Proposal, Qualified), Beta Tech Solutions (Negotiation, Discovery), Crown Foods (Proposal, Qualified), Delta Health (Qualified, Discovery), and Fusion Retail (Qualified, Closed Won)."
+
+  - text: "Which contacts have activities scheduled after February 2026?"
+    difficulty: 4
+    expected_sql: "SELECT DISTINCT ct.first_name, ct.last_name FROM contacts ct JOIN activities a ON ct.contact_id = a.contact_id WHERE a.due_date >= '2026-03-01'"
+    expected_answer: "Contacts with activities scheduled after February 2026 are Carlos Mendez (win-back outreach in March 2026) and Emma Khan (seat expansion discussion in May 2026)."
+
+  - text: "What is the minimum and maximum opportunity value for companies with active status?"
+    difficulty: 4
+    expected_sql: "SELECT MIN(o.amount) as min_value, MAX(o.amount) as max_value FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE c.status = 'Active'"
+    expected_answer: "For companies with active status, the minimum opportunity value is $8,000 (Beta Tech Analytics add-on) and the maximum is $28,000 (Fusion Retail Annual renewal)."
 
   - text: "Which account owners manage companies with total pipeline over $30k?"
     difficulty: 4
     expected_sql: "SELECT c.account_owner, SUM(o.amount) as total_pipeline FROM companies c JOIN opportunities o ON c.company_id = o.company_id WHERE o.stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY c.account_owner HAVING SUM(o.amount) > 30000"
     expected_answer: "Account owners managing companies with total pipeline over $30,000: jsmith manages $71,000 in pipeline, ljones manages $40,000, and amartin manages $37,000."
 
-  - text: "What opportunities are tied to contacts with Executive role?"
-    difficulty: 4
-    expected_sql: "SELECT o.name, o.amount, o.stage FROM opportunities o JOIN contacts c ON o.contact_id = c.contact_id WHERE c.role = 'Executive'"
-    expected_answer: "Opportunities tied to Executive contacts: Fusion Retail Annual renewal ($28,000, Closed Won) linked to Lars Müller (CTO)."
-
   - text: "Which companies have both renewal and expansion opportunities?"
     difficulty: 4
     expected_sql: "SELECT c.name FROM companies c WHERE EXISTS (SELECT 1 FROM opportunities o WHERE o.company_id = c.company_id AND o.type = 'Renewal') AND EXISTS (SELECT 1 FROM opportunities o WHERE o.company_id = c.company_id AND o.type = 'Expansion')"
     expected_answer: "The companies with both renewal and expansion opportunities are Acme Manufacturing, Crown Foods, Delta Health, and Fusion Retail."
-
-  - text: "What is the highest value opportunity per industry?"
-    difficulty: 4
-    expected_sql: "SELECT c.industry, MAX(o.amount) as max_value FROM opportunities o JOIN companies c ON o.company_id = c.company_id GROUP BY c.industry"
-    expected_answer: "The highest value opportunity per industry: Manufacturing $24,000, Software $32,000, Food & Beverage $18,000, Healthcare $22,000, Travel $8,000, Retail $28,000, Energy $35,000, Logistics $26,000."
-
-  - text: "Which contacts have open high-priority activities?"
-    difficulty: 4
-    expected_sql: "SELECT DISTINCT ct.first_name, ct.last_name FROM contacts ct JOIN activities a ON ct.contact_id = a.contact_id WHERE a.priority = 'High' AND a.status = 'Open'"
-    expected_answer: "Contacts with open high-priority activities include Anna Lopez, Sam Clarke, Omar Haddad, Maria Silva, Sanjay Patel, Lars Müller, and Jacob Wu."
 
   - text: "What companies have opportunities closing in the next 60 days?"
     difficulty: 4
@@ -244,20 +249,15 @@ questions:
     expected_answer: "Companies with opportunities closing in the next 60 days include Acme Manufacturing, Beta Tech Solutions, Crown Foods, and Harbor Logistics."
 
   # Notes-based questions
-  - text: "What contacts have expressed concerns about pricing across all companies?"
-    difficulty: 4
-    expected_sql: "SELECT first_name, last_name, notes FROM contacts WHERE notes LIKE '%pricing%'"
-    expected_answer: "Anna Lopez has expressed concerns about a 20% price increase and needs CFO approval for budget changes."
-
   - text: "Which opportunities are at risk and why based on history and activities?"
     difficulty: 4
     expected_sql: "SELECT o.name, o.notes, c.health_status FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE c.health_status LIKE '%at-risk%' OR o.notes LIKE '%risk%'"
     expected_answer: "At-risk opportunities include Crown Foods renewal (company is at-risk-renewal-soon due to mobile app performance concerns) and Delta Health opportunities (company is at-risk-renewal-soon, expansion needs board approval and budget approval from corporate is a key risk)."
 
-  - text: "What is the relationship history with Harbor Logistics?"
+  - text: "What are the notes about Green Energy and their churn reason?"
     difficulty: 4
-    expected_sql: "SELECT h.type, h.subject, h.notes, h.occurred_at FROM history h JOIN companies c ON h.company_id = c.company_id WHERE c.name = 'Harbor Logistics' ORDER BY h.occurred_at"
-    expected_answer: "Harbor Logistics relationship history includes: Discovery call in June 2025 exploring logistics workflows, Pricing discussion email with options sent for review, Solution design meeting in July 2025 mapping out implementation plan, and User training prep call in August 2025 preparing training materials for the operations team. All interactions are owned by mmalik."
+    expected_sql: "SELECT c.notes, h.notes as churn_notes FROM companies c LEFT JOIN history h ON c.company_id = h.company_id WHERE c.name LIKE '%Green Energy%' AND h.subject LIKE '%Churn%'"
+    expected_answer: "Green Energy churned due to budget cuts from solar division losses. Carlos expressed interest in returning after Q4 budget cycle. The product was a good fit but timing was wrong. The post-mortem notes indicate they needed more frequent check-ins and clearer value demonstration. Green Energy is a win-back candidate."
 
   # =============================================================================
   # SQL DIFFICULTY 5: CTEs, window functions, multi-step logic
@@ -307,18 +307,18 @@ questions:
     expected_sql: "SELECT o.owner, COUNT(CASE WHEN stage = 'Closed Won' THEN 1 END) * 100.0 / COUNT(*) as win_rate FROM opportunities o WHERE o.stage IN ('Closed Won', 'Closed Lost') GROUP BY o.owner ORDER BY win_rate DESC"
     expected_answer: "Based on closed opportunities, jsmith has a 33% win rate (1 won out of 3 closed), while ljones has a 0% win rate (0 won out of 2 closed, both from Green Energy churn)."
 
+  - text: "What is the cumulative opportunity value for each company ordered by opportunity amount?"
+    difficulty: 5
+    expected_sql: "SELECT c.name, o.name as opportunity_name, o.amount, SUM(o.amount) OVER (PARTITION BY c.company_id ORDER BY o.amount) as cumulative_value FROM opportunities o JOIN companies c ON o.company_id = c.company_id ORDER BY c.name, o.amount"
+    expected_answer: "For each company, the cumulative value shows the running sum of opportunities ordered by amount. For example, Acme Manufacturing shows $15,000 then $39,000 ($15,000 + $24,000), Beta Tech shows $8,000 then $40,000, and so on."
+
+  - text: "For each company, what is the difference between their highest and lowest opportunity values?"
+    difficulty: 5
+    expected_sql: "WITH company_range AS (SELECT company_id, MAX(amount) as max_value, MIN(amount) as min_value FROM opportunities GROUP BY company_id) SELECT c.name, cr.max_value, cr.min_value, cr.max_value - cr.min_value as value_range FROM company_range cr JOIN companies c ON cr.company_id = c.company_id ORDER BY value_range DESC"
+    expected_answer: "The opportunity value range by company is: Green Energy has the largest range ($35,000 max - $20,000 min = $15,000 range), followed by Beta Tech ($32,000 - $8,000 = $24,000), Acme Manufacturing ($24,000 - $15,000 = $9,000), Fusion Retail ($28,000 - $12,000 = $16,000), Delta Health ($22,000 - $15,000 = $7,000), and Crown Foods ($18,000 - $14,000 = $4,000). Eastern Travel and Harbor Logistics each have only one opportunity."
+
   # Notes-based questions
   - text: "Based on all interactions, what is the recommended approach for the Acme Manufacturing upgrade deal?"
     difficulty: 5
     expected_sql: "SELECT o.name, o.notes as opportunity_notes, h.notes as history_notes, a.notes as activity_notes FROM opportunities o LEFT JOIN history h ON o.opportunity_id = h.opportunity_id LEFT JOIN activities a ON o.opportunity_id = a.opportunity_id JOIN companies c ON o.company_id = c.company_id WHERE c.name = 'Acme Manufacturing' AND o.name LIKE '%upgrade%'"
     expected_answer: "For the Acme Manufacturing upgrade deal: Focus on ROI documentation to address Anna Lopez's price concerns (20% increase). Prepare concrete metrics from similar manufacturing customers for CFO Beth Turner who is historically skeptical. Joe Smith prefers 1-year terms. Key next step is preparing an ROI analysis showing efficiency gains before pursuing CFO approval."
-
-  - text: "Considering all touchpoints, which companies are most likely to expand and why?"
-    difficulty: 5
-    expected_sql: "SELECT c.name, c.notes as company_notes, o.notes as opportunity_notes FROM companies c LEFT JOIN opportunities o ON c.company_id = o.company_id AND o.type = 'Expansion' WHERE c.status = 'Active' AND c.health_status = 'healthy'"
-    expected_answer: "Companies most likely to expand: Beta Tech (Lisa Ng is actively championing expansion to marketing team, healthy status), Fusion Retail (Emma Khan driving expansion for 25 new stores, healthy status, strong relationship with 2-year contract). Acme Manufacturing also shows expansion potential with the Pro to Enterprise upgrade opportunity."
-
-  - text: "Based on all data, what accounts should be prioritized this quarter and why?"
-    difficulty: 5
-    expected_sql: "SELECT c.name, c.health_status, c.renewal_date, c.status, c.notes FROM companies c WHERE c.health_status LIKE '%at-risk%' OR c.renewal_date <= '2026-03-31' ORDER BY c.renewal_date"
-    expected_answer: "Priority accounts this quarter: 1) Crown Foods (at-risk-renewal-soon, renewal Jan 31) - address mobile app performance concerns with Maria Silva. 2) Delta Health (at-risk-renewal-soon, renewal Feb 1) - needs board approval for expansion. 3) Beta Tech (healthy, renewal Feb 15) - nurture Lisa Ng's expansion champion. 4) Eastern Travel (new/trial, renewal Feb 28) - convert trial to customer. 5) Harbor Logistics (health-check, renewal Mar 15) - support Jacob Wu's Q2 go-live goal."

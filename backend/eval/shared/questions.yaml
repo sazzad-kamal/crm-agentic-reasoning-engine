@@ -1,4 +1,5 @@
-# Fetch Node Evaluation Questions
+# Shared Evaluation Questions
+# Used by: fetch eval, answer text eval, answer action eval, followup eval
 # Each question includes expected SQL for semantic comparison
 
 questions:
@@ -41,17 +42,17 @@ questions:
     expected_answer: "Joe Smith's job title is IT Manager."
 
   - text: "What is the stage of the Acme Manufacturing upgrade opportunity?"
-    difficulty: 1
+    difficulty: 2
     expected_sql: "SELECT o.stage FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE c.name = 'Acme Manufacturing' AND o.name LIKE '%upgrade%'"
     expected_answer: "The Acme Manufacturing upgrade opportunity is in the Proposal stage."
 
   - text: "What is the value of the Beta Tech new rollout opportunity?"
-    difficulty: 1
+    difficulty: 2
     expected_sql: "SELECT o.amount FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE c.name LIKE '%Beta Tech%' AND o.name LIKE '%rollout%'"
     expected_answer: "The Beta Tech new rollout opportunity is valued at $32,000."
 
   - text: "What is the priority of the Crown Foods renewal check-in activity?"
-    difficulty: 1
+    difficulty: 2
     expected_sql: "SELECT priority FROM activities a JOIN companies c ON a.company_id = c.company_id WHERE c.name = 'Crown Foods' AND a.subject LIKE '%renewal%check%in%'"
     expected_answer: "The Crown Foods renewal check-in activity has High priority."
 

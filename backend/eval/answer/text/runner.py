@@ -6,8 +6,10 @@ import json
 import logging
 from typing import cast
 
+import typer
+
 from backend.agent.fetch.sql.connection import get_connection
-from backend.eval.answer.shared.loader import generate_answer, load_questions
+from backend.eval.answer.shared import generate_answer, load_questions
 from backend.eval.answer.text.models import TextCaseResult, TextEvalResults
 from backend.eval.answer.text.ragas import evaluate_single
 
@@ -95,4 +97,14 @@ def print_summary(results: TextEvalResults) -> None:
             print(f"... and {len(failed) - 10} more failures")
 
 
-__all__ = ["run_text_eval", "print_summary"]
+def main(
+    limit: int = typer.Option(None, "--limit", "-l", help="Limit number of questions"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output"),
+) -> None:
+    """Run text quality evaluation using RAGAS metrics."""
+    logging.basicConfig(level=logging.WARNING)
+    print_summary(run_text_eval(limit=limit, verbose=verbose))
+
+
+if __name__ == "__main__":
+    typer.run(main)

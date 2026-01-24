@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import logging
 
+import typer
+
 from backend.agent.fetch.sql.connection import get_connection
 from backend.eval.answer.action.judge import judge_suggested_action
 from backend.eval.answer.action.models import ActionCaseResult, ActionEvalResults
-from backend.eval.answer.shared.loader import generate_answer, load_questions
+from backend.eval.answer.shared import generate_answer, load_questions
 
 logger = logging.getLogger(__name__)
 
@@ -108,4 +110,14 @@ def print_summary(results: ActionEvalResults) -> None:
             print(f"... and {len(failed) - 10} more failures")
 
 
-__all__ = ["run_action_eval", "print_summary"]
+def main(
+    limit: int = typer.Option(None, "--limit", "-l", help="Limit number of questions"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output"),
+) -> None:
+    """Run action quality evaluation using LLM Judge."""
+    logging.basicConfig(level=logging.WARNING)
+    print_summary(run_action_eval(limit=limit, verbose=verbose))
+
+
+if __name__ == "__main__":
+    typer.run(main)

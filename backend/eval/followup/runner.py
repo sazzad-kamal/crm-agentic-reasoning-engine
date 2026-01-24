@@ -13,17 +13,17 @@ from backend.eval.followup.judge import judge_followup_suggestions
 from backend.eval.followup.models import CaseResult, EvalResults, Question
 from backend.eval.shared.formatting import build_eval_table, console
 
-# Path to questions file
-QUESTIONS_PATH = Path(__file__).parent / "questions.yaml"
+# Path to shared questions file
+QUESTIONS_PATH = Path(__file__).parent.parent / "shared" / "questions.yaml"
 
 
 def load_questions() -> list[Question]:
-    """Load questions from YAML file."""
+    """Load questions from shared YAML file."""
     with open(QUESTIONS_PATH) as f:
         data = yaml.safe_load(f)
 
     return [
-        Question(text=item["text"], context=item.get("context", ""))
+        Question(text=item["text"])
         for item in data.get("questions", [])
     ]
 

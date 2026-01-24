@@ -52,6 +52,7 @@ class EvalResults(BaseModel):
     avg_faithfulness: float = 0.0
     avg_relevance: float = 0.0
     avg_answer_correctness: float = 0.0
+    ragas_pass_rate: float = 0.0
     # Action averages
     avg_action_relevance: float = 0.0
     avg_action_actionability: float = 0.0
@@ -79,6 +80,9 @@ class EvalResults(BaseModel):
         self.avg_faithfulness = sum(c.faithfulness_score for c in self.cases) / n
         self.avg_relevance = sum(c.relevance_score for c in self.cases) / n
         self.avg_answer_correctness = sum(c.answer_correctness_score for c in self.cases) / n
+        self.ragas_pass_rate = (
+            sum(1 for c in self.cases if c.faithfulness_score >= 0.6 and c.relevance_score >= 0.6) / n
+        )
         # Action metrics (only for cases with actions)
         action_cases = [c for c in self.cases if c.suggested_action]
         if action_cases:

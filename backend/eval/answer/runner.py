@@ -126,7 +126,7 @@ def print_summary(results: EvalResults) -> None:
     )
     print(
         f"RAGAS: F={results.avg_faithfulness:.2f} R={results.avg_relevance:.2f} "
-        f"C={results.avg_answer_correctness:.2f}"
+        f"C={results.avg_answer_correctness:.2f} ({results.ragas_pass_rate * 100:.0f}%)"
     )
     print(
         f"Action: rel={results.avg_action_relevance:.2f} act={results.avg_action_actionability:.2f} "

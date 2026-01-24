@@ -211,6 +211,49 @@ class TestEvalResults:
         assert results.avg_faithfulness == 0.8
         assert results.avg_relevance == 0.825
         assert results.avg_answer_correctness == 0.85
+        assert results.ragas_pass_rate == 1.0  # Both cases pass RAGAS (F>=0.6, R>=0.6)
+
+    def test_compute_aggregates_ragas_pass_rate(self):
+        """Test compute_aggregates computes ragas_pass_rate correctly."""
+        results = EvalResults()
+        results.cases = [
+            CaseResult(
+                question="Q1",
+                answer="A1",
+                suggested_action=None,
+                latency_ms=100,
+                faithfulness_score=0.7,  # Pass
+                relevance_score=0.8,  # Pass
+            ),
+            CaseResult(
+                question="Q2",
+                answer="A2",
+                suggested_action=None,
+                latency_ms=100,
+                faithfulness_score=0.5,  # Fail
+                relevance_score=0.8,  # Pass
+            ),
+            CaseResult(
+                question="Q3",
+                answer="A3",
+                suggested_action=None,
+                latency_ms=100,
+                faithfulness_score=0.7,  # Pass
+                relevance_score=0.5,  # Fail
+            ),
+            CaseResult(
+                question="Q4",
+                answer="A4",
+                suggested_action=None,
+                latency_ms=100,
+                faithfulness_score=0.8,  # Pass
+                relevance_score=0.9,  # Pass
+            ),
+        ]
+        results.compute_aggregates()
+
+        # 2 out of 4 pass RAGAS (Q1 and Q4)
+        assert results.ragas_pass_rate == 0.5
 
     def test_compute_aggregates_with_actions(self):
         """Test compute_aggregates computes action metrics."""

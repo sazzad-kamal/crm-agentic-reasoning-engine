@@ -22,8 +22,8 @@ from backend.agent.fetch.sql.executor import execute_sql
 from backend.eval.fetch.models import CaseResult, EvalResults, Question
 from backend.eval.fetch.sql_judge import ErrorType, JudgeError, judge_sql_equivalence
 
-# Path to questions file
-QUESTIONS_PATH = Path(__file__).parent / "questions.yaml"
+# Path to questions file (shared with answer eval)
+QUESTIONS_PATH = Path(__file__).parent.parent / "shared" / "questions.yaml"
 
 # Error types that are acceptable (don't change results)
 _ALLOWED_ERROR_TYPES = {

@@ -25,8 +25,6 @@ with warnings.catch_warnings():
     from ragas.metrics import (
         AnswerCorrectness,
         AnswerRelevancy,
-        ContextPrecision,
-        ContextRecall,
         Faithfulness,
     )
 
@@ -130,10 +128,9 @@ def _get_ragas_metrics(include_reference: bool = False) -> tuple[Any, ...]:
     base = (
         AnswerRelevancy(llm=llm, embeddings=embeddings),
         Faithfulness(llm=llm),
-        ContextPrecision(llm=llm),
     )
     if include_reference:
-        return base + (ContextRecall(llm=llm), AnswerCorrectness(llm=llm))
+        return base + (AnswerCorrectness(llm=llm),)
     return base
 
 
@@ -153,8 +150,6 @@ def _extract_scores(df: Any) -> dict[str, float | str | list[str] | None]:
     return {
         "answer_relevancy": get_score("answer_relevancy"),
         "faithfulness": get_score("faithfulness"),
-        "context_precision": get_score("context_precision"),
-        "context_recall": get_score("context_recall"),
         "answer_correctness": get_score("answer_correctness"),
         "error": None,
         "nan_metrics": nan_metrics,
@@ -221,11 +216,9 @@ def evaluate_single(
         return {
             "answer_relevancy": 0.0,
             "faithfulness": 0.0,
-            "context_precision": 0.0,
-            "context_recall": 0.0,
             "answer_correctness": 0.0,
             "error": str(e),
-            "nan_metrics": ["answer_relevancy", "faithfulness", "context_precision", "context_recall", "answer_correctness"],
+            "nan_metrics": ["answer_relevancy", "faithfulness", "answer_correctness"],
         }
 
 

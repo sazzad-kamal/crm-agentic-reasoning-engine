@@ -152,12 +152,15 @@ def evaluate_single(
 
     except Exception as e:
         logger.warning(f"RAGAS evaluation failed after retries: {e}")
+        failed_metrics = ["answer_relevancy", "faithfulness"]
+        if reference_answer:
+            failed_metrics.append("answer_correctness")
         return {
             "answer_relevancy": 0.0,
             "faithfulness": 0.0,
             "answer_correctness": 0.0,
             "error": str(e),
-            "nan_metrics": ["answer_relevancy", "faithfulness", "answer_correctness"],
+            "nan_metrics": failed_metrics,
         }
 
 

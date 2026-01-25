@@ -162,7 +162,7 @@ questions:
   - text: "What is the total pipeline value by region?"
     difficulty: 3
     expected_sql: "SELECT c.region, SUM(o.amount) as pipeline_value FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE o.stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY c.region"
-    expected_answer: "The total pipeline value by region is: North America $118,000, Europe $52,000, and Asia $8,000."
+    expected_answer: "The total pipeline value by region is: North America $134,000, Europe $52,000, and Asia $8,000."
 
   - text: "How many opportunities does each industry have?"
     difficulty: 3

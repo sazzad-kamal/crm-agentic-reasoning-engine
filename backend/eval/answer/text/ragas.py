@@ -124,9 +124,15 @@ def evaluate_single(
         dict with answer_relevancy, faithfulness, context_precision, answer_correctness (0.0-1.0)
         Also includes 'error' key (None if success, error message string if failed)
     """
-    # RAGAS requires non-empty contexts
+    # Skip RAGAS if no contexts - metrics would be meaningless
     if not contexts:
-        contexts = ["No context provided"]
+        return {
+            "answer_relevancy": 0.0,
+            "faithfulness": 0.0,
+            "answer_correctness": 0.0,
+            "error": "No contexts provided - skipping RAGAS",
+            "nan_metrics": [],
+        }
 
     dataset = Dataset.from_dict({
         "user_input": [question],

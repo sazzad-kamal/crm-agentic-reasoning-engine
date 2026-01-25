@@ -37,7 +37,7 @@ def run_text_eval(limit: int | None = None, verbose: bool = False) -> TextEvalRe
         else:
             # Run RAGAS evaluation
             contexts = [json.dumps(sql_results, default=str)] if sql_results else []
-            ref_answer = q.expected_answer if q.expected_answer else None
+            ref_answer = q.expected_answer
             ragas = evaluate_single(q.text, answer, contexts, reference_answer=ref_answer)
             nan_metrics = cast(list[str], ragas.get("nan_metrics", []))
 
@@ -47,7 +47,7 @@ def run_text_eval(limit: int | None = None, verbose: bool = False) -> TextEvalRe
                 faithfulness_score=cast(float, ragas["faithfulness"]),
                 relevance_score=cast(float, ragas["answer_relevancy"]),
                 answer_correctness_score=cast(float, ragas.get("answer_correctness", 0.0)),
-                ragas_metrics_total=3,
+                ragas_metrics_total=3 if ref_answer else 2,
                 ragas_metrics_failed=len(nan_metrics),
             )
 
@@ -91,9 +91,10 @@ def print_summary(results: TextEvalResults) -> None:
             if c.errors:
                 print(f"   Error: {'; '.join(c.errors)}")
             else:
-                print(f"   RAGAS: F={c.faithfulness_score:.2f} R={c.relevance_score:.2f}")
+                print(f"   RAGAS: F={c.faithfulness_score:.2f} R={c.relevance_score:.2f} C={c.answer_correctness_score:.2f}")
                 if c.answer:
-                    print(f"   Answer: {c.answer[:100]}...")
+                    ans = c.answer[:100] + "..." if len(c.answer) > 100 else c.answer
+                    print(f"   Answer: {ans}")
             print()
 
         if len(failed) > 10:

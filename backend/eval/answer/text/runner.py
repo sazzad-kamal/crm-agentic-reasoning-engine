@@ -34,9 +34,15 @@ def run_text_eval(limit: int | None = None) -> TextEvalResults:
                 answer="",
                 errors=[error],
             )
+        elif not sql_results:
+            case = TextCaseResult(
+                question=q.text,
+                answer=answer,
+                errors=["No SQL results - skipping RAGAS"],
+            )
         else:
             # Run RAGAS evaluation
-            contexts = [json.dumps(sql_results, default=str)] if sql_results else []
+            contexts = [json.dumps(sql_results, default=str)]
             ref_answer = q.expected_answer
             ragas = evaluate_single(q.text, answer, contexts, reference_answer=ref_answer)
             nan_metrics = cast(list[str], ragas.get("nan_metrics", []))

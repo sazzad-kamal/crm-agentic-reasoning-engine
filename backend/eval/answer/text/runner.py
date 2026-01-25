@@ -43,19 +43,26 @@ def run_text_eval(limit: int | None = None) -> TextEvalResults:
         else:
             # Run RAGAS evaluation
             contexts = [json.dumps(sql_results, default=str)]
-            ref_answer = q.expected_answer
-            ragas = evaluate_single(q.text, answer, contexts, reference_answer=ref_answer)
-            nan_metrics = cast(list[str], ragas.get("nan_metrics", []))
+            try:
+                ragas = evaluate_single(q.text, answer, contexts, q.expected_answer)
+                nan_metrics = cast(list[str], ragas.get("nan_metrics", []))
 
-            case = TextCaseResult(
-                question=q.text,
-                answer=answer,
-                faithfulness_score=cast(float, ragas["faithfulness"]),
-                relevance_score=cast(float, ragas["answer_relevancy"]),
-                answer_correctness_score=cast(float, ragas.get("answer_correctness", 0.0)),
-                ragas_metrics_total=3 if ref_answer else 2,
-                ragas_metrics_failed=len(nan_metrics),
-            )
+                case = TextCaseResult(
+                    question=q.text,
+                    answer=answer,
+                    faithfulness_score=cast(float, ragas["faithfulness"]),
+                    relevance_score=cast(float, ragas["answer_relevancy"]),
+                    answer_correctness_score=cast(float, ragas["answer_correctness"]),
+                    ragas_metrics_total=3,
+                    ragas_metrics_failed=len(nan_metrics),
+                )
+            except Exception as e:
+                logger.warning(f"RAGAS evaluation failed: {e}")
+                case = TextCaseResult(
+                    question=q.text,
+                    answer=answer,
+                    errors=[f"RAGAS failed: {e}"],
+                )
 
         results.cases.append(case)
         status = "PASS" if case.passed else "FAIL"

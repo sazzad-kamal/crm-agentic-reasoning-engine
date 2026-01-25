@@ -2250,107 +2250,91 @@ class TestRagasEvaluateSingle:
 
     @pytest.mark.no_mock_llm
     def test_evaluate_single_empty_contexts(self, monkeypatch):
-        """Test evaluate_single with empty contexts (line 196)."""
+        """Test evaluate_single with empty contexts."""
+        from unittest.mock import MagicMock, patch
+
         import pandas as pd
 
         from backend.eval.answer.text import ragas
 
-        # Mock _run_evaluation_with_retry to avoid actual API calls
-        mock_result = {
-            "answer_relevancy": 0.85,
-            "faithfulness": 0.90,
-            "answer_correctness": 0.0,
-            "error": None,
-            "nan_metrics": [],
-        }
-        monkeypatch.setattr(ragas, "_run_evaluation_with_retry", lambda d, m: mock_result)
+        # Create a DataFrame to return
+        df = pd.DataFrame({
+            "answer_relevancy": [0.85],
+            "faithfulness": [0.90],
+            "answer_correctness": [0.75],
+        })
 
-        result = ragas.evaluate_single(
-            question="What is the capital?",
-            answer="Paris",
-            contexts=[],  # Empty contexts
-        )
+        mock_eval_result = MagicMock()
+        mock_eval_result.to_pandas.return_value = df
+
+        with patch.object(ragas, "evaluate", return_value=mock_eval_result):
+            with patch.object(ragas, "_evaluators", return_value=(MagicMock(), MagicMock(), MagicMock())):
+                result = ragas.evaluate_single(
+                    question="What is the capital?",
+                    answer="Paris",
+                    contexts=[],  # Empty contexts
+                    reference_answer="Paris is the capital of France",
+                )
 
         # Should still return valid scores
         assert "answer_relevancy" in result
 
     @pytest.mark.no_mock_llm
-    def test_evaluate_single_verbose_mode(self, monkeypatch):
-        """Test evaluate_single with verbose=True (line 208)."""
-        from backend.eval.answer.text import ragas
-
-        # Mock _run_evaluation_with_retry
-        mock_result = {
-            "answer_relevancy": 0.85,
-            "faithfulness": 0.90,
-            "answer_correctness": 0.0,
-            "error": None,
-            "nan_metrics": [],
-        }
-        monkeypatch.setattr(ragas, "_run_evaluation_with_retry", lambda d, m: mock_result)
-
-        result = ragas.evaluate_single(
-            question="Test?",
-            answer="Answer",
-            contexts=["Context"],
-            verbose=True,  # Verbose mode
-        )
-
-        assert "answer_relevancy" in result
-
-    @pytest.mark.no_mock_llm
     def test_evaluate_single_with_nan_metrics(self, monkeypatch):
-        """Test evaluate_single with NaN metrics (lines 213-218)."""
+        """Test evaluate_single tracks NaN metrics."""
+        from unittest.mock import MagicMock, patch
+
+        import pandas as pd
+
         from backend.eval.answer.text import ragas
 
-        # Mock _run_evaluation_with_retry to return NaN metrics
-        mock_result = {
-            "answer_relevancy": 0.0,
-            "faithfulness": 0.0,
-            "answer_correctness": 0.0,
-            "error": None,
-            "nan_metrics": ["faithfulness", "answer_relevancy"],
-        }
-        monkeypatch.setattr(ragas, "_run_evaluation_with_retry", lambda d, m: mock_result)
+        # Create a DataFrame with NaN values
+        df = pd.DataFrame({
+            "answer_relevancy": [float("nan")],
+            "faithfulness": [0.90],
+            "answer_correctness": [0.75],
+        })
 
-        result = ragas.evaluate_single(
-            question="Test?",
-            answer="Answer",
-            contexts=["Context"],
-        )
+        mock_eval_result = MagicMock()
+        mock_eval_result.to_pandas.return_value = df
 
-        # Should have error message about NaN metrics
-        assert result.get("error") is not None
-        assert "NaN" in result["error"]
+        with patch.object(ragas, "evaluate", return_value=mock_eval_result):
+            with patch.object(ragas, "_evaluators", return_value=(MagicMock(), MagicMock(), MagicMock())):
+                result = ragas.evaluate_single(
+                    question="Test?",
+                    answer="Answer",
+                    contexts=["Context"],
+                    reference_answer="Expected answer",
+                )
+
+        # Should track nan_metrics
+        assert "answer_relevancy" in result["nan_metrics"]
+        assert result["answer_relevancy"] == 0.0
 
     @pytest.mark.no_mock_llm
-    def test_get_ragas_metrics_with_reference(self, monkeypatch):
-        """Test _get_ragas_metrics with include_reference=True (line 137)."""
-        from unittest.mock import MagicMock
+    def test_evaluators_returns_three_metrics(self, monkeypatch):
+        """Test _evaluators returns 3 metrics."""
+        from unittest.mock import MagicMock, patch
 
         from backend.eval.answer.text import ragas
 
-        # Clear the cache first to test fresh instantiation
-        ragas._get_ragas_metrics.cache_clear()
-
-        # Mock the LLM and embeddings
-        mock_llm = MagicMock()
-        mock_embeddings = MagicMock()
-        monkeypatch.setattr(ragas, "_get_ragas_llm", lambda: mock_llm)
-        monkeypatch.setattr(ragas, "_get_ragas_embeddings", lambda: mock_embeddings)
-
-        metrics = ragas._get_ragas_metrics(include_reference=True)
+        # Mock the LLM and embeddings at module level
+        with patch.object(ragas, "get_langchain_chat_openai", return_value=MagicMock()):
+            with patch.object(ragas, "get_langchain_embeddings", return_value=MagicMock()):
+                # Clear cache and get fresh evaluators
+                ragas._evaluators.cache_clear()
+                metrics = ragas._evaluators()
 
         # Should have 3 metrics: AnswerRelevancy, Faithfulness, AnswerCorrectness
         assert len(metrics) == 3
 
         # Clean up cache
-        ragas._get_ragas_metrics.cache_clear()
+        ragas._evaluators.cache_clear()
 
     @pytest.mark.no_mock_llm
     def test_extract_scores_with_nan_values(self, monkeypatch):
-        """Test _extract_scores with NaN values (lines 143-154)."""
-        import math
+        """Test _extract_scores with NaN values."""
+        from unittest.mock import MagicMock
 
         import pandas as pd
 
@@ -2363,7 +2347,11 @@ class TestRagasEvaluateSingle:
             "answer_correctness": [None],
         })
 
-        result = ragas._extract_scores(df)
+        # Create mock eval_result that returns the DataFrame
+        mock_eval_result = MagicMock()
+        mock_eval_result.to_pandas.return_value = df
+
+        result = ragas._extract_scores(mock_eval_result)
 
         # NaN and None values should be converted to 0.0
         assert result["answer_relevancy"] == 0.0
@@ -2414,7 +2402,6 @@ class TestIntegrationRunnerEmptyContext:
             answer="Answer",
             contexts=[],
             expected_answer=None,
-            verbose=False,
         )
 
         assert result["relevance"] == 0.0

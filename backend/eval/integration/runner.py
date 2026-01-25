@@ -45,7 +45,6 @@ def judge_answer(
     answer: str,
     contexts: list[str],
     reference_answer: str | None = None,
-    verbose: bool = False,
     timeout: int = RAGAS_TIMEOUT_SECONDS,
 ) -> dict:
     """Judge an answer using RAGAS metrics with timeout."""
@@ -54,7 +53,7 @@ def judge_answer(
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(
                 evaluate_single, question, answer, contexts,
-                reference_answer=reference_answer, verbose=verbose
+                reference_answer or ""
             )
             result = future.result(timeout=timeout)
 
@@ -119,7 +118,6 @@ def _evaluate_ragas(
     answer: str,
     contexts: list[str],
     expected_answer: str | None,
-    verbose: bool,
 ) -> RagasMetrics:
     """Run RAGAS evaluation for answer quality metrics."""
     if not contexts:
@@ -132,7 +130,7 @@ def _evaluate_ragas(
             "ragas_metrics_failed": 0,
         }
 
-    result = judge_answer(question, answer, contexts, reference_answer=expected_answer, verbose=verbose)
+    result = judge_answer(question, answer, contexts, reference_answer=expected_answer)
     return {
         "relevance": result["relevance"],
         "faithfulness": result["faithfulness"],
@@ -195,7 +193,7 @@ def test_single_question(
             "ragas_metrics_failed": 0,
         }
         if use_judge and has_answer:
-            ragas = _evaluate_ragas(question, answer, contexts, expected_answer, verbose)
+            ragas = _evaluate_ragas(question, answer, contexts, expected_answer)
 
         return FlowStepResult(
             question=question,

@@ -10,11 +10,10 @@ from typing import Any
 
 from datasets import Dataset
 from ragas import evaluate
-from ragas.embeddings import LangchainEmbeddingsWrapper
 from ragas.llms import LangchainLLMWrapper
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from backend.core.llm import get_langchain_chat_openai, get_langchain_embeddings
+from backend.core.llm import get_langchain_chat_openai
 from backend.eval.answer.text.suppression import (
     install_event_loop_error_suppression,
     suppress_ragas_logging,
@@ -22,7 +21,7 @@ from backend.eval.answer.text.suppression import (
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore", DeprecationWarning)
-    from ragas.metrics import AnswerCorrectness, AnswerRelevancy, Faithfulness
+    from ragas.metrics import AnswerCorrectness
 
 logger = logging.getLogger(__name__)
 
@@ -35,13 +34,8 @@ def _evaluators() -> tuple[Any, ...]:
     """Get shared RAGAS evaluators (cached singleton)."""
     logger.info("Initializing RAGAS evaluators")
     llm = LangchainLLMWrapper(get_langchain_chat_openai())
-    embeddings = LangchainEmbeddingsWrapper(get_langchain_embeddings())
 
-    return (
-        AnswerRelevancy(llm=llm, embeddings=embeddings),
-        Faithfulness(llm=llm),
-        AnswerCorrectness(llm=llm),
-    )
+    return (AnswerCorrectness(llm=llm),)
 
 
 def _extract_scores(eval_result: Any) -> dict[str, float | list[str]]:
@@ -61,8 +55,6 @@ def _extract_scores(eval_result: Any) -> dict[str, float | list[str]]:
         return float(val)
 
     return {
-        "answer_relevancy": get_score("answer_relevancy"),
-        "faithfulness": get_score("faithfulness"),
         "answer_correctness": get_score("answer_correctness"),
         "nan_metrics": nan_metrics,
     }

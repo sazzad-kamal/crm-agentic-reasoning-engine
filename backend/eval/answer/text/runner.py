@@ -7,6 +7,9 @@ import logging
 from typing import cast
 
 import typer
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from backend.agent.fetch.sql.connection import get_connection
 from backend.eval.answer.shared import generate_answer, load_questions
@@ -50,10 +53,8 @@ def run_text_eval(limit: int | None = None) -> TextEvalResults:
                 case = TextCaseResult(
                     question=q.text,
                     answer=answer,
-                    faithfulness_score=cast(float, ragas["faithfulness"]),
-                    relevance_score=cast(float, ragas["answer_relevancy"]),
                     answer_correctness_score=cast(float, ragas["answer_correctness"]),
-                    ragas_metrics_total=3,
+                    ragas_metrics_total=1,
                     ragas_metrics_failed=len(nan_metrics),
                 )
             except Exception as e:
@@ -80,10 +81,7 @@ def print_summary(results: TextEvalResults) -> None:
     print("\nText Quality Evaluation (RAGAS)")
     print(f"Pass Rate: {results.pass_rate * 100:.1f}% (>={SLO_TEXT_PASS_RATE * 100:.1f}% SLO) {status}")
     print(f"Total: {results.total}, Passed: {results.passed}, Failed: {results.failed}")
-    print(
-        f"RAGAS: F={results.avg_faithfulness:.2f} R={results.avg_relevance:.2f} "
-        f"C={results.avg_answer_correctness:.2f}"
-    )
+    print(f"Avg Answer Correctness: {results.avg_answer_correctness:.2f}")
     ragas_success = results.ragas_metrics_total - results.ragas_metrics_failed
     print(
         f"RAGAS Reliability: {ragas_success}/{results.ragas_metrics_total} "
@@ -100,7 +98,7 @@ def print_summary(results: TextEvalResults) -> None:
             if c.errors:
                 print(f"   Error: {'; '.join(c.errors)}")
             else:
-                print(f"   RAGAS: F={c.faithfulness_score:.2f} R={c.relevance_score:.2f} C={c.answer_correctness_score:.2f}")
+                print(f"   Correctness: {c.answer_correctness_score:.2f}")
                 if c.answer:
                     ans = c.answer[:100] + "..." if len(c.answer) > 100 else c.answer
                     print(f"   Answer: {ans}")

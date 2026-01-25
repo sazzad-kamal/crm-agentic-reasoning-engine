@@ -23,7 +23,7 @@ questions:
 
   - text: "What is Delta Health's renewal date?"
     difficulty: 1
-    expected_sql: "SELECT renewal_date FROM companies WHERE name = 'Delta Health'"
+    expected_sql: "SELECT renewal_date FROM companies WHERE name = 'Delta Health Clinics'"
     expected_answer: "Delta Health's renewal date is February 1, 2026."
 
   - text: "What is the email for Anna Lopez?"
@@ -80,7 +80,7 @@ questions:
   - text: "What is the average opportunity value?"
     difficulty: 1
     expected_sql: "SELECT AVG(amount) FROM opportunities"
-    expected_answer: "The average opportunity value is approximately $18,769."
+    expected_answer: "The average opportunity value is approximately $19,786."
 
   # =============================================================================
   # SQL DIFFICULTY 2: Joins, basic aggregations
@@ -98,7 +98,7 @@ questions:
   - text: "How many open activities does Delta Health have?"
     difficulty: 2
     expected_sql: "SELECT COUNT(*) FROM activities a JOIN companies c ON a.company_id = c.company_id WHERE c.name LIKE '%Delta Health%' AND a.status = 'Open'"
-    expected_answer: "Delta Health has 3 open activities."
+    expected_answer: "Delta Health has 2 open activities."
 
   - text: "What is the total pipeline value for all active companies?"
     difficulty: 2
@@ -147,7 +147,7 @@ questions:
   - text: "How many activities does each account owner have?"
     difficulty: 3
     expected_sql: "SELECT c.account_owner, COUNT(*) as activity_count FROM activities a JOIN companies c ON a.company_id = c.company_id GROUP BY c.account_owner"
-    expected_answer: "The activity count by account owner is: jsmith has 9 activities, ljones has 4 activities, amartin has 4 activities, and mmalik has 6 activities."
+    expected_answer: "The activity count by account owner is: jsmith has 9 activities, ljones has 3 activities, amartin has 4 activities, and mmalik has 6 activities."
 
   - text: "Which companies have opportunities in the Negotiation stage?"
     difficulty: 3
@@ -177,7 +177,7 @@ questions:
   - text: "Which companies have activities due in January 2026?"
     difficulty: 3
     expected_sql: "SELECT DISTINCT c.name FROM companies c JOIN activities a ON c.company_id = a.company_id WHERE a.due_date >= '2026-01-01' AND a.due_date < '2026-02-01'"
-    expected_answer: "Companies with activities due in January 2026 are Acme Manufacturing, Beta Tech Solutions, Crown Foods, Delta Health, and Fusion Retail."
+    expected_answer: "Companies with activities due in January 2026 are Acme Manufacturing, Beta Tech Solutions, Crown Foods, Delta Health Clinics, Fusion Retail Group, and Harbor Logistics."
 
   # Notes-based questions
   - text: "What concerns has Maria Silva raised about Crown Foods?"

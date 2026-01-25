@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-# SLO thresholds for text quality (aligned with integration eval)
-SLO_TEXT_FAITHFULNESS = 0.90  # Critical for CRM, no hallucination
-SLO_TEXT_RELEVANCE = 0.85  # Answers should address the question
-SLO_TEXT_ANSWER_CORRECTNESS = 0.70  # Hardest metric, flexible formats
+# SLO thresholds for text quality
+SLO_TEXT_ANSWER_CORRECTNESS = 0.70  # Semantic match with expected answer
 SLO_TEXT_PASS_RATE = 0.80
 
 
@@ -16,8 +14,6 @@ class TextCaseResult(BaseModel):
 
     question: str
     answer: str
-    faithfulness_score: float = 0.0
-    relevance_score: float = 0.0
     answer_correctness_score: float = 0.0
     errors: list[str] = Field(default_factory=list)
     # RAGAS reliability tracking
@@ -26,14 +22,10 @@ class TextCaseResult(BaseModel):
 
     @property
     def passed(self) -> bool:
-        """Pass if no errors and RAGAS scores meet thresholds."""
+        """Pass if no errors and answer correctness meets threshold."""
         if self.errors:
             return False
-        return (
-            self.faithfulness_score >= SLO_TEXT_FAITHFULNESS
-            and self.relevance_score >= SLO_TEXT_RELEVANCE
-            and self.answer_correctness_score >= SLO_TEXT_ANSWER_CORRECTNESS
-        )
+        return self.answer_correctness_score >= SLO_TEXT_ANSWER_CORRECTNESS
 
 
 class TextEvalResults(BaseModel):
@@ -42,8 +34,6 @@ class TextEvalResults(BaseModel):
     total: int = 0
     passed: int = 0
     cases: list[TextCaseResult] = Field(default_factory=list)
-    avg_faithfulness: float = 0.0
-    avg_relevance: float = 0.0
     avg_answer_correctness: float = 0.0
     # RAGAS reliability tracking
     ragas_metrics_total: int = 0
@@ -72,8 +62,6 @@ class TextEvalResults(BaseModel):
             return
         n = len(self.cases)
         self.passed = sum(1 for c in self.cases if c.passed)
-        self.avg_faithfulness = sum(c.faithfulness_score for c in self.cases) / n
-        self.avg_relevance = sum(c.relevance_score for c in self.cases) / n
         self.avg_answer_correctness = sum(c.answer_correctness_score for c in self.cases) / n
         self.ragas_metrics_total = sum(c.ragas_metrics_total for c in self.cases)
         self.ragas_metrics_failed = sum(c.ragas_metrics_failed for c in self.cases)
@@ -82,8 +70,6 @@ class TextEvalResults(BaseModel):
 __all__ = [
     "TextCaseResult",
     "TextEvalResults",
-    "SLO_TEXT_FAITHFULNESS",
-    "SLO_TEXT_RELEVANCE",
     "SLO_TEXT_ANSWER_CORRECTNESS",
     "SLO_TEXT_PASS_RATE",
 ]

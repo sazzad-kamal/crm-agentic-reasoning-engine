@@ -1609,11 +1609,11 @@ class TestJudgeModule:
     """Extended tests for judge module."""
 
     def test_suppress_event_loop_closed_errors(self):
-        """Test _suppress_event_loop_closed_errors doesn't crash."""
-        from backend.eval.answer.text.ragas import _suppress_event_loop_closed_errors
+        """Test install_event_loop_error_suppression doesn't crash."""
+        from backend.eval.answer.text.suppression import install_event_loop_error_suppression
 
         # Should not raise
-        _suppress_event_loop_closed_errors()
+        install_event_loop_error_suppression()
 
 
 # =============================================================================
@@ -2202,12 +2202,12 @@ class TestRagasSuppression:
     """Tests for RAGAS error suppression in ragas.py."""
 
     def test_suppress_event_loop_closed_errors_already_run(self):
-        """Test that _suppress_event_loop_closed_errors can be called multiple times."""
-        from backend.eval.answer.text import ragas
+        """Test that install_event_loop_error_suppression can be called multiple times."""
+        from backend.eval.answer.text.suppression import install_event_loop_error_suppression
 
         # The function should already have been called at import time
         # Calling it again should not raise
-        ragas._suppress_event_loop_closed_errors()
+        install_event_loop_error_suppression()
 
     def test_event_loop_closed_filter(self):
         """Test EventLoopClosedFilter filters correctly."""

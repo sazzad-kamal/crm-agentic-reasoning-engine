@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field, computed_field
 
+# SLO thresholds for text quality
+SLO_TEXT_FAITHFULNESS = 0.6
+SLO_TEXT_RELEVANCE = 0.6
+SLO_TEXT_PASS_RATE = 0.80
+
 
 class TextCaseResult(BaseModel):
     """Result for a single text evaluation case."""
@@ -24,7 +29,7 @@ class TextCaseResult(BaseModel):
         """Pass if no errors and RAGAS scores meet thresholds."""
         if self.errors:
             return False
-        return self.faithfulness_score >= 0.6 and self.relevance_score >= 0.6
+        return self.faithfulness_score >= SLO_TEXT_FAITHFULNESS and self.relevance_score >= SLO_TEXT_RELEVANCE
 
 
 class TextEvalResults(BaseModel):

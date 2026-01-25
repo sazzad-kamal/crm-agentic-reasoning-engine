@@ -70,7 +70,7 @@ questions:
   - text: "Which companies have at-risk health status?"
     difficulty: 1
     expected_sql: "SELECT name FROM companies WHERE health_status LIKE '%at-risk%'"
-    expected_answer: "The companies with at-risk health status are Crown Foods and Delta Health."
+    expected_answer: "The companies with at-risk health status are Crown Foods and Delta Health Clinics."
 
   - text: "How many contacts have the role Champion?"
     difficulty: 1
@@ -201,7 +201,7 @@ questions:
   - text: "Which opportunities have value above the average?"
     difficulty: 4
     expected_sql: "SELECT name, amount FROM opportunities WHERE amount > (SELECT AVG(amount) FROM opportunities)"
-    expected_answer: "Opportunities with value above the average ($18,769) are: Beta Tech New rollout ($32,000), Acme Manufacturing Annual renewal ($24,000), Delta Health Renewal ($22,000), Green Energy Renewal 2025 ($20,000), Green Energy Solar division rollout ($35,000), Harbor Logistics Initial rollout ($26,000), and Fusion Retail Annual renewal ($28,000)."
+    expected_answer: "Opportunities with value above the average ($19,786) are: Green Energy Solar division rollout ($35,000), Beta Tech New rollout ($32,000), Fusion Retail Annual renewal ($28,000), Harbor Logistics Initial rollout ($26,000), Acme Manufacturing Annual renewal ($24,000), Delta Health Renewal ($22,000), and Green Energy Renewal 2025 ($20,000)."
 
   - text: "Which companies have more than one opportunity?"
     difficulty: 4
@@ -231,7 +231,7 @@ questions:
   - text: "What is the minimum and maximum opportunity value for companies with active status?"
     difficulty: 4
     expected_sql: "SELECT MIN(o.amount) as min_value, MAX(o.amount) as max_value FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE c.status = 'Active'"
-    expected_answer: "For companies with active status, the minimum opportunity value is $8,000 (Beta Tech Analytics add-on) and the maximum is $28,000 (Fusion Retail Annual renewal)."
+    expected_answer: "For companies with active status, the minimum opportunity value is $8,000 (Beta Tech Analytics add-on) and the maximum is $32,000 (Beta Tech New rollout)."
 
   - text: "Which account owners manage companies with total pipeline over $30k?"
     difficulty: 4
@@ -305,7 +305,7 @@ questions:
   - text: "Which account owners have the highest win rate on opportunities?"
     difficulty: 5
     expected_sql: "SELECT o.owner, COUNT(CASE WHEN stage = 'Closed Won' THEN 1 END) * 100.0 / COUNT(*) as win_rate FROM opportunities o WHERE o.stage IN ('Closed Won', 'Closed Lost') GROUP BY o.owner ORDER BY win_rate DESC"
-    expected_answer: "Based on closed opportunities, jsmith has a 33% win rate (1 won out of 3 closed), while ljones has a 0% win rate (0 won out of 2 closed, both from Green Energy churn)."
+    expected_answer: "Based on closed opportunities, jsmith has the highest win rate at 100% (1 won out of 1 closed), while ljones has a 0% win rate (0 won out of 2 closed, both from Green Energy churn)."
 
   - text: "What is the cumulative opportunity value for each company ordered by opportunity amount?"
     difficulty: 5

@@ -11,7 +11,6 @@ class ActionCaseResult(BaseModel):
     question: str
     answer: str
     suggested_action: str | None
-    latency_ms: int
     relevance: float = 0.0
     actionability: float = 0.0
     appropriateness: float = 0.0
@@ -37,7 +36,6 @@ class ActionEvalResults(BaseModel):
     avg_relevance: float = 0.0
     avg_actionability: float = 0.0
     avg_appropriateness: float = 0.0
-    avg_latency_ms: float = 0.0
 
     @property
     def failed(self) -> int:
@@ -62,8 +60,6 @@ class ActionEvalResults(BaseModel):
         """Compute aggregate metrics from individual case results."""
         if not self.cases:
             return
-        n = len(self.cases)
-        self.avg_latency_ms = sum(c.latency_ms for c in self.cases) / n
 
         # Action metrics (only for cases with actions)
         action_cases = [c for c in self.cases if c.suggested_action]

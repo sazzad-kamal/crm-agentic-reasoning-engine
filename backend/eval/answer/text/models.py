@@ -10,7 +10,6 @@ class TextCaseResult(BaseModel):
 
     question: str
     answer: str
-    latency_ms: int
     faithfulness_score: float = 0.0
     relevance_score: float = 0.0
     answer_correctness_score: float = 0.0
@@ -34,7 +33,6 @@ class TextEvalResults(BaseModel):
     avg_faithfulness: float = 0.0
     avg_relevance: float = 0.0
     avg_answer_correctness: float = 0.0
-    avg_latency_ms: float = 0.0
 
     @property
     def failed(self) -> int:
@@ -51,7 +49,6 @@ class TextEvalResults(BaseModel):
         if not self.cases:
             return
         n = len(self.cases)
-        self.avg_latency_ms = sum(c.latency_ms for c in self.cases) / n
         self.avg_faithfulness = sum(c.faithfulness_score for c in self.cases) / n
         self.avg_relevance = sum(c.relevance_score for c in self.cases) / n
         self.avg_answer_correctness = sum(c.answer_correctness_score for c in self.cases) / n

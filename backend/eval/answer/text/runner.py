@@ -26,13 +26,12 @@ def run_text_eval(limit: int | None = None, verbose: bool = False) -> TextEvalRe
     conn = get_connection()
 
     for q in questions:
-        answer, _, sql_results, latency_ms, error = generate_answer(q, conn)
+        answer, _, sql_results, error = generate_answer(q, conn)
 
         if error:
             case = TextCaseResult(
                 question=q.text,
                 answer="",
-                latency_ms=latency_ms,
                 errors=[error],
             )
         else:
@@ -44,7 +43,6 @@ def run_text_eval(limit: int | None = None, verbose: bool = False) -> TextEvalRe
             case = TextCaseResult(
                 question=q.text,
                 answer=answer,
-                latency_ms=latency_ms,
                 faithfulness_score=cast(float, ragas["faithfulness"]),
                 relevance_score=cast(float, ragas["answer_relevancy"]),
                 answer_correctness_score=cast(float, ragas.get("answer_correctness", 0.0)),
@@ -69,10 +67,7 @@ def print_summary(results: TextEvalResults) -> None:
 
     print("\nText Quality Evaluation (RAGAS)")
     print(f"Pass Rate: {results.pass_rate * 100:.1f}% (>=80.0% SLO) {status}")
-    print(
-        f"Total: {results.total}, Passed: {results.passed}, Failed: {results.failed}, "
-        f"Avg latency: {results.avg_latency_ms:.0f}ms"
-    )
+    print(f"Total: {results.total}, Passed: {results.passed}, Failed: {results.failed}")
     print(
         f"RAGAS: F={results.avg_faithfulness:.2f} R={results.avg_relevance:.2f} "
         f"C={results.avg_answer_correctness:.2f}"

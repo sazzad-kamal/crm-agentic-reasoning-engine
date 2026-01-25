@@ -24,14 +24,13 @@ def run_action_eval(limit: int | None = None, verbose: bool = False) -> ActionEv
     conn = get_connection()
 
     for q in questions:
-        answer, suggested_action, _, latency_ms, error = generate_answer(q, conn)
+        answer, suggested_action, _, error = generate_answer(q, conn)
 
         if error:
             case = ActionCaseResult(
                 question=q.text,
                 answer="",
                 suggested_action=None,
-                latency_ms=latency_ms,
                 errors=[error],
             )
         elif not suggested_action:
@@ -40,7 +39,6 @@ def run_action_eval(limit: int | None = None, verbose: bool = False) -> ActionEv
                 question=q.text,
                 answer=answer,
                 suggested_action=None,
-                latency_ms=latency_ms,
                 action_passed=True,
             )
         else:
@@ -50,7 +48,6 @@ def run_action_eval(limit: int | None = None, verbose: bool = False) -> ActionEv
                 question=q.text,
                 answer=answer,
                 suggested_action=suggested_action,
-                latency_ms=latency_ms,
                 relevance=rel,
                 actionability=act,
                 appropriateness=app,
@@ -78,10 +75,7 @@ def print_summary(results: ActionEvalResults) -> None:
 
     print("\nAction Quality Evaluation (LLM Judge)")
     print(f"Pass Rate: {results.pass_rate * 100:.1f}% (>=80.0% SLO) {status}")
-    print(
-        f"Total: {results.total}, Passed: {results.passed}, Failed: {results.failed}, "
-        f"Avg latency: {results.avg_latency_ms:.0f}ms"
-    )
+    print(f"Total: {results.total}, Passed: {results.passed}, Failed: {results.failed}")
     print(f"Actions: {results.total_with_actions} cases with actions ({results.action_pass_rate * 100:.0f}% pass)")
     if results.total_with_actions > 0:
         print(

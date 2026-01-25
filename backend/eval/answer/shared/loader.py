@@ -50,4 +50,4 @@ def generate_answer(
         return "", None, [], f"Error: {e}"
 
 
-__all__ = ["load_questions", "generate_answer", "QUESTIONS_PATH"]
+__all__ = ["load_questions", "generate_answer"]

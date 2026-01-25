@@ -70,12 +70,11 @@ class TestGenerateAnswer:
         q = Question(text="Test", difficulty=1, expected_sql="SELECT 1")
         mock_conn = MagicMock()
 
-        answer, action, results, latency, error = generate_answer(q, mock_conn)
+        answer, action, results, error = generate_answer(q, mock_conn)
 
         assert answer == "The answer is 1."
         assert action is None
         assert results == [{"value": 1}]
-        assert latency >= 0
         assert error is None
 
     def test_generate_answer_sql_error(self, monkeypatch):
@@ -94,7 +93,7 @@ class TestGenerateAnswer:
         q = Question(text="Test", difficulty=1, expected_sql="INVALID SQL")
         mock_conn = MagicMock()
 
-        answer, action, results, latency, error = generate_answer(q, mock_conn)
+        answer, action, results, error = generate_answer(q, mock_conn)
 
         assert answer == ""
         assert action is None
@@ -117,7 +116,7 @@ class TestGenerateAnswer:
         q = Question(text="Test", difficulty=1, expected_sql="SELECT 1")
         mock_conn = MagicMock()
 
-        answer, action, results, latency, error = generate_answer(q, mock_conn)
+        answer, action, results, error = generate_answer(q, mock_conn)
 
         assert answer == ""
         assert action is None
@@ -154,7 +153,7 @@ class TestGenerateAnswer:
         q = Question(text="What is the status?", difficulty=1, expected_sql="SELECT status FROM companies")
         mock_conn = MagicMock()
 
-        answer, action, results, latency, error = generate_answer(q, mock_conn)
+        answer, action, results, error = generate_answer(q, mock_conn)
 
         assert answer == "Status is Active."
         assert action == "Call customer"

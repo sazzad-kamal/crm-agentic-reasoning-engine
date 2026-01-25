@@ -27,7 +27,7 @@ class TestRunTextEval:
         mock_load.return_value = [
             Question(text="Q1", expected_sql="SELECT 1"),
         ]
-        mock_generate.return_value = ("Answer 1", None, [{"col": 1}], 100, None)
+        mock_generate.return_value = ("Answer 1", None, [{"col": 1}], None)
         mock_evaluate.return_value = {
             "faithfulness": 0.8,
             "answer_relevancy": 0.9,
@@ -55,7 +55,7 @@ class TestRunTextEval:
         mock_load.return_value = [
             Question(text="Q1", expected_sql="SELECT 1"),
         ]
-        mock_generate.return_value = ("", None, [], 50, "SQL error: timeout")
+        mock_generate.return_value = ("", None, [], "SQL error: timeout")
 
         results = run_text_eval()
 
@@ -80,7 +80,7 @@ class TestRunTextEval:
             Question(text="Q2", expected_sql="SELECT 2"),
             Question(text="Q3", expected_sql="SELECT 3"),
         ]
-        mock_generate.return_value = ("Answer", None, [{}], 100, None)
+        mock_generate.return_value = ("Answer", None, [{}], None)
         mock_evaluate.return_value = {
             "faithfulness": 0.8,
             "answer_relevancy": 0.9,
@@ -109,8 +109,8 @@ class TestRunTextEval:
             Question(text="Q2", expected_sql="SELECT 2"),
         ]
         mock_generate.side_effect = [
-            ("Answer 1", None, [{}], 100, None),
-            ("Answer 2", None, [{}], 200, None),
+            ("Answer 1", None, [{}], None),
+            ("Answer 2", None, [{}], None),
         ]
         mock_evaluate.side_effect = [
             {"faithfulness": 0.7, "answer_relevancy": 0.8, "answer_correctness": 0.75},
@@ -119,7 +119,6 @@ class TestRunTextEval:
 
         results = run_text_eval()
 
-        assert results.avg_latency_ms == 150.0
         assert results.avg_faithfulness == 0.8
         assert results.avg_relevance == 0.825
 
@@ -133,7 +132,6 @@ class TestPrintSummary:
         results.avg_faithfulness = 0.85
         results.avg_relevance = 0.90
         results.avg_answer_correctness = 0.88
-        results.avg_latency_ms = 150.0
 
         print_summary(results)
 
@@ -148,7 +146,6 @@ class TestPrintSummary:
             TextCaseResult(
                 question="Failed question",
                 answer="Bad answer",
-                latency_ms=100,
                 faithfulness_score=0.3,
                 relevance_score=0.4,
             )

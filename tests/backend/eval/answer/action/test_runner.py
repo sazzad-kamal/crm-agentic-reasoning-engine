@@ -27,7 +27,7 @@ class TestRunActionEval:
         mock_load.return_value = [
             Question(text="Q1", expected_sql="SELECT 1"),
         ]
-        mock_generate.return_value = ("Answer 1", "Send email to client", [{}], 100, None)
+        mock_generate.return_value = ("Answer 1", "Send email to client", [{}], None)
         mock_judge.return_value = (True, 0.8, 0.9, 0.85, "Good action")
 
         results = run_action_eval()
@@ -51,7 +51,7 @@ class TestRunActionEval:
         mock_load.return_value = [
             Question(text="Q1", expected_sql="SELECT 1"),
         ]
-        mock_generate.return_value = ("Answer 1", None, [{}], 100, None)
+        mock_generate.return_value = ("Answer 1", None, [{}], None)
 
         results = run_action_eval()
 
@@ -74,7 +74,7 @@ class TestRunActionEval:
         mock_load.return_value = [
             Question(text="Q1", expected_sql="SELECT 1"),
         ]
-        mock_generate.return_value = ("", None, [], 50, "SQL error: timeout")
+        mock_generate.return_value = ("", None, [], "SQL error: timeout")
 
         results = run_action_eval()
 
@@ -99,7 +99,7 @@ class TestRunActionEval:
             Question(text="Q2", expected_sql="SELECT 2"),
             Question(text="Q3", expected_sql="SELECT 3"),
         ]
-        mock_generate.return_value = ("Answer", "Action", [{}], 100, None)
+        mock_generate.return_value = ("Answer", "Action", [{}], None)
         mock_judge.return_value = (True, 0.8, 0.9, 0.85, "Good")
 
         results = run_action_eval(limit=2)
@@ -124,8 +124,8 @@ class TestRunActionEval:
             Question(text="Q2", expected_sql="SELECT 2"),
         ]
         mock_generate.side_effect = [
-            ("Answer 1", "Action 1", [{}], 100, None),
-            ("Answer 2", "Action 2", [{}], 200, None),
+            ("Answer 1", "Action 1", [{}], None),
+            ("Answer 2", "Action 2", [{}], None),
         ]
         mock_judge.side_effect = [
             (True, 0.7, 0.8, 0.9, "Good"),
@@ -134,7 +134,6 @@ class TestRunActionEval:
 
         results = run_action_eval()
 
-        assert results.avg_latency_ms == 150.0
         assert results.avg_relevance == 0.8  # (0.7 + 0.9) / 2
 
 
@@ -147,13 +146,11 @@ class TestPrintSummary:
         results.avg_relevance = 0.85
         results.avg_actionability = 0.90
         results.avg_appropriateness = 0.88
-        results.avg_latency_ms = 150.0
         results.cases = [
             ActionCaseResult(
                 question="Q",
                 answer="A",
                 suggested_action="Action",
-                latency_ms=100,
                 action_passed=True,
             )
             for _ in range(5)
@@ -173,7 +170,6 @@ class TestPrintSummary:
                 question="Failed question",
                 answer="Answer",
                 suggested_action="Bad action",
-                latency_ms=100,
                 relevance=0.3,
                 actionability=0.4,
                 appropriateness=0.5,

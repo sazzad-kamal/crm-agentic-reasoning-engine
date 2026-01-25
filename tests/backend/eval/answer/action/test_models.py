@@ -14,12 +14,10 @@ class TestActionCaseResult:
             question="Test question",
             answer="Test answer",
             suggested_action="Send email",
-            latency_ms=100,
         )
         assert case.question == "Test question"
         assert case.answer == "Test answer"
         assert case.suggested_action == "Send email"
-        assert case.latency_ms == 100
         assert case.errors == []
 
     def test_action_case_result_with_scores(self):
@@ -28,7 +26,6 @@ class TestActionCaseResult:
             question="Test question",
             answer="Test answer",
             suggested_action="Send email",
-            latency_ms=100,
             relevance=0.8,
             actionability=0.9,
             appropriateness=0.85,
@@ -45,7 +42,6 @@ class TestActionCaseResult:
             question="Test question",
             answer="Test answer",
             suggested_action="Send email",
-            latency_ms=100,
             action_passed=True,
         )
         assert case.passed is True
@@ -56,7 +52,6 @@ class TestActionCaseResult:
             question="Test question",
             answer="Test answer",
             suggested_action="Send email",
-            latency_ms=100,
             action_passed=False,
         )
         assert case.passed is False
@@ -67,7 +62,6 @@ class TestActionCaseResult:
             question="Test question",
             answer="Test answer",
             suggested_action=None,
-            latency_ms=100,
             action_passed=True,
         )
         assert case.passed is True
@@ -78,7 +72,6 @@ class TestActionCaseResult:
             question="Test question",
             answer="Test answer",
             suggested_action="Send email",
-            latency_ms=100,
             action_passed=True,
             errors=["SQL error"],
         )
@@ -119,28 +112,24 @@ class TestActionEvalResults:
                 question="Q1",
                 answer="A1",
                 suggested_action="Action 1",
-                latency_ms=100,
                 action_passed=True,
             ),
             ActionCaseResult(
                 question="Q2",
                 answer="A2",
                 suggested_action="Action 2",
-                latency_ms=100,
                 action_passed=True,
             ),
             ActionCaseResult(
                 question="Q3",
                 answer="A3",
                 suggested_action="Action 3",
-                latency_ms=100,
                 action_passed=False,
             ),
             ActionCaseResult(
                 question="Q4",
                 answer="A4",
                 suggested_action=None,
-                latency_ms=100,
                 action_passed=True,
             ),
         ]
@@ -158,7 +147,7 @@ class TestActionEvalResults:
         """Test compute_aggregates with empty cases."""
         results = ActionEvalResults()
         results.compute_aggregates()
-        assert results.avg_latency_ms == 0.0
+        assert results.avg_relevance == 0.0
 
     def test_action_eval_results_compute_aggregates(self):
         """Test compute_aggregates computes averages."""
@@ -168,7 +157,6 @@ class TestActionEvalResults:
                 question="Q1",
                 answer="A1",
                 suggested_action="Action 1",
-                latency_ms=100,
                 relevance=0.7,
                 actionability=0.8,
                 appropriateness=0.9,
@@ -177,7 +165,6 @@ class TestActionEvalResults:
                 question="Q2",
                 answer="A2",
                 suggested_action="Action 2",
-                latency_ms=200,
                 relevance=0.9,
                 actionability=0.85,
                 appropriateness=0.95,
@@ -186,12 +173,10 @@ class TestActionEvalResults:
                 question="Q3",
                 answer="A3",
                 suggested_action=None,  # No action
-                latency_ms=150,
             ),
         ]
         results.compute_aggregates()
 
-        assert results.avg_latency_ms == 150.0  # (100 + 200 + 150) / 3
         # Action metrics only from cases with actions (Q1, Q2)
         assert results.avg_relevance == 0.8  # (0.7 + 0.9) / 2
         assert results.avg_actionability == 0.825  # (0.8 + 0.85) / 2

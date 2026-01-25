@@ -5,10 +5,8 @@ from __future__ import annotations
 import argparse
 import time
 
-import yaml
-
 from backend.agent.followup.suggester import generate_follow_up_suggestions
-from backend.eval.answer.shared.loader import QUESTIONS_PATH
+from backend.eval.answer.shared.loader import load_questions as load_shared_questions
 from backend.eval.followup.judge import judge_followup_suggestions
 from backend.eval.followup.models import CaseResult, EvalResults, Question
 from backend.eval.shared.formatting import build_eval_table, console
@@ -16,13 +14,7 @@ from backend.eval.shared.formatting import build_eval_table, console
 
 def load_questions() -> list[Question]:
     """Load questions from shared YAML file."""
-    with open(QUESTIONS_PATH) as f:
-        data = yaml.safe_load(f)
-
-    return [
-        Question(text=item["text"])
-        for item in data.get("questions", [])
-    ]
+    return [Question(text=q.text) for q in load_shared_questions()]
 
 
 def run_followup_eval(

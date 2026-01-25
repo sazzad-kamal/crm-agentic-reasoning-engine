@@ -13,11 +13,9 @@ class TestTextCaseResult:
         case = TextCaseResult(
             question="Test question",
             answer="Test answer",
-            latency_ms=100,
         )
         assert case.question == "Test question"
         assert case.answer == "Test answer"
-        assert case.latency_ms == 100
         assert case.errors == []
 
     def test_text_case_result_with_scores(self):
@@ -25,7 +23,6 @@ class TestTextCaseResult:
         case = TextCaseResult(
             question="Test question",
             answer="Test answer",
-            latency_ms=100,
             faithfulness_score=0.8,
             relevance_score=0.9,
             answer_correctness_score=0.85,
@@ -39,7 +36,6 @@ class TestTextCaseResult:
         case = TextCaseResult(
             question="Test question",
             answer="Test answer",
-            latency_ms=100,
             faithfulness_score=0.8,
             relevance_score=0.9,
         )
@@ -50,7 +46,6 @@ class TestTextCaseResult:
         case = TextCaseResult(
             question="Test question",
             answer="Test answer",
-            latency_ms=100,
             faithfulness_score=0.5,  # Below 0.6 threshold
             relevance_score=0.9,
         )
@@ -61,7 +56,6 @@ class TestTextCaseResult:
         case = TextCaseResult(
             question="Test question",
             answer="Test answer",
-            latency_ms=100,
             faithfulness_score=0.8,
             relevance_score=0.5,  # Below 0.6 threshold
         )
@@ -72,7 +66,6 @@ class TestTextCaseResult:
         case = TextCaseResult(
             question="Test question",
             answer="Test answer",
-            latency_ms=100,
             faithfulness_score=0.8,
             relevance_score=0.9,
             errors=["SQL error"],
@@ -109,7 +102,7 @@ class TestTextEvalResults:
         """Test compute_aggregates with empty cases."""
         results = TextEvalResults()
         results.compute_aggregates()
-        assert results.avg_latency_ms == 0.0
+        assert results.avg_faithfulness == 0.0
 
     def test_text_eval_results_compute_aggregates(self):
         """Test compute_aggregates computes averages."""
@@ -118,7 +111,6 @@ class TestTextEvalResults:
             TextCaseResult(
                 question="Q1",
                 answer="A1",
-                latency_ms=100,
                 faithfulness_score=0.7,
                 relevance_score=0.8,
                 answer_correctness_score=0.75,
@@ -126,7 +118,6 @@ class TestTextEvalResults:
             TextCaseResult(
                 question="Q2",
                 answer="A2",
-                latency_ms=200,
                 faithfulness_score=0.9,
                 relevance_score=0.85,
                 answer_correctness_score=0.95,
@@ -134,7 +125,6 @@ class TestTextEvalResults:
         ]
         results.compute_aggregates()
 
-        assert results.avg_latency_ms == 150.0
         assert results.avg_faithfulness == 0.8
         assert results.avg_relevance == 0.825
         assert results.avg_answer_correctness == 0.85

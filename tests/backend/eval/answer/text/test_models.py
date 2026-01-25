@@ -123,3 +123,16 @@ class TestTextEvalResults:
 
         assert results.avg_answer_correctness == 0.85
         assert results.avg_answer_relevancy == 0.91
+
+    def test_text_eval_results_ragas_success_rate_with_metrics(self):
+        """Test ragas_success_rate when metrics are present."""
+        results = TextEvalResults(
+            ragas_metrics_total=10,
+            ragas_metrics_failed=2,
+        )
+        assert results.ragas_success_rate == 0.8
+
+    def test_text_eval_results_ragas_success_rate_zero_total(self):
+        """Test ragas_success_rate returns 1.0 when no metrics."""
+        results = TextEvalResults(ragas_metrics_total=0)
+        assert results.ragas_success_rate == 1.0

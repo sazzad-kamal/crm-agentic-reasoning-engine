@@ -5,6 +5,8 @@ Tests are organized by module to cover all uncovered lines.
 """
 
 import json
+import logging
+import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
@@ -268,6 +270,38 @@ class TestGetSqlPlan:
             assert "DATABASE SCHEMA" in call_kwargs["system_prompt"]
             assert call_kwargs["structured_output"] == SQLPlan
 
+    @pytest.mark.no_mock_llm
+    def test_get_sql_plan_with_conversation_history(self):
+        """get_sql_plan includes conversation history in prompt."""
+        from backend.agent.fetch.planner import SQLPlan, get_sql_plan
+
+        mock_result = SQLPlan(sql="SELECT 1")
+        mock_chain = self._mock_chain(mock_result)
+
+        with patch("backend.agent.fetch.planner.create_anthropic_chain", return_value=mock_chain):
+            get_sql_plan("Test question", conversation_history="Previous Q&A")
+
+            # Check that invoke was called with conversation history
+            call_args = mock_chain.invoke.call_args[0][0]
+            assert "CONVERSATION HISTORY" in call_args["conversation_history_section"]
+            assert "Previous Q&A" in call_args["conversation_history_section"]
+
+    @pytest.mark.no_mock_llm
+    def test_get_sql_plan_with_previous_error(self):
+        """get_sql_plan includes previous error in prompt."""
+        from backend.agent.fetch.planner import SQLPlan, get_sql_plan
+
+        mock_result = SQLPlan(sql="SELECT 1")
+        mock_chain = self._mock_chain(mock_result)
+
+        with patch("backend.agent.fetch.planner.create_anthropic_chain", return_value=mock_chain):
+            get_sql_plan("Test question", previous_error="Syntax error at line 1")
+
+            # Check that invoke was called with error context
+            call_args = mock_chain.invoke.call_args[0][0]
+            assert "PREVIOUS QUERY FAILED" in call_args["conversation_history_section"]
+            assert "Syntax error at line 1" in call_args["conversation_history_section"]
+
 
 # =============================================================================
 # answer/llm.py Tests
@@ -457,7 +491,26 @@ class TestConnectionMissingCsv:
 
 
 class TestSuggesterLlmFallback:
-    """Test suggester.py lines 93-94 - LLM fallback success path."""
+    """Test suggester.py follow-up suggestion paths."""
+
+    @pytest.mark.no_mock_llm
+    def test_generate_follow_up_suggestions_from_tree(self, monkeypatch):
+        """Test returning hardcoded follow-ups from tree (lines 71-72)."""
+        from backend.agent.followup import suggester
+
+        # Mock the hardcoded tree to return results
+        monkeypatch.setattr(
+            "backend.agent.followup.tree.get_follow_ups",
+            lambda q: ["Tree Q1?", "Tree Q2?"]
+        )
+
+        result = suggester.generate_follow_up_suggestions(
+            question="Some question",
+            use_hardcoded_tree=True,
+        )
+
+        # Should return hardcoded tree results without calling LLM
+        assert result == ["Tree Q1?", "Tree Q2?"]
 
     @pytest.mark.no_mock_llm
     def test_generate_follow_up_suggestions_llm_fallback(self, monkeypatch):
@@ -606,3 +659,529 @@ class TestFetchRunnerVerboseOutput:
         # Should have printed each error in the list
         assert not results.cases[0].passed
         assert mock_print.call_count >= 2  # At least case header and errors
+
+
+class TestLlmSingletons:
+    """Test core/llm.py cached singleton functions (lines 80, 86)."""
+
+    def test_get_langchain_chat_openai(self, monkeypatch):
+        """Test get_langchain_chat_openai returns ChatOpenAI instance."""
+        from backend.core import llm
+
+        # Clear the cache to ensure our test covers the return line
+        llm.get_langchain_chat_openai.cache_clear()
+
+        # Mock ChatOpenAI to avoid actual API calls
+        mock_instance = MagicMock()
+        with patch.object(llm, "ChatOpenAI", return_value=mock_instance) as mock_cls:
+            result = llm.get_langchain_chat_openai()
+
+            assert result == mock_instance
+            mock_cls.assert_called_once_with(model="gpt-5.2")
+
+    def test_get_langchain_embeddings(self, monkeypatch):
+        """Test get_langchain_embeddings returns OpenAIEmbeddings instance."""
+        from backend.core import llm
+
+        # Clear the cache to ensure our test covers the return line
+        llm.get_langchain_embeddings.cache_clear()
+
+        # Mock OpenAIEmbeddings to avoid actual API calls
+        mock_instance = MagicMock()
+        with patch.object(llm, "OpenAIEmbeddings", return_value=mock_instance) as mock_cls:
+            result = llm.get_langchain_embeddings()
+
+            assert result == mock_instance
+            mock_cls.assert_called_once_with(model="text-embedding-3-small")
+
+
+class TestActionRunner:
+    """Test eval/answer/action/runner.py coverage (lines 64-65, 94, 104, 112-113)."""
+
+    def test_run_action_eval_verbose_mode(self, monkeypatch):
+        """Test verbose mode prints PASS/FAIL status (lines 64-65)."""
+        from backend.eval.answer.action import runner
+        from backend.eval.answer.shared.models import Question
+
+        # Mock load_questions
+        questions = [Question(text="Test question?", expected_answer="test", difficulty=1, expected_sql="SELECT 1")]
+        monkeypatch.setattr(runner, "load_questions", lambda: questions)
+
+        # Mock connection
+        mock_conn = MagicMock()
+        monkeypatch.setattr(runner, "get_connection", lambda: mock_conn)
+
+        # Mock generate_answer - returns answer with no error
+        monkeypatch.setattr(runner, "generate_answer", lambda q, conn: ("Test answer", None, None, None))
+
+        with patch("builtins.print") as mock_print:
+            runner.run_action_eval(verbose=True)
+
+        # Should have printed PASS for the case
+        mock_print.assert_called()
+        call_args = [str(c) for c in mock_print.call_args_list]
+        assert any("PASS" in arg or "FAIL" in arg for arg in call_args)
+
+    def test_print_summary_with_errors(self, monkeypatch):
+        """Test print_summary shows errors for failed cases (line 94)."""
+        from backend.eval.answer.action.models import ActionCaseResult, ActionEvalResults
+
+        results = ActionEvalResults(total=1, passed=0)
+        results.cases = [
+            ActionCaseResult(
+                question="Test question with error?",
+                answer="",
+                suggested_action=None,
+                errors=["Database connection error"],
+            )
+        ]
+
+        from backend.eval.answer.action import runner
+
+        with patch("builtins.print") as mock_print:
+            runner.print_summary(results)
+
+        # Should print the error
+        call_str = " ".join(str(c) for c in mock_print.call_args_list)
+        assert "Database connection error" in call_str
+
+    def test_print_summary_more_than_10_failures(self, monkeypatch):
+        """Test print_summary shows 'and N more failures' (line 104)."""
+        from backend.eval.answer.action.models import ActionCaseResult, ActionEvalResults
+
+        # Create 15 failed cases
+        results = ActionEvalResults(total=15, passed=0)
+        results.cases = [
+            ActionCaseResult(
+                question=f"Question {i}?",
+                answer="",
+                suggested_action=None,
+                errors=["Error"],
+            )
+            for i in range(15)
+        ]
+
+        from backend.eval.answer.action import runner
+
+        with patch("builtins.print") as mock_print:
+            runner.print_summary(results)
+
+        # Should print "... and 5 more failures"
+        call_str = " ".join(str(c) for c in mock_print.call_args_list)
+        assert "5 more failures" in call_str
+
+    def test_main_function(self, monkeypatch):
+        """Test main function calls run and print (lines 112-113)."""
+        from backend.eval.answer.action import runner
+        from backend.eval.answer.action.models import ActionEvalResults
+
+        mock_results = ActionEvalResults(total=1, passed=1)
+
+        monkeypatch.setattr(runner, "run_action_eval", lambda **kwargs: mock_results)
+
+        with patch.object(runner, "print_summary") as mock_print:
+            runner.main(limit=None, verbose=False)
+
+        mock_print.assert_called_once_with(mock_results)
+
+
+class TestSuppressionFilters:
+    """Test eval/answer/text/suppression.py coverage (lines 26, 31, 56-58, 63-66, 71-72)."""
+
+    def test_event_loop_closed_filter_allows_normal_messages(self):
+        """Test _EventLoopClosedFilter allows non-event-loop messages (line 26)."""
+        from backend.eval.answer.text.suppression import _EventLoopClosedFilter
+
+        filt = _EventLoopClosedFilter()
+        record = logging.LogRecord(
+            name="test", level=logging.ERROR, pathname="", lineno=0,
+            msg="Normal error message", args=(), exc_info=None
+        )
+        # Should return True (allow message)
+        assert filt.filter(record) is True
+
+    def test_event_loop_closed_filter_blocks_event_loop_errors(self):
+        """Test _EventLoopClosedFilter blocks event loop closed messages."""
+        from backend.eval.answer.text.suppression import _EventLoopClosedFilter
+
+        filt = _EventLoopClosedFilter()
+        record = logging.LogRecord(
+            name="test", level=logging.ERROR, pathname="", lineno=0,
+            msg="Event loop is closed", args=(), exc_info=None
+        )
+        # Should return False (block message)
+        assert filt.filter(record) is False
+
+    def test_ragas_executor_filter_allows_normal_messages(self):
+        """Test _RagasExecutorFilter allows non-exception messages (line 31)."""
+        from backend.eval.answer.text.suppression import _RagasExecutorFilter
+
+        filt = _RagasExecutorFilter()
+        record = logging.LogRecord(
+            name="test", level=logging.ERROR, pathname="", lineno=0,
+            msg="Normal ragas message", args=(), exc_info=None
+        )
+        # Should return True (allow message)
+        assert filt.filter(record) is True
+
+    def test_ragas_executor_filter_blocks_job_exceptions(self):
+        """Test _RagasExecutorFilter blocks job exception messages."""
+        from backend.eval.answer.text.suppression import _RagasExecutorFilter
+
+        filt = _RagasExecutorFilter()
+        record = logging.LogRecord(
+            name="test", level=logging.ERROR, pathname="", lineno=0,
+            msg="Exception raised in Job[123]", args=(), exc_info=None
+        )
+        # Should return False (block message)
+        assert filt.filter(record) is False
+
+    def test_custom_excepthook_suppresses_event_loop_error(self, monkeypatch):
+        """Test custom_excepthook suppresses event loop closed errors (lines 56-58)."""
+        from backend.eval.answer.text import suppression
+
+        # Reset the suppression installed flag
+        monkeypatch.setattr(suppression, "_suppression_installed", False)
+
+        # Track whether original excepthook was called
+        original_called = []
+        original_hook = sys.excepthook
+
+        def tracking_hook(exc_type, exc_value, exc_tb):
+            original_called.append((exc_type, exc_value))
+
+        monkeypatch.setattr(sys, "excepthook", tracking_hook)
+
+        # Install suppression
+        suppression.install_event_loop_error_suppression()
+
+        # Test that event loop closed error is suppressed
+        new_hook = sys.excepthook
+        new_hook(RuntimeError, RuntimeError("Event loop is closed"), None)
+
+        # Original should NOT have been called
+        assert len(original_called) == 0
+
+        # Test that other errors are passed through
+        new_hook(ValueError, ValueError("Other error"), None)
+        assert len(original_called) == 1
+
+    def test_silent_exception_handler_suppresses_event_loop_error(self, monkeypatch):
+        """Test silent_exception_handler suppresses event loop closed (lines 63-66)."""
+        import asyncio
+
+        from backend.eval.answer.text import suppression
+
+        # Reset the suppression installed flag
+        monkeypatch.setattr(suppression, "_suppression_installed", False)
+
+        # Create a mock loop
+        mock_loop = MagicMock()
+        default_handler_calls = []
+        mock_loop.default_exception_handler = lambda ctx: default_handler_calls.append(ctx)
+
+        # Mock get_event_loop to return our mock
+        monkeypatch.setattr(asyncio, "get_event_loop", lambda: mock_loop)
+
+        # Install suppression
+        suppression.install_event_loop_error_suppression()
+
+        # Get the exception handler that was set
+        handler = mock_loop.set_exception_handler.call_args[0][0]
+
+        # Test: event loop closed error should be suppressed
+        handler(mock_loop, {"exception": RuntimeError("Event loop is closed")})
+        assert len(default_handler_calls) == 0
+
+        # Test: other errors should pass through
+        handler(mock_loop, {"exception": ValueError("Other error")})
+        assert len(default_handler_calls) == 1
+
+    def test_install_handles_no_event_loop(self, monkeypatch):
+        """Test install_event_loop_error_suppression handles no event loop (lines 71-72)."""
+        import asyncio
+
+        from backend.eval.answer.text import suppression
+
+        # Reset the suppression installed flag
+        monkeypatch.setattr(suppression, "_suppression_installed", False)
+
+        # Mock get_event_loop to raise RuntimeError
+        def raise_no_loop():
+            raise RuntimeError("No current event loop")
+
+        monkeypatch.setattr(asyncio, "get_event_loop", raise_no_loop)
+
+        # Should not raise - handles the RuntimeError gracefully
+        suppression.install_event_loop_error_suppression()
+
+
+class TestFetchRunnerStylisticErrors:
+    """Test eval/fetch/runner.py coverage (lines 85-88, 133)."""
+
+    def test_stylistic_errors_are_overridden_to_pass(self, monkeypatch, tmp_path):
+        """Test stylistic-only errors are allowed and case passes (lines 85-88)."""
+        from backend.eval.fetch import runner
+        from backend.eval.fetch.sql_judge import ErrorType, JudgeError
+
+        # Create minimal questions.yaml
+        questions_file = tmp_path / "questions.yaml"
+        questions_file.write_text(
+            "questions:\n  - text: Test?\n    difficulty: 1\n    expected_sql: SELECT 1\n"
+        )
+        monkeypatch.setattr(runner, "QUESTIONS_PATH", questions_file)
+
+        # Mock get_sql_plan to return a plan
+        mock_plan = MagicMock()
+        mock_plan.sql = "SELECT 1"
+        monkeypatch.setattr(runner, "get_sql_plan", lambda q, **kwargs: mock_plan)
+
+        # Mock connection
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = [(1,)]
+        mock_result.description = [("col1",)]
+        mock_conn = MagicMock()
+        mock_conn.execute.return_value = mock_result
+        monkeypatch.setattr(runner, "get_connection", lambda: mock_conn)
+
+        # Mock execute_sql to succeed
+        monkeypatch.setattr(runner, "execute_sql", lambda sql, conn: ([{"col1": 1}], None))
+
+        # Mock judge to return failed but with only stylistic errors
+        stylistic_errors = [
+            JudgeError(type=ErrorType.CASE_SENSITIVITY, description="Case diff"),
+            JudgeError(type=ErrorType.ALIAS_DIFF, description="Alias diff"),
+        ]
+        monkeypatch.setattr(
+            runner, "judge_sql_equivalence", lambda **kwargs: (False, stylistic_errors)
+        )
+
+        results = runner.run_sql_eval()
+
+        # Should pass because all errors are stylistic
+        assert results.passed == 1
+        assert results.cases[0].passed is True
+
+    def test_verbose_pass_output(self, monkeypatch, tmp_path):
+        """Test verbose mode prints PASS with row count (line 133)."""
+        from backend.eval.fetch import runner
+
+        # Create minimal questions.yaml
+        questions_file = tmp_path / "questions.yaml"
+        questions_file.write_text(
+            "questions:\n  - text: Test?\n    difficulty: 1\n    expected_sql: SELECT 1\n"
+        )
+        monkeypatch.setattr(runner, "QUESTIONS_PATH", questions_file)
+
+        # Mock get_sql_plan
+        mock_plan = MagicMock()
+        mock_plan.sql = "SELECT 1"
+        monkeypatch.setattr(runner, "get_sql_plan", lambda q, **kwargs: mock_plan)
+
+        # Mock connection
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = [(1,), (2,), (3,)]
+        mock_result.description = [("col1",)]
+        mock_conn = MagicMock()
+        mock_conn.execute.return_value = mock_result
+        monkeypatch.setattr(runner, "get_connection", lambda: mock_conn)
+
+        # Mock execute_sql to return 3 rows
+        monkeypatch.setattr(
+            runner, "execute_sql",
+            lambda sql, conn: ([{"col1": 1}, {"col1": 2}, {"col1": 3}], None)
+        )
+
+        # Mock judge to return passed
+        monkeypatch.setattr(runner, "judge_sql_equivalence", lambda **kwargs: (True, []))
+
+        with patch("builtins.print") as mock_print:
+            runner.run_sql_eval(verbose=True)
+
+        # Should have printed PASS with row count
+        call_str = " ".join(str(c) for c in mock_print.call_args_list)
+        assert "PASS" in call_str
+        assert "3 rows" in call_str
+
+
+class TestIntegrationMain:
+    """Test eval/integration/__main__.py coverage (lines 40-86)."""
+
+    def test_run_eval_basic_flow(self, monkeypatch, tmp_path):
+        """Test _run_eval basic flow (lines 40-69)."""
+        from backend.eval.integration import __main__ as main_module
+        from backend.eval.integration.models import FlowEvalResults
+
+        # Mock get_tree_stats
+        monkeypatch.setattr(
+            main_module, "get_tree_stats",
+            lambda: {"total": 10, "questions": 50}
+        )
+
+        # Mock run_flow_eval with all required fields
+        mock_results = FlowEvalResults(
+            total_paths=1,
+            paths_tested=1,
+            paths_passed=1,
+            paths_failed=0,
+            total_questions=3,
+            questions_passed=3,
+            questions_failed=0,
+        )
+        monkeypatch.setattr(
+            main_module, "run_flow_eval",
+            lambda **kwargs: mock_results
+        )
+
+        # Mock get_latency_percentages
+        monkeypatch.setattr(
+            main_module, "get_latency_percentages",
+            lambda **kwargs: {}
+        )
+
+        # Mock print_summary
+        monkeypatch.setattr(main_module, "print_summary", lambda r, **kwargs: None)
+
+        # Run - should not raise
+        main_module._run_eval(limit=1, verbose=False, no_judge=True, output=None, debug=False)
+
+    def test_run_eval_handles_exception(self, monkeypatch):
+        """Test _run_eval handles evaluation exception (lines 57-62)."""
+        from backend.eval.integration import __main__ as main_module
+
+        # Mock get_tree_stats
+        monkeypatch.setattr(
+            main_module, "get_tree_stats",
+            lambda: {"total": 10}
+        )
+
+        # Mock run_flow_eval to raise exception
+        def raise_error(**kwargs):
+            raise RuntimeError("Evaluation failed")
+
+        monkeypatch.setattr(main_module, "run_flow_eval", raise_error)
+
+        # Should not raise - handles exception internally
+        main_module._run_eval(limit=1, verbose=False, no_judge=True, output=None, debug=False)
+
+    def test_run_eval_debug_output(self, monkeypatch):
+        """Test _run_eval debug output for failing paths (lines 72-82)."""
+        from backend.eval.integration import __main__ as main_module
+        from backend.eval.integration.models import FlowEvalResults, FlowResult, FlowStepResult
+
+        # Mock get_tree_stats
+        monkeypatch.setattr(main_module, "get_tree_stats", lambda: {"total": 10})
+
+        # Create failed path with steps
+        failed_step = FlowStepResult(
+            question="What is the pipeline value?",
+            answer="The pipeline value is $100k",
+            latency_ms=1000,
+            has_answer=True,
+            relevance_score=0.5,
+            faithfulness_score=0.4,
+            judge_explanation="Answer does not match",
+        )
+        failed_path = FlowResult(
+            path_id=1,
+            questions=["What is the pipeline value?"],
+            steps=[failed_step],
+            total_latency_ms=1000,
+            success=False,
+        )
+
+        mock_results = FlowEvalResults(
+            total_paths=1,
+            paths_tested=1,
+            paths_passed=0,
+            paths_failed=1,
+            total_questions=1,
+            questions_passed=0,
+            questions_failed=1,
+        )
+        mock_results.failed_paths = [failed_path]
+
+        monkeypatch.setattr(main_module, "run_flow_eval", lambda **kwargs: mock_results)
+        monkeypatch.setattr(main_module, "get_latency_percentages", lambda **kwargs: {})
+        monkeypatch.setattr(main_module, "print_summary", lambda r, **kwargs: None)
+
+        # Run with debug=True
+        main_module._run_eval(limit=1, verbose=False, no_judge=True, output=None, debug=True)
+
+    def test_run_eval_saves_output(self, monkeypatch, tmp_path):
+        """Test _run_eval saves results to file (lines 85-86)."""
+        from backend.eval.integration import __main__ as main_module
+        from backend.eval.integration.models import FlowEvalResults
+
+        # Mock get_tree_stats
+        monkeypatch.setattr(main_module, "get_tree_stats", lambda: {"total": 10})
+
+        # Mock run_flow_eval with all required fields
+        mock_results = FlowEvalResults(
+            total_paths=1,
+            paths_tested=1,
+            paths_passed=1,
+            paths_failed=0,
+            total_questions=1,
+            questions_passed=1,
+            questions_failed=0,
+        )
+        monkeypatch.setattr(main_module, "run_flow_eval", lambda **kwargs: mock_results)
+        monkeypatch.setattr(main_module, "get_latency_percentages", lambda **kwargs: {})
+        monkeypatch.setattr(main_module, "print_summary", lambda r, **kwargs: None)
+
+        # Track save_results calls
+        saved = []
+        monkeypatch.setattr(
+            main_module, "save_results",
+            lambda r, p: saved.append((r, p))
+        )
+
+        output_file = tmp_path / "results.json"
+        main_module._run_eval(
+            limit=1, verbose=False, no_judge=True, output=str(output_file), debug=False
+        )
+
+        assert len(saved) == 1
+        assert saved[0][1] == output_file
+
+
+class TestIntegrationRunner:
+    """Test eval/integration/runner.py coverage (lines 85-94)."""
+
+    def test_invoke_agent_success(self, monkeypatch):
+        """Test _invoke_agent successful invocation (lines 85-94)."""
+        from backend.eval.integration import runner
+
+        # Mock imports inside _invoke_agent
+        mock_graph = MagicMock()
+        mock_graph.invoke.return_value = {"answer": "Test answer", "sql_results": {}}
+
+        mock_agent_module = MagicMock()
+        mock_agent_module.agent_graph = mock_graph
+        mock_agent_module.build_thread_config = lambda x: {"configurable": {"thread_id": x}}
+
+        # Patch the import statement by patching sys.modules
+        with patch.dict("sys.modules", {"backend.agent.graph": mock_agent_module}):
+            result = runner._invoke_agent(question="Test question?", session_id="test_session")
+
+        assert result == {"answer": "Test answer", "sql_results": {}}
+        mock_graph.invoke.assert_called_once()
+
+
+class TestMainLifespan:
+    """Test main.py lifespan context manager (lines 39-41)."""
+
+    @pytest.mark.asyncio
+    async def test_lifespan_context_manager(self):
+        """Test lifespan logs startup and shutdown messages."""
+        from backend.main import lifespan
+
+        # Create a mock app
+        mock_app = MagicMock()
+
+        # Run the lifespan context manager
+        async with lifespan(mock_app):
+            # Inside the lifespan context (after startup, before shutdown)
+            pass
+        # Shutdown happens after exiting the context

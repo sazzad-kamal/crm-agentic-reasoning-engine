@@ -65,6 +65,51 @@ class TestRunTextEval:
     @patch("backend.eval.answer.text.runner.get_connection")
     @patch("backend.eval.answer.text.runner.load_questions")
     @patch("backend.eval.answer.text.runner.generate_answer")
+    def test_run_text_eval_no_sql_results(
+        self,
+        mock_generate: MagicMock,
+        mock_load: MagicMock,
+        mock_conn: MagicMock,
+    ):
+        """Test text evaluation when SQL returns no results."""
+        mock_load.return_value = [
+            Question(text="Q1", expected_sql="SELECT 1"),
+        ]
+        mock_generate.return_value = ("Some answer", None, None, None)
+
+        results = run_text_eval()
+
+        assert results.total == 1
+        assert results.passed == 0
+        assert results.cases[0].errors == ["No SQL results - skipping RAGAS"]
+
+    @patch("backend.eval.answer.text.runner.get_connection")
+    @patch("backend.eval.answer.text.runner.load_questions")
+    @patch("backend.eval.answer.text.runner.generate_answer")
+    @patch("backend.eval.answer.text.runner.evaluate_single")
+    def test_run_text_eval_ragas_exception(
+        self,
+        mock_evaluate: MagicMock,
+        mock_generate: MagicMock,
+        mock_load: MagicMock,
+        mock_conn: MagicMock,
+    ):
+        """Test text evaluation when RAGAS raises exception."""
+        mock_load.return_value = [
+            Question(text="Q1", expected_sql="SELECT 1"),
+        ]
+        mock_generate.return_value = ("Answer", None, [{"col": 1}], None)
+        mock_evaluate.side_effect = ValueError("RAGAS internal error")
+
+        results = run_text_eval()
+
+        assert results.total == 1
+        assert results.passed == 0
+        assert "RAGAS failed: RAGAS internal error" in results.cases[0].errors[0]
+
+    @patch("backend.eval.answer.text.runner.get_connection")
+    @patch("backend.eval.answer.text.runner.load_questions")
+    @patch("backend.eval.answer.text.runner.generate_answer")
     @patch("backend.eval.answer.text.runner.evaluate_single")
     def test_run_text_eval_with_limit(
         self,
@@ -153,3 +198,40 @@ class TestPrintSummary:
         captured = capsys.readouterr()
         assert "FAIL" in captured.out
         assert "Failed Cases" in captured.out
+
+    def test_print_summary_with_error_case(self, capsys):
+        """Test print_summary with a failed case that has errors."""
+        results = TextEvalResults(total=10, passed=5)
+        results.cases = [
+            TextCaseResult(
+                question="Question with error",
+                answer="",
+                errors=["SQL timeout", "Connection failed"],
+            )
+        ]
+
+        print_summary(results)
+
+        captured = capsys.readouterr()
+        assert "Error: SQL timeout; Connection failed" in captured.out
+
+
+class TestMain:
+    """Tests for main CLI function."""
+
+    @patch("backend.eval.answer.text.runner.print_summary")
+    @patch("backend.eval.answer.text.runner.run_text_eval")
+    def test_main_calls_run_and_print(
+        self,
+        mock_run: MagicMock,
+        mock_print: MagicMock,
+    ):
+        """Test main function calls run_text_eval and print_summary."""
+        from backend.eval.answer.text.runner import main
+
+        mock_run.return_value = TextEvalResults(total=5, passed=4)
+
+        main(limit=10)
+
+        mock_run.assert_called_once_with(limit=10)
+        mock_print.assert_called_once()

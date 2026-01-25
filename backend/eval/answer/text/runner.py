@@ -39,6 +39,7 @@ def run_text_eval(limit: int | None = None, verbose: bool = False) -> TextEvalRe
             contexts = [json.dumps(sql_results, default=str)] if sql_results else []
             ref_answer = q.expected_answer if q.expected_answer else None
             ragas = evaluate_single(q.text, answer, contexts, reference_answer=ref_answer)
+            nan_metrics = cast(list[str], ragas.get("nan_metrics", []))
 
             case = TextCaseResult(
                 question=q.text,
@@ -46,6 +47,8 @@ def run_text_eval(limit: int | None = None, verbose: bool = False) -> TextEvalRe
                 faithfulness_score=cast(float, ragas["faithfulness"]),
                 relevance_score=cast(float, ragas["answer_relevancy"]),
                 answer_correctness_score=cast(float, ragas.get("answer_correctness", 0.0)),
+                ragas_metrics_total=3,
+                ragas_metrics_failed=len(nan_metrics),
             )
 
         results.cases.append(case)
@@ -71,6 +74,11 @@ def print_summary(results: TextEvalResults) -> None:
     print(
         f"RAGAS: F={results.avg_faithfulness:.2f} R={results.avg_relevance:.2f} "
         f"C={results.avg_answer_correctness:.2f}"
+    )
+    ragas_success = results.ragas_metrics_total - results.ragas_metrics_failed
+    print(
+        f"RAGAS Reliability: {ragas_success}/{results.ragas_metrics_total} "
+        f"({results.ragas_success_rate * 100:.1f}%)"
     )
 
     # Failed cases

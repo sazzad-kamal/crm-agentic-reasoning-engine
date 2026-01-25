@@ -689,8 +689,6 @@ class TestRunnerModule:
             return {
                 "answer_relevancy": 0.85,
                 "faithfulness": 0.80,
-                "context_precision": 0.75,
-                "context_recall": 0.0,
                 "answer_correctness": 0.0,
                 "error": None,
                 "nan_metrics": [],
@@ -715,8 +713,6 @@ class TestRunnerModule:
             return {
                 "answer_relevancy": 0.70,
                 "faithfulness": 0.50,
-                "context_precision": 0.0,
-                "context_recall": 0.0,
                 "answer_correctness": 0.0,
                 "error": None,
                 "nan_metrics": [],
@@ -741,8 +737,6 @@ class TestRunnerModule:
             return {
                 "answer_relevancy": 0.0,
                 "faithfulness": 0.0,
-                "context_precision": 0.0,
-                "context_recall": 0.0,
                 "answer_correctness": 0.0,
                 "error": None,
                 "nan_metrics": [],
@@ -767,8 +761,6 @@ class TestRunnerModule:
             return {
                 "answer_relevancy": 0.85,
                 "faithfulness": 0.80,
-                "context_precision": 0.75,
-                "context_recall": 0.70,
                 "answer_correctness": 0.65,
                 "error": None,
                 "nan_metrics": [],
@@ -2267,8 +2259,6 @@ class TestRagasEvaluateSingle:
         mock_result = {
             "answer_relevancy": 0.85,
             "faithfulness": 0.90,
-            "context_precision": 0.80,
-            "context_recall": 0.0,
             "answer_correctness": 0.0,
             "error": None,
             "nan_metrics": [],
@@ -2293,8 +2283,6 @@ class TestRagasEvaluateSingle:
         mock_result = {
             "answer_relevancy": 0.85,
             "faithfulness": 0.90,
-            "context_precision": 0.80,
-            "context_recall": 0.0,
             "answer_correctness": 0.0,
             "error": None,
             "nan_metrics": [],
@@ -2319,8 +2307,6 @@ class TestRagasEvaluateSingle:
         mock_result = {
             "answer_relevancy": 0.0,
             "faithfulness": 0.0,
-            "context_precision": 0.0,
-            "context_recall": 0.0,
             "answer_correctness": 0.0,
             "error": None,
             "nan_metrics": ["faithfulness", "answer_relevancy"],
@@ -2355,8 +2341,8 @@ class TestRagasEvaluateSingle:
 
         metrics = ragas._get_ragas_metrics(include_reference=True)
 
-        # Should have 5 metrics including ContextRecall and AnswerCorrectness
-        assert len(metrics) == 5
+        # Should have 3 metrics: AnswerRelevancy, Faithfulness, AnswerCorrectness
+        assert len(metrics) == 3
 
         # Clean up cache
         ragas._get_ragas_metrics.cache_clear()
@@ -2374,7 +2360,7 @@ class TestRagasEvaluateSingle:
         df = pd.DataFrame({
             "answer_relevancy": [float("nan")],
             "faithfulness": [0.85],
-            "context_precision": [None],
+            "answer_correctness": [None],
         })
 
         result = ragas._extract_scores(df)
@@ -2382,10 +2368,10 @@ class TestRagasEvaluateSingle:
         # NaN and None values should be converted to 0.0
         assert result["answer_relevancy"] == 0.0
         assert result["faithfulness"] == 0.85
-        assert result["context_precision"] == 0.0
+        assert result["answer_correctness"] == 0.0
         # Should track nan_metrics
         assert "answer_relevancy" in result["nan_metrics"]
-        assert "context_precision" in result["nan_metrics"]
+        assert "answer_correctness" in result["nan_metrics"]
 
 
 class TestMainMiddleware:

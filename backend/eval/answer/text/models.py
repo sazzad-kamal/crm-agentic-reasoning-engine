@@ -14,6 +14,9 @@ class TextCaseResult(BaseModel):
     relevance_score: float = 0.0
     answer_correctness_score: float = 0.0
     errors: list[str] = Field(default_factory=list)
+    # RAGAS reliability tracking
+    ragas_metrics_total: int = 0
+    ragas_metrics_failed: int = 0
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -33,6 +36,9 @@ class TextEvalResults(BaseModel):
     avg_faithfulness: float = 0.0
     avg_relevance: float = 0.0
     avg_answer_correctness: float = 0.0
+    # RAGAS reliability tracking
+    ragas_metrics_total: int = 0
+    ragas_metrics_failed: int = 0
 
     @property
     def failed(self) -> int:
@@ -44,6 +50,13 @@ class TextEvalResults(BaseModel):
         """Overall pass rate."""
         return self.passed / self.total if self.total > 0 else 0.0
 
+    @property
+    def ragas_success_rate(self) -> float:
+        """RAGAS metrics success rate."""
+        if self.ragas_metrics_total == 0:
+            return 1.0
+        return (self.ragas_metrics_total - self.ragas_metrics_failed) / self.ragas_metrics_total
+
     def compute_aggregates(self) -> None:
         """Compute aggregate metrics from individual case results."""
         if not self.cases:
@@ -52,6 +65,8 @@ class TextEvalResults(BaseModel):
         self.avg_faithfulness = sum(c.faithfulness_score for c in self.cases) / n
         self.avg_relevance = sum(c.relevance_score for c in self.cases) / n
         self.avg_answer_correctness = sum(c.answer_correctness_score for c in self.cases) / n
+        self.ragas_metrics_total = sum(c.ragas_metrics_total for c in self.cases)
+        self.ragas_metrics_failed = sum(c.ragas_metrics_failed for c in self.cases)
 
 
 __all__ = ["TextCaseResult", "TextEvalResults"]

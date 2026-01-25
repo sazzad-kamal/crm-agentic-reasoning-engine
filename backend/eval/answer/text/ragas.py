@@ -4,10 +4,7 @@ from __future__ import annotations
 
 import logging
 import math
-import sys
 import warnings
-from collections.abc import Generator
-from contextlib import contextmanager
 from functools import cache
 from typing import Any, cast
 
@@ -18,6 +15,10 @@ from ragas.llms import LangchainLLMWrapper
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from backend.core.llm import get_langchain_chat_openai, get_langchain_embeddings
+from backend.eval.answer.text.suppression import (
+    install_event_loop_error_suppression,
+    suppress_ragas_logging,
+)
 
 # Import metric CLASSES (not singleton instances) for thread-safe instantiation
 with warnings.catch_warnings():
@@ -30,70 +31,8 @@ with warnings.catch_warnings():
 
 logger = logging.getLogger(__name__)
 
-
-@contextmanager
-def _suppress_ragas_logging() -> Generator[None, None, None]:
-    """Temporarily suppress RAGAS logging, restoring original level on exit."""
-    ragas_logger = logging.getLogger("ragas")
-    original_level = ragas_logger.level
-    ragas_logger.setLevel(logging.ERROR)
-    try:
-        yield
-    finally:
-        ragas_logger.setLevel(original_level)
-
-
-# Suppress "Event loop is closed" errors from httpx/aiohttp during cleanup
-# These are harmless but flood the logs on Windows
-def _suppress_event_loop_closed_errors() -> None:
-    """Install custom handlers to suppress event loop closed errors."""
-    import asyncio
-
-    # Suppress via excepthook (catches uncaught exceptions)
-    original_excepthook = sys.excepthook
-
-    def custom_excepthook(exc_type: type, exc_value: BaseException, exc_tb: Any) -> None:
-        if isinstance(exc_value, RuntimeError) and "Event loop is closed" in str(exc_value):
-            return  # Suppress this error
-        original_excepthook(exc_type, exc_value, exc_tb)
-
-    sys.excepthook = custom_excepthook
-
-    # Suppress via asyncio exception handler (catches async errors)
-    def silent_exception_handler(loop: Any, context: dict) -> None:
-        exception = context.get("exception")
-        if isinstance(exception, RuntimeError) and "Event loop is closed" in str(exception):
-            return  # Suppress this error
-        # Fall back to default for other errors
-        loop.default_exception_handler(context)
-
-    # Set the handler on the current event loop if one exists
-    try:
-        loop = asyncio.get_event_loop()
-        loop.set_exception_handler(silent_exception_handler)
-    except RuntimeError:
-        pass  # No event loop running yet
-
-    # Add logging filter to suppress these errors from httpx/asyncio loggers
-    class EventLoopClosedFilter(logging.Filter):
-        def filter(self, record: logging.LogRecord) -> bool:
-            msg = str(record.getMessage())
-            return "Event loop is closed" not in msg
-
-    for logger_name in ["asyncio", "httpx", "httpcore", "aiohttp"]:
-        logging.getLogger(logger_name).addFilter(EventLoopClosedFilter())
-
-    # Suppress RAGAS executor errors (APIConnectionError, etc.) - we track failures separately
-    class RagasExecutorFilter(logging.Filter):
-        def filter(self, record: logging.LogRecord) -> bool:
-            msg = str(record.getMessage())
-            # Suppress "Exception raised in Job[X]" messages from ragas.executor
-            return "Exception raised in Job" not in msg
-
-    logging.getLogger("ragas.executor").addFilter(RagasExecutorFilter())
-
-
-_suppress_event_loop_closed_errors()
+# Install suppression handlers at module load
+install_event_loop_error_suppression()
 
 
 @cache
@@ -201,7 +140,7 @@ def evaluate_single(
         if verbose:
             result = _run_evaluation_with_retry(dataset, metrics)
         else:
-            with _suppress_ragas_logging():
+            with suppress_ragas_logging():
                 result = _run_evaluation_with_retry(dataset, metrics)
 
         nan_metrics = cast(list[str], result.get("nan_metrics", []))

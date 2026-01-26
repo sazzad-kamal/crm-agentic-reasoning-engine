@@ -66,7 +66,7 @@ def run_action_eval(limit: int | None = None) -> ActionEvalResults:
         )
 
         results.cases.append(case)
-        status = "PASS" if case.passed else "FAIL"
+        status = "PASS" if case.action_passed else "FAIL"
         print(f"  [{idx}/{results.total}] {status} {q.text[:50]}")
 
     results.compute_aggregates()
@@ -107,7 +107,7 @@ def print_summary(results: ActionEvalResults) -> None:
             print()
 
     # Failed cases (non-error)
-    failed = [c for c in results.cases if not c.passed and not c.errors]
+    failed = [c for c in results.cases if not c.action_passed and not c.errors]
     if failed:
         print(f"\nFailed Cases ({len(failed)})\n")
         for i, c in enumerate(failed, 1):

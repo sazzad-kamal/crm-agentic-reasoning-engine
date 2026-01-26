@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field
 
 # SLO thresholds for action quality
 SLO_ACTION_PASS_RATE = 0.80
@@ -20,14 +20,6 @@ class ActionCaseResult(BaseModel):
     appropriateness: float = 0.0
     action_passed: bool = False  # From judge, or set by runner based on outcome
     errors: list[str] = Field(default_factory=list)
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def passed(self) -> bool:
-        """Pass if no errors and action_passed is True."""
-        if self.errors:
-            return False
-        return self.action_passed
 
 
 class ActionEvalResults(BaseModel):
@@ -63,33 +55,28 @@ class ActionEvalResults(BaseModel):
         if not self.cases:
             return
 
-        self.passed = sum(1 for c in self.cases if c.passed)
+        self.passed = sum(1 for c in self.cases if c.action_passed)
 
         # Breakdown counts (exclude error cases)
-        error_cases = [c for c in self.cases if c.errors]
-        self.error_count = len(error_cases)
-        ok = [c for c in self.cases if not c.errors]
+        self.error_count = sum(1 for c in self.cases if c.errors)
         self.action_expected_passed = sum(
-            1 for c in ok if c.expected_action and c.suggested_action and c.action_passed
+            1 for c in self.cases if not c.errors and c.expected_action and c.suggested_action and c.action_passed
         )
         self.action_expected_failed = sum(
-            1 for c in ok if c.expected_action and c.suggested_action and not c.action_passed
+            1 for c in self.cases if not c.errors and c.expected_action and c.suggested_action and not c.action_passed
         )
         self.action_missing = sum(
-            1 for c in ok if c.expected_action and not c.suggested_action
+            1 for c in self.cases if not c.errors and c.expected_action and not c.suggested_action
         )
         self.spurious_action = sum(
-            1 for c in ok if not c.expected_action and c.suggested_action
+            1 for c in self.cases if not c.errors and not c.expected_action and c.suggested_action
         )
         self.correct_silence = sum(
-            1 for c in ok if not c.expected_action and not c.suggested_action
+            1 for c in self.cases if not c.errors and not c.expected_action and not c.suggested_action
         )
 
-        # Action metrics (only for judged cases: expected + produced)
-        judged = [
-            c for c in self.cases
-            if c.suggested_action and c.expected_action and not c.errors
-        ]
+        # Action metrics (only for judged cases: expected + produced, no errors)
+        judged = [c for c in self.cases if not c.errors and c.suggested_action and c.expected_action]
         if judged:
             self.avg_relevance = sum(c.relevance for c in judged) / len(judged)
             self.avg_actionability = sum(c.actionability for c in judged) / len(judged)

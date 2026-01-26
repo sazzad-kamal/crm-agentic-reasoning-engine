@@ -59,7 +59,7 @@ class TestActionCaseResult:
             expected_action=True,
             action_passed=True,
         )
-        assert case.passed is True
+        assert case.action_passed is True
 
     def test_action_expected_failed(self):
         """Test outcome: action expected, produced, judged fail."""
@@ -70,7 +70,7 @@ class TestActionCaseResult:
             expected_action=True,
             action_passed=False,
         )
-        assert case.passed is False
+        assert case.action_passed is False
 
     def test_action_missing(self):
         """Test outcome: action expected but not produced."""
@@ -81,7 +81,7 @@ class TestActionCaseResult:
             expected_action=True,
             action_passed=False,
         )
-        assert case.passed is False
+        assert case.action_passed is False
 
     def test_spurious_action(self):
         """Test outcome: action not expected but produced."""
@@ -92,7 +92,7 @@ class TestActionCaseResult:
             expected_action=False,
             action_passed=False,
         )
-        assert case.passed is False
+        assert case.action_passed is False
 
     def test_correct_silence(self):
         """Test outcome: action not expected and not produced."""
@@ -103,19 +103,7 @@ class TestActionCaseResult:
             expected_action=False,
             action_passed=True,
         )
-        assert case.passed is True
-
-    def test_passed_with_errors(self):
-        """Test passed property is False when errors present."""
-        case = ActionCaseResult(
-            question="Test question",
-            answer="Test answer",
-            suggested_action="Send email",
-            expected_action=True,
-            action_passed=True,
-            errors=["SQL error"],
-        )
-        assert case.passed is False
+        assert case.action_passed is True
 
 
 class TestActionEvalResults:

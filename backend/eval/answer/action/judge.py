@@ -17,7 +17,6 @@ class ActionJudgeResult(BaseModel):
     relevance: float = Field(description="0-1: Does action relate to question/answer?")
     actionability: float = Field(description="0-1: Is it specific and executable?")
     appropriateness: float = Field(description="0-1: Is it sensible for CRM context?")
-    passed: bool = Field(description="True if all scores >= 0.6")
     explanation: str = Field(description="Brief reasoning")
 
 
@@ -30,7 +29,7 @@ Score each dimension 0.0 to 1.0:
 2. Actionability: Is it specific enough to execute? (not vague like "follow up")
 3. Appropriateness: Is it sensible given CRM best practices?
 
-Pass if ALL scores >= 0.6. Be strict - vague actions should score low on actionability."""
+Be strict - vague actions should score low on actionability."""
 
 _HUMAN_PROMPT = """Question: {question}
 
@@ -63,8 +62,9 @@ def judge_suggested_action(
             "answer": answer,
             "action": action,
         })
+        passed = all(s >= 0.6 for s in (result.relevance, result.actionability, result.appropriateness))
         return (
-            result.passed,
+            passed,
             result.relevance,
             result.actionability,
             result.appropriateness,

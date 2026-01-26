@@ -19,13 +19,11 @@ class TestActionJudgeResult:
             relevance=0.8,
             actionability=0.9,
             appropriateness=0.85,
-            passed=True,
             explanation="Good action",
         )
         assert result.relevance == 0.8
         assert result.actionability == 0.9
         assert result.appropriateness == 0.85
-        assert result.passed is True
         assert result.explanation == "Good action"
 
 
@@ -40,7 +38,6 @@ class TestJudgeSuggestedAction:
             relevance=0.8,
             actionability=0.9,
             appropriateness=0.85,
-            passed=True,
             explanation="Action is relevant and actionable",
         )
         mock_chain_fn.return_value = mock_chain
@@ -65,7 +62,6 @@ class TestJudgeSuggestedAction:
             relevance=0.4,
             actionability=0.3,
             appropriateness=0.5,
-            passed=False,
             explanation="Action is vague and not actionable",
         )
         mock_chain_fn.return_value = mock_chain

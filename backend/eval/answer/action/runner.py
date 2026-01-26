@@ -40,7 +40,7 @@ def run_action_eval(limit: int | None = None) -> ActionEvalResults:
         }
 
         if error:
-            kwargs.update(answer="", suggested_action=None, errors=[error])
+            kwargs["errors"] = [error]
         elif q.expected_action and suggested_action:
             # Action expected and produced: judge it
             try:

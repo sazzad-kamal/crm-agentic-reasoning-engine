@@ -31,15 +31,12 @@ def run_action_eval(limit: int | None = None) -> ActionEvalResults:
     results = ActionEvalResults(total=len(questions))
     conn = get_connection()
 
-    total = len(questions)
     for idx, q in enumerate(questions, 1):
         answer, suggested_action, _, error = generate_answer(q, conn)
 
         kwargs: dict[str, Any] = {
-            "question": q.text,
             "answer": answer,
             "suggested_action": suggested_action,
-            "expected_action": q.expected_action,
         }
 
         if error:
@@ -64,11 +61,13 @@ def run_action_eval(limit: int | None = None) -> ActionEvalResults:
             kwargs["action_passed"] = True
         # else: action_missing or spurious_action — action_passed defaults to False
 
-        case = ActionCaseResult(**kwargs)
+        case = ActionCaseResult(
+            question=q.text, expected_action=q.expected_action, **kwargs
+        )
 
         results.cases.append(case)
         status = "PASS" if case.passed else "FAIL"
-        print(f"  [{idx}/{total}] {status} {q.text[:50]}")
+        print(f"  [{idx}/{results.total}] {status} {q.text[:50]}")
 
     results.compute_aggregates()
     return results

@@ -5,6 +5,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from backend.core.llm import create_openai_chain
+from backend.eval.answer.action.models import SLO_ACTIONABILITY, SLO_APPROPRIATENESS, SLO_RELEVANCE
 
 
 class ActionJudgeResult(BaseModel):
@@ -58,7 +59,11 @@ def judge_suggested_action(
         "answer": answer,
         "action": action,
     })
-    passed = all(s >= 0.6 for s in (result.relevance, result.actionability, result.appropriateness))
+    passed = (
+        result.relevance >= SLO_RELEVANCE
+        and result.actionability >= SLO_ACTIONABILITY
+        and result.appropriateness >= SLO_APPROPRIATENESS
+    )
     return (
         passed,
         result.relevance,

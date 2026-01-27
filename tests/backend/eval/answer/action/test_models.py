@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from backend.eval.answer.action.models import (
     SLO_ACTION_PASS_RATE,
+    SLO_ACTIONABILITY,
+    SLO_APPROPRIATENESS,
+    SLO_RELEVANCE,
     ActionCaseResult,
     ActionEvalResults,
 )
@@ -15,6 +18,18 @@ class TestSLOConstants:
     def test_slo_action_pass_rate(self):
         """Test SLO_ACTION_PASS_RATE value."""
         assert SLO_ACTION_PASS_RATE == 0.80
+
+    def test_slo_relevance(self):
+        """Test SLO_RELEVANCE value."""
+        assert SLO_RELEVANCE == 0.90
+
+    def test_slo_actionability(self):
+        """Test SLO_ACTIONABILITY value."""
+        assert SLO_ACTIONABILITY == 0.80
+
+    def test_slo_appropriateness(self):
+        """Test SLO_APPROPRIATENESS value."""
+        assert SLO_APPROPRIATENESS == 0.85
 
 
 class TestActionCaseResult:

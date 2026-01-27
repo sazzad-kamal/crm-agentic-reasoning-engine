@@ -37,9 +37,9 @@ class TestJudgeSuggestedAction:
         """Test judge returns passing result."""
         mock_chain = MagicMock()
         mock_chain.invoke.return_value = ActionJudgeResult(
-            relevance=0.8,
+            relevance=0.95,
             actionability=0.9,
-            appropriateness=0.85,
+            appropriateness=0.9,
             explanation="Action is relevant and actionable",
         )
         mock_chain_fn.return_value = mock_chain
@@ -51,9 +51,9 @@ class TestJudgeSuggestedAction:
         )
 
         assert passed is True
-        assert rel == 0.8
+        assert rel == 0.95
         assert act == 0.9
-        assert app == 0.85
+        assert app == 0.9
         assert "relevant" in explanation.lower()
 
     @patch("backend.eval.answer.action.judge.create_openai_chain")

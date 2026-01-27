@@ -6,6 +6,9 @@ from pydantic import BaseModel, Field
 
 # SLO thresholds for action quality
 SLO_ACTION_PASS_RATE = 0.80
+SLO_RELEVANCE = 0.90
+SLO_ACTIONABILITY = 0.80
+SLO_APPROPRIATENESS = 0.85
 
 
 class ActionCaseResult(BaseModel):
@@ -84,4 +87,11 @@ class ActionEvalResults(BaseModel):
             self.avg_appropriateness = sum(c.appropriateness for c in judged) / len(judged)
 
 
-__all__ = ["ActionCaseResult", "ActionEvalResults", "SLO_ACTION_PASS_RATE"]
+__all__ = [
+    "ActionCaseResult",
+    "ActionEvalResults",
+    "SLO_ACTION_PASS_RATE",
+    "SLO_ACTIONABILITY",
+    "SLO_APPROPRIATENESS",
+    "SLO_RELEVANCE",
+]

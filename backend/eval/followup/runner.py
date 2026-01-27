@@ -1,194 +1,123 @@
-"""Followup suggestion evaluation - tests follow-up generation quality."""
+"""Followup suggestion evaluation runner using LLM Judge."""
 
 from __future__ import annotations
 
-import argparse
-import time
+import logging
+
+import typer
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from backend.agent.followup.suggester import generate_follow_up_suggestions
-from backend.eval.answer.shared.loader import load_questions as load_shared_questions
+from backend.eval.answer.shared.loader import load_questions
 from backend.eval.followup.judge import judge_followup_suggestions
-from backend.eval.followup.models import CaseResult, EvalResults, Question
-from backend.eval.shared.formatting import build_eval_table, console
+from backend.eval.followup.models import (
+    SLO_FOLLOWUP_PASS_RATE,
+    FollowupCaseResult,
+    FollowupEvalResults,
+)
 
-
-def load_questions() -> list[Question]:
-    """Load questions from shared YAML file."""
-    return [Question(text=q.text) for q in load_shared_questions()]
+logger = logging.getLogger(__name__)
 
 
 def run_followup_eval(
-    questions: list[Question] | None = None,
-    verbose: bool = False,
     limit: int | None = None,
     use_hardcoded_tree: bool = True,
-) -> EvalResults:
-    """
-    Run followup suggestion evaluation.
-
-    For each question:
-    1. Generate follow-up suggestions via generate_follow_up_suggestions()
-    2. Evaluate quality using LLM judge
-
-    Args:
-        questions: List of questions to test (default: from questions.yaml)
-        verbose: Print detailed output
-        limit: Max number of questions to test
-        use_hardcoded_tree: Whether to allow hardcoded tree (default: True)
-
-    Returns:
-        EvalResults with per-case and aggregate metrics
-    """
-    if questions is None:
-        questions = load_questions()
-
+) -> FollowupEvalResults:
+    """Run followup suggestion evaluation using LLM Judge."""
+    questions = load_questions()
     if limit:
         questions = questions[:limit]
 
-    results = EvalResults(total=len(questions))
+    results = FollowupEvalResults(total=len(questions))
 
-    for i, question in enumerate(questions):
-        if verbose:
-            console.print(
-                f"\n[bold]Case {i + 1}/{len(questions)}:[/bold] {question.text}"
-            )
-            if question.context:
-                console.print(f"  [dim]({question.context})[/dim]")
-
-        case_start = time.time()
-
-        # Generate suggestions
+    for idx, q in enumerate(questions, 1):
         suggestions: list[str] = []
         errors: list[str] = []
 
         try:
             suggestions = generate_follow_up_suggestions(
-                question=question.text,
+                question=q.text,
                 use_hardcoded_tree=use_hardcoded_tree,
             )
         except Exception as e:
             errors.append(f"Generation error: {e}")
-            if verbose:
-                console.print(f"  [red]GENERATION ERROR[/red]: {e}")
 
-        # Judge quality
         passed = False
-        relevance_score = 0.0
-        diversity_score = 0.0
+        rel = 0.0
+        div = 0.0
+        explanation = ""
 
         if suggestions and not errors:
             try:
-                passed, relevance_score, diversity_score, judge_errors = (
-                    judge_followup_suggestions(question.text, suggestions)
+                passed, rel, div, explanation = judge_followup_suggestions(
+                    q.text, suggestions
                 )
-                errors.extend(judge_errors)
             except Exception as e:
-                errors.append(f"Judge error: {e}")
-                if verbose:
-                    console.print(f"  [red]JUDGE ERROR[/red]: {e}")
+                logger.warning(f"Judge evaluation failed: {e}")
+                errors.append(f"Judge failed: {e}")
 
-        latency_ms = (time.time() - case_start) * 1000
-
-        case = CaseResult(
-            question=question.text,
+        case = FollowupCaseResult(
+            question=q.text,
             suggestions=suggestions,
             passed=passed,
-            relevance_score=relevance_score,
-            diversity_score=diversity_score,
+            relevance=rel,
+            diversity=div,
+            explanation=explanation,
             errors=errors,
-            latency_ms=latency_ms,
         )
 
-        if passed:
-            results.passed += 1
-
-        if verbose:
-            if errors:
-                for err in errors:
-                    console.print(f"    [yellow]{err}[/yellow]")
-            else:
-                status = "[green]PASS[/green]" if passed else "[red]FAIL[/red]"
-                console.print(
-                    f"  {status} (rel={relevance_score:.2f}, div={diversity_score:.2f}, "
-                    f"{latency_ms:.0f}ms)"
-                )
-                if suggestions:
-                    for s in suggestions:
-                        console.print(f"    [dim]- {s}[/dim]")
-
         results.cases.append(case)
+        status = "PASS" if case.passed else "FAIL"
+        print(f"  [{idx}/{results.total}] {status} {q.text[:50]}")
 
-    # Compute aggregate metrics
     results.compute_aggregates()
-
     return results
 
 
-def print_summary(results: EvalResults) -> None:
-    """Print evaluation summary with detailed metrics."""
-    # Build sections for the table
-    relevance_passed = results.avg_relevance >= 0.7
-    diversity_passed = results.avg_diversity >= 0.5
+def print_summary(results: FollowupEvalResults) -> None:
+    """Print followup evaluation summary."""
+    passed = results.pass_rate >= SLO_FOLLOWUP_PASS_RATE
+    status = "PASS" if passed else "FAIL"
 
-    sections: list[tuple[str, list[tuple[str, str, str | None, bool | None]]]] = [
-        (
-            "Quality",
-            [
-                ("  Relevance", f"{results.avg_relevance * 100:.1f}%", ">=70.0%", relevance_passed),
-                ("  Diversity", f"{results.avg_diversity * 100:.1f}%", ">=50.0%", diversity_passed),
-            ],
-        ),
-        (
-            "Latency",
-            [
-                ("  Avg total", f"{results.avg_latency_ms:.0f}ms", None, None),
-            ],
-        ),
-    ]
+    print("\nFollowup Suggestion Evaluation (LLM Judge)")
+    print(f"Pass Rate: {results.pass_rate * 100:.1f}% (>={SLO_FOLLOWUP_PASS_RATE * 100:.1f}% SLO) {status}")
+    print(f"Total: {results.total}, Passed: {results.passed}, Failed: {results.failed}")
+    print(f"  Followup Metrics: rel={results.avg_relevance:.2f} div={results.avg_diversity:.2f}")
 
-    # Build and print table
-    pass_rate_passed = results.pass_rate >= 0.8
-    table = build_eval_table(
-        title="Followup Suggestion Evaluation Summary",
-        sections=sections,
-        aggregate_row=("Pass Rate", f"{results.pass_rate * 100:.1f}%", ">=80.0%", pass_rate_passed),
-    )
-    console.print(table)
+    # Error cases
+    error_cases = [c for c in results.cases if c.errors]
+    if error_cases:
+        print(f"\nError Cases ({len(error_cases)})\n")
+        for i, c in enumerate(error_cases, 1):
+            print(f"{i}. {c.question[:60]}")
+            print(f"   Error: {'; '.join(c.errors)}")
+            print()
 
-    # Stats
-    console.print(f"\nTotal: {results.total}, Passed: {results.passed}, Failed: {results.failed}")
-
-    # Failed cases
-    failed = [c for c in results.cases if not c.passed]
+    # Failed cases (non-error)
+    failed = [c for c in results.cases if not c.passed and not c.errors]
     if failed:
-        console.print(f"\n[bold red]Failed Cases ({len(failed)})[/bold red]\n")
-
-        for i, c in enumerate(failed[:10], 1):
-            error = "; ".join(c.errors) if c.errors else "Quality below threshold"
-            console.print(f"[bold cyan]{i}. {c.question}[/bold cyan]")
-            console.print(f"   [red]Error:[/red] {error}")
-            console.print(f"   [dim]Relevance: {c.relevance_score:.2f}, Diversity: {c.diversity_score:.2f}[/dim]")
+        print(f"\nFailed Cases ({len(failed)})\n")
+        for i, c in enumerate(failed, 1):
+            print(f"{i}. {c.question}")
+            print(f"   Scores: rel={c.relevance:.2f} div={c.diversity:.2f}")
+            if c.explanation:
+                print(f"   Judge: {c.explanation}")
             if c.suggestions:
-                console.print("   [dim]Suggestions:[/dim]")
                 for s in c.suggestions:
-                    console.print(f"     - {s}")
-            console.print()
-
-        if len(failed) > 10:
-            console.print(f"[dim]... and {len(failed) - 10} more failures[/dim]")
+                    print(f"   - {s}")
+            print()
 
 
-def main() -> None:
-    """Run followup suggestion evaluation."""
-    parser = argparse.ArgumentParser(description="Evaluate follow-up suggestion quality")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Print detailed output for each case")
-    parser.add_argument("-n", "--limit", type=int, default=None, help="Limit number of questions to evaluate")
-    parser.add_argument("--no-tree", action="store_true", help="Disable hardcoded tree, use LLM only")
-
-    args = parser.parse_args()
-    results = run_followup_eval(verbose=args.verbose, limit=args.limit, use_hardcoded_tree=not args.no_tree)
-    print_summary(results)
+def main(
+    limit: int = typer.Option(None, "--limit", "-l", help="Limit number of questions"),
+    no_tree: bool = typer.Option(False, "--no-tree", help="Disable hardcoded tree, use LLM only"),
+) -> None:
+    """Run followup suggestion evaluation using LLM Judge."""
+    logging.basicConfig(level=logging.WARNING)
+    print_summary(run_followup_eval(limit=limit, use_hardcoded_tree=not no_tree))
 
 
 if __name__ == "__main__":
-    main()
+    typer.run(main)

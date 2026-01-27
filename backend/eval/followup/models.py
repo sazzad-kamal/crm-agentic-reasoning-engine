@@ -1,47 +1,44 @@
-"""Models for followup suggestion evaluation."""
+"""Data models for followup suggestion evaluation."""
 
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-
-class Question(BaseModel):
-    """A question from the evaluation set."""
-
-    text: str
-    context: str = ""  # Brief context about what kind of question this is
+# SLO thresholds for followup quality
+SLO_FOLLOWUP_PASS_RATE = 0.80
+SLO_FOLLOWUP_RELEVANCE = 0.60
+SLO_FOLLOWUP_DIVERSITY = 0.50
 
 
-class CaseResult(BaseModel):
-    """Result for a single test case."""
+class FollowupCaseResult(BaseModel):
+    """Result for a single followup evaluation case."""
 
     question: str
     suggestions: list[str] = Field(default_factory=list)
     passed: bool = False
-    relevance_score: float = 0.0  # 0-1: Are suggestions relevant?
-    diversity_score: float = 0.0  # 0-1: Do suggestions cover different angles?
+    relevance: float = 0.0
+    diversity: float = 0.0
+    explanation: str = ""
     errors: list[str] = Field(default_factory=list)
-    latency_ms: float = 0.0
 
 
-class EvalResults(BaseModel):
-    """Aggregated evaluation results."""
+class FollowupEvalResults(BaseModel):
+    """Aggregated followup evaluation results."""
 
     total: int = 0
     passed: int = 0
-    cases: list[CaseResult] = Field(default_factory=list)
-
-    # Aggregate metrics
+    cases: list[FollowupCaseResult] = Field(default_factory=list)
     avg_relevance: float = 0.0
     avg_diversity: float = 0.0
-    avg_latency_ms: float = 0.0
 
     @property
     def failed(self) -> int:
+        """Number of failed cases."""
         return self.total - self.passed
 
     @property
     def pass_rate(self) -> float:
+        """Overall pass rate."""
         return self.passed / self.total if self.total > 0 else 0.0
 
     def compute_aggregates(self) -> None:
@@ -49,9 +46,15 @@ class EvalResults(BaseModel):
         if not self.cases:
             return
 
-        self.avg_relevance = sum(c.relevance_score for c in self.cases) / len(self.cases)
-        self.avg_diversity = sum(c.diversity_score for c in self.cases) / len(self.cases)
-        self.avg_latency_ms = sum(c.latency_ms for c in self.cases) / len(self.cases)
+        self.passed = sum(1 for c in self.cases if c.passed)
+        self.avg_relevance = sum(c.relevance for c in self.cases) / len(self.cases)
+        self.avg_diversity = sum(c.diversity for c in self.cases) / len(self.cases)
 
 
-__all__ = ["Question", "CaseResult", "EvalResults"]
+__all__ = [
+    "FollowupCaseResult",
+    "FollowupEvalResults",
+    "SLO_FOLLOWUP_DIVERSITY",
+    "SLO_FOLLOWUP_PASS_RATE",
+    "SLO_FOLLOWUP_RELEVANCE",
+]

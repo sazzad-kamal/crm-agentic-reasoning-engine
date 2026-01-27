@@ -27,7 +27,7 @@ class TestSLOConstants:
 
     def test_slo_followup_answer_grounding(self):
         """Test SLO_FOLLOWUP_ANSWER_GROUNDING value."""
-        assert SLO_FOLLOWUP_ANSWER_GROUNDING == 0.40
+        assert SLO_FOLLOWUP_ANSWER_GROUNDING == 0.50
 
     def test_slo_followup_diversity(self):
         """Test SLO_FOLLOWUP_DIVERSITY value."""

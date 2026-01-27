@@ -96,10 +96,10 @@ class TestJudgeFollowupSuggestions:
     def test_judge_followup_boundary(self, mock_chain_fn: MagicMock):
         """Test pass logic at SLO boundary values."""
         mock_chain = MagicMock()
-        # Exactly at SLO thresholds: qrel=0.60, agrnd=0.40, div=0.50
+        # Exactly at SLO thresholds: qrel=0.60, agrnd=0.50, div=0.50
         mock_chain.invoke.return_value = FollowupJudgeResult(
             question_relevance=0.6,
-            answer_grounding=0.4,
+            answer_grounding=0.5,
             diversity=0.5,
             explanation="At threshold",
         )
@@ -112,7 +112,7 @@ class TestJudgeFollowupSuggestions:
 
         assert passed is True
         assert qrel == 0.6
-        assert agrnd == 0.4
+        assert agrnd == 0.5
         assert div == 0.5
 
     @patch("backend.eval.followup.judge.create_openai_chain")
@@ -121,7 +121,7 @@ class TestJudgeFollowupSuggestions:
         mock_chain = MagicMock()
         mock_chain.invoke.return_value = FollowupJudgeResult(
             question_relevance=0.9,
-            answer_grounding=0.3,  # Below SLO of 0.40
+            answer_grounding=0.4,  # Below SLO of 0.50
             diversity=0.8,
             explanation="Generic follow-ups",
         )

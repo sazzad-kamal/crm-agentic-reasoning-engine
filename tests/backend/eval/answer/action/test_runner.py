@@ -329,8 +329,8 @@ class TestPrintSummary:
         assert "PASS" in captured.out
         assert "90.0%" in captured.out
         assert ">=80.0% SLO" in captured.out
-        assert "Action expected + correct:   4 passed, 1 failed (judged)" in captured.out
-        assert "No action expected (quiet):  5 passed" in captured.out
+        assert "Action expected:      4 passed, 1 failed (judged), 0 missing" in captured.out
+        assert "No action expected:   5 passed (quiet), 0 failed (spurious)" in captured.out
 
     def test_print_summary_failing(self, capsys):
         """Test print_summary with failing results."""
@@ -417,7 +417,7 @@ class TestPrintSummary:
         print_summary(results)
 
         captured = capsys.readouterr()
-        assert "No action expected (quiet):  5 passed" in captured.out
+        assert "No action expected:   5 passed (quiet), 0 failed (spurious)" in captured.out
 
     def test_print_summary_with_error_case(self, capsys):
         """Test print_summary with a failed case that has errors."""

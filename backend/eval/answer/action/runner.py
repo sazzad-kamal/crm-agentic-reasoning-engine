@@ -89,18 +89,18 @@ def print_summary(results: ActionEvalResults) -> None:
     print(f"Pass Rate: {results.pass_rate * 100:.1f}% (>={SLO_ACTION_PASS_RATE * 100:.1f}% SLO) {status}")
     print(f"Total: {results.total}, Passed: {results.passed}, Failed: {results.failed}")
     print(
-        f"  Action expected + correct:   {results.action_expected_passed} passed, "
-        f"{results.action_expected_failed} failed (judged)"
+        f"  Action expected:      {results.action_expected_passed} passed, "
+        f"{results.action_expected_failed} failed (judged), {results.action_missing} missing"
     )
     if results.action_expected_passed + results.action_expected_failed > 0:
         print(
             f"  Action Metrics: rel={results.avg_relevance:.2f} "
             f"act={results.avg_actionability:.2f} app={results.avg_appropriateness:.2f}"
         )
-    print()
-    print(f"  Action expected + missing:   {results.action_missing} failed")
-    print(f"  Spurious action:             {results.spurious_action} failed")
-    print(f"  No action expected (quiet):  {results.correct_silence} passed")
+    print(
+        f"  No action expected:   {results.correct_silence} passed (quiet), "
+        f"{results.spurious_action} failed (spurious)"
+    )
     if results.error_count > 0:
         print(f"  Errors:                      {results.error_count} failed")
 

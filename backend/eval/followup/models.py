@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from backend.eval.shared.models import BaseEvalResults
+
 # SLO thresholds for followup quality
 SLO_FOLLOWUP_PASS_RATE = 0.80
 SLO_FOLLOWUP_QUESTION_RELEVANCE = 0.60
@@ -25,25 +27,13 @@ class FollowupCaseResult(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
-class FollowupEvalResults(BaseModel):
+class FollowupEvalResults(BaseEvalResults):
     """Aggregated followup evaluation results."""
 
-    total: int = 0
-    passed: int = 0
     cases: list[FollowupCaseResult] = Field(default_factory=list)
     avg_question_relevance: float = 0.0
     avg_answer_grounding: float = 0.0
     avg_diversity: float = 0.0
-
-    @property
-    def failed(self) -> int:
-        """Number of failed cases."""
-        return self.total - self.passed
-
-    @property
-    def pass_rate(self) -> float:
-        """Overall pass rate."""
-        return self.passed / self.total if self.total > 0 else 0.0
 
     def compute_aggregates(self) -> None:
         """Compute aggregate metrics from individual case results."""

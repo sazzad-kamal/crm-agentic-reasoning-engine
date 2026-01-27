@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from backend.eval.shared.models import BaseEvalResults
+
 # SLO thresholds for text quality
 SLO_TEXT_ANSWER_CORRECTNESS = 0.50  # Semantic match (lenient for phrasing)
 SLO_TEXT_ANSWER_RELEVANCY = 0.85  # Must address the question asked
@@ -33,27 +35,15 @@ class TextCaseResult(BaseModel):
         )
 
 
-class TextEvalResults(BaseModel):
+class TextEvalResults(BaseEvalResults):
     """Aggregated text evaluation results."""
 
-    total: int = 0
-    passed: int = 0
     cases: list[TextCaseResult] = Field(default_factory=list)
     avg_answer_correctness: float = 0.0
     avg_answer_relevancy: float = 0.0
     # RAGAS reliability tracking
     ragas_metrics_total: int = 0
     ragas_metrics_failed: int = 0
-
-    @property
-    def failed(self) -> int:
-        """Number of failed cases."""
-        return self.total - self.passed
-
-    @property
-    def pass_rate(self) -> float:
-        """Overall pass rate."""
-        return self.passed / self.total if self.total > 0 else 0.0
 
     @property
     def ragas_success_rate(self) -> float:

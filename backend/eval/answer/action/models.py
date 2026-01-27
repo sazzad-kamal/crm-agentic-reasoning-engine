@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from backend.eval.shared.models import BaseEvalResults
+
 # SLO thresholds for action quality
 SLO_ACTION_PASS_RATE = 0.80
 SLO_RELEVANCE = 0.90
@@ -26,11 +28,9 @@ class ActionCaseResult(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
-class ActionEvalResults(BaseModel):
+class ActionEvalResults(BaseEvalResults):
     """Aggregated action evaluation results."""
 
-    total: int = 0
-    passed: int = 0
     cases: list[ActionCaseResult] = Field(default_factory=list)
     avg_relevance: float = 0.0
     avg_actionability: float = 0.0
@@ -43,16 +43,6 @@ class ActionEvalResults(BaseModel):
     spurious_action: int = 0  # Action not expected but produced
     correct_silence: int = 0  # Action not expected and not produced
     error_count: int = 0  # Cases that failed due to errors
-
-    @property
-    def failed(self) -> int:
-        """Number of failed cases."""
-        return self.total - self.passed
-
-    @property
-    def pass_rate(self) -> float:
-        """Overall pass rate."""
-        return self.passed / self.total if self.total > 0 else 0.0
 
     def compute_aggregates(self) -> None:
         """Compute aggregate metrics from individual case results."""

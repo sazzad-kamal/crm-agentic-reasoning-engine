@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from backend.eval.shared.models import BaseEvalResults
+
 
 class Question(BaseModel):
     """A question from the evaluation set."""
@@ -23,21 +25,11 @@ class CaseResult(BaseModel):
     latency_ms: float = 0.0
 
 
-class EvalResults(BaseModel):
+class EvalResults(BaseEvalResults):
     """Aggregated evaluation results."""
 
-    total: int = 0
-    passed: int = 0
     cases: list[CaseResult] = Field(default_factory=list)
     avg_latency_ms: float = 0.0
-
-    @property
-    def failed(self) -> int:
-        return self.total - self.passed
-
-    @property
-    def pass_rate(self) -> float:
-        return self.passed / self.total if self.total > 0 else 0.0
 
     def compute_aggregates(self) -> None:
         """Compute aggregate metrics from individual case results."""

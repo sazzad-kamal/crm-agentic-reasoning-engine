@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Callable
 from pathlib import Path
-
-from rich.table import Table
+from typing import NamedTuple
 
 from backend.eval.integration.models import (
     SLO_FLOW_ANSWER_CORRECTNESS,
     SLO_FLOW_AVG_LATENCY_MS,
-    SLO_FLOW_COMPOSITE_SCORE,
     SLO_FLOW_FAITHFULNESS,
     SLO_FLOW_PATH_PASS_RATE,
     SLO_FLOW_QUESTION_PASS_RATE,
@@ -19,138 +18,113 @@ from backend.eval.integration.models import (
     FlowEvalResults,
     FlowStepResult,
 )
-from backend.eval.shared.formatting import build_eval_table, console, format_percentage
 
 logger = logging.getLogger(__name__)
 
 
+# =============================================================================
+# Data-driven SLO definitions
+# =============================================================================
+
+
+class SloSpec(NamedTuple):
+    """Single SLO metric specification."""
+
+    key: str  # JSON key for save_results
+    label: str  # Display label
+    section: str  # Grouping header
+    get_value: Callable[[FlowEvalResults], float]
+    target: float
+    compare: str  # ">=" or "<="
+    fmt: str  # "pct" or "ms"
+
+
+SLO_SPECS: list[SloSpec] = [
+    SloSpec("path_pass_rate", "Path Pass Rate", "Pass Rates",
+            lambda r: r.path_pass_rate, SLO_FLOW_PATH_PASS_RATE, ">=", "pct"),
+    SloSpec("question_pass_rate", "Question Pass Rate", "Pass Rates",
+            lambda r: r.question_pass_rate, SLO_FLOW_QUESTION_PASS_RATE, ">=", "pct"),
+    SloSpec("relevance", "Relevance", "Answer Quality",
+            lambda r: r.avg_relevance, SLO_FLOW_RELEVANCE, ">=", "pct"),
+    SloSpec("faithfulness", "Faithfulness", "Answer Quality",
+            lambda r: r.avg_faithfulness, SLO_FLOW_FAITHFULNESS, ">=", "pct"),
+    SloSpec("answer_correctness", "Answer Correctness", "Answer Quality",
+            lambda r: r.avg_answer_correctness, SLO_FLOW_ANSWER_CORRECTNESS, ">=", "pct"),
+    SloSpec("avg_latency_ms", "Avg Latency/Question", "Latency",
+            lambda r: r.avg_latency_per_question_ms, SLO_FLOW_AVG_LATENCY_MS, "<=", "ms"),
+]
+
+
+def _slo_passed(spec: SloSpec, results: FlowEvalResults) -> bool:
+    """Check if an SLO spec passes for the given results."""
+    value = spec.get_value(results)
+    if spec.compare == ">=":
+        return value >= spec.target
+    return value <= spec.target
+
+
+def _format_slo(spec: SloSpec, value: float) -> tuple[str, str]:
+    """Format a value and its SLO target for display."""
+    if spec.fmt == "pct":
+        return f"{value:.1%}", f"{spec.compare}{spec.target:.1%}"
+    return f"{value:.0f}ms", f"{spec.compare}{spec.target:.0f}ms"
+
+
+# =============================================================================
+# Display functions
+# =============================================================================
+
+
 def print_summary(results: FlowEvalResults, latency_pcts: dict[str, float] | None = None) -> bool:
     """
-    Print a comprehensive summary of eval results with SLO status.
-
-    Args:
-        results: The evaluation results
-        latency_pcts: Optional latency breakdown from LangSmith (informational only)
+    Print evaluation summary with SLO status.
 
     Returns:
-        True if all SLOs passed
+        True if all SLOs passed.
     """
-    console.print()
+    print()
+    print("Flow Evaluation Summary")
+    print("=" * 50)
 
-    # Compute SLO pass/fail
-    path_slo_pass = results.path_pass_rate >= SLO_FLOW_PATH_PASS_RATE
-    q_slo_pass = results.question_pass_rate >= SLO_FLOW_QUESTION_PASS_RATE
-    relevance_slo_pass = results.avg_relevance >= SLO_FLOW_RELEVANCE
-    faithfulness_slo_pass = results.avg_faithfulness >= SLO_FLOW_FAITHFULNESS
-    answer_correctness_slo_pass = results.avg_answer_correctness >= SLO_FLOW_ANSWER_CORRECTNESS
-    avg_latency_pass = results.avg_latency_per_question_ms <= SLO_FLOW_AVG_LATENCY_MS
-    composite_pass = results.composite_score >= SLO_FLOW_COMPOSITE_SCORE
+    all_passed = True
+    current_section = ""
 
-    # Build table sections: (section_name, [(label, value, slo_target, slo_passed)])
-    sections: list[tuple[str, list[tuple[str, str, str | None, bool | None]]]] = [
-        (
-            "Pass Rates",
-            [
-                (
-                    "  Path Pass Rate",
-                    format_percentage(results.path_pass_rate),
-                    f">={format_percentage(SLO_FLOW_PATH_PASS_RATE)}",
-                    path_slo_pass,
-                ),
-                (
-                    "  Question Pass Rate",
-                    format_percentage(results.question_pass_rate),
-                    f">={format_percentage(SLO_FLOW_QUESTION_PASS_RATE)}",
-                    q_slo_pass,
-                ),
-            ],
-        ),
-        (
-            "Answer Quality",
-            [
-                (
-                    "  Relevance",
-                    format_percentage(results.avg_relevance),
-                    f">={format_percentage(SLO_FLOW_RELEVANCE)}",
-                    relevance_slo_pass,
-                ),
-                (
-                    "  Faithfulness",
-                    format_percentage(results.avg_faithfulness),
-                    f">={format_percentage(SLO_FLOW_FAITHFULNESS)}",
-                    faithfulness_slo_pass,
-                ),
-                (
-                    "  Answer Correctness",
-                    format_percentage(results.avg_answer_correctness),
-                    f">={format_percentage(SLO_FLOW_ANSWER_CORRECTNESS)}",
-                    answer_correctness_slo_pass,
-                ),
-            ],
-        ),
-        (
-            "Latency",
-            [
-                (
-                    "  avg/question",
-                    f"{results.avg_latency_per_question_ms:.0f}ms",
-                    f"<={SLO_FLOW_AVG_LATENCY_MS}ms",
-                    avg_latency_pass,
-                ),
-            ],
-        ),
-        (
-            "RAGAS Reliability",
-            [
-                (
-                    "  Metrics Success",
-                    f"{results.ragas_metrics_total - results.ragas_metrics_failed}/{results.ragas_metrics_total} ({format_percentage(results.ragas_success_rate)})",
-                    ">=90.0%",
-                    results.ragas_success_rate >= 0.9,
-                ),
-            ],
-        ),
-    ]
+    for spec in SLO_SPECS:
+        if spec.section != current_section:
+            current_section = spec.section
+            print(f"\n{current_section}")
 
-    # Optional LangSmith section (informational only, no SLO)
+        value = spec.get_value(results)
+        passed = _slo_passed(spec, results)
+        status = "PASS" if passed else "FAIL"
+        if not passed:
+            all_passed = False
+
+        val_str, target_str = _format_slo(spec, value)
+        print(f"  {spec.label}: {val_str} ({target_str} SLO) {status}")
+
+    # RAGAS Reliability (special: ratio display, not in SLO_SPECS)
+    ragas_ok = results.ragas_metrics_total - results.ragas_metrics_failed
+    ragas_passed = results.ragas_success_rate >= 0.9
+    if not ragas_passed:
+        all_passed = False
+    print("\nRAGAS Reliability")
+    print(
+        f"  Metrics Success: {ragas_ok}/{results.ragas_metrics_total}"
+        f" ({results.ragas_success_rate:.1%}) (>=90.0% SLO)"
+        f" {'PASS' if ragas_passed else 'FAIL'}"
+    )
+
+    # Optional LangSmith info (no SLO)
     if latency_pcts:
-        sections.append((
-            "LangSmith (info)",
-            [
-                ("  Fetch", format_percentage(latency_pcts.get("fetch", 0)), "-", None),
-                ("  Answer", format_percentage(latency_pcts.get("answer", 0)), "-", None),
-                ("  Followup", format_percentage(latency_pcts.get("followup", 0)), "-", None),
-            ],
-        ))
-
-    # Build table with composite score as aggregate row
-    summary_table = build_eval_table(
-        "Flow Evaluation Summary",
-        sections,
-        aggregate_row=(
-            "Composite Score",
-            format_percentage(results.composite_score),
-            f">={format_percentage(SLO_FLOW_COMPOSITE_SCORE)}",
-            composite_pass,
-        ),
-    )
-    console.print(summary_table)
-
-    # All SLOs must pass
-    all_slos_passed = (
-        path_slo_pass
-        and q_slo_pass
-        and relevance_slo_pass
-        and faithfulness_slo_pass
-        and answer_correctness_slo_pass
-        and avg_latency_pass
-        and composite_pass
-    )
+        print("\nLangSmith (info)")
+        for key in ("fetch", "answer", "followup"):
+            print(f"  {key.capitalize()}: {latency_pcts.get(key, 0):.1%}")
 
     # SLO Failures Detail
     _print_slo_failures(results)
 
-    return all_slos_passed
+    return all_passed
 
 
 def _count_slo_failures(step: FlowStepResult) -> int:
@@ -166,8 +140,7 @@ def _count_slo_failures(step: FlowStepResult) -> int:
 
 
 def _print_slo_failures(results: FlowEvalResults) -> None:
-    """Print details of SLO failures as a compact table."""
-    # Collect all failed steps with their path info
+    """Print details of SLO failures."""
     failures: list[tuple[int, FlowStepResult]] = []
     for flow_result in results.all_results:
         for step in flow_result.steps:
@@ -177,95 +150,50 @@ def _print_slo_failures(results: FlowEvalResults) -> None:
     if not failures:
         return
 
-    # Sort by failure count (most failures first)
     failures.sort(key=lambda x: _count_slo_failures(x[1]), reverse=True)
-
-    # Show top 5
     shown = failures[:5]
-    total = len(failures)
 
-    console.print()
-    failed_table = Table(
-        title=f"SLO Failures ({len(shown)} of {total} shown, sorted by severity)",
-        show_header=True,
-        header_style="bold yellow",
-    )
-    failed_table.add_column("Path", style="dim", width=4)
-    failed_table.add_column("Question", width=40)
-    failed_table.add_column("R", justify="center", width=3)
-    failed_table.add_column("F", justify="center", width=3)
-    failed_table.add_column("A", justify="center", width=3)
+    print()
+    print(f"SLO Failures ({len(shown)} of {len(failures)} shown, sorted by severity)")
+    print(f"  {'Path':<5} {'Question':<40} {'R':>3} {'F':>3} {'A':>3}")
+    print(f"  {'-'*5} {'-'*40} {'-'*3} {'-'*3} {'-'*3}")
 
     def fmt(passed: bool) -> str:
-        return "[green]Y[/green]" if passed else "[red]X[/red]"
+        return "Y" if passed else "X"
 
     for path_id, step in shown:
-        question_display = step.question[:38] + "..." if len(step.question) > 38 else step.question
+        q = step.question[:38] + "..." if len(step.question) > 38 else step.question
+        r = fmt(step.relevance_score >= SLO_FLOW_RELEVANCE)
+        f = fmt(step.faithfulness_score >= SLO_FLOW_FAITHFULNESS)
+        a = fmt(step.answer_correctness_score >= SLO_FLOW_ANSWER_CORRECTNESS)
+        print(f"  {path_id+1:<5} {q:<40} {r:>3} {f:>3} {a:>3}")
 
-        r_pass = step.relevance_score >= SLO_FLOW_RELEVANCE
-        f_pass = step.faithfulness_score >= SLO_FLOW_FAITHFULNESS
-        a_pass = step.answer_correctness_score >= SLO_FLOW_ANSWER_CORRECTNESS
 
-        failed_table.add_row(
-            str(path_id + 1),
-            question_display,
-            fmt(r_pass),
-            fmt(f_pass),
-            fmt(a_pass),
-        )
-
-    console.print(failed_table)
+# =============================================================================
+# JSON export
+# =============================================================================
 
 
 def save_results(results: FlowEvalResults, output_path: Path) -> None:
     """Save results to JSON file."""
-    # Use Pydantic model_dump() for summary (exclude large nested data)
     summary = results.model_dump(exclude={"failed_paths", "all_results"})
+
+    slo_results = {}
+    for spec in SLO_SPECS:
+        value = spec.get_value(results)
+        slo_results[spec.key] = {
+            "value": value,
+            "target": spec.target,
+            "passed": _slo_passed(spec, results),
+        }
 
     data = {
         "summary": summary,
-        "slo_results": {
-            "path_pass_rate": {
-                "value": results.path_pass_rate,
-                "target": SLO_FLOW_PATH_PASS_RATE,
-                "passed": results.path_pass_rate >= SLO_FLOW_PATH_PASS_RATE,
-            },
-            "question_pass_rate": {
-                "value": results.question_pass_rate,
-                "target": SLO_FLOW_QUESTION_PASS_RATE,
-                "passed": results.question_pass_rate >= SLO_FLOW_QUESTION_PASS_RATE,
-            },
-            "relevance": {
-                "value": results.avg_relevance,
-                "target": SLO_FLOW_RELEVANCE,
-                "passed": results.avg_relevance >= SLO_FLOW_RELEVANCE,
-            },
-            "faithfulness": {
-                "value": results.avg_faithfulness,
-                "target": SLO_FLOW_FAITHFULNESS,
-                "passed": results.avg_faithfulness >= SLO_FLOW_FAITHFULNESS,
-            },
-            "answer_correctness": {
-                "value": results.avg_answer_correctness,
-                "target": SLO_FLOW_ANSWER_CORRECTNESS,
-                "passed": results.avg_answer_correctness >= SLO_FLOW_ANSWER_CORRECTNESS,
-            },
-            "avg_latency_ms": {
-                "value": results.avg_latency_per_question_ms,
-                "target": SLO_FLOW_AVG_LATENCY_MS,
-                "passed": results.avg_latency_per_question_ms <= SLO_FLOW_AVG_LATENCY_MS,
-            },
-            "composite_score": {
-                "value": results.composite_score,
-                "target": SLO_FLOW_COMPOSITE_SCORE,
-                "passed": results.composite_score >= SLO_FLOW_COMPOSITE_SCORE,
-            },
-        },
-        # Use model_dump() for failed paths
+        "slo_results": slo_results,
         "failed_paths": [fp.model_dump() for fp in results.failed_paths],
     }
 
     with open(output_path, "w") as f:
         json.dump(data, f, indent=2)
 
-    console.print(f"[dim]Results saved to {output_path}[/dim]")
+    print(f"Results saved to {output_path}")

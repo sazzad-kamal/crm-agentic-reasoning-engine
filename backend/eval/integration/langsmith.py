@@ -6,8 +6,6 @@ import os
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 
-from backend.eval.shared.formatting import console
-
 
 def get_latency_breakdown(
     minutes_ago: int = 10,
@@ -28,12 +26,12 @@ def get_latency_breakdown(
     try:
         from langsmith import Client
     except ImportError:
-        console.print("[yellow]langsmith not installed. Run: pip install langsmith[/yellow]")
+        print("langsmith not installed. Run: pip install langsmith")
         return {}
 
     api_key = os.getenv("LANGCHAIN_API_KEY")
     if not api_key:
-        console.print("[yellow]LANGCHAIN_API_KEY not set - skipping latency breakdown[/yellow]")
+        print("LANGCHAIN_API_KEY not set - skipping latency breakdown")
         return {}
 
     project = project_name or os.getenv("LANGCHAIN_PROJECT", "default")
@@ -51,11 +49,11 @@ def get_latency_breakdown(
             limit=limit,
         ))
     except Exception as e:
-        console.print(f"[yellow]Could not fetch LangSmith runs: {e}[/yellow]")
+        print(f"Could not fetch LangSmith runs: {e}")
         return {}
 
     if not runs:
-        console.print(f"[dim]No runs found in last {minutes_ago} minutes[/dim]")
+        print(f"No runs found in last {minutes_ago} minutes")
         return {}
 
     # Aggregate latencies by node name

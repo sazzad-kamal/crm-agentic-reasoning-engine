@@ -8,13 +8,14 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, TypedDict
 
+from rich.console import Console
 from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
-from rich.table import Table
 
 from backend.eval.answer.text.ragas import evaluate_single
 from backend.eval.integration.models import FlowEvalResults, FlowResult, FlowStepResult
 from backend.eval.integration.tree import get_all_paths, get_expected_answer
-from backend.eval.shared.formatting import console
+
+_console = Console()  # Only used for progress bar
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +163,6 @@ def test_single_question(
     question: str,
     session_id: str,
     use_judge: bool = True,
-    verbose: bool = False,
 ) -> FlowStepResult:
     """Test a single question and return answer with metrics."""
     start_time = time.time()
@@ -223,7 +223,6 @@ def test_flow(
     path: list[str],
     path_id: int,
     use_judge: bool = True,
-    verbose: bool = False,
 ) -> FlowResult:
     """Test a conversation flow (sequential questions with memory)."""
     session_id = f"flow_eval_{path_id}_{int(time.time())}"
@@ -234,7 +233,7 @@ def test_flow(
 
     # Questions within a flow must be sequential (memory dependency)
     for question in path:
-        step_result = test_single_question(question, session_id, use_judge, verbose)
+        step_result = test_single_question(question, session_id, use_judge)
         steps.append(step_result)
         total_latency += step_result.latency_ms
 
@@ -293,7 +292,6 @@ def _aggregate_metrics(
 
 def run_flow_eval(
     max_paths: int | None = None,
-    verbose: bool = False,
     use_judge: bool = True,
     concurrency: int = 5,
 ) -> FlowEvalResults:
@@ -304,13 +302,9 @@ def run_flow_eval(
     all_paths = get_all_paths()
     paths_to_test = all_paths[:max_paths] if max_paths else all_paths
 
-    config_table = Table(show_header=False, box=None, padding=(0, 2))
-    config_table.add_column("Key", style="dim")
-    config_table.add_column("Value")
-    config_table.add_row("Paths to test", str(len(paths_to_test)))
-    config_table.add_row("Concurrency", str(concurrency))
-    console.print(config_table)
-    console.print()
+    print(f"Paths to test: {len(paths_to_test)}")
+    print(f"Concurrency: {concurrency}")
+    print()
 
     total = len(paths_to_test)
     results: list[FlowResult] = []
@@ -322,7 +316,7 @@ def run_flow_eval(
         TaskProgressColumn(),
         TextColumn("[dim]{task.completed}/{task.total}[/dim]"),
         TimeElapsedColumn(),
-        console=console,
+        console=_console,
         transient=False,
     ) as progress:
         task = progress.add_task("", total=total)
@@ -330,7 +324,7 @@ def run_flow_eval(
         with ThreadPoolExecutor(max_workers=concurrency) as executor:
             # Submit all flows
             futures = {
-                executor.submit(test_flow, path, i, use_judge, verbose): i
+                executor.submit(test_flow, path, i, use_judge): i
                 for i, path in enumerate(paths_to_test)
             }
 

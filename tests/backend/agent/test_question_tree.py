@@ -9,7 +9,6 @@ from backend.agent.followup.tree import (
 from backend.eval.integration.tree import (
     get_all_paths,
     get_tree_stats,
-    validate_tree,
 )
 
 # =============================================================================
@@ -186,19 +185,3 @@ class TestGetTreeStats:
         assert "max" in stats["path_lengths"]
 
 
-# =============================================================================
-# validate_tree Tests
-# =============================================================================
-
-class TestValidateTree:
-    """Tests for validate_tree function."""
-
-    def test_returns_list(self):
-        """Returns a list of issues."""
-        issues = validate_tree()
-        assert isinstance(issues, list)
-
-    def test_tree_is_valid(self):
-        """Current tree should be valid (no issues)."""
-        issues = validate_tree()
-        assert len(issues) == 0, f"Tree validation failed: {issues}"

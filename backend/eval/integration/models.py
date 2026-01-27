@@ -3,20 +3,6 @@
 from pydantic import BaseModel, Field, computed_field
 
 # =============================================================================
-# Composite Score Helpers
-# =============================================================================
-
-
-def _latency_score(avg_latency_ms: float, slo_target_ms: float) -> float:
-    """Convert latency to 0-1 score (1.0 at SLO, 0.0 at 2x SLO)."""
-    if avg_latency_ms <= slo_target_ms:
-        return 1.0
-    if avg_latency_ms >= 2 * slo_target_ms:
-        return 0.0
-    return 1.0 - (avg_latency_ms - slo_target_ms) / slo_target_ms
-
-
-# =============================================================================
 # SLO Thresholds
 # =============================================================================
 
@@ -27,7 +13,6 @@ SLO_FLOW_FAITHFULNESS = 0.90  # 90% - critical for CRM, no hallucination allowed
 SLO_FLOW_RELEVANCE = 0.85  # 85% - answers should address the question
 SLO_FLOW_ANSWER_CORRECTNESS = 0.70  # 70% - hardest metric, flexible answer formats
 SLO_FLOW_AVG_LATENCY_MS = 4000  # 4s average per question
-SLO_FLOW_COMPOSITE_SCORE = 0.85  # 85% - Flow eval composite
 
 
 # =============================================================================
@@ -119,22 +104,3 @@ class FlowEvalResults(BaseModel):
             return 1.0  # No RAGAS metrics = no failures
         return (self.ragas_metrics_total - self.ragas_metrics_failed) / self.ragas_metrics_total
 
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def composite_score(self) -> float:
-        """
-        Answer quality composite score (0.0-1.0).
-
-        Weights:
-        - Faithfulness: 40% (critical - no hallucinations)
-        - Answer Relevance: 30% (must address questions)
-        - Answer Correctness: 25% (factual accuracy)
-        - Latency: 5% (speed, capped at SLO)
-        """
-        latency_score = _latency_score(self.avg_latency_per_question_ms, SLO_FLOW_AVG_LATENCY_MS)
-        return (
-            0.40 * self.avg_faithfulness
-            + 0.30 * self.avg_relevance
-            + 0.25 * self.avg_answer_correctness
-            + 0.05 * latency_score
-        )

@@ -5,30 +5,21 @@ This module provides functions for:
 - Loading expected answers from fixtures
 - Generating test paths from the question tree
 - Computing tree statistics
-
-The question tree data itself lives in backend/agent/followup/tree/
-since runtime code (get_follow_ups) needs it.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import networkx as nx
 
 # Import the shared graph from followup/tree via public API
 from backend.agent.followup.tree import get_graph, get_starters
 
-if TYPE_CHECKING:
-    from rich.tree import Tree
-
 __all__ = [
     "get_expected_answer",
     "get_all_paths",
     "get_tree_stats",
-    "validate_tree",
-    "print_tree",
 ]
 
 # Get a copy of the graph (read-only)
@@ -162,79 +153,3 @@ def get_tree_stats() -> dict:
     }
 
 
-def validate_tree() -> list[str]:
-    """
-    Validate the question tree for consistency.
-
-    Returns list of any issues found.
-    """
-    subgraph = _get_reachable_subgraph()
-    reachable = set(subgraph.nodes())
-    issues = []
-
-    # Check all starters are in tree
-    for starter in _STARTERS:
-        if starter not in _G:
-            issues.append(f"Starter not in tree: {starter}")
-
-    # Check for orphans
-    for question in _G.nodes():
-        if question not in reachable:
-            issues.append(f"Orphaned question (not reachable): {question}")
-
-    # Check subgraph is a valid DAG (no cycles)
-    if not nx.is_directed_acyclic_graph(subgraph):
-        issues.append("Tree contains cycles!")
-
-    # Check each node has exactly 0 or 3 follow-ups (valid tree structure)
-    for node in reachable:
-        out_degree = _G.out_degree(node)
-        if out_degree not in (0, 3):
-            issues.append(f"Node has {out_degree} follow-ups (expected 0 or 3): {node[:50]}...")
-
-    return issues
-
-
-def print_tree(max_depth: int | None = None) -> Tree:
-    """
-    Generate a Rich Tree representation of the question tree.
-
-    Args:
-        max_depth: Maximum depth to display (default: show all levels)
-
-    Returns:
-        Rich Tree object (print with rich.print or console.print).
-
-    Usage:
-        from rich import print
-        print(print_tree())              # Full tree
-        print(print_tree(max_depth=3))   # 3 levels deep
-    """
-    from rich.tree import Tree
-
-    # Entity labels for starters
-    entity_labels = {
-        "What deals are in the pipeline?": "[bold cyan]OPPORTUNITIES[/bold cyan]",
-        "Which accounts are at risk?": "[bold green]COMPANIES[/bold green]",
-        "Which contacts haven't been contacted recently?": "[bold yellow]CONTACTS[/bold yellow]",
-    }
-
-    def add_children(parent_branch: Tree, node: str, depth: int) -> None:
-        """Recursively add children to tree."""
-        if max_depth is not None and depth >= max_depth:
-            return
-
-        children = list(_G.successors(node)) if node in _G else []
-        for child in children:
-            child_branch = parent_branch.add(child)
-            add_children(child_branch, child, depth + 1)
-
-    # Create root tree
-    root = Tree("[bold]Question Tree[/bold]")
-    for starter in _STARTERS:
-        label = entity_labels.get(starter, starter)
-        entity_branch = root.add(label)
-        starter_branch = entity_branch.add(f"[bold]{starter}[/bold]")
-        add_children(starter_branch, starter, 1)
-
-    return root

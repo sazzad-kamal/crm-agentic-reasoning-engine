@@ -1,7 +1,7 @@
 """
 Tests for backend.eval module.
 
-Tests the evaluation models, formatting, and shared utilities.
+Tests the evaluation models and shared utilities.
 """
 
 import json
@@ -34,45 +34,7 @@ from backend.eval.integration.models import (
     FlowEvalResults,
     FlowResult,
     FlowStepResult,
-    _latency_score,
 )
-
-# =============================================================================
-# Latency Score Helper Tests
-# =============================================================================
-
-
-class TestLatencyScore:
-    """Tests for _latency_score helper function."""
-
-    def test_latency_score_at_slo(self):
-        """Test latency score at exactly SLO target."""
-        assert _latency_score(3000.0, 3000.0) == 1.0
-
-    def test_latency_score_below_slo(self):
-        """Test latency score below SLO target."""
-        assert _latency_score(2000.0, 3000.0) == 1.0
-
-    def test_latency_score_at_double_slo(self):
-        """Test latency score at 2x SLO target."""
-        assert _latency_score(6000.0, 3000.0) == 0.0
-
-    def test_latency_score_above_double_slo(self):
-        """Test latency score above 2x SLO target."""
-        assert _latency_score(9000.0, 3000.0) == 0.0
-
-    def test_latency_score_interpolation(self):
-        """Test latency score linear interpolation between SLO and 2x SLO."""
-        # 4500ms is halfway between 3000ms (SLO) and 6000ms (2x SLO)
-        # Score should be 0.5
-        assert _latency_score(4500.0, 3000.0) == 0.5
-
-    def test_latency_score_interpolation_quarter(self):
-        """Test latency score at 25% above SLO."""
-        # 3750ms is 25% of the way from 3000ms to 6000ms
-        # Score should be 0.75
-        assert _latency_score(3750.0, 3000.0) == 0.75
-
 
 # =============================================================================
 # Flow Model Tests
@@ -221,29 +183,6 @@ class TestFlowEvalResults:
         assert results.path_pass_rate == 0.0
         assert results.question_pass_rate == 0.0
 
-    def test_flow_eval_results_composite_score(self):
-        """Test FlowEvalResults composite score calculation."""
-        results = FlowEvalResults(
-            total_paths=10,
-            paths_tested=10,
-            paths_passed=9,
-            paths_failed=1,
-            total_questions=40,
-            questions_passed=36,
-            questions_failed=4,
-            avg_relevance=0.88,
-            avg_faithfulness=0.92,
-            avg_answer_correctness=0.75,
-            avg_latency_per_question_ms=3000.0,  # Under SLO, so latency_score = 1.0
-        )
-
-        # Composite = 0.40*faith + 0.30*rel + 0.25*ans + 0.05*latency
-        # latency_score = 1.0 (3000ms <= 4000ms SLO)
-        # = 0.40*0.92 + 0.30*0.88 + 0.25*0.75 + 0.05*1.0
-        expected = 0.40 * 0.92 + 0.30 * 0.88 + 0.25 * 0.75 + 0.05 * 1.0
-        assert abs(results.composite_score - expected) < 0.001
-        assert results.composite_score > 0.85  # Should pass SLO
-
 
 # =============================================================================
 # SLO Constants Tests
@@ -268,68 +207,6 @@ class TestSLOConstants:
     def test_slo_flow_faithfulness(self):
         """Test SLO flow faithfulness threshold."""
         assert SLO_FLOW_FAITHFULNESS == 0.90
-
-
-# =============================================================================
-# Formatting Tests
-# =============================================================================
-
-
-class TestFormatters:
-    """Tests for formatting functions."""
-
-    def test_format_percentage_high(self):
-        """Test format_percentage with high value (green)."""
-        from backend.eval.shared.formatting import format_percentage
-
-        result = format_percentage(0.95)
-        assert "[green]" in result
-        assert "95.0%" in result
-
-    def test_format_percentage_medium(self):
-        """Test format_percentage with medium value (yellow)."""
-        from backend.eval.shared.formatting import format_percentage
-
-        result = format_percentage(0.75)
-        assert "[yellow]" in result
-        assert "75.0%" in result
-
-    def test_format_percentage_low(self):
-        """Test format_percentage with low value (red)."""
-        from backend.eval.shared.formatting import format_percentage
-
-        result = format_percentage(0.50)
-        assert "[red]" in result
-        assert "50.0%" in result
-
-    def test_format_percentage_custom_thresholds(self):
-        """Test format_percentage with custom thresholds."""
-        from backend.eval.shared.formatting import format_percentage
-
-        result = format_percentage(0.75, thresholds=(0.8, 0.6))
-        assert "[yellow]" in result
-
-
-class TestTables:
-    """Tests for table creation functions."""
-
-    def test_build_eval_table(self):
-        """Test build_eval_table creates valid table."""
-        from backend.eval.shared.formatting import build_eval_table
-
-        sections = [
-            (
-                "Quality",
-                [
-                    ("Relevance", "85%", ">=80%", True),
-                    ("Faithfulness", "75%", ">=80%", False),
-                ],
-            ),
-        ]
-
-        table = build_eval_table("Test Table", sections)
-        assert table.title == "Test Table"
-        assert len(table.columns) == 3  # Metric, Value, SLO
 
 
 # =============================================================================
@@ -540,7 +417,6 @@ class TestOutputModule:
 
         assert "summary" in data
         assert "slo_results" in data
-        assert data["summary"]["composite_score"] == results.composite_score
 
     def test_save_results_with_failed_paths(self, tmp_path):
         """Test save_results includes failed path details."""
@@ -936,7 +812,7 @@ class TestTestFlow:
 
         call_count = {"count": 0}
 
-        def mock_test_single_question(question, session_id, use_judge=True, verbose=False):
+        def mock_test_single_question(question, session_id, use_judge=True):
             call_count["count"] += 1
             return FlowStepResult(
                 question=question,
@@ -961,7 +837,7 @@ class TestTestFlow:
         """Test test_flow when a step fails."""
         from backend.eval.integration.runner import test_flow
 
-        def mock_test_single_question(question, session_id, use_judge=True, verbose=False):
+        def mock_test_single_question(question, session_id, use_judge=True):
             if "fail" in question.lower():
                 return FlowStepResult(
                     question=question,
@@ -1111,87 +987,6 @@ class TestLangSmithPercentages:
 
 
 # =============================================================================
-# Formatting Tests (Extended)
-# =============================================================================
-
-
-class TestFormattingExtended:
-    """Extended tests for formatting module."""
-
-    def test_build_eval_table_with_aggregate_row(self):
-        """Test build_eval_table with aggregate row."""
-        from backend.eval.shared.formatting import build_eval_table
-
-        sections = [
-            (
-                "Quality",
-                [
-                    ("Relevance", "85%", ">=80%", True),
-                ],
-            ),
-        ]
-
-        table = build_eval_table(
-            "Test Table",
-            sections,
-            aggregate_row=("Total", "90%", ">=85%", True),
-        )
-        assert table.title == "Test Table"
-
-    def test_build_eval_table_with_failing_aggregate(self):
-        """Test build_eval_table with failing aggregate row."""
-        from backend.eval.shared.formatting import build_eval_table
-
-        sections = [
-            (
-                "Quality",
-                [
-                    ("Relevance", "50%", ">=80%", False),
-                ],
-            ),
-        ]
-
-        table = build_eval_table(
-            "Test Table",
-            sections,
-            aggregate_row=("Total", "50%", ">=85%", False),
-        )
-        assert table.title == "Test Table"
-
-    def test_build_eval_table_empty_section_name(self):
-        """Test build_eval_table with empty section name."""
-        from backend.eval.shared.formatting import build_eval_table
-
-        sections = [
-            (
-                "",  # Empty section name
-                [
-                    ("Metric1", "90%", ">=80%", True),
-                ],
-            ),
-        ]
-
-        table = build_eval_table("Test", sections)
-        assert table.title == "Test"
-
-    def test_build_eval_table_no_slo_target(self):
-        """Test build_eval_table with None slo_target."""
-        from backend.eval.shared.formatting import build_eval_table
-
-        sections = [
-            (
-                "Metrics",
-                [
-                    ("Tracked Only", "50%", None, None),  # No SLO target
-                ],
-            ),
-        ]
-
-        table = build_eval_table("Test", sections)
-        assert table.title == "Test"
-
-
-# =============================================================================
 # Models Tests (Extended)
 # =============================================================================
 
@@ -1276,7 +1071,7 @@ class TestRunFlowEval:
         def mock_get_all_paths(role=None):
             return [["Q1?", "Q2?"]]
 
-        def mock_test_flow(questions, path_id, use_judge=True, verbose=False):
+        def mock_test_flow(questions, path_id, use_judge=True):
             return FlowResult(
                 path_id=path_id,
                 questions=questions,
@@ -1320,7 +1115,7 @@ class TestRunFlowEval:
         def mock_get_all_paths(role=None):
             return [["Q1?"]]
 
-        def mock_test_flow(questions, path_id, use_judge=True, verbose=False):
+        def mock_test_flow(questions, path_id, use_judge=True):
             return FlowResult(
                 path_id=path_id,
                 questions=questions,
@@ -1356,7 +1151,7 @@ class TestRunFlowEval:
         def mock_get_all_paths(role=None):
             return [["Q1?"]]
 
-        def mock_test_flow(questions, path_id, use_judge=True, verbose=False):
+        def mock_test_flow(questions, path_id, use_judge=True):
             return FlowResult(
                 path_id=path_id,
                 questions=questions,
@@ -1393,7 +1188,7 @@ class TestRunFlowEval:
 
         call_count = {"count": 0}
 
-        def mock_test_flow(questions, path_id, use_judge=True, verbose=False):
+        def mock_test_flow(questions, path_id, use_judge=True):
             call_count["count"] += 1
             return FlowResult(
                 path_id=path_id,
@@ -1532,13 +1327,6 @@ class TestCountSloFailures:
 class TestTreeValidation:
     """Tests for tree validation functions."""
 
-    def test_validate_tree(self):
-        """Test validate_tree returns list of issues."""
-        from backend.eval.integration.tree import validate_tree
-
-        issues = validate_tree()
-        assert isinstance(issues, list)
-
     def test_get_tree_stats(self):
         """Test get_tree_stats returns expected keys."""
         from backend.eval.integration.tree import get_tree_stats
@@ -1559,20 +1347,6 @@ class TestTreeValidation:
         assert isinstance(paths, list)
         if paths:
             assert isinstance(paths[0], list)
-
-    def test_print_tree(self):
-        """Test print_tree returns Rich Tree object."""
-        from backend.eval.integration.tree import print_tree
-
-        tree = print_tree()
-        assert tree is not None
-
-    def test_print_tree_with_max_depth(self):
-        """Test print_tree with max_depth parameter."""
-        from backend.eval.integration.tree import print_tree
-
-        tree = print_tree(max_depth=2)
-        assert tree is not None
 
 
 # =============================================================================
@@ -1707,10 +1481,9 @@ class TestCliModuleExtended:
         import backend.eval.integration.__main__
         monkeypatch.setattr(backend.eval.integration.__main__, "_run_eval", mock_run_eval)
 
-        main(limit=5, verbose=True, no_judge=True, output="test.json", debug=True)
+        main(limit=5, no_judge=True, output="test.json", debug=True)
 
         assert call_args["limit"] == 5
-        assert call_args["verbose"] is True
         assert call_args["no_judge"] is True
 
 # =============================================================================
@@ -1803,78 +1576,6 @@ class TestTreePathFinding:
         # This should work - leaf is Leaf?
         result = backend.eval.integration.tree._find_paths(["Starter?"], subgraph, 5)
         assert len(result) > 0  # Should find paths
-
-
-# =============================================================================
-# Tree Validation Edge Cases
-# =============================================================================
-
-
-class TestTreeValidationEdgeCases:
-    """Tests for tree validation edge cases."""
-
-    def test_validate_tree_starter_not_in_graph(self, monkeypatch):
-        """Test validate_tree when starter is not in graph."""
-        import networkx as nx
-
-        import backend.eval.integration.tree
-
-        # Create empty graph but have starters defined
-        mock_g = nx.DiGraph()
-        monkeypatch.setattr(backend.eval.integration.tree, "_G", mock_g)
-        monkeypatch.setattr(backend.eval.integration.tree, "_STARTERS", ["Missing Starter?"])
-
-        issues = backend.eval.integration.tree.validate_tree()
-        assert any("Starter not in tree" in issue for issue in issues)
-
-    def test_validate_tree_orphaned_question(self, monkeypatch):
-        """Test validate_tree detects orphaned questions."""
-        import networkx as nx
-
-        import backend.eval.integration.tree
-
-        # Create graph with connected and orphaned nodes
-        mock_g = nx.DiGraph()
-        mock_g.add_edge("Starter?", "Connected?")
-        mock_g.add_node("Orphan?")  # Not reachable from starter
-        monkeypatch.setattr(backend.eval.integration.tree, "_G", mock_g)
-        monkeypatch.setattr(backend.eval.integration.tree, "_STARTERS", ["Starter?"])
-
-        issues = backend.eval.integration.tree.validate_tree()
-        assert any("Orphaned question" in issue for issue in issues)
-
-    def test_validate_tree_cycle_detection(self, monkeypatch):
-        """Test validate_tree detects cycles."""
-        import networkx as nx
-
-        import backend.eval.integration.tree
-
-        # Create graph with a cycle
-        mock_g = nx.DiGraph()
-        mock_g.add_edge("A?", "B?")
-        mock_g.add_edge("B?", "C?")
-        mock_g.add_edge("C?", "A?")  # Creates cycle
-        monkeypatch.setattr(backend.eval.integration.tree, "_G", mock_g)
-        monkeypatch.setattr(backend.eval.integration.tree, "_STARTERS", ["A?"])
-
-        issues = backend.eval.integration.tree.validate_tree()
-        assert any("cycles" in issue.lower() for issue in issues)
-
-    def test_validate_tree_wrong_out_degree(self, monkeypatch):
-        """Test validate_tree detects wrong number of follow-ups."""
-        import networkx as nx
-
-        import backend.eval.integration.tree
-
-        # Create graph where node has 2 follow-ups (not 0 or 3)
-        mock_g = nx.DiGraph()
-        mock_g.add_edge("Starter?", "Child1?")
-        mock_g.add_edge("Starter?", "Child2?")  # Only 2 children, not 0 or 3
-        monkeypatch.setattr(backend.eval.integration.tree, "_G", mock_g)
-        monkeypatch.setattr(backend.eval.integration.tree, "_STARTERS", ["Starter?"])
-
-        issues = backend.eval.integration.tree.validate_tree()
-        assert any("follow-ups" in issue for issue in issues)
 
 
 # =============================================================================
@@ -2163,7 +1864,7 @@ class TestRunnerTimeoutHandling:
 
         call_count = {"count": 0}
 
-        def mock_test_flow(path, path_id, use_judge, verbose):
+        def mock_test_flow(path, path_id, use_judge):
             call_count["count"] += 1
             if call_count["count"] == 1:
                 raise RuntimeError("Thread crashed unexpectedly")

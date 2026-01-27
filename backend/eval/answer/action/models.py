@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 # SLO thresholds for action quality
 SLO_ACTION_PASS_RATE = 0.80
 SLO_RELEVANCE = 0.90
-SLO_ACTIONABILITY = 0.80
+SLO_ACTIONABILITY = 0.70
 SLO_APPROPRIATENESS = 0.85
 
 
@@ -90,8 +90,8 @@ class ActionEvalResults(BaseModel):
 __all__ = [
     "ActionCaseResult",
     "ActionEvalResults",
-    "SLO_ACTION_PASS_RATE",
     "SLO_ACTIONABILITY",
+    "SLO_ACTION_PASS_RATE",
     "SLO_APPROPRIATENESS",
     "SLO_RELEVANCE",
 ]

@@ -19,12 +19,12 @@ class TestActionJudgeResult:
         """Test ActionJudgeResult can be created."""
         result = ActionJudgeResult(
             relevance=0.8,
-            actionability=0.9,
+            actionability=0.75,
             appropriateness=0.85,
             explanation="Good action",
         )
         assert result.relevance == 0.8
-        assert result.actionability == 0.9
+        assert result.actionability == 0.75
         assert result.appropriateness == 0.85
         assert result.explanation == "Good action"
 
@@ -38,9 +38,9 @@ class TestJudgeSuggestedAction:
         mock_chain = MagicMock()
         mock_chain.invoke.return_value = ActionJudgeResult(
             relevance=0.95,
-            actionability=0.9,
+            actionability=0.8,
             appropriateness=0.9,
-            explanation="Action is relevant and actionable",
+            explanation="Action is relevant and appropriate",
         )
         mock_chain_fn.return_value = mock_chain
 
@@ -52,7 +52,7 @@ class TestJudgeSuggestedAction:
 
         assert passed is True
         assert rel == 0.95
-        assert act == 0.9
+        assert act == 0.8
         assert app == 0.9
         assert "relevant" in explanation.lower()
 
@@ -64,7 +64,7 @@ class TestJudgeSuggestedAction:
             relevance=0.4,
             actionability=0.3,
             appropriateness=0.5,
-            explanation="Action is vague and not actionable",
+            explanation="Action is vague",
         )
         mock_chain_fn.return_value = mock_chain
 

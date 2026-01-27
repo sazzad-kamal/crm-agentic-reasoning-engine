@@ -95,7 +95,8 @@ def print_summary(results: ActionEvalResults) -> None:
     if results.action_expected_passed + results.action_expected_failed > 0:
         print(
             f"  Action Metrics: rel={results.avg_relevance:.2f} "
-            f"act={results.avg_actionability:.2f} app={results.avg_appropriateness:.2f}"
+            f"act={results.avg_actionability:.2f} "
+            f"app={results.avg_appropriateness:.2f}"
         )
     print(
         f"  No action expected:   {results.correct_silence} passed (quiet), "
@@ -127,7 +128,8 @@ def print_summary(results: ActionEvalResults) -> None:
             elif c.suggested_action:
                 print(
                     f"   Action: rel={c.relevance:.2f} "
-                    f"act={c.actionability:.2f} app={c.appropriateness:.2f}"
+                    f"act={c.actionability:.2f} "
+                    f"app={c.appropriateness:.2f}"
                 )
                 print(f"   Suggested: {c.suggested_action}")
                 if c.explanation:

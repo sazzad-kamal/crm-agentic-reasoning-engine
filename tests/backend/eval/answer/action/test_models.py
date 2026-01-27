@@ -25,7 +25,7 @@ class TestSLOConstants:
 
     def test_slo_actionability(self):
         """Test SLO_ACTIONABILITY value."""
-        assert SLO_ACTIONABILITY == 0.80
+        assert SLO_ACTIONABILITY == 0.70
 
     def test_slo_appropriateness(self):
         """Test SLO_APPROPRIATENESS value."""

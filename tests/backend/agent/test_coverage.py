@@ -1058,7 +1058,7 @@ class TestIntegrationMain:
         monkeypatch.setattr(main_module, "print_summary", lambda r, **kwargs: None)
 
         # Run - should not raise
-        main_module._run_eval(limit=1, verbose=False, no_judge=True, output=None, debug=False)
+        main_module._run_eval(limit=1, no_judge=True, output=None, debug=False)
 
     def test_run_eval_handles_exception(self, monkeypatch):
         """Test _run_eval handles evaluation exception (lines 57-62)."""
@@ -1077,7 +1077,7 @@ class TestIntegrationMain:
         monkeypatch.setattr(main_module, "run_flow_eval", raise_error)
 
         # Should not raise - handles exception internally
-        main_module._run_eval(limit=1, verbose=False, no_judge=True, output=None, debug=False)
+        main_module._run_eval(limit=1, no_judge=True, output=None, debug=False)
 
     def test_run_eval_debug_output(self, monkeypatch):
         """Test _run_eval debug output for failing paths (lines 72-82)."""
@@ -1121,7 +1121,7 @@ class TestIntegrationMain:
         monkeypatch.setattr(main_module, "print_summary", lambda r, **kwargs: None)
 
         # Run with debug=True
-        main_module._run_eval(limit=1, verbose=False, no_judge=True, output=None, debug=True)
+        main_module._run_eval(limit=1, no_judge=True, output=None, debug=True)
 
     def test_run_eval_saves_output(self, monkeypatch, tmp_path):
         """Test _run_eval saves results to file (lines 85-86)."""
@@ -1154,7 +1154,7 @@ class TestIntegrationMain:
 
         output_file = tmp_path / "results.json"
         main_module._run_eval(
-            limit=1, verbose=False, no_judge=True, output=str(output_file), debug=False
+            limit=1, no_judge=True, output=str(output_file), debug=False
         )
 
         assert len(saved) == 1

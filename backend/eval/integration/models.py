@@ -87,11 +87,14 @@ class ConvoEvalResults(BaseEvalResults):
 
         self.passed = sum(1 for c in self.cases if c.passed)
 
-        n = len(self.cases)
-        self.avg_relevance = sum(c.relevance_score for c in self.cases) / n
-        self.avg_answer_correctness = sum(c.answer_correctness_score for c in self.cases) / n
         self.ragas_metrics_total = sum(c.ragas_metrics_total for c in self.cases)
         self.ragas_metrics_failed = sum(c.ragas_metrics_failed for c in self.cases)
+
+        # RAGAS averages (only for cases that were actually evaluated)
+        evaluated = [c for c in self.cases if c.ragas_metrics_total > 0]
+        if evaluated:
+            self.avg_relevance = sum(c.relevance_score for c in evaluated) / len(evaluated)
+            self.avg_answer_correctness = sum(c.answer_correctness_score for c in evaluated) / len(evaluated)
 
         # Action aggregates (only for steps that had an action judged)
         judged = [c for c in self.cases if c.suggested_action]

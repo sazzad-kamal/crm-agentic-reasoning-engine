@@ -87,6 +87,7 @@ def _evaluate_action(
             )
         except Exception as e:
             logger.warning(f"Action judge failed: {e}")
+            action_passed = False
 
     return expected_action, suggested_action, action_rel, action_act, action_app, action_passed
 
@@ -135,7 +136,7 @@ def test_single_question(question: str, session_id: str, use_judge: bool = True)
 def run_convo_eval(max_paths: int | None = None, use_judge: bool = True) -> ConvoEvalResults:
     """Run conversation evaluation on all paths."""
     all_paths = get_all_paths()
-    paths_to_test = all_paths[:max_paths] if max_paths else all_paths
+    paths_to_test = all_paths[:max_paths] if max_paths is not None else all_paths
 
     total_questions = sum(len(p) for p in paths_to_test)
     results = ConvoEvalResults(total=total_questions)

@@ -485,6 +485,7 @@ class TestRunConvoEval:
             return ConvoStepResult(
                 question=question, answer="A1",
                 relevance_score=0.9, answer_correctness_score=0.85,
+                ragas_metrics_total=2,
             )
 
         import backend.eval.integration.runner
@@ -523,7 +524,7 @@ class TestTreeValidation:
     def test_get_tree_stats(self):
         from backend.eval.integration.tree import get_tree_stats
         stats = get_tree_stats()
-        for key in ("num_starters", "num_questions", "num_edges", "num_paths", "max_depth", "path_lengths"):
+        for key in ("num_starters", "num_questions", "num_edges", "num_paths", "path_lengths"):
             assert key in stats
 
     def test_get_all_paths(self):

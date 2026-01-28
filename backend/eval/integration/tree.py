@@ -56,7 +56,7 @@ def _find_paths(graph: nx.DiGraph, starters: list[str]) -> list[list[str]]:
             try:
                 for path in nx.all_simple_paths(graph, starter, leaf):
                     paths.append(path)
-            except nx.NetworkXNoPath:
+            except nx.NodeNotFound:
                 continue
     return paths
 
@@ -75,14 +75,14 @@ def _compute_paths_and_stats() -> tuple[list[list[str]], dict]:
             reachable |= nx.descendants(graph, starter)
     subgraph = graph.subgraph(reachable).copy()
 
-    paths = _find_paths(subgraph, starters)
+    reachable_starters = [s for s in starters if s in subgraph]
+    paths = _find_paths(subgraph, reachable_starters)
 
     stats = {
         "num_starters": len(starters),
         "num_questions": subgraph.number_of_nodes(),
         "num_edges": subgraph.number_of_edges(),
         "num_paths": len(paths),
-        "max_depth": max((len(p) for p in paths), default=0),
         "path_lengths": {
             "min": min(len(p) for p in paths) if paths else 0,
             "max": max(len(p) for p in paths) if paths else 0,

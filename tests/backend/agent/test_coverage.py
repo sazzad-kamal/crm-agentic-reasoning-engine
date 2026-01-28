@@ -1020,10 +1020,10 @@ class TestFetchRunnerStylisticErrors:
 
 
 class TestIntegrationMain:
-    """Test eval/integration/__main__.py coverage (lines 40-86)."""
+    """Test eval/integration/__main__.py coverage."""
 
-    def test_run_eval_basic_flow(self, monkeypatch, tmp_path):
-        """Test _run_eval basic flow (lines 40-69)."""
+    def test_run_eval_basic_flow(self, monkeypatch):
+        """Test _run_eval basic flow."""
         from backend.eval.integration import __main__ as main_module
         from backend.eval.integration.models import FlowEvalResults
 
@@ -1058,10 +1058,10 @@ class TestIntegrationMain:
         monkeypatch.setattr(main_module, "print_summary", lambda r, **kwargs: None)
 
         # Run - should not raise
-        main_module._run_eval(limit=1, no_judge=True, output=None, debug=False)
+        main_module._run_eval(limit=1)
 
     def test_run_eval_handles_exception(self, monkeypatch):
-        """Test _run_eval handles evaluation exception (lines 57-62)."""
+        """Test _run_eval handles evaluation exception."""
         from backend.eval.integration import __main__ as main_module
 
         # Mock get_tree_stats
@@ -1077,10 +1077,10 @@ class TestIntegrationMain:
         monkeypatch.setattr(main_module, "run_flow_eval", raise_error)
 
         # Should not raise - handles exception internally
-        main_module._run_eval(limit=1, no_judge=True, output=None, debug=False)
+        main_module._run_eval(limit=1)
 
-    def test_run_eval_debug_output(self, monkeypatch):
-        """Test _run_eval debug output for failing paths (lines 72-82)."""
+    def test_run_eval_shows_failed_paths(self, monkeypatch):
+        """Test _run_eval shows details for failing paths."""
         from backend.eval.integration import __main__ as main_module
         from backend.eval.integration.models import FlowEvalResults, FlowResult, FlowStepResult
 
@@ -1120,45 +1120,8 @@ class TestIntegrationMain:
         monkeypatch.setattr(main_module, "get_latency_percentages", lambda **kwargs: {})
         monkeypatch.setattr(main_module, "print_summary", lambda r, **kwargs: None)
 
-        # Run with debug=True
-        main_module._run_eval(limit=1, no_judge=True, output=None, debug=True)
-
-    def test_run_eval_saves_output(self, monkeypatch, tmp_path):
-        """Test _run_eval saves results to file (lines 85-86)."""
-        from backend.eval.integration import __main__ as main_module
-        from backend.eval.integration.models import FlowEvalResults
-
-        # Mock get_tree_stats
-        monkeypatch.setattr(main_module, "get_tree_stats", lambda: {"total": 10})
-
-        # Mock run_flow_eval with all required fields
-        mock_results = FlowEvalResults(
-            total_paths=1,
-            paths_tested=1,
-            paths_passed=1,
-            paths_failed=0,
-            total_questions=1,
-            questions_passed=1,
-            questions_failed=0,
-        )
-        monkeypatch.setattr(main_module, "run_flow_eval", lambda **kwargs: mock_results)
-        monkeypatch.setattr(main_module, "get_latency_percentages", lambda **kwargs: {})
-        monkeypatch.setattr(main_module, "print_summary", lambda r, **kwargs: None)
-
-        # Track save_results calls
-        saved = []
-        monkeypatch.setattr(
-            main_module, "save_results",
-            lambda r, p: saved.append((r, p))
-        )
-
-        output_file = tmp_path / "results.json"
-        main_module._run_eval(
-            limit=1, no_judge=True, output=str(output_file), debug=False
-        )
-
-        assert len(saved) == 1
-        assert saved[0][1] == output_file
+        # Run - should show failed paths (now always shown)
+        main_module._run_eval(limit=1)
 
 
 class TestIntegrationRunner:

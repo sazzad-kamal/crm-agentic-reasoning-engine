@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import json
-import logging
 from collections.abc import Callable
-from pathlib import Path
 from typing import NamedTuple
 
 from backend.eval.integration.models import (
@@ -19,8 +16,6 @@ from backend.eval.integration.models import (
     FlowStepResult,
 )
 
-logger = logging.getLogger(__name__)
-
 
 # =============================================================================
 # Data-driven SLO definitions
@@ -30,7 +25,7 @@ logger = logging.getLogger(__name__)
 class SloSpec(NamedTuple):
     """Single SLO metric specification."""
 
-    key: str  # JSON key for save_results
+    key: str  # Metric identifier
     label: str  # Display label
     section: str  # Grouping header
     get_value: Callable[[FlowEvalResults], float]
@@ -167,33 +162,3 @@ def _print_slo_failures(results: FlowEvalResults) -> None:
         f = fmt(step.faithfulness_score >= SLO_FLOW_FAITHFULNESS)
         a = fmt(step.answer_correctness_score >= SLO_FLOW_ANSWER_CORRECTNESS)
         print(f"  {path_id+1:<5} {q:<40} {r:>3} {f:>3} {a:>3}")
-
-
-# =============================================================================
-# JSON export
-# =============================================================================
-
-
-def save_results(results: FlowEvalResults, output_path: Path) -> None:
-    """Save results to JSON file."""
-    summary = results.model_dump(exclude={"failed_paths", "all_results"})
-
-    slo_results = {}
-    for spec in SLO_SPECS:
-        value = spec.get_value(results)
-        slo_results[spec.key] = {
-            "value": value,
-            "target": spec.target,
-            "passed": _slo_passed(spec, results),
-        }
-
-    data = {
-        "summary": summary,
-        "slo_results": slo_results,
-        "failed_paths": [fp.model_dump() for fp in results.failed_paths],
-    }
-
-    with open(output_path, "w") as f:
-        json.dump(data, f, indent=2)
-
-    print(f"Results saved to {output_path}")

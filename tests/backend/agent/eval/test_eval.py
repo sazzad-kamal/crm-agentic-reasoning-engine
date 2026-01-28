@@ -386,83 +386,6 @@ class TestOutputModule:
         result = print_summary(results)
         assert isinstance(result, bool)
 
-    def test_save_results(self, tmp_path):
-        """Test save_results writes correct JSON."""
-        from backend.eval.integration.output import save_results
-
-        results = FlowEvalResults(
-            total_paths=5,
-            paths_tested=5,
-            paths_passed=4,
-            paths_failed=1,
-            total_questions=15,
-            questions_passed=13,
-            questions_failed=2,
-            avg_relevance=0.88,
-            avg_faithfulness=0.92,
-            avg_answer_correctness=0.70,
-            total_latency_ms=5000,
-            avg_latency_per_question_ms=333.3,
-            wall_clock_ms=10000,
-            ragas_metrics_total=50,
-            ragas_metrics_failed=3,
-        )
-
-        output_path = tmp_path / "results.json"
-        save_results(results, output_path)
-
-        assert output_path.exists()
-        with open(output_path) as f:
-            data = json.load(f)
-
-        assert "summary" in data
-        assert "slo_results" in data
-
-    def test_save_results_with_failed_paths(self, tmp_path):
-        """Test save_results includes failed path details."""
-        from backend.eval.integration.output import save_results
-
-        failed_step = FlowStepResult(
-            question="Failed question?",
-            answer="Bad answer",
-            latency_ms=1000,
-            has_answer=True,
-            relevance_score=0.4,
-            faithfulness_score=0.5,
-            answer_correctness_score=0.3,
-            judge_explanation="Poor quality answer",
-            error=None,
-        )
-
-        failed_flow = FlowResult(
-            path_id=1,
-            questions=["Failed question?"],
-            steps=[failed_step],
-            total_latency_ms=1000,
-            success=False,
-        )
-
-        results = FlowEvalResults(
-            total_paths=2,
-            paths_tested=2,
-            paths_passed=1,
-            paths_failed=1,
-            total_questions=2,
-            questions_passed=1,
-            questions_failed=1,
-            failed_paths=[failed_flow],
-        )
-
-        output_path = tmp_path / "results_with_failures.json"
-        save_results(results, output_path)
-
-        with open(output_path) as f:
-            data = json.load(f)
-
-        assert len(data["failed_paths"]) == 1
-        assert data["failed_paths"][0]["path_id"] == 1
-        assert data["failed_paths"][0]["steps"][0]["question"] == "Failed question?"
-
 
 class TestPrintSloFailures:
     """Tests for _print_slo_failures function."""
@@ -1481,10 +1404,9 @@ class TestCliModuleExtended:
         import backend.eval.integration.__main__
         monkeypatch.setattr(backend.eval.integration.__main__, "_run_eval", mock_run_eval)
 
-        main(limit=5, no_judge=True, output="test.json", debug=True)
+        main(limit=5)
 
         assert call_args["limit"] == 5
-        assert call_args["no_judge"] is True
 
 # =============================================================================
 # Tree Module YAML Error Handling Tests

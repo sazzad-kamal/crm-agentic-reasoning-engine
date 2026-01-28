@@ -96,8 +96,8 @@ class ConvoEvalResults(BaseEvalResults):
             self.avg_relevance = sum(c.relevance_score for c in evaluated) / len(evaluated)
             self.avg_answer_correctness = sum(c.answer_correctness_score for c in evaluated) / len(evaluated)
 
-        # Action aggregates (only for steps that had an action judged)
-        judged = [c for c in self.cases if c.suggested_action]
+        # Action aggregates (only for steps where the judge actually ran)
+        judged = [c for c in self.cases if c.suggested_action and not c.action_spurious]
         self.actions_judged = len(judged)
         if judged:
             self.actions_passed = sum(1 for c in judged if c.action_passed)

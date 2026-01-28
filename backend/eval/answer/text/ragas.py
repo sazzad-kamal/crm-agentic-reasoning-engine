@@ -38,6 +38,10 @@ def _evaluators() -> tuple[Any, ...]:
     return (AnswerCorrectness(llm=llm), AnswerRelevancy(llm=llm))
 
 
+# Number of RAGAS metrics evaluated (answer_correctness + answer_relevancy)
+RAGAS_METRICS_COUNT = 2
+
+
 def _extract_scores(eval_result: Any) -> dict[str, float | list[str]]:
     """Extract scores from RAGAS evaluation result."""
     df = eval_result.to_pandas()
@@ -93,4 +97,4 @@ def evaluate_single(
         return _extract_scores(eval_result)
 
 
-__all__ = ["evaluate_single"]
+__all__ = ["RAGAS_METRICS_COUNT", "evaluate_single"]

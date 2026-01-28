@@ -14,7 +14,7 @@ load_dotenv()
 from backend.agent.fetch.sql.connection import get_connection
 from backend.eval.answer.shared import generate_answer, load_questions
 from backend.eval.answer.text.models import SLO_TEXT_PASS_RATE, TextCaseResult, TextEvalResults
-from backend.eval.answer.text.ragas import evaluate_single
+from backend.eval.answer.text.ragas import RAGAS_METRICS_COUNT, evaluate_single
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def run_text_eval(limit: int | None = None) -> TextEvalResults:
                     answer=answer,
                     answer_correctness_score=cast(float, ragas["answer_correctness"]),
                     answer_relevancy_score=cast(float, ragas["answer_relevancy"]),
-                    ragas_metrics_total=2,
+                    ragas_metrics_total=RAGAS_METRICS_COUNT,
                     ragas_metrics_failed=len(nan_metrics),
                 )
             except Exception as e:

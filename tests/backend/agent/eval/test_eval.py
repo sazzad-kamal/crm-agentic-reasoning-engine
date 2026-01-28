@@ -179,11 +179,11 @@ class TestConvoEvalResults:
         results = ConvoEvalResults(total=4, cases=cases)
         results.compute_aggregates()
 
-        assert results.actions_judged == 3  # Q1, Q2, Q4 have suggested_action
+        assert results.actions_judged == 2  # Q1, Q2 (Q4 spurious, excluded)
         assert results.actions_passed == 1  # Q1
         assert results.actions_missing == 1  # Q3
         assert results.actions_spurious == 1  # Q4
-        assert results.avg_action_relevance == pytest.approx((0.9 + 0.5 + 0.0) / 3)
+        assert results.avg_action_relevance == pytest.approx((0.9 + 0.5) / 2)
 
 
 # =============================================================================

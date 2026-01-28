@@ -15,7 +15,7 @@ load_dotenv()
 import typer
 
 from backend.eval.answer.action.judge import judge_suggested_action
-from backend.eval.answer.text.ragas import evaluate_single
+from backend.eval.answer.text.ragas import RAGAS_METRICS_COUNT, evaluate_single
 from backend.eval.integration.models import (
     SLO_CONVO_STEP_PASS_RATE,
     ConvoEvalResults,
@@ -48,12 +48,12 @@ def _evaluate_ragas(
         return {
             "relevance_score": cast(float, ragas["answer_relevancy"]),
             "answer_correctness_score": cast(float, ragas["answer_correctness"]),
-            "ragas_metrics_total": 2,
+            "ragas_metrics_total": RAGAS_METRICS_COUNT,
             "ragas_metrics_failed": len(nan_metrics),
         }
     except Exception as e:
         logger.warning(f"RAGAS failed: {e}")
-        return {}
+        return {"errors": [f"RAGAS failed: {e}"]}
 
 
 def _evaluate_action(

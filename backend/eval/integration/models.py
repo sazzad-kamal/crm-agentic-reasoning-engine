@@ -30,7 +30,12 @@ class FlowStepResult(BaseModel):
         """Question passes if has answer, no errors, and meets quality threshold."""
         if self.errors:
             return False
-        return self.has_answer and self.relevance_score >= 0.7
+        if not self.has_answer:
+            return False
+        # Only check relevance when RAGAS was actually evaluated
+        if self.ragas_metrics_total > 0:
+            return self.relevance_score >= 0.7
+        return True
 
 
 class FlowResult(BaseModel):
@@ -41,7 +46,6 @@ class FlowResult(BaseModel):
     steps: list[FlowStepResult]
     total_latency_ms: int
     success: bool
-    errors: list[str] = Field(default_factory=list)
 
 
 class FlowEvalResults(BaseEvalResults):
@@ -85,11 +89,3 @@ class FlowEvalResults(BaseEvalResults):
         self.avg_latency_per_question_ms = (
             self.total_latency_ms / total_questions if total_questions > 0 else 0.0
         )
-
-
-__all__ = [
-    "FlowEvalResults",
-    "FlowResult",
-    "FlowStepResult",
-    "SLO_FLOW_PASS_RATE",
-]

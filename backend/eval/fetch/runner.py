@@ -19,7 +19,7 @@ load_dotenv(Path(__file__).parents[3] / ".env")
 from backend.agent.fetch.planner import get_sql_plan
 from backend.agent.fetch.sql.connection import get_connection
 from backend.agent.fetch.sql.executor import execute_sql
-from backend.eval.fetch.models import CaseResult, EvalResults, Question
+from backend.eval.fetch.models import SLO_FETCH_PASS_RATE, CaseResult, EvalResults, Question
 from backend.eval.fetch.sql_judge import ErrorType, JudgeError, judge_sql_equivalence
 
 # Path to questions file (shared with answer eval)
@@ -140,10 +140,10 @@ def run_sql_eval(
 
 def print_summary(results: EvalResults) -> None:
     """Print evaluation summary."""
-    passed = results.pass_rate >= 0.85
+    passed = results.pass_rate >= SLO_FETCH_PASS_RATE
     status = "PASS" if passed else "FAIL"
     print("\nFetch Node Evaluation")
-    print(f"Pass Rate: {results.pass_rate * 100:.1f}% (>=85.0% SLO) {status}")
+    print(f"Pass Rate: {results.pass_rate:.1%} (>={SLO_FETCH_PASS_RATE:.1%} SLO) {status}")
     print(
         f"Total: {results.total}, Passed: {results.passed}, Failed: {results.failed}, "
         f"Avg latency: {results.avg_latency_ms:.0f}ms"

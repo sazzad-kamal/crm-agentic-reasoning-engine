@@ -47,21 +47,27 @@ class TestFlowStepResult:
     def test_passed_property(self):
         passing = FlowStepResult(
             question="Q", answer="A", latency_ms=100, has_answer=True,
-            relevance_score=0.8,
+            relevance_score=0.8, ragas_metrics_total=2,
         )
         assert passing.passed is True
 
         failing_relevance = FlowStepResult(
             question="Q", answer="A", latency_ms=100, has_answer=True,
-            relevance_score=0.5,
+            relevance_score=0.5, ragas_metrics_total=2,
         )
         assert failing_relevance.passed is False
 
         failing_no_answer = FlowStepResult(
             question="Q", answer="", latency_ms=100, has_answer=False,
-            relevance_score=0.8,
+            relevance_score=0.8, ragas_metrics_total=2,
         )
         assert failing_no_answer.passed is False
+
+        passing_no_ragas = FlowStepResult(
+            question="Q", answer="A", latency_ms=100, has_answer=True,
+            relevance_score=0.0, ragas_metrics_total=0,
+        )
+        assert passing_no_ragas.passed is True
 
     def test_passed_with_errors(self):
         result = FlowStepResult(
@@ -73,7 +79,7 @@ class TestFlowStepResult:
     def test_low_relevance_fails(self):
         result = FlowStepResult(
             question="Q", answer="A", latency_ms=100, has_answer=True,
-            relevance_score=0.5,
+            relevance_score=0.5, ragas_metrics_total=2,
         )
         assert result.passed is False
 
@@ -190,14 +196,14 @@ class TestModelsExtended:
 
 
 class TestLangSmithLatency:
-    """Tests for LangSmith latency breakdown with mocks."""
+    """Tests for LangSmith latency percentages with mocks."""
 
-    def test_get_latency_breakdown_no_api_key(self, monkeypatch):
+    def test_no_api_key(self, monkeypatch):
         monkeypatch.delenv("LANGCHAIN_API_KEY", raising=False)
-        from backend.eval.integration.langsmith import get_latency_breakdown
-        assert get_latency_breakdown() == {}
+        from backend.eval.integration.langsmith import get_latency_percentages
+        assert get_latency_percentages() == {}
 
-    def test_get_latency_breakdown_no_runs(self, monkeypatch):
+    def test_no_runs(self, monkeypatch):
         monkeypatch.setenv("LANGCHAIN_API_KEY", "test-key")
         class MockClient:
             def list_runs(self, **kwargs): return []
@@ -205,44 +211,40 @@ class TestLangSmithLatency:
         mock_langsmith = type(sys)("langsmith")
         mock_langsmith.Client = MockClient
         monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
-        from backend.eval.integration.langsmith import get_latency_breakdown
-        assert get_latency_breakdown() == {}
+        from backend.eval.integration.langsmith import get_latency_percentages
+        assert get_latency_percentages() == {}
 
-    def test_get_latency_breakdown_with_runs(self, monkeypatch):
+    def test_with_agent_runs(self, monkeypatch):
         from datetime import datetime, timedelta
         monkeypatch.setenv("LANGCHAIN_API_KEY", "test-key")
 
         class MockRun:
-            def __init__(self, name, start, end, run_id="run1"):
+            def __init__(self, name, start, end):
                 self.name = name
                 self.start_time = start
                 self.end_time = end
-                self.id = run_id
 
         now = datetime.utcnow()
         class MockClient:
-            def __init__(self): self.call_count = 0
             def list_runs(self, **kwargs):
-                self.call_count += 1
-                if kwargs.get("is_root") is False:
-                    return [
-                        MockRun("route", now, now + timedelta(milliseconds=100)),
-                        MockRun("fetch_rag", now, now + timedelta(milliseconds=500)),
-                        MockRun("answer", now, now + timedelta(milliseconds=300)),
-                    ]
-                return [MockRun("agent", now, now + timedelta(seconds=1))]
+                return [
+                    MockRun("fetch", now, now + timedelta(milliseconds=400)),
+                    MockRun("answer", now, now + timedelta(milliseconds=300)),
+                    MockRun("followup", now, now + timedelta(milliseconds=200)),
+                    MockRun("route", now, now + timedelta(milliseconds=100)),  # non-agent, filtered
+                ]
 
         import sys
         mock_langsmith = type(sys)("langsmith")
         mock_langsmith.Client = MockClient
         monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
-        from backend.eval.integration.langsmith import get_latency_breakdown
-        result = get_latency_breakdown()
-        assert result["route"]["avg_ms"] == 100.0
-        assert result["fetch_rag"]["avg_ms"] == 500.0
-        assert result["answer"]["avg_ms"] == 300.0
+        from backend.eval.integration.langsmith import get_latency_percentages
+        result = get_latency_percentages()
+        assert abs(result["fetch"] - 400 / 900) < 0.01
+        assert abs(result["answer"] - 300 / 900) < 0.01
+        assert abs(result["followup"] - 200 / 900) < 0.01
 
-    def test_get_latency_breakdown_api_error(self, monkeypatch):
+    def test_api_error(self, monkeypatch):
         monkeypatch.setenv("LANGCHAIN_API_KEY", "test-key")
         class MockClient:
             def list_runs(self, **kwargs): raise Exception("API Error")
@@ -250,8 +252,8 @@ class TestLangSmithLatency:
         mock_langsmith = type(sys)("langsmith")
         mock_langsmith.Client = MockClient
         monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
-        from backend.eval.integration.langsmith import get_latency_breakdown
-        assert get_latency_breakdown() == {}
+        from backend.eval.integration.langsmith import get_latency_percentages
+        assert get_latency_percentages() == {}
 
 
 # =============================================================================
@@ -287,6 +289,22 @@ class TestOutputModule:
         results = FlowEvalResults(total=5, passed=4, avg_relevance=0.90)
         result = print_summary(results)
         assert isinstance(result, bool)
+
+    def test_print_summary_with_failed_paths(self):
+        from backend.eval.integration.runner import print_summary
+        cases = [
+            FlowResult(
+                path_id=0, questions=["Q1?"], success=False, total_latency_ms=100,
+                steps=[FlowStepResult(
+                    question="Q1?", answer="", latency_ms=100, has_answer=False,
+                    errors=["Agent crashed"],
+                )],
+            ),
+        ]
+        results = FlowEvalResults(total=1, cases=cases)
+        results.compute_aggregates()
+        result = print_summary(results)
+        assert result is False
 
 
 # =============================================================================
@@ -396,6 +414,25 @@ class TestTestSingleQuestion:
         result = test_single_question("Q?", "session1")
         assert result.ragas_metrics_failed >= 2
 
+    def test_ragas_exception(self, monkeypatch):
+        from backend.eval.integration.runner import test_single_question
+        def mock_invoke_agent(question, session_id=None):
+            return make_invoke_mock({
+                "answer": "Test answer with good content",
+                "sql_results": {"data": [{"id": 1}]},
+            })
+        def mock_evaluate_single(*args, **kwargs):
+            raise RuntimeError("RAGAS evaluation crashed")
+
+        import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
+        monkeypatch.setattr(backend.eval.integration.runner, "evaluate_single", mock_evaluate_single)
+        monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", lambda q: "Expected")
+
+        result = test_single_question("Q?", "session1")
+        assert result.has_answer is True
+        assert result.relevance_score == 0.0  # RAGAS failed, defaults to 0
+
     def test_no_expected_answer(self, monkeypatch):
         from backend.eval.integration.runner import test_single_question
         def mock_invoke_agent(question, session_id=None):
@@ -456,7 +493,8 @@ class TestTestFlow:
 
         result = test_flow(["Q1?", "Q2 fail?"], path_id=0)
         assert result.success is False
-        assert "Failed to answer" in result.errors
+        step_errors = [e for s in result.steps for e in s.errors]
+        assert "Failed to answer" in step_errors
 
 
 # =============================================================================
@@ -495,7 +533,7 @@ class TestRunFlowEval:
             return FlowResult(
                 path_id=path_id, questions=questions,
                 steps=[FlowStepResult(question="Q1?", answer="Bad", latency_ms=100, has_answer=True, relevance_score=0.5)],
-                total_latency_ms=100, success=False, errors=["Failed test"],
+                total_latency_ms=100, success=False,
             )
 
         import backend.eval.integration.runner
@@ -618,8 +656,8 @@ class TestLangSmithPercentages:
             if name == "langsmith": raise ImportError("No module named 'langsmith'")
             return original_import(name, *args, **kwargs)
         monkeypatch.setattr(builtins, "__import__", mock_import)
-        from backend.eval.integration.langsmith import get_latency_breakdown
-        assert get_latency_breakdown() == {}
+        from backend.eval.integration.langsmith import get_latency_percentages
+        assert get_latency_percentages() == {}
 
     def test_zero_total(self, monkeypatch):
         from datetime import datetime
@@ -672,66 +710,63 @@ class TestYamlLoading:
 
 class TestYamlLoadingErrors:
     def test_nonexistent_file(self, monkeypatch, tmp_path):
-        import backend.eval.integration.tree
-        monkeypatch.setattr(backend.eval.integration.tree, "_EVAL_FIXTURES_PATH", tmp_path / "nonexistent")
-        assert backend.eval.integration.tree._load_yaml_fixture("test.yaml") == {}
+        import backend.eval.integration.tree as tree_module
+        tree_module._load_expected_answers.cache_clear()
+        monkeypatch.setattr(tree_module, "_EVAL_FIXTURES_PATH", tmp_path / "nonexistent")
+        assert tree_module._load_expected_answers() == {}
+        tree_module._load_expected_answers.cache_clear()
 
     def test_invalid_yaml(self, monkeypatch, tmp_path):
-        import backend.eval.integration.tree
-        (tmp_path / "invalid.yaml").write_text("::invalid:: yaml: [content")
-        monkeypatch.setattr(backend.eval.integration.tree, "_EVAL_FIXTURES_PATH", tmp_path)
-        assert backend.eval.integration.tree._load_yaml_fixture("invalid.yaml") == {}
+        import backend.eval.integration.tree as tree_module
+        tree_module._load_expected_answers.cache_clear()
+        (tmp_path / "expected_answers.yaml").write_text("::invalid:: yaml: [content")
+        monkeypatch.setattr(tree_module, "_EVAL_FIXTURES_PATH", tmp_path)
+        assert tree_module._load_expected_answers() == {}
+        tree_module._load_expected_answers.cache_clear()
 
     def test_empty_file(self, monkeypatch, tmp_path):
-        import backend.eval.integration.tree
-        (tmp_path / "empty.yaml").write_text("")
-        monkeypatch.setattr(backend.eval.integration.tree, "_EVAL_FIXTURES_PATH", tmp_path)
-        assert backend.eval.integration.tree._load_yaml_fixture("empty.yaml") == {}
+        import backend.eval.integration.tree as tree_module
+        tree_module._load_expected_answers.cache_clear()
+        (tmp_path / "expected_answers.yaml").write_text("")
+        monkeypatch.setattr(tree_module, "_EVAL_FIXTURES_PATH", tmp_path)
+        assert tree_module._load_expected_answers() == {}
+        tree_module._load_expected_answers.cache_clear()
 
 
 class TestTreePathFinding:
-    def test_compute_max_depth_no_descendants(self, monkeypatch):
+    def test_compute_max_depth_no_descendants(self):
         import networkx as nx
-        import backend.eval.integration.tree
+        from backend.eval.integration.tree import _compute_max_depth
         mock_g = nx.DiGraph()
         mock_g.add_node("Starter Q?")
-        monkeypatch.setattr(backend.eval.integration.tree, "_G", mock_g)
-        monkeypatch.setattr(backend.eval.integration.tree, "_STARTERS", ["Starter Q?"])
-        assert backend.eval.integration.tree._compute_max_depth(["Starter Q?"]) == 0
+        assert _compute_max_depth(mock_g, ["Starter Q?"]) == 0
 
-    def test_find_paths_with_nx_no_path(self, monkeypatch):
+    def test_find_paths_with_nx_no_path(self):
         import networkx as nx
-        import backend.eval.integration.tree
+        from backend.eval.integration.tree import _find_paths
         mock_g = nx.DiGraph()
         mock_g.add_edge("Starter?", "Child?")
         mock_g.add_edge("Child?", "Leaf?")
-        monkeypatch.setattr(backend.eval.integration.tree, "_G", mock_g)
-        subgraph = mock_g.subgraph(["Starter?", "Child?", "Leaf?"])
-        result = backend.eval.integration.tree._find_paths(["Starter?"], subgraph, 5)
+        result = _find_paths(mock_g, ["Starter?"], 5)
         assert len(result) > 0
 
 
 class TestTreeNetworkPaths:
-    def test_compute_max_depth_no_path_between_nodes(self, monkeypatch):
+    def test_compute_max_depth_no_path_between_nodes(self):
         import networkx as nx
-        import backend.eval.integration.tree as tree_module
+        from backend.eval.integration.tree import _compute_max_depth
         G = nx.DiGraph()
         G.add_edge("starter", "node1")
         G.add_node("orphan")
-        monkeypatch.setattr(tree_module, "_G", G)
-        monkeypatch.setattr(tree_module, "_STARTERS", ["starter"])
-        assert tree_module._compute_max_depth(["starter"]) >= 1
+        assert _compute_max_depth(G, ["starter"]) >= 1
 
-    def test_find_paths_disconnected_nodes(self, monkeypatch):
+    def test_find_paths_disconnected_nodes(self):
         import networkx as nx
-        import backend.eval.integration.tree as tree_module
+        from backend.eval.integration.tree import _find_paths
         G = nx.DiGraph()
         G.add_edge("starter", "mid")
         G.add_edge("mid", "leaf")
-        monkeypatch.setattr(tree_module, "_G", G)
-        monkeypatch.setattr(tree_module, "_STARTERS", ["starter"])
-        subgraph = G.subgraph(["starter", "mid", "leaf"]).copy()
-        assert len(tree_module._find_paths(["starter"], subgraph, 3)) >= 1
+        assert len(_find_paths(G, ["starter"], 3)) >= 1
 
 
 # =============================================================================

@@ -6,6 +6,9 @@ from pydantic import BaseModel, Field
 
 from backend.eval.shared.models import BaseEvalResults
 
+# SLO thresholds for fetch evaluation
+SLO_FETCH_PASS_RATE = 0.85  # 85% of SQL generations should pass
+
 
 class Question(BaseModel):
     """A question from the evaluation set."""

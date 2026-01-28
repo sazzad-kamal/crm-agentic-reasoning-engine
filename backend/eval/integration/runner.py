@@ -8,12 +8,11 @@ import logging
 import platform
 import time
 import traceback
-from pathlib import Path
 from typing import Any, cast
 
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).parents[3] / ".env")
+load_dotenv()
 
 # Fix Windows asyncio cleanup issues with httpx/RAGAS
 if platform.system() == "Windows":
@@ -109,10 +108,9 @@ def test_flow(path: list[str], path_id: int, use_judge: bool = True) -> FlowResu
         if not step_result.passed:
             success = False
 
-    errors = [e for s in steps for e in s.errors]
     return FlowResult(
         path_id=path_id, questions=path, steps=steps,
-        total_latency_ms=total_latency, success=success, errors=errors,
+        total_latency_ms=total_latency, success=success,
     )
 
 
@@ -124,11 +122,11 @@ def run_flow_eval(max_paths: int | None = None, use_judge: bool = True) -> FlowE
     results = FlowEvalResults(total=len(paths_to_test))
     total = len(paths_to_test)
 
-    for i, path in enumerate(paths_to_test):
-        result = test_flow(path, i, use_judge)
+    for idx, path in enumerate(paths_to_test, 1):
+        result = test_flow(path, idx - 1, use_judge)
         results.cases.append(result)
         status = "PASS" if result.success else "FAIL"
-        print(f"  [{i+1}/{total}] {status} Path {i+1}: {path[0][:40]}...")
+        print(f"  [{idx}/{total}] {status} Path {idx}: {path[0][:40]}...")
 
     results.compute_aggregates()
     return results
@@ -159,8 +157,9 @@ def print_summary(results: FlowEvalResults, latency_pcts: dict[str, float] | Non
         print(f"\nFailed Paths ({len(failed)})")
         for c in failed[:5]:
             print(f"  Path {c.path_id + 1}: {c.questions[0][:50]}...")
-            if c.errors:
-                print(f"    Error: {c.errors[0]}")
+            step_errors = [e for s in c.steps for e in s.errors]
+            if step_errors:
+                print(f"    Error: {step_errors[0]}")
 
     return passed
 

@@ -1,0 +1,65 @@
+# Whether each question in the conversation tree should produce a suggested action.
+# true = action expected, false = pure lookup (no action warranted)
+
+# =============================================================================
+# OPPORTUNITIES BRANCH - Starter: "What deals are in the pipeline?"
+# =============================================================================
+
+"What deals are in the pipeline?": true
+"How are deals distributed by stage?": false
+"What are the highest value deals?": true
+"Which deals involve Acme Corp?": true
+
+"What deals are in Proposal stage?": true
+"What deals are in Qualified stage?": true
+"What deals are in Negotiation stage?": true
+
+"Which deals are over $50,000?": false
+"Which deals are under $20,000?": false
+"What's the total pipeline value?": false
+
+"Who are the Acme contacts?": true
+"What's the history with Acme?": true
+"What activities happened with Acme?": true
+
+# =============================================================================
+# COMPANIES BRANCH - Starter: "Which accounts are at risk?"
+# =============================================================================
+
+"Which accounts are at risk?": true
+"What's happening with Delta Health?": true
+"What's happening with Green Energy?": true
+"Which accounts aren't healthy?": true
+
+"Who are the Delta Health contacts?": true
+"What are the Delta Health deals?": true
+"What's the Delta Health history?": true
+
+"Who are the Green Energy contacts?": true
+"What are the Green Energy deals?": true
+"What's the Green Energy history?": true
+
+"Which accounts are churning?": true
+"Which accounts are renewing soon?": true
+"Which deals have been stuck in stage the longest?": true
+
+# =============================================================================
+# CONTACTS BRANCH - Starter: "Which contacts haven't been contacted recently?"
+# =============================================================================
+
+"Which contacts haven't been contacted recently?": true
+"Which contacts haven't been reached?": true
+"Who are the decision makers?": true
+"Which contacts had recent activity?": false
+
+"Who at Acme needs follow-up?": true
+"Which leads have no recent activity?": true
+"What are the contact emails for at-risk accounts?": true
+
+"Who's the contact at Beta Corp?": true
+"Who are the executives?": false
+"What roles do the Beta Tech contacts have?": false
+
+"What emails were sent recently?": false
+"What meetings occurred recently?": false
+"What were the recent interactions?": false

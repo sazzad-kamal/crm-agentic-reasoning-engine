@@ -1,4 +1,4 @@
-"""Data models for integration (flow) evaluation."""
+"""Data models for integration (conversation) evaluation."""
 
 from __future__ import annotations
 
@@ -7,16 +7,14 @@ from pydantic import BaseModel, Field
 from backend.eval.shared.models import BaseEvalResults
 
 # SLO thresholds for integration evaluation
-SLO_FLOW_PASS_RATE = 0.85  # 85% of conversation paths should pass
+SLO_CONVO_STEP_PASS_RATE = 0.95  # 95% of questions should pass
 
 
-class FlowStepResult(BaseModel):
-    """Result of a single question in a flow."""
+class ConvoStepResult(BaseModel):
+    """Result of a single question in a conversation."""
 
     question: str
     answer: str
-    latency_ms: int
-    has_answer: bool
     # RAGAS metrics (0.0-1.0) - answer quality
     relevance_score: float = 0.0  # RAGAS answer_relevancy
     answer_correctness_score: float = 0.0  # RAGAS answer_correctness
@@ -24,43 +22,55 @@ class FlowStepResult(BaseModel):
     # RAGAS reliability tracking
     ragas_metrics_total: int = 0  # Number of metrics evaluated (usually 2)
     ragas_metrics_failed: int = 0  # Number of metrics that returned NaN
+    # Action quality (0.0-1.0) - from action judge
+    expected_action: bool | None = None  # None if not in fixture
+    suggested_action: str | None = None
+    action_relevance: float = 0.0
+    action_actionability: float = 0.0
+    action_appropriateness: float = 0.0
+    action_passed: bool = True  # True if no action or action judged pass
+
+    @property
+    def action_missing(self) -> bool:
+        """Action was expected but not provided."""
+        return self.expected_action is True and self.suggested_action is None
+
+    @property
+    def action_spurious(self) -> bool:
+        """Action was not expected but was provided."""
+        return self.expected_action is False and self.suggested_action is not None
 
     @property
     def passed(self) -> bool:
-        """Question passes if has answer, no errors, and meets quality threshold."""
+        """Question passes if no errors, meets answer quality, and action quality."""
         if self.errors:
             return False
-        if not self.has_answer:
+        if not self.action_passed:
             return False
-        # Only check relevance when RAGAS was actually evaluated
+        # Only check RAGAS scores when actually evaluated
         if self.ragas_metrics_total > 0:
-            return self.relevance_score >= 0.7
+            return self.relevance_score >= 0.7 and self.answer_correctness_score >= 0.7
         return True
 
 
-class FlowResult(BaseModel):
-    """Result of testing a complete conversation flow."""
+class ConvoEvalResults(BaseEvalResults):
+    """Aggregated results from all question tests."""
 
-    path_id: int
-    questions: list[str]
-    steps: list[FlowStepResult]
-    total_latency_ms: int
-    success: bool
-
-
-class FlowEvalResults(BaseEvalResults):
-    """Aggregated results from all flow tests."""
-
-    cases: list[FlowResult] = Field(default_factory=list)
+    cases: list[ConvoStepResult] = Field(default_factory=list)
     # RAGAS metrics (0.0-1.0) - answer quality
     avg_relevance: float = 0.0  # RAGAS answer_relevancy
     avg_answer_correctness: float = 0.0  # RAGAS answer_correctness
     # RAGAS reliability tracking
-    ragas_metrics_total: int = 0  # Total individual metrics evaluated (questions × 2)
+    ragas_metrics_total: int = 0  # Total individual metrics evaluated (questions x 2)
     ragas_metrics_failed: int = 0  # Individual metrics that returned NaN
-    # Latency
-    total_latency_ms: int = 0
-    avg_latency_per_question_ms: float = 0.0
+    # Action quality
+    avg_action_relevance: float = 0.0
+    avg_action_actionability: float = 0.0
+    avg_action_appropriateness: float = 0.0
+    actions_judged: int = 0
+    actions_passed: int = 0
+    actions_missing: int = 0
+    actions_spurious: int = 0
 
     @property
     def ragas_success_rate(self) -> float:
@@ -70,22 +80,26 @@ class FlowEvalResults(BaseEvalResults):
         return (self.ragas_metrics_total - self.ragas_metrics_failed) / self.ragas_metrics_total
 
     def compute_aggregates(self) -> None:
-        """Compute aggregate metrics from individual case results."""
+        """Compute aggregate metrics from individual question results."""
         if not self.cases:
             return
 
-        self.passed = sum(1 for c in self.cases if c.success)
+        self.passed = sum(1 for c in self.cases if c.passed)
 
-        all_steps = [s for c in self.cases for s in c.steps]
-        if all_steps:
-            n = len(all_steps)
-            self.avg_relevance = sum(s.relevance_score for s in all_steps) / n
-            self.avg_answer_correctness = sum(s.answer_correctness_score for s in all_steps) / n
-            self.ragas_metrics_total = sum(s.ragas_metrics_total for s in all_steps)
-            self.ragas_metrics_failed = sum(s.ragas_metrics_failed for s in all_steps)
+        n = len(self.cases)
+        self.avg_relevance = sum(c.relevance_score for c in self.cases) / n
+        self.avg_answer_correctness = sum(c.answer_correctness_score for c in self.cases) / n
+        self.ragas_metrics_total = sum(c.ragas_metrics_total for c in self.cases)
+        self.ragas_metrics_failed = sum(c.ragas_metrics_failed for c in self.cases)
 
-        self.total_latency_ms = sum(c.total_latency_ms for c in self.cases)
-        total_questions = sum(len(c.steps) for c in self.cases)
-        self.avg_latency_per_question_ms = (
-            self.total_latency_ms / total_questions if total_questions > 0 else 0.0
-        )
+        # Action aggregates (only for steps that had an action judged)
+        judged = [c for c in self.cases if c.suggested_action]
+        self.actions_judged = len(judged)
+        if judged:
+            self.actions_passed = sum(1 for c in judged if c.action_passed)
+            self.avg_action_relevance = sum(c.action_relevance for c in judged) / len(judged)
+            self.avg_action_actionability = sum(c.action_actionability for c in judged) / len(judged)
+            self.avg_action_appropriateness = sum(c.action_appropriateness for c in judged) / len(judged)
+
+        self.actions_missing = sum(1 for c in self.cases if c.action_missing)
+        self.actions_spurious = sum(1 for c in self.cases if c.action_spurious)

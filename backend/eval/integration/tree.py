@@ -26,10 +26,9 @@ def _get_starters() -> list[str]:
     return get_starters()
 
 
-@cache
-def _load_expected_answers() -> dict[str, str]:
-    """Load expected answers from YAML fixture (cached)."""
-    filepath = _EVAL_FIXTURES_PATH / "expected_answers.yaml"
+def _load_yaml_fixture(filename: str) -> dict:
+    """Load a YAML fixture file (cached per filename)."""
+    filepath = _EVAL_FIXTURES_PATH / filename
     if not filepath.exists():
         return {}
     try:
@@ -37,8 +36,20 @@ def _load_expected_answers() -> dict[str, str]:
             data = yaml.safe_load(f)
             return data if data else {}
     except Exception as e:
-        logger.warning(f"Failed to load expected_answers.yaml: {e}")
+        logger.warning(f"Failed to load {filename}: {e}")
         return {}
+
+
+@cache
+def _load_expected_answers() -> dict[str, str]:
+    """Load expected answers from YAML fixture (cached)."""
+    return _load_yaml_fixture("expected_answers.yaml")
+
+
+@cache
+def _load_expected_actions() -> dict[str, bool]:
+    """Load expected action flags from YAML fixture (cached)."""
+    return _load_yaml_fixture("expected_actions.yaml")
 
 
 def _compute_max_depth(graph: nx.DiGraph, starters: list[str]) -> int:
@@ -101,6 +112,11 @@ def _compute_paths_and_stats() -> tuple[list[list[str]], dict]:
 def get_expected_answer(question: str) -> str | None:
     """Get the expected answer for a question (for RAGAS answer_correctness)."""
     return _load_expected_answers().get(question)
+
+
+def get_expected_action(question: str) -> bool | None:
+    """Get whether an action is expected for a question. None if not in fixture."""
+    return _load_expected_actions().get(question)
 
 
 def get_all_paths() -> list[list[str]]:

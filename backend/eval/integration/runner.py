@@ -20,15 +20,14 @@ if platform.system() == "Windows":
 
 import typer
 
+from backend.eval.answer.action.judge import judge_suggested_action
 from backend.eval.answer.text.ragas import evaluate_single
-from backend.eval.integration.langsmith import get_latency_percentages
 from backend.eval.integration.models import (
-    SLO_FLOW_PASS_RATE,
-    FlowEvalResults,
-    FlowResult,
-    FlowStepResult,
+    SLO_CONVO_STEP_PASS_RATE,
+    ConvoEvalResults,
+    ConvoStepResult,
 )
-from backend.eval.integration.tree import get_all_paths, get_expected_answer, get_tree_stats
+from backend.eval.integration.tree import get_all_paths, get_expected_action, get_expected_answer, get_tree_stats
 
 logger = logging.getLogger(__name__)
 
@@ -44,23 +43,18 @@ def _invoke_agent(question: str, session_id: str | None = None) -> dict[str, Any
     return cast(dict[str, Any], agent_graph.invoke(state, config=config))
 
 
-def test_single_question(question: str, session_id: str, use_judge: bool = True) -> FlowStepResult:
+def test_single_question(question: str, session_id: str, use_judge: bool = True) -> ConvoStepResult:
     """Test a single question and return answer with metrics."""
-    start_time = time.time()
-
     try:
         result = _invoke_agent(question=question, session_id=session_id)
-        latency_ms = int((time.time() - start_time) * 1000)
-
         answer = result.get("answer", "")
-        has_answer = bool(answer and len(answer) > MIN_ANSWER_LENGTH)
 
         # Build contexts and run RAGAS if enabled
         relevance = correctness = 0.0
         ragas_total = ragas_failed = 0
 
         sql_results = result.get("sql_results", {})
-        if use_judge and has_answer and sql_results:
+        if use_judge and len(answer) > MIN_ANSWER_LENGTH and sql_results:
             contexts = [json.dumps(sql_results, default=str)]
             expected = get_expected_answer(question)
             try:
@@ -73,122 +67,124 @@ def test_single_question(question: str, session_id: str, use_judge: bool = True)
             except Exception as e:
                 logger.warning(f"RAGAS failed: {e}")
 
-        return FlowStepResult(
+        # Judge action quality
+        expected_action = get_expected_action(question)
+        suggested_action: str | None = None
+        action_rel = action_act = action_app = 0.0
+        action_passed = True
+        actions = result.get("suggested_actions", [])
+        if actions:
+            suggested_action = actions[0]
+
+        # Determine action_passed based on expected vs actual
+        if expected_action is True and suggested_action is None:
+            action_passed = False  # missing action
+        elif expected_action is False and suggested_action is not None:
+            action_passed = False  # spurious action
+        elif use_judge and suggested_action:
+            try:
+                action_passed, action_rel, action_act, action_app, _ = judge_suggested_action(
+                    question, answer, suggested_action,
+                )
+            except Exception as e:
+                logger.warning(f"Action judge failed: {e}")
+
+        return ConvoStepResult(
             question=question,
             answer=answer,
-            latency_ms=latency_ms,
-            has_answer=has_answer,
             relevance_score=relevance,
             answer_correctness_score=correctness,
             ragas_metrics_total=ragas_total,
             ragas_metrics_failed=ragas_failed,
+            expected_action=expected_action,
+            suggested_action=suggested_action,
+            action_relevance=action_rel,
+            action_actionability=action_act,
+            action_appropriateness=action_app,
+            action_passed=action_passed,
         )
 
     except Exception as e:
-        latency_ms = int((time.time() - start_time) * 1000)
         logger.error(f"Error testing question '{question}': {e}")
-        return FlowStepResult(
-            question=question, answer="", latency_ms=latency_ms, has_answer=False,
+        return ConvoStepResult(
+            question=question, answer="",
             errors=[str(e)],
         )
 
 
-def test_flow(path: list[str], path_id: int, use_judge: bool = True) -> FlowResult:
-    """Test a conversation flow (sequential questions with memory)."""
-    session_id = f"flow_eval_{path_id}_{int(time.time())}"
-    steps: list[FlowStepResult] = []
-    total_latency = 0
-    success = True
-
-    for question in path:
-        step_result = test_single_question(question, session_id, use_judge)
-        steps.append(step_result)
-        total_latency += step_result.latency_ms
-
-        if not step_result.passed:
-            success = False
-
-    return FlowResult(
-        path_id=path_id, questions=path, steps=steps,
-        total_latency_ms=total_latency, success=success,
-    )
-
-
-def run_flow_eval(max_paths: int | None = None, use_judge: bool = True) -> FlowEvalResults:
-    """Run flow evaluation on all paths."""
+def run_convo_eval(max_paths: int | None = None, use_judge: bool = True) -> ConvoEvalResults:
+    """Run conversation evaluation on all paths."""
     all_paths = get_all_paths()
     paths_to_test = all_paths[:max_paths] if max_paths else all_paths
 
-    results = FlowEvalResults(total=len(paths_to_test))
-    total = len(paths_to_test)
+    total_questions = sum(len(p) for p in paths_to_test)
+    results = ConvoEvalResults(total=total_questions)
+    question_num = 0
 
-    for idx, path in enumerate(paths_to_test, 1):
-        result = test_flow(path, idx - 1, use_judge)
-        results.cases.append(result)
-        status = "PASS" if result.success else "FAIL"
-        print(f"  [{idx}/{total}] {status} Path {idx}: {path[0][:40]}...")
+    for path_idx, path in enumerate(paths_to_test):
+        session_id = f"convo_eval_{path_idx}_{int(time.time())}"
+        for question in path:
+            question_num += 1
+            step = test_single_question(question, session_id, use_judge)
+            results.cases.append(step)
+            status = "PASS" if step.passed else "FAIL"
+            print(f"  [{question_num}/{total_questions}] {status} {question[:50]}...")
 
     results.compute_aggregates()
     return results
 
 
-def print_summary(results: FlowEvalResults, latency_pcts: dict[str, float] | None = None) -> bool:
+def print_summary(results: ConvoEvalResults) -> bool:
     """Print evaluation summary. Returns True if passed."""
-    passed = results.pass_rate >= SLO_FLOW_PASS_RATE
+    passed = results.pass_rate >= SLO_CONVO_STEP_PASS_RATE
     status = "PASS" if passed else "FAIL"
 
-    total_questions = sum(len(c.steps) for c in results.cases)
-    questions_passed = sum(sum(1 for s in c.steps if s.passed) for c in results.cases)
-
-    print("\nFlow Evaluation Summary")
-    print(f"Pass Rate: {results.pass_rate:.1%} (>={SLO_FLOW_PASS_RATE:.1%} SLO) {status}")
-    print(f"Paths: {results.passed}/{results.total}, Questions: {questions_passed}/{total_questions}")
+    print("\nConversation Evaluation Summary")
+    print(f"Pass Rate: {results.pass_rate:.1%} (>={SLO_CONVO_STEP_PASS_RATE:.1%} SLO) {status}")
+    print(f"Questions: {results.passed}/{results.total}")
     print(f"Avg Relevance: {results.avg_relevance:.2f}, Correctness: {results.avg_answer_correctness:.2f}")
 
     ragas_ok = results.ragas_metrics_total - results.ragas_metrics_failed
     print(f"RAGAS: {ragas_ok}/{results.ragas_metrics_total} ({results.ragas_success_rate:.1%})")
 
-    if latency_pcts:
-        print(f"LangSmith: fetch={latency_pcts.get('fetch', 0):.1%}, answer={latency_pcts.get('answer', 0):.1%}")
+    if results.actions_judged > 0 or results.actions_missing > 0 or results.actions_spurious > 0:
+        print(f"Actions: {results.actions_passed}/{results.actions_judged} judged passed, {results.actions_missing} missing, {results.actions_spurious} spurious")
+        if results.actions_judged > 0:
+            print(f"  Relevance: {results.avg_action_relevance:.2f}, Actionability: {results.avg_action_actionability:.2f}, Appropriateness: {results.avg_action_appropriateness:.2f}")
 
-    # Failed paths
-    failed = [c for c in results.cases if not c.success]
+    # Failed questions
+    failed = [c for c in results.cases if not c.passed]
     if failed:
-        print(f"\nFailed Paths ({len(failed)})")
+        print(f"\nFailed Questions ({len(failed)})")
         for c in failed[:5]:
-            print(f"  Path {c.path_id + 1}: {c.questions[0][:50]}...")
-            step_errors = [e for s in c.steps for e in s.errors]
-            if step_errors:
-                print(f"    Error: {step_errors[0]}")
+            print(f"  {c.question[:60]}...")
+            if c.errors:
+                print(f"    Error: {c.errors[0]}")
 
     return passed
 
 
 def _run_eval(limit: int | None) -> None:
-    """Run the flow evaluation."""
-    eval_start_time = time.time()
-
+    """Run the conversation evaluation."""
     stats = get_tree_stats()
     print("\nQuestion Tree Stats:")
     for key, value in stats.items():
         print(f"  {key}: {value}")
 
     try:
-        results = run_flow_eval(max_paths=limit, use_judge=True)
+        results = run_convo_eval(max_paths=limit, use_judge=True)
     except Exception as e:
         print(f"\nERROR: Evaluation failed: {e}")
         traceback.print_exc()
         return
 
-    elapsed_minutes = int((time.time() - eval_start_time) / 60) + 1
-    latency_pcts = get_latency_percentages(minutes_ago=max(elapsed_minutes, 5))
-    print_summary(results, latency_pcts=latency_pcts)
+    print_summary(results)
 
 
 def main(
     limit: int | None = typer.Option(None, "--limit", "-l", help="Limit number of paths to test"),
 ) -> None:
-    """Run conversation flow evaluation."""
+    """Run conversation evaluation."""
     logging.basicConfig(level=logging.WARNING)
     _run_eval(limit=limit)
 

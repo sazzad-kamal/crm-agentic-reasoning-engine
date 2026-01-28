@@ -4,7 +4,6 @@ Tests for backend.eval module.
 Tests the evaluation models and shared utilities.
 """
 
-import json
 import os
 from typing import Any
 
@@ -20,132 +19,133 @@ def make_invoke_mock(result: dict[str, Any]) -> dict[str, Any]:
 
 
 from backend.eval.integration.models import (
-    SLO_FLOW_PASS_RATE,
-    FlowEvalResults,
-    FlowResult,
-    FlowStepResult,
+    SLO_CONVO_STEP_PASS_RATE,
+    ConvoEvalResults,
+    ConvoStepResult,
 )
 
 # =============================================================================
-# Flow Model Tests
+# ConvoStepResult Model Tests
 # =============================================================================
 
 
-class TestFlowStepResult:
-    """Tests for FlowStepResult."""
+class TestConvoStepResult:
+    """Tests for ConvoStepResult."""
 
     def test_creation(self):
-        result = FlowStepResult(
+        result = ConvoStepResult(
             question="What is Acme's revenue?",
             answer="Acme's revenue is $1M.",
-            latency_ms=500,
-            has_answer=True,
             relevance_score=0.9,
         )
         assert result.relevance_score == 0.9
 
     def test_passed_property(self):
-        passing = FlowStepResult(
-            question="Q", answer="A", latency_ms=100, has_answer=True,
-            relevance_score=0.8, ragas_metrics_total=2,
+        passing = ConvoStepResult(
+            question="Q", answer="A",
+            relevance_score=0.8, answer_correctness_score=0.8, ragas_metrics_total=2,
         )
         assert passing.passed is True
 
-        failing_relevance = FlowStepResult(
-            question="Q", answer="A", latency_ms=100, has_answer=True,
-            relevance_score=0.5, ragas_metrics_total=2,
+        failing_relevance = ConvoStepResult(
+            question="Q", answer="A",
+            relevance_score=0.5, answer_correctness_score=0.8, ragas_metrics_total=2,
         )
         assert failing_relevance.passed is False
 
-        failing_no_answer = FlowStepResult(
-            question="Q", answer="", latency_ms=100, has_answer=False,
-            relevance_score=0.8, ragas_metrics_total=2,
+        failing_correctness = ConvoStepResult(
+            question="Q", answer="A",
+            relevance_score=0.8, answer_correctness_score=0.5, ragas_metrics_total=2,
         )
-        assert failing_no_answer.passed is False
+        assert failing_correctness.passed is False
 
-        passing_no_ragas = FlowStepResult(
-            question="Q", answer="A", latency_ms=100, has_answer=True,
+        passing_no_ragas = ConvoStepResult(
+            question="Q", answer="A",
             relevance_score=0.0, ragas_metrics_total=0,
         )
         assert passing_no_ragas.passed is True
 
     def test_passed_with_errors(self):
-        result = FlowStepResult(
-            question="Q", answer="A", latency_ms=100, has_answer=True,
+        result = ConvoStepResult(
+            question="Q", answer="A",
             relevance_score=0.9, errors=["Something went wrong"],
         )
         assert result.passed is False
 
-    def test_low_relevance_fails(self):
-        result = FlowStepResult(
-            question="Q", answer="A", latency_ms=100, has_answer=True,
-            relevance_score=0.5, ragas_metrics_total=2,
+    def test_passed_with_action_failed(self):
+        result = ConvoStepResult(
+            question="Q", answer="A",
+            action_passed=False,
         )
         assert result.passed is False
 
-
-class TestFlowResult:
-    """Tests for FlowResult."""
-
-    def test_creation(self):
-        steps = [
-            FlowStepResult(question="Q1", answer="A1", latency_ms=100, has_answer=True, relevance_score=0.9),
-            FlowStepResult(question="Q2", answer="A2", latency_ms=150, has_answer=True, relevance_score=0.85),
-        ]
-        result = FlowResult(
-            path_id=1, questions=["Q1", "Q2"], steps=steps,
-            total_latency_ms=250, success=True,
+    def test_action_missing(self):
+        result = ConvoStepResult(
+            question="Q", answer="A",
+            expected_action=True, suggested_action=None,
         )
-        assert result.path_id == 1
-        assert len(result.steps) == 2
-        assert result.success is True
+        assert result.action_missing is True
+        assert result.action_spurious is False
+
+    def test_action_spurious(self):
+        result = ConvoStepResult(
+            question="Q", answer="A",
+            expected_action=False, suggested_action="Do something",
+        )
+        assert result.action_spurious is True
+        assert result.action_missing is False
+
+    def test_action_no_expectation(self):
+        result = ConvoStepResult(
+            question="Q", answer="A",
+            expected_action=None, suggested_action="Do something",
+        )
+        assert result.action_missing is False
+        assert result.action_spurious is False
 
 
-class TestFlowEvalResults:
-    """Tests for FlowEvalResults (extends BaseEvalResults)."""
+# =============================================================================
+# ConvoEvalResults Model Tests
+# =============================================================================
+
+
+class TestConvoEvalResults:
+    """Tests for ConvoEvalResults (extends BaseEvalResults)."""
 
     def test_creation(self):
-        results = FlowEvalResults(
+        results = ConvoEvalResults(
             total=10, passed=8,
             avg_relevance=0.85,
-            total_latency_ms=5000,
-            avg_latency_per_question_ms=166.7,
         )
         assert results.passed == 8
         assert results.avg_relevance == 0.85
 
     def test_pass_rate(self):
-        results = FlowEvalResults(total=10, passed=8)
+        results = ConvoEvalResults(total=10, passed=8)
         assert results.pass_rate == 0.8
 
     def test_failed_property(self):
-        results = FlowEvalResults(total=10, passed=8)
+        results = ConvoEvalResults(total=10, passed=8)
         assert results.failed == 2
 
     def test_empty(self):
-        results = FlowEvalResults(total=0, passed=0)
+        results = ConvoEvalResults(total=0, passed=0)
         assert results.pass_rate == 0.0
 
     def test_compute_aggregates(self):
         cases = [
-            FlowResult(
-                path_id=0, questions=["Q1?"], success=True, total_latency_ms=200,
-                steps=[FlowStepResult(
-                    question="Q1?", answer="A1", latency_ms=200, has_answer=True,
-                    relevance_score=0.9, answer_correctness_score=0.8,
-                    ragas_metrics_total=2, ragas_metrics_failed=0,
-                )],
+            ConvoStepResult(
+                question="Q1?", answer="A1",
+                relevance_score=0.9, answer_correctness_score=0.8,
+                ragas_metrics_total=2, ragas_metrics_failed=0,
             ),
-            FlowResult(
-                path_id=1, questions=["Q2?"], success=False, total_latency_ms=100,
-                steps=[FlowStepResult(
-                    question="Q2?", answer="A2", latency_ms=100, has_answer=True,
-                    relevance_score=0.5, answer_correctness_score=0.3,
-                    ragas_metrics_total=2, ragas_metrics_failed=1,
-                )],
+            ConvoStepResult(
+                question="Q2?", answer="A2",
+                relevance_score=0.5, answer_correctness_score=0.3,
+                ragas_metrics_total=2, ragas_metrics_failed=1,
             ),
         ]
-        results = FlowEvalResults(total=2, cases=cases)
+        results = ConvoEvalResults(total=2, cases=cases)
         results.compute_aggregates()
 
         assert results.passed == 1
@@ -154,7 +154,36 @@ class TestFlowEvalResults:
         assert results.avg_answer_correctness == 0.55
         assert results.ragas_metrics_total == 4
         assert results.ragas_metrics_failed == 1
-        assert results.total_latency_ms == 300
+
+    def test_compute_aggregates_with_actions(self):
+        cases = [
+            ConvoStepResult(
+                question="Q1?", answer="A1",
+                suggested_action="Schedule call", action_passed=True,
+                action_relevance=0.9, action_actionability=0.8, action_appropriateness=0.85,
+            ),
+            ConvoStepResult(
+                question="Q2?", answer="A2",
+                suggested_action="Follow up", action_passed=False,
+                action_relevance=0.5, action_actionability=0.4, action_appropriateness=0.3,
+            ),
+            ConvoStepResult(
+                question="Q3?", answer="A3",
+                expected_action=True, suggested_action=None, action_passed=False,
+            ),
+            ConvoStepResult(
+                question="Q4?", answer="A4",
+                expected_action=False, suggested_action="Spurious", action_passed=False,
+            ),
+        ]
+        results = ConvoEvalResults(total=4, cases=cases)
+        results.compute_aggregates()
+
+        assert results.actions_judged == 3  # Q1, Q2, Q4 have suggested_action
+        assert results.actions_passed == 1  # Q1
+        assert results.actions_missing == 1  # Q3
+        assert results.actions_spurious == 1  # Q4
+        assert results.avg_action_relevance == pytest.approx((0.9 + 0.5 + 0.0) / 3)
 
 
 # =============================================================================
@@ -165,8 +194,8 @@ class TestFlowEvalResults:
 class TestSLOConstants:
     """Tests for SLO constant values."""
 
-    def test_slo_flow_pass_rate(self):
-        assert SLO_FLOW_PASS_RATE == 0.85
+    def test_slo_convo_step_pass_rate(self):
+        assert SLO_CONVO_STEP_PASS_RATE == 0.95
 
 
 # =============================================================================
@@ -178,82 +207,16 @@ class TestModelsExtended:
     """Extended tests for models module."""
 
     def test_ragas_success_rate_zero_total(self):
-        results = FlowEvalResults(total=1, passed=1, ragas_metrics_total=0, ragas_metrics_failed=0)
+        results = ConvoEvalResults(total=1, passed=1, ragas_metrics_total=0, ragas_metrics_failed=0)
         assert results.ragas_success_rate == 1.0
 
     def test_ragas_success_rate_all_failed(self):
-        results = FlowEvalResults(total=1, passed=0, ragas_metrics_total=5, ragas_metrics_failed=5)
+        results = ConvoEvalResults(total=1, passed=0, ragas_metrics_total=5, ragas_metrics_failed=5)
         assert results.ragas_success_rate == 0.0
 
     def test_ragas_success_rate_partial_success(self):
-        results = FlowEvalResults(total=1, passed=1, ragas_metrics_total=10, ragas_metrics_failed=3)
+        results = ConvoEvalResults(total=1, passed=1, ragas_metrics_total=10, ragas_metrics_failed=3)
         assert results.ragas_success_rate == 0.7
-
-
-# =============================================================================
-# LangSmith Latency Tests (with mocks)
-# =============================================================================
-
-
-class TestLangSmithLatency:
-    """Tests for LangSmith latency percentages with mocks."""
-
-    def test_no_api_key(self, monkeypatch):
-        monkeypatch.delenv("LANGCHAIN_API_KEY", raising=False)
-        from backend.eval.integration.langsmith import get_latency_percentages
-        assert get_latency_percentages() == {}
-
-    def test_no_runs(self, monkeypatch):
-        monkeypatch.setenv("LANGCHAIN_API_KEY", "test-key")
-        class MockClient:
-            def list_runs(self, **kwargs): return []
-        import sys
-        mock_langsmith = type(sys)("langsmith")
-        mock_langsmith.Client = MockClient
-        monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
-        from backend.eval.integration.langsmith import get_latency_percentages
-        assert get_latency_percentages() == {}
-
-    def test_with_agent_runs(self, monkeypatch):
-        from datetime import datetime, timedelta
-        monkeypatch.setenv("LANGCHAIN_API_KEY", "test-key")
-
-        class MockRun:
-            def __init__(self, name, start, end):
-                self.name = name
-                self.start_time = start
-                self.end_time = end
-
-        now = datetime.utcnow()
-        class MockClient:
-            def list_runs(self, **kwargs):
-                return [
-                    MockRun("fetch", now, now + timedelta(milliseconds=400)),
-                    MockRun("answer", now, now + timedelta(milliseconds=300)),
-                    MockRun("followup", now, now + timedelta(milliseconds=200)),
-                    MockRun("route", now, now + timedelta(milliseconds=100)),  # non-agent, filtered
-                ]
-
-        import sys
-        mock_langsmith = type(sys)("langsmith")
-        mock_langsmith.Client = MockClient
-        monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
-        from backend.eval.integration.langsmith import get_latency_percentages
-        result = get_latency_percentages()
-        assert abs(result["fetch"] - 400 / 900) < 0.01
-        assert abs(result["answer"] - 300 / 900) < 0.01
-        assert abs(result["followup"] - 200 / 900) < 0.01
-
-    def test_api_error(self, monkeypatch):
-        monkeypatch.setenv("LANGCHAIN_API_KEY", "test-key")
-        class MockClient:
-            def list_runs(self, **kwargs): raise Exception("API Error")
-        import sys
-        mock_langsmith = type(sys)("langsmith")
-        mock_langsmith.Client = MockClient
-        monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
-        from backend.eval.integration.langsmith import get_latency_percentages
-        assert get_latency_percentages() == {}
 
 
 # =============================================================================
@@ -266,45 +229,44 @@ class TestOutputModule:
 
     def test_print_summary_all_pass(self):
         from backend.eval.integration.runner import print_summary
-        results = FlowEvalResults(
+        results = ConvoEvalResults(
             total=10, passed=9,
             avg_relevance=0.90, avg_answer_correctness=0.75,
-            avg_latency_per_question_ms=3000,
             ragas_metrics_total=100, ragas_metrics_failed=5,
         )
         result = print_summary(results)
         assert isinstance(result, bool)
 
-    def test_print_summary_with_latency_pcts(self):
+    def test_print_summary_no_actions(self):
         from backend.eval.integration.runner import print_summary
-        results = FlowEvalResults(
-            total=5, passed=4,
-            avg_relevance=0.90, avg_answer_correctness=0.72,
-        )
-        result = print_summary(results, latency_pcts={"fetch": 0.20, "answer": 0.30})
-        assert isinstance(result, bool)
-
-    def test_print_summary_no_latency_pcts(self):
-        from backend.eval.integration.runner import print_summary
-        results = FlowEvalResults(total=5, passed=4, avg_relevance=0.90)
+        results = ConvoEvalResults(total=5, passed=4, avg_relevance=0.90)
         result = print_summary(results)
         assert isinstance(result, bool)
 
-    def test_print_summary_with_failed_paths(self):
+    def test_print_summary_with_failed_questions(self):
         from backend.eval.integration.runner import print_summary
         cases = [
-            FlowResult(
-                path_id=0, questions=["Q1?"], success=False, total_latency_ms=100,
-                steps=[FlowStepResult(
-                    question="Q1?", answer="", latency_ms=100, has_answer=False,
-                    errors=["Agent crashed"],
-                )],
+            ConvoStepResult(
+                question="Q1?", answer="",
+                errors=["Agent crashed"],
             ),
         ]
-        results = FlowEvalResults(total=1, cases=cases)
+        results = ConvoEvalResults(total=1, cases=cases)
         results.compute_aggregates()
         result = print_summary(results)
         assert result is False
+
+    def test_print_summary_with_actions(self):
+        from backend.eval.integration.runner import print_summary
+        results = ConvoEvalResults(
+            total=5, passed=5,
+            actions_judged=3, actions_passed=2,
+            actions_missing=1, actions_spurious=0,
+            avg_action_relevance=0.85, avg_action_actionability=0.80,
+            avg_action_appropriateness=0.90,
+        )
+        result = print_summary(results)
+        assert result is True
 
 
 # =============================================================================
@@ -329,9 +291,9 @@ class TestTestSingleQuestion:
         monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
         monkeypatch.setattr(backend.eval.integration.runner, "evaluate_single", mock_evaluate_single)
         monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", lambda q: "Expected")
+        monkeypatch.setattr(backend.eval.integration.runner, "get_expected_action", lambda q: None)
 
         result = test_single_question("What is Acme's status?", "session1")
-        assert result.has_answer is True
         assert result.relevance_score == 0.90
 
     def test_no_answer(self, monkeypatch):
@@ -342,9 +304,9 @@ class TestTestSingleQuestion:
         import backend.eval.integration.runner
         monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
         monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", lambda q: None)
+        monkeypatch.setattr(backend.eval.integration.runner, "get_expected_action", lambda q: None)
 
         result = test_single_question("Hello?", "session1", use_judge=False)
-        assert result.has_answer is False
         assert result.relevance_score == 0.0
 
     def test_exception(self, monkeypatch):
@@ -356,7 +318,6 @@ class TestTestSingleQuestion:
         monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
 
         result = test_single_question("Q?", "session1")
-        assert result.has_answer is False
         assert len(result.errors) > 0
         assert "Agent crashed" in result.errors[0]
 
@@ -374,27 +335,10 @@ class TestTestSingleQuestion:
         monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
         monkeypatch.setattr(backend.eval.integration.runner, "evaluate_single", mock_evaluate_single)
         monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", lambda q: "Expected")
+        monkeypatch.setattr(backend.eval.integration.runner, "get_expected_action", lambda q: None)
 
         result = test_single_question("Q?", "session1")
         assert result.relevance_score == 0.85
-
-    def test_with_sql_results(self, monkeypatch):
-        from backend.eval.integration.runner import test_single_question
-        def mock_invoke_agent(question, session_id=None):
-            return make_invoke_mock({
-                "answer": "Test answer with good content",
-                "sql_results": {"query": [{"company": "Acme", "value": 100}]},
-            })
-        def mock_evaluate_single(*args, **kwargs):
-            return {"answer_relevancy": 0.90, "answer_correctness": 0.75, "nan_metrics": []}
-
-        import backend.eval.integration.runner
-        monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
-        monkeypatch.setattr(backend.eval.integration.runner, "evaluate_single", mock_evaluate_single)
-        monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", lambda q: "Expected")
-
-        result = test_single_question("Test Q?", "session1")
-        assert result.relevance_score == 0.90
 
     def test_ragas_failed(self, monkeypatch):
         from backend.eval.integration.runner import test_single_question
@@ -410,6 +354,7 @@ class TestTestSingleQuestion:
         monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
         monkeypatch.setattr(backend.eval.integration.runner, "evaluate_single", mock_evaluate_single)
         monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", lambda q: "Expected")
+        monkeypatch.setattr(backend.eval.integration.runner, "get_expected_action", lambda q: None)
 
         result = test_single_question("Q?", "session1")
         assert result.ragas_metrics_failed >= 2
@@ -428,253 +373,149 @@ class TestTestSingleQuestion:
         monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
         monkeypatch.setattr(backend.eval.integration.runner, "evaluate_single", mock_evaluate_single)
         monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", lambda q: "Expected")
+        monkeypatch.setattr(backend.eval.integration.runner, "get_expected_action", lambda q: None)
 
         result = test_single_question("Q?", "session1")
-        assert result.has_answer is True
         assert result.relevance_score == 0.0  # RAGAS failed, defaults to 0
 
-    def test_no_expected_answer(self, monkeypatch):
+    def test_action_judged(self, monkeypatch):
         from backend.eval.integration.runner import test_single_question
         def mock_invoke_agent(question, session_id=None):
             return make_invoke_mock({
-                "answer": "Test answer with content",
-                "sql_results": {"query": [{"a": 1}]},
+                "answer": "Good answer with content",
+                "sql_results": {},
+                "suggested_actions": ["Schedule a call"],
             })
-        def mock_evaluate_single(*args, **kwargs):
-            return {"answer_relevancy": 0.85, "answer_correctness": 0.0, "nan_metrics": []}
+        def mock_judge(*args):
+            return (True, 0.9, 0.8, 0.85, "Good action")
 
         import backend.eval.integration.runner
         monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
-        monkeypatch.setattr(backend.eval.integration.runner, "evaluate_single", mock_evaluate_single)
         monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", lambda q: None)
+        monkeypatch.setattr(backend.eval.integration.runner, "get_expected_action", lambda q: True)
+        monkeypatch.setattr(backend.eval.integration.runner, "judge_suggested_action", mock_judge)
 
         result = test_single_question("Q?", "session1")
-        assert result.relevance_score == 0.85
+        assert result.suggested_action == "Schedule a call"
+        assert result.action_passed is True
+        assert result.action_relevance == 0.9
+
+    def test_action_missing(self, monkeypatch):
+        from backend.eval.integration.runner import test_single_question
+        def mock_invoke_agent(question, session_id=None):
+            return make_invoke_mock({
+                "answer": "Answer without action",
+                "sql_results": {},
+                "suggested_actions": [],
+            })
+
+        import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
+        monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", lambda q: None)
+        monkeypatch.setattr(backend.eval.integration.runner, "get_expected_action", lambda q: True)
+
+        result = test_single_question("Q?", "session1", use_judge=False)
+        assert result.action_passed is False
+        assert result.action_missing is True
+
+    def test_action_spurious(self, monkeypatch):
+        from backend.eval.integration.runner import test_single_question
+        def mock_invoke_agent(question, session_id=None):
+            return make_invoke_mock({
+                "answer": "Answer with unwanted action",
+                "sql_results": {},
+                "suggested_actions": ["Unwanted action"],
+            })
+
+        import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "_invoke_agent", mock_invoke_agent)
+        monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", lambda q: None)
+        monkeypatch.setattr(backend.eval.integration.runner, "get_expected_action", lambda q: False)
+
+        result = test_single_question("Q?", "session1", use_judge=False)
+        assert result.action_passed is False
+        assert result.action_spurious is True
 
 
-class TestTestFlow:
-    """Tests for test_flow function."""
+# =============================================================================
+# Runner Module Tests (run_convo_eval)
+# =============================================================================
 
-    def test_success(self, monkeypatch):
-        from backend.eval.integration.runner import test_flow
+
+class TestRunConvoEval:
+    """Tests for run_convo_eval function."""
+
+    def test_basic(self, monkeypatch):
+        from backend.eval.integration.runner import run_convo_eval
+        def mock_get_all_paths(): return [["Q1?", "Q2?"]]
         call_count = {"count": 0}
         def mock_test_single_question(question, session_id, use_judge=True):
             call_count["count"] += 1
-            return FlowStepResult(
+            return ConvoStepResult(
                 question=question, answer=f"Answer to {question}",
-                latency_ms=100, has_answer=True, relevance_score=0.90,
+                relevance_score=0.9,
             )
 
         import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "get_all_paths", mock_get_all_paths)
         monkeypatch.setattr(backend.eval.integration.runner, "test_single_question", mock_test_single_question)
 
-        result = test_flow(["Q1?", "Q2?"], path_id=0)
-        assert result.success is True
-        assert len(result.steps) == 2
-        assert result.total_latency_ms == 200
+        results = run_convo_eval(max_paths=1)
+        assert results.total == 2
+        assert results.passed == 2
         assert call_count["count"] == 2
 
-    def test_with_failure(self, monkeypatch):
-        from backend.eval.integration.runner import test_flow
+    def test_with_failures(self, monkeypatch):
+        from backend.eval.integration.runner import run_convo_eval
+        def mock_get_all_paths(): return [["Q1?"]]
         def mock_test_single_question(question, session_id, use_judge=True):
-            if "fail" in question.lower():
-                return FlowStepResult(
-                    question=question, answer="", latency_ms=100,
-                    has_answer=False, relevance_score=0.0,
-                    errors=["Failed to answer"],
-                )
-            return FlowStepResult(
-                question=question, answer="Good answer", latency_ms=100,
-                has_answer=True, relevance_score=0.90,
+            return ConvoStepResult(
+                question=question, answer="Bad",
+                relevance_score=0.5, answer_correctness_score=0.3,
+                ragas_metrics_total=2,
             )
 
         import backend.eval.integration.runner
+        monkeypatch.setattr(backend.eval.integration.runner, "get_all_paths", mock_get_all_paths)
         monkeypatch.setattr(backend.eval.integration.runner, "test_single_question", mock_test_single_question)
 
-        result = test_flow(["Q1?", "Q2 fail?"], path_id=0)
-        assert result.success is False
-        step_errors = [e for s in result.steps for e in s.errors]
-        assert "Failed to answer" in step_errors
-
-
-# =============================================================================
-# Runner Module Tests (run_flow_eval)
-# =============================================================================
-
-
-class TestRunFlowEval:
-    """Tests for run_flow_eval function."""
-
-    def test_basic(self, monkeypatch):
-        from backend.eval.integration.runner import run_flow_eval
-        def mock_get_all_paths(): return [["Q1?", "Q2?"]]
-        def mock_test_flow(questions, path_id, use_judge=True):
-            return FlowResult(
-                path_id=path_id, questions=questions,
-                steps=[
-                    FlowStepResult(question="Q1?", answer="A1", latency_ms=100, has_answer=True, relevance_score=0.9),
-                    FlowStepResult(question="Q2?", answer="A2", latency_ms=100, has_answer=True, relevance_score=0.85),
-                ],
-                total_latency_ms=200, success=True,
-            )
-
-        import backend.eval.integration.runner
-        monkeypatch.setattr(backend.eval.integration.runner, "get_all_paths", mock_get_all_paths)
-        monkeypatch.setattr(backend.eval.integration.runner, "test_flow", mock_test_flow)
-
-        results = run_flow_eval(max_paths=1)
-        assert results.total == 1
-        assert results.passed == 1
-
-    def test_with_failures(self, monkeypatch):
-        from backend.eval.integration.runner import run_flow_eval
-        def mock_get_all_paths(): return [["Q1?"]]
-        def mock_test_flow(questions, path_id, use_judge=True):
-            return FlowResult(
-                path_id=path_id, questions=questions,
-                steps=[FlowStepResult(question="Q1?", answer="Bad", latency_ms=100, has_answer=True, relevance_score=0.5)],
-                total_latency_ms=100, success=False,
-            )
-
-        import backend.eval.integration.runner
-        monkeypatch.setattr(backend.eval.integration.runner, "get_all_paths", mock_get_all_paths)
-        monkeypatch.setattr(backend.eval.integration.runner, "test_flow", mock_test_flow)
-
-        results = run_flow_eval(max_paths=1)
+        results = run_convo_eval(max_paths=1)
         assert results.failed == 1
-        assert len([c for c in results.cases if not c.success]) == 1
 
     def test_with_answer_correctness(self, monkeypatch):
-        from backend.eval.integration.runner import run_flow_eval
+        from backend.eval.integration.runner import run_convo_eval
         def mock_get_all_paths(): return [["Q1?"]]
-        def mock_test_flow(questions, path_id, use_judge=True):
-            return FlowResult(
-                path_id=path_id, questions=questions,
-                steps=[FlowStepResult(
-                    question="Q1?", answer="A1", latency_ms=100, has_answer=True,
-                    relevance_score=0.9, answer_correctness_score=0.85,
-                )],
-                total_latency_ms=100, success=True,
+        def mock_test_single_question(question, session_id, use_judge=True):
+            return ConvoStepResult(
+                question=question, answer="A1",
+                relevance_score=0.9, answer_correctness_score=0.85,
             )
 
         import backend.eval.integration.runner
         monkeypatch.setattr(backend.eval.integration.runner, "get_all_paths", mock_get_all_paths)
-        monkeypatch.setattr(backend.eval.integration.runner, "test_flow", mock_test_flow)
+        monkeypatch.setattr(backend.eval.integration.runner, "test_single_question", mock_test_single_question)
 
-        results = run_flow_eval(max_paths=1)
+        results = run_convo_eval(max_paths=1)
         assert results.avg_answer_correctness == 0.85
 
     def test_multiple_paths(self, monkeypatch):
-        from backend.eval.integration.runner import run_flow_eval
+        from backend.eval.integration.runner import run_convo_eval
         def mock_get_all_paths(): return [["Q1?"], ["Q2?"], ["Q3?"]]
         call_count = {"count": 0}
-        def mock_test_flow(questions, path_id, use_judge=True):
+        def mock_test_single_question(question, session_id, use_judge=True):
             call_count["count"] += 1
-            return FlowResult(
-                path_id=path_id, questions=questions,
-                steps=[FlowStepResult(
-                    question=questions[0], answer=f"A{path_id}", latency_ms=100,
-                    has_answer=True, relevance_score=0.9,
-                )],
-                total_latency_ms=100, success=True,
+            return ConvoStepResult(
+                question=question, answer=f"A",
+                relevance_score=0.9,
             )
 
         import backend.eval.integration.runner
         monkeypatch.setattr(backend.eval.integration.runner, "get_all_paths", mock_get_all_paths)
-        monkeypatch.setattr(backend.eval.integration.runner, "test_flow", mock_test_flow)
+        monkeypatch.setattr(backend.eval.integration.runner, "test_single_question", mock_test_single_question)
 
-        results = run_flow_eval(max_paths=3)
+        results = run_convo_eval(max_paths=3)
         assert results.total == 3
         assert call_count["count"] == 3
-
-
-# =============================================================================
-# LangSmith Tests (Extended)
-# =============================================================================
-
-
-class TestLangSmithPercentages:
-    """Tests for get_latency_percentages function."""
-
-    def test_success(self, monkeypatch):
-        from datetime import datetime, timedelta
-        monkeypatch.setenv("LANGCHAIN_API_KEY", "test-key")
-        class MockRun:
-            def __init__(self, name, start, end):
-                self.name, self.start_time, self.end_time = name, start, end
-        now = datetime.utcnow()
-        class MockClient:
-            def list_runs(self, **kwargs):
-                return [
-                    MockRun("fetch", now, now + timedelta(milliseconds=400)),
-                    MockRun("answer", now, now + timedelta(milliseconds=300)),
-                    MockRun("followup", now, now + timedelta(milliseconds=200)),
-                ]
-        import sys
-        mock_langsmith = type(sys)("langsmith")
-        mock_langsmith.Client = MockClient
-        monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
-        from backend.eval.integration.langsmith import get_latency_percentages
-        result = get_latency_percentages()
-        assert abs(result["fetch"] - 400 / 900) < 0.01
-        assert abs(result["answer"] - 300 / 900) < 0.01
-
-    def test_empty_breakdown(self, monkeypatch):
-        monkeypatch.setenv("LANGCHAIN_API_KEY", "test-key")
-        class MockClient:
-            def list_runs(self, **kwargs): return []
-        import sys
-        mock_langsmith = type(sys)("langsmith")
-        mock_langsmith.Client = MockClient
-        monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
-        from backend.eval.integration.langsmith import get_latency_percentages
-        assert get_latency_percentages() == {}
-
-    def test_no_agent_nodes(self, monkeypatch):
-        from datetime import datetime, timedelta
-        monkeypatch.setenv("LANGCHAIN_API_KEY", "test-key")
-        class MockRun:
-            def __init__(self, name, start, end):
-                self.name, self.start_time, self.end_time = name, start, end
-        now = datetime.utcnow()
-        class MockClient:
-            def list_runs(self, **kwargs):
-                return [MockRun("other", now, now + timedelta(milliseconds=100))]
-        import sys
-        mock_langsmith = type(sys)("langsmith")
-        mock_langsmith.Client = MockClient
-        monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
-        from backend.eval.integration.langsmith import get_latency_percentages
-        assert get_latency_percentages() == {}
-
-    def test_import_error(self, monkeypatch):
-        import sys
-        monkeypatch.delitem(sys.modules, "langsmith", raising=False)
-        import builtins
-        original_import = builtins.__import__
-        def mock_import(name, *args, **kwargs):
-            if name == "langsmith": raise ImportError("No module named 'langsmith'")
-            return original_import(name, *args, **kwargs)
-        monkeypatch.setattr(builtins, "__import__", mock_import)
-        from backend.eval.integration.langsmith import get_latency_percentages
-        assert get_latency_percentages() == {}
-
-    def test_zero_total(self, monkeypatch):
-        from datetime import datetime
-        monkeypatch.setenv("LANGCHAIN_API_KEY", "test-key")
-        class MockRun:
-            def __init__(self, name, start, end):
-                self.name, self.start_time, self.end_time = name, start, end
-        now = datetime.utcnow()
-        class MockClient:
-            def list_runs(self, **kwargs):
-                return [MockRun("route", now, now), MockRun("answer", now, now)]
-        import sys
-        mock_langsmith = type(sys)("langsmith")
-        mock_langsmith.Client = MockClient
-        monkeypatch.setitem(sys.modules, "langsmith", mock_langsmith)
-        from backend.eval.integration.langsmith import get_latency_percentages
-        assert get_latency_percentages() == {}
 
 
 # =============================================================================
@@ -706,6 +547,20 @@ class TestYamlLoading:
     def test_get_expected_answer_not_exists(self):
         from backend.eval.integration.tree import get_expected_answer
         assert get_expected_answer("This question does not exist") is None
+
+    def test_get_expected_action_exists(self):
+        from backend.eval.integration.tree import get_expected_action
+        result = get_expected_action("What deals are in the pipeline?")
+        assert result is True
+
+    def test_get_expected_action_false(self):
+        from backend.eval.integration.tree import get_expected_action
+        result = get_expected_action("How are deals distributed by stage?")
+        assert result is False
+
+    def test_get_expected_action_not_exists(self):
+        from backend.eval.integration.tree import get_expected_action
+        assert get_expected_action("This question does not exist") is None
 
 
 class TestYamlLoadingErrors:

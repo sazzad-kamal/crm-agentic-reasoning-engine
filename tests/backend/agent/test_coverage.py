@@ -1094,8 +1094,6 @@ class TestIntegrationMain:
             latency_ms=1000,
             has_answer=True,
             relevance_score=0.5,
-            faithfulness_score=0.4,
-            judge_explanation="Answer does not match",
         )
         failed_path = FlowResult(
             path_id=1,
@@ -1114,8 +1112,6 @@ class TestIntegrationMain:
             questions_passed=0,
             questions_failed=1,
         )
-        mock_results.failed_paths = [failed_path]
-
         monkeypatch.setattr(runner_module, "run_flow_eval", lambda **kwargs: mock_results)
         monkeypatch.setattr(runner_module, "get_latency_percentages", lambda **kwargs: {})
         monkeypatch.setattr(runner_module, "print_summary", lambda r, **kwargs: None)

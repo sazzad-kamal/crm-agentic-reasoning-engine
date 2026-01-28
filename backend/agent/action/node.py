@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def action_node(state: AgentState) -> AgentState:
     """Suggest an actionable next step based on the answer."""
     if state.get("error"):
-        return {"suggested_actions": []}
+        return {"suggested_action": None}
 
     logger.info("[Action] Evaluating action suggestion...")
 
@@ -26,11 +26,11 @@ def action_node(state: AgentState) -> AgentState:
         else:
             logger.info("[Action] No action suggested")
 
-        return {"suggested_actions": [action] if action else []}
+        return {"suggested_action": action}
 
     except Exception as e:
         logger.warning(f"[Action] Failed: {e}")
-        return {"suggested_actions": []}
+        return {"suggested_action": None}
 
 
 __all__ = ["action_node"]

@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
-import platform
 import time
 import traceback
 from typing import Any, cast
@@ -13,10 +11,6 @@ from typing import Any, cast
 from dotenv import load_dotenv
 
 load_dotenv()
-
-# Fix Windows asyncio cleanup issues with httpx/RAGAS
-if platform.system() == "Windows":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  # type: ignore[attr-defined,unused-ignore]
 
 import typer
 
@@ -31,56 +25,50 @@ from backend.eval.integration.tree import get_all_paths, get_expected_action, ge
 
 logger = logging.getLogger(__name__)
 
-MIN_ANSWER_LENGTH = 10
-
 
 def _invoke_agent(question: str, session_id: str | None = None) -> dict[str, Any]:
     """Invoke the agent graph and return result."""
     from backend.agent.graph import agent_graph, build_thread_config
+    from backend.agent.state import AgentState
 
-    state: dict[str, Any] = {"question": question, "session_id": session_id}
+    state: AgentState = {"question": question}
     config = build_thread_config(session_id)
     return cast(dict[str, Any], agent_graph.invoke(state, config=config))
 
 
 def _evaluate_ragas(
     question: str, answer: str, sql_results: dict,
-) -> tuple[float, float, int, int]:
-    """Run RAGAS evaluation. Returns (relevance, correctness, total, failed)."""
+) -> dict[str, Any]:
+    """Run RAGAS evaluation. Returns ConvoStepResult fields."""
     contexts = [json.dumps(sql_results, default=str)]
     expected = get_expected_answer(question)
     try:
         ragas = evaluate_single(question, answer, contexts, expected or "")
         nan_metrics = cast(list[str], ragas.get("nan_metrics", []))
-        return (
-            cast(float, ragas["answer_relevancy"]),
-            cast(float, ragas["answer_correctness"]),
-            2,
-            len(nan_metrics),
-        )
+        return {
+            "relevance_score": cast(float, ragas["answer_relevancy"]),
+            "answer_correctness_score": cast(float, ragas["answer_correctness"]),
+            "ragas_metrics_total": 2,
+            "ragas_metrics_failed": len(nan_metrics),
+        }
     except Exception as e:
         logger.warning(f"RAGAS failed: {e}")
-        return 0.0, 0.0, 0, 0
+        return {}
 
 
 def _evaluate_action(
-    question: str, answer: str, result: dict[str, Any], use_judge: bool,
-) -> tuple[bool | None, str | None, float, float, float, bool]:
-    """Evaluate action quality. Returns (expected, suggested, rel, act, app, passed)."""
+    question: str, answer: str, suggested_action: str | None,
+) -> dict[str, Any]:
+    """Evaluate action quality. Returns ConvoStepResult fields."""
     expected_action = get_expected_action(question)
-    suggested_action: str | None = None
     action_rel = action_act = action_app = 0.0
     action_passed = True
-
-    actions = result.get("suggested_actions", [])
-    if actions:
-        suggested_action = actions[0]
 
     if expected_action is True and suggested_action is None:
         action_passed = False
     elif expected_action is False and suggested_action is not None:
         action_passed = False
-    elif use_judge and suggested_action:
+    elif suggested_action:
         try:
             action_passed, action_rel, action_act, action_app, _ = judge_suggested_action(
                 question, answer, suggested_action,
@@ -89,51 +77,39 @@ def _evaluate_action(
             logger.warning(f"Action judge failed: {e}")
             action_passed = False
 
-    return expected_action, suggested_action, action_rel, action_act, action_app, action_passed
+    return {
+        "expected_action": expected_action,
+        "suggested_action": suggested_action,
+        "action_relevance": action_rel,
+        "action_actionability": action_act,
+        "action_appropriateness": action_app,
+        "action_passed": action_passed,
+    }
 
 
-def test_single_question(question: str, session_id: str, use_judge: bool = True) -> ConvoStepResult:
+def test_single_question(question: str, session_id: str) -> ConvoStepResult:
     """Test a single question and return answer with metrics."""
     try:
         result = _invoke_agent(question=question, session_id=session_id)
         answer = result.get("answer", "")
 
-        # RAGAS evaluation
-        relevance = correctness = 0.0
-        ragas_total = ragas_failed = 0
+        kwargs: dict[str, Any] = {"question": question, "answer": answer}
+
         sql_results = result.get("sql_results", {})
-        if use_judge and len(answer) > MIN_ANSWER_LENGTH and sql_results:
-            relevance, correctness, ragas_total, ragas_failed = _evaluate_ragas(question, answer, sql_results)
+        if answer and sql_results:
+            kwargs.update(_evaluate_ragas(question, answer, sql_results))
 
-        # Action evaluation
-        expected_action, suggested_action, action_rel, action_act, action_app, action_passed = (
-            _evaluate_action(question, answer, result, use_judge)
-        )
+        suggested_action = result.get("suggested_action")
+        kwargs.update(_evaluate_action(question, answer, suggested_action))
 
-        return ConvoStepResult(
-            question=question,
-            answer=answer,
-            relevance_score=relevance,
-            answer_correctness_score=correctness,
-            ragas_metrics_total=ragas_total,
-            ragas_metrics_failed=ragas_failed,
-            expected_action=expected_action,
-            suggested_action=suggested_action,
-            action_relevance=action_rel,
-            action_actionability=action_act,
-            action_appropriateness=action_app,
-            action_passed=action_passed,
-        )
+        return ConvoStepResult(**kwargs)  # type: ignore[arg-type]
 
     except Exception as e:
         logger.error(f"Error testing question '{question}': {e}")
-        return ConvoStepResult(
-            question=question, answer="",
-            errors=[str(e)],
-        )
+        return ConvoStepResult(question=question, answer="", errors=[str(e)])
 
 
-def run_convo_eval(max_paths: int | None = None, use_judge: bool = True) -> ConvoEvalResults:
+def run_convo_eval(max_paths: int | None = None) -> ConvoEvalResults:
     """Run conversation evaluation on all paths."""
     all_paths = get_all_paths()
     paths_to_test = all_paths[:max_paths] if max_paths is not None else all_paths
@@ -146,7 +122,7 @@ def run_convo_eval(max_paths: int | None = None, use_judge: bool = True) -> Conv
         session_id = f"convo_eval_{path_idx}_{int(time.time())}"
         for question in path:
             question_num += 1
-            step = test_single_question(question, session_id, use_judge)
+            step = test_single_question(question, session_id)
             results.cases.append(step)
             status = "PASS" if step.passed else "FAIL"
             print(f"  [{question_num}/{total_questions}] {status} {question[:50]}...")
@@ -195,7 +171,7 @@ def main(
         print(f"  {key}: {value}")
 
     try:
-        results = run_convo_eval(max_paths=limit, use_judge=True)
+        results = run_convo_eval(max_paths=limit)
     except Exception as e:
         print(f"\nERROR: Evaluation failed: {e}")
         traceback.print_exc()

@@ -302,7 +302,7 @@ class TestTestSingleQuestion:
         monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", lambda q: None)
         monkeypatch.setattr(backend.eval.integration.runner, "get_expected_action", lambda q: None)
 
-        result = test_single_question("Hello?", "session1", use_judge=False)
+        result = test_single_question("Hello?", "session1")
         assert result.relevance_score == 0.0
 
     def test_exception(self, monkeypatch):
@@ -380,7 +380,7 @@ class TestTestSingleQuestion:
             return make_invoke_mock({
                 "answer": "Good answer with content",
                 "sql_results": {},
-                "suggested_actions": ["Schedule a call"],
+                "suggested_action": "Schedule a call",
             })
         def mock_judge(*args):
             return (True, 0.9, 0.8, 0.85, "Good action")
@@ -402,7 +402,7 @@ class TestTestSingleQuestion:
             return make_invoke_mock({
                 "answer": "Answer without action",
                 "sql_results": {},
-                "suggested_actions": [],
+                "suggested_action": None,
             })
 
         import backend.eval.integration.runner
@@ -410,7 +410,7 @@ class TestTestSingleQuestion:
         monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", lambda q: None)
         monkeypatch.setattr(backend.eval.integration.runner, "get_expected_action", lambda q: True)
 
-        result = test_single_question("Q?", "session1", use_judge=False)
+        result = test_single_question("Q?", "session1")
         assert result.action_passed is False
         assert result.action_missing is True
 
@@ -420,7 +420,7 @@ class TestTestSingleQuestion:
             return make_invoke_mock({
                 "answer": "Answer with unwanted action",
                 "sql_results": {},
-                "suggested_actions": ["Unwanted action"],
+                "suggested_action": "Unwanted action",
             })
 
         import backend.eval.integration.runner
@@ -428,7 +428,7 @@ class TestTestSingleQuestion:
         monkeypatch.setattr(backend.eval.integration.runner, "get_expected_answer", lambda q: None)
         monkeypatch.setattr(backend.eval.integration.runner, "get_expected_action", lambda q: False)
 
-        result = test_single_question("Q?", "session1", use_judge=False)
+        result = test_single_question("Q?", "session1")
         assert result.action_passed is False
         assert result.action_spurious is True
 
@@ -445,7 +445,7 @@ class TestRunConvoEval:
         from backend.eval.integration.runner import run_convo_eval
         def mock_get_all_paths(): return [["Q1?", "Q2?"]]
         call_count = {"count": 0}
-        def mock_test_single_question(question, session_id, use_judge=True):
+        def mock_test_single_question(question, session_id):
             call_count["count"] += 1
             return ConvoStepResult(
                 question=question, answer=f"Answer to {question}",
@@ -464,7 +464,7 @@ class TestRunConvoEval:
     def test_with_failures(self, monkeypatch):
         from backend.eval.integration.runner import run_convo_eval
         def mock_get_all_paths(): return [["Q1?"]]
-        def mock_test_single_question(question, session_id, use_judge=True):
+        def mock_test_single_question(question, session_id):
             return ConvoStepResult(
                 question=question, answer="Bad",
                 relevance_score=0.5, answer_correctness_score=0.3,
@@ -481,7 +481,7 @@ class TestRunConvoEval:
     def test_with_answer_correctness(self, monkeypatch):
         from backend.eval.integration.runner import run_convo_eval
         def mock_get_all_paths(): return [["Q1?"]]
-        def mock_test_single_question(question, session_id, use_judge=True):
+        def mock_test_single_question(question, session_id):
             return ConvoStepResult(
                 question=question, answer="A1",
                 relevance_score=0.9, answer_correctness_score=0.85,
@@ -499,7 +499,7 @@ class TestRunConvoEval:
         from backend.eval.integration.runner import run_convo_eval
         def mock_get_all_paths(): return [["Q1?"], ["Q2?"], ["Q3?"]]
         call_count = {"count": 0}
-        def mock_test_single_question(question, session_id, use_judge=True):
+        def mock_test_single_question(question, session_id):
             call_count["count"] += 1
             return ConvoStepResult(
                 question=question, answer=f"A",

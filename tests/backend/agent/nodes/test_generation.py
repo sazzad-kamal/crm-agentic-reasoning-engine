@@ -145,12 +145,12 @@ class TestActionNode:
 
         result = action_node(state)
 
-        assert result["suggested_actions"] == ["Schedule a call with Sarah Chen"]
+        assert result["suggested_action"] == "Schedule a call with Sarah Chen"
         mock_chain.assert_called_once()
 
     @patch('backend.agent.action.node.call_action_chain')
-    def test_action_node_returns_empty_when_no_action(self, mock_chain):
-        """Returns empty list when chain returns None."""
+    def test_action_node_returns_none_when_no_action(self, mock_chain):
+        """Returns None when chain returns None."""
         from backend.agent.action.node import action_node
 
         mock_chain.return_value = None
@@ -162,7 +162,7 @@ class TestActionNode:
 
         result = action_node(state)
 
-        assert result["suggested_actions"] == []
+        assert result["suggested_action"] is None
 
     @patch('backend.agent.action.node.call_action_chain')
     def test_action_node_handles_exception(self, mock_chain):
@@ -178,7 +178,7 @@ class TestActionNode:
 
         result = action_node(state)
 
-        assert result["suggested_actions"] == []
+        assert result["suggested_action"] is None
 
     @patch('backend.agent.action.node.call_action_chain')
     def test_action_node_skips_on_error_state(self, mock_chain):
@@ -193,7 +193,7 @@ class TestActionNode:
 
         result = action_node(state)
 
-        assert result["suggested_actions"] == []
+        assert result["suggested_action"] is None
         mock_chain.assert_not_called()
 
 

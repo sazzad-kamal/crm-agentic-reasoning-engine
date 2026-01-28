@@ -74,8 +74,8 @@ export const MessageBlock = memo(function MessageBlock({
               </div>
 
               {/* Suggested Actions */}
-              {response.suggested_actions && response.suggested_actions.length > 0 && (
-                <SuggestedActions actions={response.suggested_actions} />
+              {response.suggested_action && (
+                <SuggestedActions action={response.suggested_action} />
               )}
 
               {/* Data Tables (collapsed) */}

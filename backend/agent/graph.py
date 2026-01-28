@@ -2,6 +2,7 @@
 
 import uuid
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 
@@ -26,7 +27,7 @@ ANSWER_NODE = "answer"
 ACTION_NODE = "action"
 FOLLOWUP_NODE = "followup"
 
-def build_thread_config(session_id: str | None) -> dict:
+def build_thread_config(session_id: str | None) -> RunnableConfig:
     """Build LangGraph config with thread_id for checkpointing."""
     return {"configurable": {"thread_id": session_id or str(uuid.uuid4())}}
 

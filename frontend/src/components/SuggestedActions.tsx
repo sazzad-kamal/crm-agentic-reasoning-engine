@@ -1,25 +1,19 @@
 interface SuggestedActionsProps {
-  actions: string[];
+  action: string;
 }
 
 /**
- * Displays suggested actions as a highlighted callout
+ * Displays a suggested action as a highlighted callout
  */
-export function SuggestedActions({ actions }: SuggestedActionsProps) {
-  if (!actions || actions.length === 0) return null;
-
+export function SuggestedActions({ action }: SuggestedActionsProps) {
   return (
     <div
       className="suggested-actions"
       role="complementary"
-      aria-label="Suggested actions"
+      aria-label="Suggested action"
     >
       <span className="suggested-actions__label">Suggested action:</span>
-      {actions.map((action, idx) => (
-        <span key={idx} className="suggested-actions__item">
-          {action}
-        </span>
-      ))}
+      <span className="suggested-actions__item">{action}</span>
     </div>
   );
 }

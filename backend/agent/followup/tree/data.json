@@ -1,19 +1,19 @@
 {
   "What deals are in the pipeline?": [
     "Which deals are closest to closing?",
-    "What stages have the most deals?",
+    "How are deals distributed across stages?",
     "Who owns the most pipeline value?"
   ],
 
   "Which accounts are up for renewal?": [
     "Which renewals are at risk?",
     "What's the total renewal value at stake?",
-    "What's the history with Crown Foods?"
+    "Tell me more about Crown Foods"
   ],
 
   "Who are the contacts at Delta Health?": [
     "Who is the decision maker at Delta Health?",
-    "What deals does Delta Health have?",
-    "What's the interaction history with Delta Health?"
+    "What open deals does Delta Health have?",
+    "What's our recent activity with Delta Health?"
   ]
 }

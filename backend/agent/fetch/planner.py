@@ -54,7 +54,7 @@ SELECT c.* FROM contacts c JOIN companies co ON c.company_id = co.company_id WHE
 Q: "Which deals are closest to closing?"
 SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') ORDER BY expected_close_date ASC
 
-Q: "What stages have the most deals?"
+Q: "How are deals distributed across stages?"
 SELECT stage, COUNT(*) AS deal_count FROM opportunities GROUP BY stage ORDER BY deal_count DESC
 
 Q: "Who owns the most pipeline value?"
@@ -63,7 +63,7 @@ SELECT owner, SUM(amount) AS total_value FROM opportunities WHERE stage NOT IN (
 Q: "Which renewals are at risk?"
 SELECT * FROM companies WHERE health_status LIKE '%at-risk%' AND renewal_date IS NOT NULL
 
-Q: "What's the history with Crown Foods?"
+Q: "Tell me more about Crown Foods"
 SELECT h.* FROM history h JOIN companies c ON h.company_id = c.company_id WHERE c.name = 'Crown Foods'"""
 
 _HUMAN_PROMPT = """User's question: {question}

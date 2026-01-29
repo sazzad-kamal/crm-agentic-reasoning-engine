@@ -33,7 +33,7 @@ questions:
     expected_answer: "Delta Health renewal ($22K) is overdue with expected close of Sep 2025. Next closest are Acme upgrade ($15K, Proposal, Feb 8), Crown Foods renewal ($18K, Proposal, Feb 13), and Beta Tech new business ($32K, Negotiation, Mar 1) which is the highest-value open deal."
     expected_action: true
 
-  - text: "What stages have the most deals?"
+  - text: "How are deals distributed across stages?"
     difficulty: 2
     expected_sql: "SELECT stage, COUNT(*) AS deal_count FROM opportunities GROUP BY stage ORDER BY deal_count DESC"
     expected_answer: "Qualified has the most open deals (4): Acme renewal, Delta renewal, Fusion upsell, Crown expansion. Discovery has 3: Beta addon, Delta expand, Harbor new. Proposal has 2: Acme upgrade and Crown renewal. Negotiation has 1: Beta Tech new business. New has 1: Eastern Travel trial."
@@ -57,7 +57,7 @@ questions:
     expected_answer: "Open renewal opportunities total approximately $64K: Acme ($24K), Delta Health ($22K), and Crown Foods ($18K). At-risk renewals account for $40K (Delta $22K + Crown $18K)."
     expected_action: true
 
-  - text: "What's the history with Crown Foods?"
+  - text: "Tell me more about Crown Foods"
     difficulty: 2
     expected_sql: "SELECT * FROM history h JOIN companies c ON h.company_id = c.company_id WHERE c.name = 'Crown Foods'"
     expected_answer: "Crown Foods has 5 interaction records. Maria Silva confirmed a 2-year renewal commitment. Key wins include 60% reduction in report generation time and IT team satisfaction with API flexibility. Nina Foster's analytics team is expanding use cases. Integration support was provided for API troubleshooting."
@@ -69,13 +69,13 @@ questions:
     expected_answer: "Erin Cho is the decision maker at Delta Health. She is the Clinic Director and champions expansion but needs board approval."
     expected_action: true
 
-  - text: "What deals does Delta Health have?"
+  - text: "What open deals does Delta Health have?"
     difficulty: 2
     expected_sql: "SELECT o.* FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE c.name = 'Delta Health Clinics'"
     expected_answer: "Delta Health has two open deals: a renewal ($22K, Qualified, overdue) and an expansion ($15K, Discovery) for 3 additional clinic locations. The expansion depends on the renewal completing first."
     expected_action: true
 
-  - text: "What's the interaction history with Delta Health?"
+  - text: "What's our recent activity with Delta Health?"
     difficulty: 2
     expected_sql: "SELECT * FROM history h JOIN companies c ON h.company_id = c.company_id WHERE c.name = 'Delta Health Clinics'"
     expected_answer: "Delta Health has 6 interaction records. Recent risk assessment flags the renewal as AT RISK with low usage in 3 of 5 clinics, a competitor demo scheduled, and open support tickets on reporting. Despite this, expansion to 3 additional clinics is possible if the renewal is secured. Erin Cho is championing internally."

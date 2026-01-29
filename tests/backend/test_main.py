@@ -69,18 +69,8 @@ class TestCreateApp:
 class TestRootRedirect:
     """Tests for root endpoint redirect."""
 
-    def test_root_redirects_to_docs(self):
-        """Test that root path redirects to /docs."""
-        from backend.main import app
-
-        client = TestClient(app, follow_redirects=False)
-        response = client.get("/")
-
-        assert response.status_code in [301, 302, 307, 308]
-        assert "/docs" in response.headers.get("location", "")
-
-    def test_root_redirect_is_followed(self):
-        """Test that redirect leads to docs page."""
+    def test_root_returns_200(self):
+        """Test that root path returns 200 (SPA or docs redirect)."""
         from backend.main import app
 
         client = TestClient(app, follow_redirects=True)

@@ -2,14 +2,15 @@
 // Configuration for Acme CRM AI Companion Frontend
 // =============================================================================
 
-// Get API URL from environment or default to localhost
+// Get API URL from environment or default to same origin
 const getApiUrl = (): string => {
   // Check for Vite env variable
   if (import.meta.env?.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  // Default for local development
-  return "http://localhost:8000";
+  // In production (served from same origin), use empty string for relative URLs.
+  // In development (Vite dev server on :5173), point to backend on :8000.
+  return import.meta.env.DEV ? "http://localhost:8000" : "";
 };
 
 /**

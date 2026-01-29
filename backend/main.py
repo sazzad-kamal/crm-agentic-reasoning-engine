@@ -12,7 +12,8 @@ from typing import Any
 from dotenv import load_dotenv
 from fastapi import APIRouter, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
 load_dotenv(Path(__file__).parent.parent / ".env")
@@ -83,9 +84,22 @@ def create_app() -> FastAPI:
     router.include_router(data_router, tags=["data"])
     app.include_router(router)
 
-    @app.get("/", include_in_schema=False)
-    async def root() -> RedirectResponse:
-        return RedirectResponse(url="/docs")
+    # Serve frontend static files in production (built into frontend/dist/)
+    frontend_dir = Path(__file__).parent.parent / "frontend" / "dist"
+    if frontend_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=frontend_dir / "assets"), name="static")
+
+        @app.get("/{path:path}", include_in_schema=False)
+        async def serve_spa(path: str) -> FileResponse:
+            """Serve frontend SPA — all non-API routes return index.html."""
+            file_path = frontend_dir / path
+            if file_path.is_file():
+                return FileResponse(file_path)
+            return FileResponse(frontend_dir / "index.html")
+    else:
+        @app.get("/", include_in_schema=False)
+        async def root() -> RedirectResponse:
+            return RedirectResponse(url="/docs")
 
     return app
 

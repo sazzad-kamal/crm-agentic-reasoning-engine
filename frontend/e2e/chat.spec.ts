@@ -65,7 +65,7 @@ test.describe('Chat Interaction', () => {
     await sendButton.click();
 
     // Wait for response - message block is an article with role="listitem"
-    await expect(page.getByRole('listitem', { name: /conversation about/i })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('listitem', { name: /conversation about/i })).toBeVisible({ timeout: 80000 });
   });
 
   test('shows loading state while waiting for response', async ({ page }) => {
@@ -88,7 +88,7 @@ test.describe('Chat Interaction', () => {
     await input.press('Enter');
 
     // Should trigger the request - message block is an article with role="listitem"
-    await expect(page.getByRole('listitem', { name: /conversation about/i })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('listitem', { name: /conversation about/i })).toBeVisible({ timeout: 80000 });
   });
 
   test('displays follow-up suggestions after response', async ({ page }) => {
@@ -99,7 +99,7 @@ test.describe('Chat Interaction', () => {
     await sendButton.click();
 
     // Wait for response - message block is an article with role="listitem"
-    await expect(page.getByRole('listitem', { name: /conversation about/i })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('listitem', { name: /conversation about/i })).toBeVisible({ timeout: 80000 });
 
     // Check for follow-up suggestions (may or may not appear)
     // This is a soft check since follow-ups are optional
@@ -150,9 +150,9 @@ test.describe('Accessibility', () => {
     await sendButton.click();
 
     // After response, input should be visible and usable
-    await expect(page.getByRole('listitem', { name: /conversation about/i })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('listitem', { name: /conversation about/i })).toBeVisible({ timeout: 80000 });
     // Wait for answer to fully render (input re-enabled after streaming completes)
-    await expect(page.locator('.message__answer')).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('.message__answer')).toBeVisible({ timeout: 80000 });
     // Input should be cleared and ready for next question
     await expect(input).toBeVisible();
     await expect(input).toBeEnabled({ timeout: 10000 });

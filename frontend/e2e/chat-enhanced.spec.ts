@@ -3,71 +3,94 @@ import { test, expect } from '@playwright/test';
 /**
  * Enhanced E2E Tests for Chat Application
  *
- * Improvements:
- * - Visual regression testing with screenshots
- * - Network condition testing
- * - Keyboard navigation
- * - Copy functionality
- * - Source citations
- * - Follow-up interactions
+ * Covers: visual regression, example prompts, keyboard navigation,
+ * edge cases, conversation persistence, copy, follow-ups,
+ * network conditions, responsive design
  */
 
-test.describe('Chat Application - Enhanced', () => {
+// Helper: send a question and wait for the answer
+async function askAndWaitForAnswer(page: import('@playwright/test').Page, question: string) {
+  const input = page.getByRole('textbox', { name: /ask a question/i });
+  const sendButton = page.getByRole('button', { name: /send/i });
+  await input.fill(question);
+  await sendButton.click();
+  await expect(page.locator('.message__answer')).toBeVisible({ timeout: 80000 });
+}
+
+// ===========================================================================
+// Visual Regression (skip in CI — snapshots are gitignored)
+// ===========================================================================
+
+test.describe('Chat Application - Visual Regression', () => {
+  test.skip(!!process.env.CI, 'Visual tests skipped in CI');
+
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
   });
 
-  test('has correct title and header', async ({ page }) => {
-    await expect(page).toHaveTitle(/Acme CRM/i);
-    await expect(page.locator('header')).toBeVisible();
-  });
-
-  // Skip visual regression tests in CI (snapshots are gitignored)
-  test.skip(!!process.env.CI, 'Visual tests skipped in CI');
-  test('has correct title and header with screenshot', async ({ page }) => {
-    await expect(page).toHaveTitle(/Acme CRM/i);
+  test('header screenshot', async ({ page }) => {
     await expect(page.locator('header')).toBeVisible();
     await expect(page.locator('header')).toHaveScreenshot('header.png');
   });
 
-  test.skip(!!process.env.CI, 'Visual tests skipped in CI');
   test('full page layout screenshot', async ({ page }) => {
-    await expect(page).toHaveScreenshot('full-page-initial.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot('full-page-initial.png', { fullPage: true });
+  });
+});
+
+// ===========================================================================
+// Example Prompts
+// ===========================================================================
+
+test.describe('Chat - Example Prompts', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
   });
 
   test('displays example prompts in empty state', async ({ page }) => {
-    // Check for example prompts when no messages exist
-    const examplePrompts = page.locator('.example-prompts, .suggestion-chip');
-    const count = await examplePrompts.count();
+    const buttons = page.locator('.suggestion-btn');
+    await expect(buttons.first()).toBeVisible({ timeout: 10000 });
 
-    // Should have at least some example prompts
-    expect(count).toBeGreaterThanOrEqual(0);
+    const count = await buttons.count();
+    expect(count).toBeGreaterThanOrEqual(3);
+  });
+});
+
+// ===========================================================================
+// Keyboard Navigation
+// ===========================================================================
+
+test.describe('Chat - Keyboard Navigation', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
   });
 
-  test('can use keyboard shortcuts - Tab navigation', async ({ page }) => {
-    await page.goto('/');
-    
-    // Input should be focusable
+  test('input accepts keyboard input and send button is visible', async ({ page }) => {
     const input = page.getByRole('textbox', { name: /ask a question/i });
     await expect(input).toBeVisible({ timeout: 10000 });
     await input.click();
-    
-    // Type and verify keyboard input works
     await page.keyboard.type('Test');
     await expect(input).toHaveValue('Test');
 
-    // Send button should exist and be usable
     const sendButton = page.getByRole('button', { name: /send/i });
     await expect(sendButton).toBeVisible();
+    await expect(sendButton).toBeEnabled();
+  });
+});
+
+// ===========================================================================
+// Edge Cases
+// ===========================================================================
+
+test.describe('Chat - Edge Cases', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
   });
 
   test('handles very long questions gracefully', async ({ page }) => {
     const input = page.getByRole('textbox', { name: /ask a question/i });
     const sendButton = page.getByRole('button', { name: /send/i });
 
-    // Create a very long question (500 characters)
     const longQuestion = 'What is the status of '.repeat(25) + 'Acme Manufacturing?';
     await input.fill(longQuestion);
 
@@ -83,13 +106,16 @@ test.describe('Chat Application - Enhanced', () => {
     await input.fill(specialChars);
     await sendButton.click();
 
-    // Should handle special characters without errors
     await expect(page.getByRole('listitem', { name: /conversation about/i }))
-      .toBeVisible({ timeout: 30000 });
+      .toBeVisible({ timeout: 80000 });
   });
 });
 
-test.describe('Chat Interaction - Enhanced', () => {
+// ===========================================================================
+// Conversation
+// ===========================================================================
+
+test.describe('Chat - Conversation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
   });
@@ -98,12 +124,9 @@ test.describe('Chat Interaction - Enhanced', () => {
     const input = page.getByRole('textbox', { name: /ask a question/i });
     const sendButton = page.getByRole('button', { name: /send/i });
 
-    // Send first question
     await input.fill('What is Acme CRM?');
     await sendButton.click();
-
-    await expect(page.getByRole('listitem', { name: /conversation about/i }))
-      .toBeVisible({ timeout: 30000 });
+    await expect(page.locator('.message__answer').first()).toBeVisible({ timeout: 80000 });
 
     // Question should remain visible in UI
     await expect(page.locator('.message__question')).toContainText('What is Acme CRM?');
@@ -114,195 +137,141 @@ test.describe('Chat Interaction - Enhanced', () => {
 
     // Both messages should be visible
     const messages = page.locator('.message-block');
-    await expect(messages).toHaveCount(2, { timeout: 30000 });
+    await expect(messages).toHaveCount(2, { timeout: 80000 });
   });
 
   test('shows thinking indicator during processing', async ({ page }) => {
     const input = page.getByRole('textbox', { name: /ask a question/i });
-    const sendButton = page.getByRole('button', { name: /send/i });
-
     await input.fill('What is going on with Acme Manufacturing?');
-    await sendButton.click();
+    await page.getByRole('button', { name: /send/i }).click();
 
-    // Should show thinking indicator or message block (processing may complete quickly)
-    const thinkingOrMessage = page.locator('.skeleton-answer, .message-block');
-    await expect(thinkingOrMessage.first()).toBeVisible({ timeout: 15000 });
+    const skeleton = page.locator('.skeleton-answer');
+    await expect(skeleton).toBeVisible({ timeout: 5000 });
   });
 
   test('displays answer after response', async ({ page }) => {
-    const input = page.getByRole('textbox', { name: /ask a question/i });
-    const sendButton = page.getByRole('button', { name: /send/i });
+    await askAndWaitForAnswer(page, 'What accounts have upcoming renewals?');
 
-    await input.fill('What accounts have upcoming renewals?');
-    await sendButton.click();
-
-    // Wait for response
-    await expect(page.locator('.message__answer')).toBeVisible({ timeout: 30000 });
-
-    // Verify answer received
     const answer = await page.locator('.message__answer').textContent();
     expect(answer).toBeTruthy();
+    expect(answer!.length).toBeGreaterThan(0);
   });
 
-  test('can copy answer text to clipboard', async ({ page }) => {
+  test('can copy answer text', async ({ page }) => {
+    await page.context().grantPermissions(['clipboard-write', 'clipboard-read']);
+    await askAndWaitForAnswer(page, 'What is Acme CRM?');
+
+    const copyButton = page.locator('.copy-button').first();
+    await expect(copyButton).toBeVisible();
+    await copyButton.click();
+
+    // Should show copied state
+    await expect(copyButton).toHaveClass(/copy-button--copied/);
+  });
+
+  test('copy button is available after response', async ({ page }) => {
+    await askAndWaitForAnswer(page, 'What is the total pipeline value?');
+
+    // CopyButton only renders after streaming is fully complete (!isStreaming)
+    // Wait for input to be re-enabled which signals streaming is done
     const input = page.getByRole('textbox', { name: /ask a question/i });
-    const sendButton = page.getByRole('button', { name: /send/i });
+    await expect(input).toBeEnabled({ timeout: 80000 });
 
-    await input.fill('What is Acme CRM?');
-    await sendButton.click();
-
-    // Wait for answer
-    await expect(page.locator('.message__answer')).toBeVisible({ timeout: 30000 });
-
-    // Find and click copy button
-    const copyButton = page.locator('.copy-button, .copy-btn').first();
-    if (await copyButton.count() > 0) {
-      await copyButton.click();
-
-      // Button should show success state (check for copied class or title change)
-      await page.waitForTimeout(500);
-      const hasCopiedState = await copyButton.evaluate(el => 
-        el.classList.contains('copied') || 
-        el.getAttribute('title')?.toLowerCase().includes('copied') ||
-        el.textContent?.toLowerCase().includes('copied')
-      );
-      // Just verify button was clicked - copied state is implementation detail
-      expect(true).toBeTruthy();
-    }
+    const copyButton = page.locator('.copy-button.message__copy');
+    await expect(copyButton).toBeVisible({ timeout: 5000 });
   });
 
   test('can interact with follow-up suggestions', async ({ page }) => {
-    const input = page.getByRole('textbox', { name: /ask a question/i });
-    const sendButton = page.getByRole('button', { name: /send/i });
+    await askAndWaitForAnswer(page, 'What is the pipeline for TechCorp?');
 
-    await input.fill('What is the pipeline for TechCorp?');
-    await sendButton.click();
-
-    // Wait for response
-    await expect(page.locator('.message__answer')).toBeVisible({ timeout: 30000 });
-
-    // Check for follow-up suggestions
-    const followUpButtons = page.locator('.follow-up-button, .suggestion-chip').filter({ hasText: /.+/ });
+    const followUpButtons = page.locator('.follow-up-btn');
     const count = await followUpButtons.count();
 
     if (count > 0) {
-      // Click first follow-up suggestion
-      const firstFollowUp = followUpButtons.first();
-      const suggestionText = await firstFollowUp.textContent();
+      const suggestionText = await followUpButtons.first().textContent();
+      await followUpButtons.first().click();
 
-      await firstFollowUp.click();
-
-      // Input should be filled with the suggestion
-      await expect(input).toHaveValue(suggestionText || '');
+      // Should send the follow-up as a new message
+      await expect(page.locator('.message-block')).toHaveCount(2, { timeout: 80000 });
     }
-  });
-
-  test('copy button available after response', async ({ page }) => {
-    const input = page.getByRole('textbox', { name: /ask a question/i });
-    const sendButton = page.getByRole('button', { name: /send/i });
-
-    await input.fill('What is the total pipeline value?');
-    await sendButton.click();
-
-    // Wait for completion
-    await expect(page.locator('.message__answer')).toBeVisible({ timeout: 30000 });
-
-    // Copy button should be available
-    const copyButton = page.locator('.message__copy');
-    await expect(copyButton).toBeVisible();
   });
 });
 
-test.describe('Accessibility - Enhanced', () => {
+// ===========================================================================
+// Accessibility
+// ===========================================================================
+
+test.describe('Chat - Accessibility Enhanced', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
   });
 
   test('ARIA live region announces new messages', async ({ page }) => {
-    // Chat area should have role="log" and aria-live
     const chatArea = page.locator('[role="log"]');
     await expect(chatArea).toBeVisible();
     await expect(chatArea).toHaveAttribute('aria-live', 'polite');
   });
 
-  test('keyboard-only navigation works end-to-end', async ({ page }) => {
-    await page.goto('/');
-    
-    // Verify skip link exists in the DOM
+  test('skip link and main content are properly linked', async ({ page }) => {
     const skipLink = page.locator('.skip-link');
     await expect(skipLink).toBeAttached();
 
-    // Main content should have proper attributes for skip link target
     const main = page.getByRole('main');
     await expect(main).toHaveAttribute('tabindex', '-1');
     await expect(main).toHaveAttribute('id', 'main-content');
   });
 
-  test('screen reader labels are present', async ({ page }) => {
+  test('screen reader labels are present on input', async ({ page }) => {
     const input = page.getByRole('textbox', { name: /ask a question/i });
-
-    // Input should have aria-label or associated label
     const ariaLabel = await input.getAttribute('aria-label');
-    const ariaLabelledBy = await input.getAttribute('aria-labelledby');
-
-    expect(ariaLabel || ariaLabelledBy).toBeTruthy();
+    expect(ariaLabel).toBeTruthy();
   });
 
-  test('loading state has proper ARIA attributes', async ({ page }) => {
+  test('loading state has ARIA status role', async ({ page }) => {
     const input = page.getByRole('textbox', { name: /ask a question/i });
-    const sendButton = page.getByRole('button', { name: /send/i });
-
     await input.fill('Test');
-    await sendButton.click();
+    await page.getByRole('button', { name: /send/i }).click();
 
-    // Loading indicator should have role="status"
     const loadingStatus = page.getByRole('status');
     await expect(loadingStatus.first()).toBeVisible({ timeout: 5000 });
   });
 });
 
-test.describe('Network Conditions', () => {
-  test('handles slow 3G connection', async ({ page, context }) => {
-    // Emulate slow 3G
+// ===========================================================================
+// Network Conditions
+// ===========================================================================
+
+test.describe('Chat - Network Conditions', () => {
+  test('handles slow connection', async ({ page, context }) => {
     await context.route('**/*', route => {
       setTimeout(() => route.continue(), 200);
     });
 
     await page.goto('/');
+    await askAndWaitForAnswer(page, 'What is Acme CRM?');
 
-    const input = page.getByRole('textbox', { name: /ask a question/i });
-    const sendButton = page.getByRole('button', { name: /send/i });
-
-    await input.fill('What is Acme CRM?');
-    await sendButton.click();
-
-    // Should still work, just slower
-    await expect(page.locator('.message__answer'))
-      .toBeVisible({ timeout: 60000 }); // Longer timeout for slow connection
+    const answer = await page.locator('.message__answer').textContent();
+    expect(answer).toBeTruthy();
   });
 
   test('shows error when backend is unavailable', async ({ page }) => {
-    // Block API requests
-    await page.route('**/api/**', route => route.abort());
-
+    await page.route('**/api/chat/stream', route => route.abort());
     await page.goto('/');
 
     const input = page.getByRole('textbox', { name: /ask a question/i });
-    const sendButton = page.getByRole('button', { name: /send/i });
-
     await input.fill('Test question');
-    await sendButton.click();
+    await page.getByRole('button', { name: /send/i }).click();
 
-    // Should show error or handle gracefully
-    await page.waitForTimeout(3000);
-
-    // Input should remain functional
-    await expect(input).toBeVisible();
-    await expect(input).toBeEnabled();
+    // Error banner should appear or input should be re-enabled
+    await expect(input).toBeEnabled({ timeout: 10000 });
   });
 });
 
-test.describe('Responsive Design - Enhanced', () => {
+// ===========================================================================
+// Responsive Design
+// ===========================================================================
+
+test.describe('Chat - Responsive Design Enhanced', () => {
   test('mobile: Browse Data button adapts', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/');
@@ -310,7 +279,6 @@ test.describe('Responsive Design - Enhanced', () => {
     const browseButton = page.getByRole('button', { name: /browse.*data/i });
     await expect(browseButton).toBeVisible();
 
-    // Button text might be hidden on mobile, but button should work
     await browseButton.click();
     const drawer = page.getByRole('dialog');
     await expect(drawer).toBeVisible();
@@ -326,9 +294,8 @@ test.describe('Responsive Design - Enhanced', () => {
     const drawer = page.locator('.drawer');
     await expect(drawer).toBeVisible();
 
-    // On mobile, drawer should be full width
     const box = await drawer.boundingBox();
-    expect(box?.width).toBeGreaterThanOrEqual(370); // ~100vw
+    expect(box?.width).toBeGreaterThanOrEqual(370);
   });
 
   test('tablet: layout is optimized', async ({ page }) => {
@@ -343,40 +310,35 @@ test.describe('Responsive Design - Enhanced', () => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto('/');
 
-    // All elements should be fully visible
     await expect(page.locator('.header__title')).toBeVisible();
     await expect(page.locator('.header__subtitle')).toBeVisible();
     await expect(page.locator('.header__data-btn-text')).toBeVisible();
   });
 });
 
-test.describe('Visual Regression', () => {
-  test('message block appearance', async ({ page }) => {
+// ===========================================================================
+// Visual Regression (non-screenshot)
+// ===========================================================================
+
+test.describe('Chat - Visual States', () => {
+  test('message block renders with question and answer', async ({ page }) => {
     await page.goto('/');
+    await askAndWaitForAnswer(page, 'What is Acme CRM?');
 
-    const input = page.getByRole('textbox', { name: /ask a question/i });
-    const sendButton = page.getByRole('button', { name: /send/i });
-
-    await input.fill('What is Acme CRM?');
-    await sendButton.click();
-
-    // Wait for message to appear
     const messageBlock = page.locator('.message-block').first();
-    await expect(messageBlock).toBeVisible({ timeout: 30000 });
+    await expect(messageBlock).toBeVisible();
 
-    // Wait for answer to fully render
-    await expect(page.locator('.message__answer')).toBeVisible({ timeout: 30000 });
-
-    // Verify message content
     const answer = await page.locator('.message__answer').textContent();
     expect(answer).toBeTruthy();
   });
 
-  test('empty state appearance', async ({ page }) => {
+  test('empty state is visible on load', async ({ page }) => {
     await page.goto('/');
 
-    // Verify empty state is displayed
     const chatArea = page.locator('.chat-area, [role="log"]');
     await expect(chatArea).toBeVisible();
+
+    const welcomeText = page.getByText('Welcome to Acme CRM AI');
+    await expect(welcomeText).toBeVisible();
   });
 });

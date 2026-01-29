@@ -145,15 +145,10 @@ test.describe('Data Explorer Table', () => {
     
     // Type a search term
     await searchInput.fill('Acme');
-    
-    // Wait for filter to apply
-    await page.waitForTimeout(100);
-    
-    // Count should potentially be different (filtered)
-    const countAfter = await page.locator('.data-explorer__count').textContent();
-    
-    // At minimum, the count text should exist
-    expect(countAfter).toBeTruthy();
+
+    // Count should update with filter results
+    const countDisplay = page.locator('.data-explorer__count');
+    await expect(countDisplay).toContainText(/\d+ of \d+ records/);
   });
 });
 

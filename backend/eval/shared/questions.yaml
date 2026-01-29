@@ -14,7 +14,7 @@ questions:
 
   - text: "Which accounts are up for renewal?"
     difficulty: 1
-    expected_sql: "SELECT * FROM companies WHERE renewal_date IS NOT NULL ORDER BY renewal_date"
+    expected_sql: "SELECT * FROM companies WHERE renewal_date >= CURRENT_DATE ORDER BY renewal_date"
     expected_answer: "Accounts with upcoming renewals include Crown Foods, Delta Health, Beta Tech, Harbor Logistics, and Acme Manufacturing."
     expected_action: true
 

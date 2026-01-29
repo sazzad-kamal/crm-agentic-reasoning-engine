@@ -46,7 +46,7 @@ Q: "What deals are in the pipeline?"
 SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost')
 
 Q: "Which accounts are up for renewal?"
-SELECT * FROM companies WHERE renewal_date IS NOT NULL ORDER BY renewal_date
+SELECT * FROM companies WHERE renewal_date >= CURRENT_DATE ORDER BY renewal_date
 
 Q: "Who are the contacts at Delta Health?"
 SELECT c.* FROM contacts c JOIN companies co ON c.company_id = co.company_id WHERE co.name = 'Delta Health Clinics'

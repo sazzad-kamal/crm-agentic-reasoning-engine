@@ -1,16 +1,26 @@
 """Follow-up suggestion LLM chain functions."""
 
+from __future__ import annotations
+
 import logging
 from functools import cache
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
+from backend.agent.fetch.sql.schema import get_schema_sql
+from backend.agent.followup.entity_context import get_entity_context
 from backend.core.llm import SHORT_RESPONSE_MAX_TOKENS, create_openai_chain
+
+if TYPE_CHECKING:
+    import duckdb
 
 logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = """You are a helpful CRM assistant that suggests follow-up questions.
+
+IMPORTANT: Only suggest questions that can be answered using the available database tables and columns.
+Do NOT suggest questions about data that doesn't exist in the schema.
 
 GENERATE 3 SHORT QUESTIONS:
 1. Drill into specifics — reference entities, numbers, or dates from the answer
@@ -32,7 +42,7 @@ Answer: "The Beta Tech Platform deal has been in Negotiation for 45 days. Last a
 
 _HUMAN_PROMPT = """User's question: {question}
 
-{answer_section}{conversation_history_section}"""
+{answer_section}{schema_section}{entity_context_section}{conversation_history_section}"""
 
 
 class FollowUpSuggestions(BaseModel):
@@ -63,6 +73,8 @@ def generate_follow_up_suggestions(
     answer: str = "",
     conversation_history: str = "",
     use_hardcoded_tree: bool = True,
+    sql_results: dict[str, Any] | None = None,
+    conn: duckdb.DuckDBPyConnection | None = None,
 ) -> list[str]:
     """Generate 3 follow-up question suggestions."""
     # Try hardcoded tree first (fast, deterministic)
@@ -80,9 +92,21 @@ def generate_follow_up_suggestions(
         answer_section = f"Assistant's answer: {answer}\n\n" if answer else ""
         history_section = f"=== RECENT CONVERSATION ===\n{conversation_history}" if conversation_history else ""
 
+        # Schema context for data-aware suggestions
+        schema_section = f"=== DATABASE SCHEMA ===\n{get_schema_sql()}\n\n"
+
+        # Entity context from sql_results
+        entity_context_section = ""
+        if sql_results and conn:
+            entity_ctx = get_entity_context(sql_results, conn)
+            if entity_ctx:
+                entity_context_section = f"=== ENTITY CONTEXT ===\n{entity_ctx}\n\n"
+
         result: FollowUpSuggestions = chain.invoke({
             "question": question,
             "answer_section": answer_section,
+            "schema_section": schema_section,
+            "entity_context_section": entity_context_section,
             "conversation_history_section": history_section,
         })
 

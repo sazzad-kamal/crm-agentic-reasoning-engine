@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from backend.eval.followup.models import (
+    SLO_FOLLOWUP_ANSWERABILITY,
     SLO_FOLLOWUP_ANSWER_GROUNDING,
     SLO_FOLLOWUP_DIVERSITY,
     SLO_FOLLOWUP_PASS_RATE,
@@ -33,6 +34,10 @@ class TestSLOConstants:
         """Test SLO_FOLLOWUP_DIVERSITY value."""
         assert SLO_FOLLOWUP_DIVERSITY == 0.50
 
+    def test_slo_followup_answerability(self):
+        """Test SLO_FOLLOWUP_ANSWERABILITY value."""
+        assert SLO_FOLLOWUP_ANSWERABILITY == 0.80
+
 
 class TestFollowupCaseResult:
     """Tests for FollowupCaseResult model."""
@@ -48,6 +53,8 @@ class TestFollowupCaseResult:
         assert case.answer_grounding == 0.0
         assert case.diversity == 0.0
         assert case.explanation == ""
+        assert case.answerable_count == 0
+        assert case.answerability == 0.0
         assert case.errors == []
 
     def test_followup_case_result_with_answer(self):
@@ -76,6 +83,17 @@ class TestFollowupCaseResult:
         assert case.explanation == "Good suggestions"
         assert len(case.suggestions) == 3
 
+    def test_followup_case_result_with_answerability(self):
+        """Test FollowupCaseResult with answerability fields."""
+        case = FollowupCaseResult(
+            question="Test question",
+            suggestions=["Q1?", "Q2?", "Q3?"],
+            answerable_count=2,
+            answerability=0.67,
+        )
+        assert case.answerable_count == 2
+        assert case.answerability == 0.67
+
     def test_followup_case_result_with_errors(self):
         """Test FollowupCaseResult with errors."""
         case = FollowupCaseResult(
@@ -98,6 +116,7 @@ class TestFollowupEvalResults:
         assert results.avg_question_relevance == 0.0
         assert results.avg_answer_grounding == 0.0
         assert results.avg_diversity == 0.0
+        assert results.avg_answerability == 0.0
 
     def test_followup_eval_results_failed_property(self):
         """Test failed property calculation."""
@@ -121,6 +140,7 @@ class TestFollowupEvalResults:
         assert results.avg_question_relevance == 0.0
         assert results.avg_answer_grounding == 0.0
         assert results.avg_diversity == 0.0
+        assert results.avg_answerability == 0.0
 
     def test_followup_eval_results_compute_aggregates(self):
         """Test compute_aggregates computes passed count and averages."""
@@ -133,6 +153,7 @@ class TestFollowupEvalResults:
                 question_relevance=0.8,
                 answer_grounding=0.6,
                 diversity=0.7,
+                answerability=1.0,
             ),
             FollowupCaseResult(
                 question="Q2",
@@ -141,6 +162,7 @@ class TestFollowupEvalResults:
                 question_relevance=0.4,
                 answer_grounding=0.2,
                 diversity=0.3,
+                answerability=0.33,
             ),
             FollowupCaseResult(
                 question="Q3",
@@ -149,14 +171,16 @@ class TestFollowupEvalResults:
                 question_relevance=0.9,
                 answer_grounding=0.7,
                 diversity=0.8,
+                answerability=0.67,
             ),
         ]
         results.compute_aggregates()
 
         assert results.passed == 2
-        assert results.avg_question_relevance == pytest.approx(0.7)  # (0.8 + 0.4 + 0.9) / 3
-        assert results.avg_answer_grounding == pytest.approx(0.5)  # (0.6 + 0.2 + 0.7) / 3
-        assert results.avg_diversity == pytest.approx(0.6)  # (0.7 + 0.3 + 0.8) / 3
+        assert results.avg_question_relevance == pytest.approx(0.7)
+        assert results.avg_answer_grounding == pytest.approx(0.5)
+        assert results.avg_diversity == pytest.approx(0.6)
+        assert results.avg_answerability == pytest.approx(0.667, abs=0.01)
 
     def test_compute_aggregates_with_error_cases(self):
         """Test compute_aggregates includes error cases in averages."""
@@ -168,6 +192,7 @@ class TestFollowupEvalResults:
                 question_relevance=0.8,
                 answer_grounding=0.6,
                 diversity=0.6,
+                answerability=1.0,
             ),
             FollowupCaseResult(
                 question="Q2",
@@ -175,11 +200,13 @@ class TestFollowupEvalResults:
                 question_relevance=0.0,
                 answer_grounding=0.0,
                 diversity=0.0,
+                answerability=0.0,
             ),
         ]
         results.compute_aggregates()
 
         assert results.passed == 1
-        assert results.avg_question_relevance == 0.4  # (0.8 + 0.0) / 2
-        assert results.avg_answer_grounding == 0.3  # (0.6 + 0.0) / 2
-        assert results.avg_diversity == 0.3  # (0.6 + 0.0) / 2
+        assert results.avg_question_relevance == 0.4
+        assert results.avg_answer_grounding == 0.3
+        assert results.avg_diversity == 0.3
+        assert results.avg_answerability == 0.5

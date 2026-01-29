@@ -117,7 +117,6 @@ class TestGenerateFollowUpSuggestions:
     @patch("backend.agent.followup.tree.get_follow_ups")
     def test_use_hardcoded_tree_false_skips_tree(self, mock_tree: MagicMock):
         """Setting use_hardcoded_tree=False skips tree lookup entirely."""
-        # Need to also mock the chain since tree is skipped
         with patch("backend.agent.followup.suggester._get_followup_chain") as mock_get_chain:
             mock_chain = mock_get_chain.return_value
             mock_chain.invoke.return_value = FollowUpSuggestions(
@@ -130,3 +129,66 @@ class TestGenerateFollowUpSuggestions:
             )
 
         mock_tree.assert_not_called()
+
+    @patch("backend.agent.followup.suggester._get_followup_chain")
+    def test_schema_section_included_in_llm_call(self, mock_get_chain: MagicMock):
+        """LLM fallback includes schema section in chain invoke."""
+        mock_chain = mock_get_chain.return_value
+        mock_chain.invoke.return_value = FollowUpSuggestions(
+            suggestions=["Q1?", "Q2?", "Q3?"]
+        )
+
+        generate_follow_up_suggestions(
+            question="Test?",
+            answer="Answer.",
+            use_hardcoded_tree=False,
+        )
+
+        call_kwargs = mock_chain.invoke.call_args[0][0]
+        assert "DATABASE SCHEMA" in call_kwargs["schema_section"]
+        assert "CREATE TABLE" in call_kwargs["schema_section"]
+
+    @patch("backend.agent.followup.suggester.get_entity_context")
+    @patch("backend.agent.followup.suggester._get_followup_chain")
+    def test_entity_context_included_when_sql_results_provided(
+        self, mock_get_chain: MagicMock, mock_entity_ctx: MagicMock
+    ):
+        """Entity context is included when sql_results and conn are provided."""
+        mock_chain = mock_get_chain.return_value
+        mock_chain.invoke.return_value = FollowUpSuggestions(
+            suggestions=["Q1?", "Q2?", "Q3?"]
+        )
+        mock_entity_ctx.return_value = "- Acme Corp (company): 3 contacts"
+
+        conn = MagicMock()
+        sql_results = {"data": [{"company_id": "C001"}]}
+
+        generate_follow_up_suggestions(
+            question="Test?",
+            answer="Answer.",
+            use_hardcoded_tree=False,
+            sql_results=sql_results,
+            conn=conn,
+        )
+
+        call_kwargs = mock_chain.invoke.call_args[0][0]
+        assert "ENTITY CONTEXT" in call_kwargs["entity_context_section"]
+        assert "Acme Corp" in call_kwargs["entity_context_section"]
+        mock_entity_ctx.assert_called_once_with(sql_results, conn)
+
+    @patch("backend.agent.followup.suggester._get_followup_chain")
+    def test_no_entity_context_without_sql_results(self, mock_get_chain: MagicMock):
+        """Entity context is empty when no sql_results provided."""
+        mock_chain = mock_get_chain.return_value
+        mock_chain.invoke.return_value = FollowUpSuggestions(
+            suggestions=["Q1?", "Q2?", "Q3?"]
+        )
+
+        generate_follow_up_suggestions(
+            question="Test?",
+            answer="Answer.",
+            use_hardcoded_tree=False,
+        )
+
+        call_kwargs = mock_chain.invoke.call_args[0][0]
+        assert call_kwargs["entity_context_section"] == ""

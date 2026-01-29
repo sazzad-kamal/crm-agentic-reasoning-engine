@@ -2,6 +2,7 @@
 
 import logging
 
+from backend.agent.fetch.sql.connection import get_connection
 from backend.agent.followup.suggester import generate_follow_up_suggestions
 from backend.agent.state import AgentState, format_conversation_for_prompt
 
@@ -17,6 +18,8 @@ def followup_node(state: AgentState) -> AgentState:
             question=state["question"],
             answer=state.get("answer", ""),
             conversation_history=format_conversation_for_prompt(state.get("messages", [])),
+            sql_results=state.get("sql_results"),
+            conn=get_connection(),
         )
 
         # Filter empty suggestions

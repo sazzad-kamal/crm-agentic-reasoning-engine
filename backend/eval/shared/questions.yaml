@@ -22,13 +22,13 @@ questions:
     difficulty: 2
     expected_sql: "SELECT stage, COUNT(*) AS deal_count FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY stage ORDER BY deal_count DESC"
     expected_answer: "Qualified has the most open deals (4): Acme renewal, Delta renewal, Fusion upsell, Crown expansion. Discovery has 3: Beta addon, Delta expand, Harbor new. Proposal has 2: Acme upgrade and Crown renewal. Negotiation has 1: Beta Tech new business. New has 1: Eastern Travel trial."
-    expected_action: true
+    expected_action: false
 
   - text: "Who owns the most pipeline value?"
     difficulty: 2
     expected_sql: "SELECT owner, SUM(amount) AS total_value FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY owner ORDER BY total_value DESC"
     expected_answer: "jsmith owns the most pipeline value at approximately $83K across 5 deals (Acme upgrade, Acme renewal, Crown renewal, Fusion upsell, Crown expansion). ljones follows with $40K (Beta Tech new, Beta addon), amartin with $37K (Delta renewal, Delta expansion), and mmalik with $34K (Harbor new, Eastern trial)."
-    expected_action: true
+    expected_action: false
 
   # =============================================================================
   # DEMO TREE — Branch 2: Renewals
@@ -49,7 +49,7 @@ questions:
     difficulty: 2
     expected_sql: "SELECT SUM(amount) FROM opportunities WHERE type = 'Renewal' AND stage NOT IN ('Closed Won', 'Closed Lost')"
     expected_answer: "Open renewal opportunities total approximately $64K: Acme ($24K), Delta Health ($22K), and Crown Foods ($18K). At-risk renewals account for $40K (Delta $22K + Crown $18K)."
-    expected_action: true
+    expected_action: false
 
   - text: "Tell me more about Crown Foods"
     difficulty: 2
@@ -82,7 +82,7 @@ questions:
     difficulty: 1
     expected_sql: "SELECT owner, COUNT(*) AS task_count FROM activities WHERE status = 'Open' GROUP BY owner ORDER BY task_count DESC"
     expected_answer: "jsmith has the most open tasks with 9, covering Acme Manufacturing, Crown Foods, and Fusion Retail. mmalik follows with 6 tasks across Eastern Travel and Harbor Logistics. ljones has 4 tasks for Beta Tech and Green Energy. amartin has the lightest load with 2 tasks for Delta Health."
-    expected_action: true
+    expected_action: false
 
   # =============================================================================
   # SQL DIFFICULTY 1: Single table, simple filters

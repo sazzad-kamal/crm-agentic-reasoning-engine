@@ -8,15 +8,11 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import NamedTuple
 
+from backend.eval.answer.text.models import SLO_TEXT_ANSWER_CORRECTNESS, SLO_TEXT_ANSWER_RELEVANCY
 from backend.eval.integration.models import (
-    SLO_FLOW_ANSWER_CORRECTNESS,
-    SLO_FLOW_AVG_LATENCY_MS,
-    SLO_FLOW_FAITHFULNESS,
-    SLO_FLOW_PATH_PASS_RATE,
-    SLO_FLOW_QUESTION_PASS_RATE,
-    SLO_FLOW_RELEVANCE,
-    FlowEvalResults,
-    FlowStepResult,
+    SLO_CONVO_STEP_PASS_RATE,
+    ConvoEvalResults,
+    ConvoStepResult,
 )
 
 logger = logging.getLogger(__name__)
@@ -33,29 +29,23 @@ class SloSpec(NamedTuple):
     key: str  # JSON key for save_results
     label: str  # Display label
     section: str  # Grouping header
-    get_value: Callable[[FlowEvalResults], float]
+    get_value: Callable[[ConvoEvalResults], float]
     target: float
     compare: str  # ">=" or "<="
     fmt: str  # "pct" or "ms"
 
 
 SLO_SPECS: list[SloSpec] = [
-    SloSpec("path_pass_rate", "Path Pass Rate", "Pass Rates",
-            lambda r: r.path_pass_rate, SLO_FLOW_PATH_PASS_RATE, ">=", "pct"),
-    SloSpec("question_pass_rate", "Question Pass Rate", "Pass Rates",
-            lambda r: r.question_pass_rate, SLO_FLOW_QUESTION_PASS_RATE, ">=", "pct"),
+    SloSpec("pass_rate", "Pass Rate", "Pass Rates",
+            lambda r: r.pass_rate, SLO_CONVO_STEP_PASS_RATE, ">=", "pct"),
     SloSpec("relevance", "Relevance", "Answer Quality",
-            lambda r: r.avg_relevance, SLO_FLOW_RELEVANCE, ">=", "pct"),
-    SloSpec("faithfulness", "Faithfulness", "Answer Quality",
-            lambda r: r.avg_faithfulness, SLO_FLOW_FAITHFULNESS, ">=", "pct"),
+            lambda r: r.avg_relevance, SLO_TEXT_ANSWER_RELEVANCY, ">=", "pct"),
     SloSpec("answer_correctness", "Answer Correctness", "Answer Quality",
-            lambda r: r.avg_answer_correctness, SLO_FLOW_ANSWER_CORRECTNESS, ">=", "pct"),
-    SloSpec("avg_latency_ms", "Avg Latency/Question", "Latency",
-            lambda r: r.avg_latency_per_question_ms, SLO_FLOW_AVG_LATENCY_MS, "<=", "ms"),
+            lambda r: r.avg_answer_correctness, SLO_TEXT_ANSWER_CORRECTNESS, ">=", "pct"),
 ]
 
 
-def _slo_passed(spec: SloSpec, results: FlowEvalResults) -> bool:
+def _slo_passed(spec: SloSpec, results: ConvoEvalResults) -> bool:
     """Check if an SLO spec passes for the given results."""
     value = spec.get_value(results)
     if spec.compare == ">=":
@@ -75,7 +65,7 @@ def _format_slo(spec: SloSpec, value: float) -> tuple[str, str]:
 # =============================================================================
 
 
-def print_summary(results: FlowEvalResults, latency_pcts: dict[str, float] | None = None) -> bool:
+def print_summary(results: ConvoEvalResults, latency_pcts: dict[str, float] | None = None) -> bool:
     """
     Print evaluation summary with SLO status.
 
@@ -83,7 +73,7 @@ def print_summary(results: FlowEvalResults, latency_pcts: dict[str, float] | Non
         True if all SLOs passed.
     """
     print()
-    print("Flow Evaluation Summary")
+    print("Conversation Evaluation Summary")
     print("=" * 50)
 
     all_passed = True
@@ -127,46 +117,41 @@ def print_summary(results: FlowEvalResults, latency_pcts: dict[str, float] | Non
     return all_passed
 
 
-def _count_slo_failures(step: FlowStepResult) -> int:
+def _count_slo_failures(step: ConvoStepResult) -> int:
     """Count how many SLO metrics failed for a step."""
     count = 0
-    if step.relevance_score < SLO_FLOW_RELEVANCE:
+    if step.relevance_score < SLO_TEXT_ANSWER_RELEVANCY:
         count += 1
-    if step.faithfulness_score < SLO_FLOW_FAITHFULNESS:
-        count += 1
-    if step.answer_correctness_score < SLO_FLOW_ANSWER_CORRECTNESS:
+    if step.answer_correctness_score < SLO_TEXT_ANSWER_CORRECTNESS:
         count += 1
     return count
 
 
-def _print_slo_failures(results: FlowEvalResults) -> None:
+def _print_slo_failures(results: ConvoEvalResults) -> None:
     """Print details of SLO failures."""
-    failures: list[tuple[int, FlowStepResult]] = []
-    for flow_result in results.all_results:
-        for step in flow_result.steps:
-            if _count_slo_failures(step) > 0:
-                failures.append((flow_result.path_id, step))
+    failures: list[ConvoStepResult] = [
+        c for c in results.cases if _count_slo_failures(c) > 0
+    ]
 
     if not failures:
         return
 
-    failures.sort(key=lambda x: _count_slo_failures(x[1]), reverse=True)
+    failures.sort(key=lambda x: _count_slo_failures(x), reverse=True)
     shown = failures[:5]
 
     print()
     print(f"SLO Failures ({len(shown)} of {len(failures)} shown, sorted by severity)")
-    print(f"  {'Path':<5} {'Question':<40} {'R':>3} {'F':>3} {'A':>3}")
-    print(f"  {'-'*5} {'-'*40} {'-'*3} {'-'*3} {'-'*3}")
+    print(f"  {'Question':<45} {'R':>3} {'A':>3}")
+    print(f"  {'-'*45} {'-'*3} {'-'*3}")
 
     def fmt(passed: bool) -> str:
         return "Y" if passed else "X"
 
-    for path_id, step in shown:
-        q = step.question[:38] + "..." if len(step.question) > 38 else step.question
-        r = fmt(step.relevance_score >= SLO_FLOW_RELEVANCE)
-        f = fmt(step.faithfulness_score >= SLO_FLOW_FAITHFULNESS)
-        a = fmt(step.answer_correctness_score >= SLO_FLOW_ANSWER_CORRECTNESS)
-        print(f"  {path_id+1:<5} {q:<40} {r:>3} {f:>3} {a:>3}")
+    for step in shown:
+        q = step.question[:43] + "..." if len(step.question) > 43 else step.question
+        r = fmt(step.relevance_score >= SLO_TEXT_ANSWER_RELEVANCY)
+        a = fmt(step.answer_correctness_score >= SLO_TEXT_ANSWER_CORRECTNESS)
+        print(f"  {q:<45} {r:>3} {a:>3}")
 
 
 # =============================================================================
@@ -174,9 +159,9 @@ def _print_slo_failures(results: FlowEvalResults) -> None:
 # =============================================================================
 
 
-def save_results(results: FlowEvalResults, output_path: Path) -> None:
+def save_results(results: ConvoEvalResults, output_path: Path) -> None:
     """Save results to JSON file."""
-    summary = results.model_dump(exclude={"failed_paths", "all_results"})
+    summary = results.model_dump(exclude={"cases"})
 
     slo_results = {}
     for spec in SLO_SPECS:
@@ -187,10 +172,12 @@ def save_results(results: FlowEvalResults, output_path: Path) -> None:
             "passed": _slo_passed(spec, results),
         }
 
+    failed_cases = [c.model_dump() for c in results.cases if not c.passed]
+
     data = {
         "summary": summary,
         "slo_results": slo_results,
-        "failed_paths": [fp.model_dump() for fp in results.failed_paths],
+        "failed_cases": failed_cases,
     }
 
     with open(output_path, "w") as f:

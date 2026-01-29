@@ -25,29 +25,33 @@ class TestTextCaseResult:
             answer="Test answer",
             answer_correctness_score=0.85,
             answer_relevancy_score=0.90,
+            faithfulness_score=0.95,
         )
         assert case.answer_correctness_score == 0.85
         assert case.answer_relevancy_score == 0.90
+        assert case.faithfulness_score == 0.95
 
     def test_text_case_result_passed_success(self):
-        """Test passed property when both scores are good."""
+        """Test passed property when relevancy and faithfulness meet thresholds."""
         case = TextCaseResult(
             question="Test question",
             answer="Test answer",
-            answer_correctness_score=0.55,  # >= 0.50 threshold
+            answer_correctness_score=0.55,
             answer_relevancy_score=0.90,  # >= 0.85 threshold
+            faithfulness_score=0.85,  # >= 0.85 threshold
         )
         assert case.passed is True
 
-    def test_text_case_result_passed_failure_low_correctness(self):
-        """Test passed property when answer_correctness is low."""
+    def test_text_case_result_passed_low_correctness_still_passes(self):
+        """Test passed property still passes with low correctness (informational only)."""
         case = TextCaseResult(
             question="Test question",
             answer="Test answer",
-            answer_correctness_score=0.45,  # Below 0.50 threshold
+            answer_correctness_score=0.10,  # Low but not a gate
             answer_relevancy_score=0.90,
+            faithfulness_score=0.95,
         )
-        assert case.passed is False
+        assert case.passed is True
 
     def test_text_case_result_passed_failure_low_relevancy(self):
         """Test passed property when answer_relevancy is low."""
@@ -56,6 +60,18 @@ class TestTextCaseResult:
             answer="Test answer",
             answer_correctness_score=0.55,
             answer_relevancy_score=0.80,  # Below 0.85 threshold
+            faithfulness_score=0.95,
+        )
+        assert case.passed is False
+
+    def test_text_case_result_passed_failure_low_faithfulness(self):
+        """Test passed property when faithfulness is low."""
+        case = TextCaseResult(
+            question="Test question",
+            answer="Test answer",
+            answer_correctness_score=0.55,
+            answer_relevancy_score=0.90,
+            faithfulness_score=0.80,  # Below 0.85 threshold
         )
         assert case.passed is False
 
@@ -66,6 +82,7 @@ class TestTextCaseResult:
             answer="Test answer",
             answer_correctness_score=0.55,
             answer_relevancy_score=0.90,
+            faithfulness_score=0.95,
             errors=["SQL error"],
         )
         assert case.passed is False
@@ -111,18 +128,21 @@ class TestTextEvalResults:
                 answer="A1",
                 answer_correctness_score=0.75,
                 answer_relevancy_score=0.90,
+                faithfulness_score=0.85,
             ),
             TextCaseResult(
                 question="Q2",
                 answer="A2",
                 answer_correctness_score=0.95,
                 answer_relevancy_score=0.92,
+                faithfulness_score=0.95,
             ),
         ]
         results.compute_aggregates()
 
         assert results.avg_answer_correctness == 0.85
         assert results.avg_answer_relevancy == 0.91
+        assert round(results.avg_faithfulness, 2) == 0.9
 
     def test_text_eval_results_ragas_success_rate_with_metrics(self):
         """Test ragas_success_rate when metrics are present."""

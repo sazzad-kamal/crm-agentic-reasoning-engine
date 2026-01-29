@@ -552,7 +552,7 @@ class TestYamlLoading:
 
     def test_get_expected_action_true_for_follow_up(self):
         from backend.eval.integration.tree import get_expected_action
-        result = get_expected_action("Which deals are expected to close next?")
+        result = get_expected_action("Which open deals have the earliest expected close dates?")
         assert result is True
 
     def test_get_expected_action_not_exists(self):
@@ -717,13 +717,13 @@ class TestRagasEvaluateSingle:
         assert result["answer_correctness"] == 0.0
 
     @pytest.mark.no_mock_llm
-    def test_evaluators_returns_two_metrics(self):
+    def test_evaluators_returns_three_metrics(self):
         from unittest.mock import MagicMock, patch
         from backend.eval.answer.text import ragas
         with patch.object(ragas, "get_langchain_chat_openai", return_value=MagicMock()):
             ragas._evaluators.cache_clear()
             metrics = ragas._evaluators()
-        assert len(metrics) == 2
+        assert len(metrics) == 3
         ragas._evaluators.cache_clear()
 
     @pytest.mark.no_mock_llm
@@ -731,7 +731,7 @@ class TestRagasEvaluateSingle:
         from unittest.mock import MagicMock
         import pandas as pd
         from backend.eval.answer.text import ragas
-        df = pd.DataFrame({"answer_correctness": [None], "answer_relevancy": [None]})
+        df = pd.DataFrame({"answer_correctness": [None], "answer_relevancy": [None], "faithfulness": [None]})
         mock_eval_result = MagicMock()
         mock_eval_result.to_pandas.return_value = df
         result = ragas._extract_scores(mock_eval_result)

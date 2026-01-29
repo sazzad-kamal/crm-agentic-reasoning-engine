@@ -49,7 +49,7 @@ SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost')
 Q: "Which accounts are up for renewal?"
 SELECT * FROM companies WHERE renewal_date >= CURRENT_DATE AND status = 'Active' ORDER BY renewal_date
 
-Q: "Which deals are expected to close next?"
+Q: "Which open deals have the earliest expected close dates?"
 SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') ORDER BY expected_close_date ASC
 
 Q: "How are deals distributed across stages?"

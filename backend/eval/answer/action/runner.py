@@ -66,7 +66,7 @@ def run_action_eval(limit: int | None = None) -> ActionEvalResults:
         elif not q.expected_action and not suggested_action:
             # Correct silence: not expected and not produced
             kwargs["action_passed"] = True
-        # else: action_missing or spurious_action — action_passed defaults to False
+        # else: action_missing or spurious_action - action_passed defaults to False
 
         case = ActionCaseResult(
             question=q.text, expected_action=q.expected_action, **kwargs
@@ -105,39 +105,26 @@ def print_summary(results: ActionEvalResults) -> None:
     if results.error_count > 0:
         print(f"  Errors:                      {results.error_count} failed")
 
-    # Error cases
-    error_cases = [c for c in results.cases if c.errors]
-    if error_cases:
-        print(f"\nError Cases ({len(error_cases)})\n")
-        for i, c in enumerate(error_cases, 1):
-            print(f"{i}. {c.question[:60]}")
+    # All cases
+    print(f"\nAll Cases ({len(results.cases)})\n")
+    for i, c in enumerate(results.cases, 1):
+        status = "PASS" if c.action_passed and not c.errors else "FAIL"
+        print(f"{i}. [{status}] {c.question}")
+        if c.errors:
             print(f"   Error: {'; '.join(c.errors)}")
-            print()
-
-    # Failed cases (non-error)
-    failed = [c for c in results.cases if not c.action_passed and not c.errors]
-    if failed:
-        print(f"\nFailed Cases ({len(failed)})\n")
-        for i, c in enumerate(failed, 1):
-            print(f"{i}. {c.question}")
-            if c.expected_action and not c.suggested_action:
-                print("   Reason: Action expected but not produced")
-            elif not c.expected_action and c.suggested_action:
-                print("   Reason: Spurious action produced")
-                print(f"   Suggested: {c.suggested_action}")
-            elif c.suggested_action:
-                print(
-                    f"   Action: rel={c.relevance:.2f} "
-                    f"act={c.actionability:.2f} "
-                    f"app={c.appropriateness:.2f}"
-                )
-                print(f"   Suggested: {c.suggested_action}")
-                if c.explanation:
-                    print(f"   Judge: {c.explanation}")
-            if c.answer:
-                ans = c.answer[:100] + "..." if len(c.answer) > 100 else c.answer
-                print(f"   Answer: {ans}")
-            print()
+        if c.answer:
+            print(f"   Answer: {c.answer}")
+        if c.suggested_action:
+            print(f"   Action: {c.suggested_action}")
+            if c.relevance or c.actionability or c.appropriateness:
+                print(f"   Scores: rel={c.relevance:.2f} act={c.actionability:.2f} app={c.appropriateness:.2f}")
+            if c.explanation:
+                print(f"   Judge: {c.explanation}")
+        elif c.expected_action:
+            print("   Action: (none produced - expected)")
+        else:
+            print("   Action: (none - not expected)")
+        print()
 
 
 def main(

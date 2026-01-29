@@ -56,6 +56,7 @@ def run_text_eval(limit: int | None = None) -> TextEvalResults:
                     answer=answer,
                     answer_correctness_score=cast(float, ragas["answer_correctness"]),
                     answer_relevancy_score=cast(float, ragas["answer_relevancy"]),
+                    faithfulness_score=cast(float, ragas["faithfulness"]),
                     ragas_metrics_total=RAGAS_METRICS_COUNT,
                     ragas_metrics_failed=len(nan_metrics),
                 )
@@ -83,28 +84,25 @@ def print_summary(results: TextEvalResults) -> None:
     print("\nText Quality Evaluation (RAGAS)")
     print(f"Pass Rate: {results.pass_rate * 100:.1f}% (>={SLO_TEXT_PASS_RATE * 100:.1f}% SLO) {status}")
     print(f"Total: {results.total}, Passed: {results.passed}, Failed: {results.failed}")
-    print(f"Avg Correctness: {results.avg_answer_correctness:.2f}, Relevancy: {results.avg_answer_relevancy:.2f}")
+    print(f"Avg Correctness: {results.avg_answer_correctness:.2f}, Relevancy: {results.avg_answer_relevancy:.2f}, Faithfulness: {results.avg_faithfulness:.2f}")
     ragas_success = results.ragas_metrics_total - results.ragas_metrics_failed
     print(
         f"RAGAS Reliability: {ragas_success}/{results.ragas_metrics_total} "
         f"({results.ragas_success_rate * 100:.1f}%)"
     )
 
-    # Failed cases
-    failed = [c for c in results.cases if not c.passed]
-    if failed:
-        print(f"\nFailed Cases ({len(failed)})\n")
-
-        for i, c in enumerate(failed, 1):
-            print(f"{i}. {c.question[:60]}")
-            if c.errors:
-                print(f"   Error: {'; '.join(c.errors)}")
-            else:
-                print(f"   Correctness: {c.answer_correctness_score:.2f}, Relevancy: {c.answer_relevancy_score:.2f}")
-                if c.answer:
-                    ans = c.answer[:100] + "..." if len(c.answer) > 100 else c.answer
-                    print(f"   Answer: {ans}")
-            print()
+    # All cases
+    print(f"\nAll Cases ({len(results.cases)})\n")
+    for i, c in enumerate(results.cases, 1):
+        status = "PASS" if c.passed else "FAIL"
+        print(f"{i}. [{status}] {c.question}")
+        if c.errors:
+            print(f"   Error: {'; '.join(c.errors)}")
+        else:
+            print(f"   Correctness: {c.answer_correctness_score:.2f}, Relevancy: {c.answer_relevancy_score:.2f}, Faithfulness: {c.faithfulness_score:.2f}")
+        if c.answer:
+            print(f"   Answer: {c.answer}")
+        print()
 
 
 def main(

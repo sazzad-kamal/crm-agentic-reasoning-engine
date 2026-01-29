@@ -66,7 +66,7 @@ class TestGetFollowUps:
         """Returns follow-ups for a known question."""
         follow_ups = get_follow_ups("What deals are in the pipeline?")
         assert len(follow_ups) == 3
-        assert "Which deals are expected to close next?" in follow_ups
+        assert "Which open deals have the earliest expected close dates?" in follow_ups
 
     def test_returns_empty_for_unknown_question(self):
         """Returns empty list for unknown question."""

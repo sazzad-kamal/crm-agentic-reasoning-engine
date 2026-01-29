@@ -12,10 +12,10 @@ questions:
     expected_answer: "Current pipeline has 11 open deals totaling approximately $194K. Key deals include Beta Tech new business ($32K, Negotiation), Harbor Logistics ($26K, Discovery), Acme renewal ($24K, Qualified), and Delta Health renewal ($22K, Qualified)."
     expected_action: true
 
-  - text: "Which deals are expected to close next?"
+  - text: "Which open deals have the earliest expected close dates?"
     difficulty: 1
     expected_sql: "SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') ORDER BY expected_close_date ASC"
-    expected_answer: "Delta Health renewal ($22K) is overdue with expected close of Sep 2025. Next closest are Acme upgrade ($15K, Proposal, Feb 8), Crown Foods renewal ($18K, Proposal, Feb 13), and Beta Tech new business ($32K, Negotiation, Mar 1) which is the highest-value open deal."
+    expected_answer: "The deals with the earliest expected close dates are Delta Health renewal ($22K, Qualified, Sep 2025), Acme upgrade ($15K, Proposal, Feb 8), Crown Foods renewal ($18K, Proposal, Feb 13), and Beta Tech new business ($32K, Negotiation, Mar 1)."
     expected_action: true
 
   - text: "How are deals distributed across stages?"

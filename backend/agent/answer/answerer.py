@@ -2,7 +2,7 @@
 
 import json
 import logging
-from functools import cache
+from datetime import datetime
 from typing import Any
 
 from backend.core.llm import LONG_RESPONSE_MAX_TOKENS, create_openai_chain
@@ -10,6 +10,7 @@ from backend.core.llm import LONG_RESPONSE_MAX_TOKENS, create_openai_chain
 logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = """You are a CRM assistant. Answer questions using ONLY the provided context.
+Today: {today}
 
 RULES:
 - Use exact numbers/dates from context
@@ -42,11 +43,11 @@ _HUMAN_PROMPT = """User's question: {question}
 {sql_results_section}"""
 
 
-@cache
 def _get_answer_chain() -> Any:
-    """Get cached answer chain."""
+    """Get answer chain with current date in system prompt."""
+    today = datetime.now().strftime("%Y-%m-%d")
     chain = create_openai_chain(
-        system_prompt=_SYSTEM_PROMPT,
+        system_prompt=_SYSTEM_PROMPT.format(today=today),
         human_prompt=_HUMAN_PROMPT,
         max_tokens=LONG_RESPONSE_MAX_TOKENS,
     )

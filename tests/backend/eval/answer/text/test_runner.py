@@ -31,6 +31,7 @@ class TestRunTextEval:
         mock_evaluate.return_value = {
             "answer_correctness": 0.55,
             "answer_relevancy": 0.90,
+            "faithfulness": 0.85,
         }
 
         results = run_text_eval()
@@ -40,6 +41,7 @@ class TestRunTextEval:
         assert len(results.cases) == 1
         assert results.cases[0].answer_correctness_score == 0.55
         assert results.cases[0].answer_relevancy_score == 0.90
+        assert results.cases[0].faithfulness_score == 0.85
 
     @patch("backend.eval.answer.text.runner.get_connection")
     @patch("backend.eval.answer.text.runner.load_questions")
@@ -128,6 +130,7 @@ class TestRunTextEval:
         mock_evaluate.return_value = {
             "answer_correctness": 0.55,
             "answer_relevancy": 0.90,
+            "faithfulness": 0.85,
         }
 
         results = run_text_eval(limit=2)
@@ -156,8 +159,8 @@ class TestRunTextEval:
             ("Answer 2", [{}], None),
         ]
         mock_evaluate.side_effect = [
-            {"answer_correctness": 0.52, "answer_relevancy": 0.90},
-            {"answer_correctness": 0.58, "answer_relevancy": 0.92},
+            {"answer_correctness": 0.52, "answer_relevancy": 0.90, "faithfulness": 0.85},
+            {"answer_correctness": 0.58, "answer_relevancy": 0.92, "faithfulness": 0.95},
         ]
 
         results = run_text_eval()
@@ -188,8 +191,9 @@ class TestPrintSummary:
             TextCaseResult(
                 question="Failed question",
                 answer="Bad answer",
-                answer_correctness_score=0.45,  # Below 0.50 threshold
+                answer_correctness_score=0.30,
                 answer_relevancy_score=0.90,
+                faithfulness_score=0.70,  # Below 0.85 threshold
             )
         ]
 
@@ -197,7 +201,7 @@ class TestPrintSummary:
 
         captured = capsys.readouterr()
         assert "FAIL" in captured.out
-        assert "Failed Cases" in captured.out
+        assert "All Cases" in captured.out
 
     def test_print_summary_with_error_case(self, capsys):
         """Test print_summary with a failed case that has errors."""

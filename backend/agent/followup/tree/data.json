@@ -1,6 +1,6 @@
 {
   "What deals are in the pipeline?": [
-    "Which deals are expected to close next?",
+    "Which open deals have the earliest expected close dates?",
     "How are deals distributed across stages?",
     "Who owns the most pipeline value?"
   ],

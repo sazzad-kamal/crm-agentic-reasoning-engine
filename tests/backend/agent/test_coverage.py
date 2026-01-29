@@ -781,9 +781,9 @@ class TestActionRunner:
         with patch("builtins.print") as mock_print:
             runner.print_summary(results)
 
-        # Should print all 15 failures (no truncation)
+        # Should print all 15 cases (no truncation)
         call_str = " ".join(str(c) for c in mock_print.call_args_list)
-        assert "15. Question 14?" in call_str
+        assert "15. [FAIL] Question 14?" in call_str
 
     def test_main_function(self, monkeypatch):
         """Test main function calls run and print."""

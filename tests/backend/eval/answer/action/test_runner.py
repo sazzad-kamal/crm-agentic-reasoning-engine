@@ -358,12 +358,12 @@ class TestPrintSummary:
 
         captured = capsys.readouterr()
         assert "FAIL" in captured.out
-        assert "Failed Cases" in captured.out
+        assert "All Cases" in captured.out
         assert "Answer: Answer" in captured.out
         assert "Judge: Action is too generic" in captured.out
 
-    def test_print_summary_answer_truncated(self, capsys):
-        """Test print_summary truncates long answers."""
+    def test_print_summary_shows_full_answer(self, capsys):
+        """Test print_summary shows full answers."""
         results = ActionEvalResults(total=1, passed=0)
         results.cases = [
             ActionCaseResult(
@@ -381,7 +381,7 @@ class TestPrintSummary:
         print_summary(results)
 
         captured = capsys.readouterr()
-        assert "Answer: " + "A" * 100 + "..." in captured.out
+        assert "Answer: " + "A" * 150 in captured.out
 
     def test_print_summary_no_answer_line_when_empty(self, capsys):
         """Test print_summary omits answer line when answer is empty."""
@@ -435,7 +435,7 @@ class TestPrintSummary:
         print_summary(results)
 
         captured = capsys.readouterr()
-        assert "Error Cases (1)" in captured.out
+        assert "All Cases (1)" in captured.out
         assert "Error: SQL timeout; Connection failed" in captured.out
 
     def test_print_summary_error_count_in_breakdown(self, capsys):
@@ -511,10 +511,10 @@ class TestPrintSummary:
         print_summary(results)
 
         captured = capsys.readouterr()
-        assert "Reason: Action expected but not produced" in captured.out
+        assert "Action: (none produced - expected)" in captured.out
 
     def test_print_summary_spurious_action(self, capsys):
-        """Test print_summary shows reason for spurious action."""
+        """Test print_summary shows spurious action."""
         results = ActionEvalResults(
             total=1,
             passed=0,
@@ -533,8 +533,7 @@ class TestPrintSummary:
         print_summary(results)
 
         captured = capsys.readouterr()
-        assert "Reason: Spurious action produced" in captured.out
-        assert "Suggested: Schedule a call" in captured.out
+        assert "Action: Schedule a call with the account manager" in captured.out
         assert "Answer: Answer" in captured.out
 
     def test_print_summary_action_metrics_shown(self, capsys):

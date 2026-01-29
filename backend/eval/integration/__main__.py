@@ -22,7 +22,7 @@ import typer
 
 from backend.eval.integration.langsmith import get_latency_percentages
 from backend.eval.integration.output import print_summary, save_results
-from backend.eval.integration.runner import run_flow_eval
+from backend.eval.integration.runner import run_convo_eval
 from backend.eval.integration.tree import get_tree_stats
 
 app = typer.Typer()
@@ -30,11 +30,10 @@ app = typer.Typer()
 
 def _run_eval(
     limit: int | None,
-    no_judge: bool,
     output: str | None,
     debug: bool,
 ) -> None:
-    """Run the flow evaluation."""
+    """Run the conversation evaluation."""
     eval_start_time = time.time()
 
     # Show tree stats
@@ -44,13 +43,8 @@ def _run_eval(
         print(f"  {key}: {value}")
 
     # Run evaluation (sequential)
-    use_judge = not no_judge
     try:
-        results = run_flow_eval(
-            max_paths=limit,
-            use_judge=use_judge,
-            concurrency=1,
-        )
+        results = run_convo_eval(max_paths=limit)
     except Exception as e:
         print(f"\nERROR: Evaluation failed: {e}")
         import traceback
@@ -65,18 +59,18 @@ def _run_eval(
     # Print summary with optional LangSmith info
     print_summary(results, latency_pcts=latency_pcts)
 
-    # Debug output for failing paths
-    if debug and results.failed_paths:
-        print("\nDEBUG: Failed paths")
-        for fp in results.failed_paths[:10]:
-            print(f"\n--- Path {fp.path_id} ---")
-            for j, s in enumerate(fp.steps):
-                status = "PASS" if s.passed else "FAIL"
-                print(f"Q{j + 1}: {s.question}")
-                print(f"    [{status}] R={s.relevance_score} F={s.faithfulness_score}")
-                print(f"    Answer: {s.answer[:200]}...")
-                if s.judge_explanation:
-                    print(f"    Judge: {s.judge_explanation}")
+    # Debug output for failing cases
+    if debug:
+        failed = [c for c in results.cases if not c.passed]
+        if failed:
+            print("\nDEBUG: Failed questions")
+            for c in failed[:10]:
+                status = "PASS" if c.passed else "FAIL"
+                print(f"Q: {c.question}")
+                print(f"    [{status}] R={c.relevance_score} A={c.answer_correctness_score}")
+                print(f"    Answer: {c.answer[:200]}...")
+                if c.errors:
+                    print(f"    Errors: {'; '.join(c.errors)}")
 
     # Save if requested
     if output:
@@ -86,15 +80,13 @@ def _run_eval(
 @app.command()
 def main(
     limit: int | None = typer.Option(None, "--limit", "-l", help="Limit number of paths to test"),
-    no_judge: bool = typer.Option(False, "--no-judge", help="Skip LLM-as-judge evaluation"),
     output: str | None = typer.Option(None, "--output", "-o", help="Path to save JSON results"),
-    debug: bool = typer.Option(False, "--debug", "-d", help="Dump full details for failing paths"),
+    debug: bool = typer.Option(False, "--debug", "-d", help="Dump full details for failing cases"),
 ) -> None:
     """Run conversation flow evaluation."""
     logging.basicConfig(level=logging.WARNING)
     _run_eval(
         limit=limit,
-        no_judge=no_judge,
         output=output,
         debug=debug,
     )

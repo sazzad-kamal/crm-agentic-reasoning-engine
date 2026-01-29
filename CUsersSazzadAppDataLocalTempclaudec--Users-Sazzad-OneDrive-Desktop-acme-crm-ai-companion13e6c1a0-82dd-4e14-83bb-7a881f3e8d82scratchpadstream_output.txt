@@ -1,0 +1,849 @@
+event: data_ready
+data: {"sql_results": {"data": [{"opportunity_id": "OPP-ACME-UPGRADE", "company_id": "ACME-MFG", "contact_id": "C-ACME-ANNA", "name": "Acme Manufacturing - Pro to Enterprise upgrade", "stage": "Proposal", "type": "Expansion", "amount": 15000, "currency": "USD", "probability": 60, "source": "Existing Customer", "owner": "jsmith", "expected_close_date": "2026-02-08", "created_at": "2025-10-01", "updated_at": "2025-11-10", "closed_date": null, "notes": "Acme Manufacturing opportunity context:\n- Stage: Proposal\n- Value: 15000 USD\n- Expected close: 2025-12-15\n\nSummary: Customer is exploring changes focused on automating follow-ups and reminders. Primary risk noted is duplicate contacts causing confusion. Recommended next step: build a renewal dashboard and set weekly review cadence."}, {"opportunity_id": "OPP-ACME-RENEWAL", "company_id": "ACME-MFG", "contact_id": "C-ACME-JOE", "name": "Acme Manufacturing - Annual renewal", "stage": "Qualified", "type": "Renewal", "amount": 24000, "currency": "USD", "probability": 40, "source": "Existing Customer", "owner": "jsmith", "expected_close_date": "2026-04-29", "created_at": "2025-09-15", "updated_at": "2025-11-01", "closed_date": null, "notes": "Acme Manufacturing opportunity context:\n- Stage: Qualified\n- Value: 24000 USD\n- Expected close: 2026-03-15\n\nSummary: Customer is exploring changes focused on consolidating history/notes into a single customer timeline. Primary risk noted is inconsistent activity logging across the team. Recommended next step: schedule a 30-minute admin setup call."}, {"opportunity_id": "OPP-BETA-NEW", "company_id": "BETA-TECH", "contact_id": "C-BETA-LISA", "name": "Beta Tech - New rollout", "stage": "Negotiation", "type": "New Business", "amount": 32000, "currency": "USD", "probability": 80, "source": "Referral", "owner": "ljones", "expected_close_date": "2026-03-01", "created_at": "2025-08-20", "updated_at": "2025-11-02", "closed_date": null, "notes": "Beta Tech Solutions opportunity context:\n- Stage: Negotiation\n- Value: 32000 USD\n- Expected close: 2025-12-31\n\nSummary: Customer is exploring changes focused on segmenting contacts for targeted campaigns. Primary risk noted is inconsistent activity logging across the team. Recommended next step: import an updated contact list and resolve duplicates."}, {"opportunity_id": "OPP-BETA-ADDON", "company_id": "BETA-TECH", "contact_id": "C-BETA-SAM", "name": "Beta Tech - Analytics add-on", "stage": "Discovery", "type": "Expansion", "amount": 8000, "currency": "USD", "probability": 20, "source": "Existing Customer", "owner": "ljones", "expected_close_date": "2026-03-29", "created_at": "2025-11-01", "updated_at": "2025-11-15", "closed_date": null, "notes": "Beta Tech Solutions opportunity context:\n- Stage: Discovery\n- Value: 8000 USD\n- Expected close: 2026-02-15\n\nSummary: Technical team expressed interest in analytics add-on module. Sam Clarke is evaluating requirements. Depends on successful completion of main rollout (OPP-BETA-NEW). Low-touch opportunity that can be bundled with initial contract."}, {"opportunity_id": "OPP-CROWN-RENEW", "company_id": "CROWN-FOODS", "contact_id": "C-CROWN-MARIA", "name": "Crown Foods - Subscription renewal", "stage": "Proposal", "type": "Renewal", "amount": 18000, "currency": "USD", "probability": 60, "source": "Existing Customer", "owner": "jsmith", "expected_close_date": "2026-02-13", "created_at": "2025-09-10", "updated_at": "2025-10-30", "closed_date": null, "notes": "Crown Foods opportunity context:\n- Stage: Proposal\n- Value: 18000 USD\n- Expected close: 2025-12-20\n\nSummary: Customer is exploring changes focused on segmenting contacts for targeted campaigns. Primary risk noted is inconsistent activity logging across the team. Recommended next step: create a saved group for renewals and start outreach."}, {"opportunity_id": "OPP-DELTA-RENEW", "company_id": "DELTA-HEALTH", "contact_id": "C-DELTA-ERIN", "name": "Delta Health - Renewal", "stage": "Qualified", "type": "Renewal", "amount": 22000, "currency": "USD", "probability": 40, "source": "Existing Customer", "owner": "amartin", "expected_close_date": "2025-09-01", "created_at": "2025-06-01", "updated_at": "2025-08-15", "closed_date": null, "notes": "Delta Health Clinics opportunity context:\n- Stage: Qualified\n- Value: 22000 USD\n- Expected close: 2025-09-01\n\nSummary: Customer is exploring changes focused on streamlining contact management and deduplication. Primary risk noted is inconsistent activity logging across the team. Recommended next step: schedule a 30-minute admin setup call."}, {"opportunity_id": "OPP-DELTA-EXPAND", "company_id": "DELTA-HEALTH", "contact_id": "C-DELTA-ERIN", "name": "Delta Health - Additional clinics", "stage": "Discovery", "type": "Expansion", "amount": 15000, "currency": "USD", "probability": 20, "source": "Existing Customer", "owner": "amartin", "expected_close_date": "2026-04-15", "created_at": "2025-10-01", "updated_at": "2025-11-10", "closed_date": null, "notes": "Delta Health Clinics opportunity context:\n- Stage: Discovery\n- Value: 15000 USD\n- Expected close: 2026-03-01\n\nSummary: Following successful renewal, Erin Cho mentioned plans to expand to 3 additional clinic locations in Q1 2026. Need to present multi-location pricing and training package. Key risk: budget approval from corporate."}, {"opportunity_id": "OPP-EAST-TRIAL", "company_id": "EASTERN-TRAVEL", "contact_id": "C-EAST-SANJAY", "name": "Eastern Travel - Trial to paid", "stage": "New", "type": "New Business", "amount": 8000, "currency": "USD", "probability": 10, "source": "Inbound", "owner": "mmalik", "expected_close_date": "2026-04-11", "created_at": "2025-01-10", "updated_at": "2025-10-05", "closed_date": null, "notes": "Eastern Travel Co. opportunity context:\n- Stage: New\n- Value: 8000 USD\n- Expected close: 2025-02-28\n\nSummary: Customer is exploring changes focused on cleaning up pipeline stages and forecasting accuracy. Primary risk noted is low engagement from key contacts. Recommended next step: schedule a 30-minute admin setup call."}, {"opportunity_id": "OPP-FUSION-UPSELL", "company_id": "FUSION-RETAIL", "contact_id": "C-FUSION-EMMA", "name": "Fusion Retail - Seats expansion", "stage": "Qualified", "type": "Expansion", "amount": 12000, "currency": "USD", "probability": 40, "source": "Existing Customer", "owner": "jsmith", "expected_close_date": "2026-06-24", "created_at": "2025-07-01", "updated_at": "2025-10-25", "closed_date": null, "notes": "Fusion Retail Group opportunity context:\n- Stage: Qualified\n- Value: 12000 USD\n- Expected close: 2026-05-10\n\nSummary: Customer is exploring changes focused on streamlining contact management and deduplication. Primary risk noted is inconsistent activity logging across the team. Recommended next step: create a saved group for renewals and start outreach."}, {"opportunity_id": "OPP-HARBOR-NEW", "company_id": "HARBOR-LOGISTICS", "contact_id": "C-HARBOR-JACOB", "name": "Harbor Logistics - Initial rollout", "stage": "Discovery", "type": "New Business", "amount": 26000, "currency": "USD", "probability": 20, "source": "Outbound", "owner": "mmalik", "expected_close_date": "2026-03-14", "created_at": "2025-05-15", "updated_at": "2025-11-10", "closed_date": null, "notes": "Harbor Logistics opportunity context:\n- Stage: Discovery\n- Value: 26000 USD\n- Expected close: 2025-08-30\n\nSummary: Customer is exploring changes focused on cleaning up pipeline stages and forecasting accuracy. Primary risk noted is inconsistent activity logging across the team. Recommended next step: create a saved group for renewals and start outreach."}, {"opportunity_id": "OPP-CROWN-EXPAND", "company_id": "CROWN-FOODS", "contact_id": "C-CROWN-MARIA", "name": "Crown Foods - Warehouse expansion", "stage": "Qualified", "type": "Expansion", "amount": 14000, "currency": "USD", "probability": 50, "source": "Existing Customer", "owner": "jsmith", "expected_close_date": "2026-03-29", "created_at": "2025-11-01", "updated_at": "2025-11-20", "closed_date": null, "notes": "Crown Foods opportunity context:\n- Stage: Qualified\n- Value: 14000 USD\n- Expected close: 2026-03-15\n\nSummary: Maria Silva wants to expand CRM usage to 2 additional warehouse locations. Mobile app improvements addressed their concerns. Pending final budget approval from head office. Strong champion support."}]}}
+
+event: answer_chunk
+data: {"chunk": "There"}
+
+event: answer_chunk
+data: {"chunk": " are"}
+
+event: answer_chunk
+data: {"chunk": " **"}
+
+event: answer_chunk
+data: {"chunk": "11"}
+
+event: answer_chunk
+data: {"chunk": " deals"}
+
+event: answer_chunk
+data: {"chunk": " in"}
+
+event: answer_chunk
+data: {"chunk": " the"}
+
+event: answer_chunk
+data: {"chunk": " pipeline"}
+
+event: answer_chunk
+data: {"chunk": " totaling"}
+
+event: answer_chunk
+data: {"chunk": " $"}
+
+event: answer_chunk
+data: {"chunk": "194"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": "000"}
+
+event: answer_chunk
+data: {"chunk": "**"}
+
+event: answer_chunk
+data: {"chunk": ".\n\n"}
+
+event: answer_chunk
+data: {"chunk": "-"}
+
+event: answer_chunk
+data: {"chunk": " **"}
+
+event: answer_chunk
+data: {"chunk": "Ac"}
+
+event: answer_chunk
+data: {"chunk": "me"}
+
+event: answer_chunk
+data: {"chunk": " Manufacturing"}
+
+event: answer_chunk
+data: {"chunk": "**"}
+
+event: answer_chunk
+data: {"chunk": ":"}
+
+event: answer_chunk
+data: {"chunk": " Pro"}
+
+event: answer_chunk
+data: {"chunk": " to"}
+
+event: answer_chunk
+data: {"chunk": " Enterprise"}
+
+event: answer_chunk
+data: {"chunk": " upgrade"}
+
+event: answer_chunk
+data: {"chunk": " \u2014"}
+
+event: answer_chunk
+data: {"chunk": " $"}
+
+event: answer_chunk
+data: {"chunk": "15"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": "000"}
+
+event: answer_chunk
+data: {"chunk": " ("}
+
+event: answer_chunk
+data: {"chunk": "Proposal"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " closes"}
+
+event: answer_chunk
+data: {"chunk": " February"}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "08"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "202"}
+
+event: answer_chunk
+data: {"chunk": "6"}
+
+event: answer_chunk
+data: {"chunk": ");"}
+
+event: answer_chunk
+data: {"chunk": " Annual"}
+
+event: answer_chunk
+data: {"chunk": " renewal"}
+
+event: answer_chunk
+data: {"chunk": " \u2014"}
+
+event: answer_chunk
+data: {"chunk": " $"}
+
+event: answer_chunk
+data: {"chunk": "24"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": "000"}
+
+event: answer_chunk
+data: {"chunk": " ("}
+
+event: answer_chunk
+data: {"chunk": "Qualified"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " closes"}
+
+event: answer_chunk
+data: {"chunk": " April"}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "29"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "202"}
+
+event: answer_chunk
+data: {"chunk": "6"}
+
+event: answer_chunk
+data: {"chunk": ")"}
+
+event: answer_chunk
+data: {"chunk": "  \n"}
+
+event: answer_chunk
+data: {"chunk": "-"}
+
+event: answer_chunk
+data: {"chunk": " **"}
+
+event: answer_chunk
+data: {"chunk": "Beta"}
+
+event: answer_chunk
+data: {"chunk": " Tech"}
+
+event: answer_chunk
+data: {"chunk": "**"}
+
+event: answer_chunk
+data: {"chunk": ":"}
+
+event: answer_chunk
+data: {"chunk": " New"}
+
+event: answer_chunk
+data: {"chunk": " rollout"}
+
+event: answer_chunk
+data: {"chunk": " \u2014"}
+
+event: answer_chunk
+data: {"chunk": " $"}
+
+event: answer_chunk
+data: {"chunk": "32"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": "000"}
+
+event: answer_chunk
+data: {"chunk": " ("}
+
+event: answer_chunk
+data: {"chunk": "Negoti"}
+
+event: answer_chunk
+data: {"chunk": "ation"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " closes"}
+
+event: answer_chunk
+data: {"chunk": " March"}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "01"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "202"}
+
+event: answer_chunk
+data: {"chunk": "6"}
+
+event: answer_chunk
+data: {"chunk": ");"}
+
+event: answer_chunk
+data: {"chunk": " Analytics"}
+
+event: answer_chunk
+data: {"chunk": " add"}
+
+event: answer_chunk
+data: {"chunk": "-on"}
+
+event: answer_chunk
+data: {"chunk": " \u2014"}
+
+event: answer_chunk
+data: {"chunk": " $"}
+
+event: answer_chunk
+data: {"chunk": "8"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": "000"}
+
+event: answer_chunk
+data: {"chunk": " ("}
+
+event: answer_chunk
+data: {"chunk": "Discovery"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " closes"}
+
+event: answer_chunk
+data: {"chunk": " March"}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "29"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "202"}
+
+event: answer_chunk
+data: {"chunk": "6"}
+
+event: answer_chunk
+data: {"chunk": ")"}
+
+event: answer_chunk
+data: {"chunk": "  \n"}
+
+event: answer_chunk
+data: {"chunk": "-"}
+
+event: answer_chunk
+data: {"chunk": " **"}
+
+event: answer_chunk
+data: {"chunk": "C"}
+
+event: answer_chunk
+data: {"chunk": "rown"}
+
+event: answer_chunk
+data: {"chunk": " Foods"}
+
+event: answer_chunk
+data: {"chunk": "**"}
+
+event: answer_chunk
+data: {"chunk": ":"}
+
+event: answer_chunk
+data: {"chunk": " Subscription"}
+
+event: answer_chunk
+data: {"chunk": " renewal"}
+
+event: answer_chunk
+data: {"chunk": " \u2014"}
+
+event: answer_chunk
+data: {"chunk": " $"}
+
+event: answer_chunk
+data: {"chunk": "18"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": "000"}
+
+event: answer_chunk
+data: {"chunk": " ("}
+
+event: answer_chunk
+data: {"chunk": "Proposal"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " closes"}
+
+event: answer_chunk
+data: {"chunk": " February"}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "13"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "202"}
+
+event: answer_chunk
+data: {"chunk": "6"}
+
+event: answer_chunk
+data: {"chunk": ");"}
+
+event: answer_chunk
+data: {"chunk": " Warehouse"}
+
+event: answer_chunk
+data: {"chunk": " expansion"}
+
+event: answer_chunk
+data: {"chunk": " \u2014"}
+
+event: answer_chunk
+data: {"chunk": " $"}
+
+event: answer_chunk
+data: {"chunk": "14"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": "000"}
+
+event: answer_chunk
+data: {"chunk": " ("}
+
+event: answer_chunk
+data: {"chunk": "Qualified"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " closes"}
+
+event: answer_chunk
+data: {"chunk": " March"}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "29"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "202"}
+
+event: answer_chunk
+data: {"chunk": "6"}
+
+event: answer_chunk
+data: {"chunk": ")"}
+
+event: answer_chunk
+data: {"chunk": "  \n"}
+
+event: answer_chunk
+data: {"chunk": "-"}
+
+event: answer_chunk
+data: {"chunk": " **"}
+
+event: answer_chunk
+data: {"chunk": "Delta"}
+
+event: answer_chunk
+data: {"chunk": " Health"}
+
+event: answer_chunk
+data: {"chunk": "**"}
+
+event: answer_chunk
+data: {"chunk": ":"}
+
+event: answer_chunk
+data: {"chunk": " Renewal"}
+
+event: answer_chunk
+data: {"chunk": " \u2014"}
+
+event: answer_chunk
+data: {"chunk": " $"}
+
+event: answer_chunk
+data: {"chunk": "22"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": "000"}
+
+event: answer_chunk
+data: {"chunk": " ("}
+
+event: answer_chunk
+data: {"chunk": "Qualified"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " closes"}
+
+event: answer_chunk
+data: {"chunk": " September"}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "01"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "202"}
+
+event: answer_chunk
+data: {"chunk": "5"}
+
+event: answer_chunk
+data: {"chunk": ");"}
+
+event: answer_chunk
+data: {"chunk": " Additional"}
+
+event: answer_chunk
+data: {"chunk": " clinics"}
+
+event: answer_chunk
+data: {"chunk": " \u2014"}
+
+event: answer_chunk
+data: {"chunk": " $"}
+
+event: answer_chunk
+data: {"chunk": "15"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": "000"}
+
+event: answer_chunk
+data: {"chunk": " ("}
+
+event: answer_chunk
+data: {"chunk": "Discovery"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " closes"}
+
+event: answer_chunk
+data: {"chunk": " April"}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "15"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "202"}
+
+event: answer_chunk
+data: {"chunk": "6"}
+
+event: answer_chunk
+data: {"chunk": ")"}
+
+event: answer_chunk
+data: {"chunk": "  \n"}
+
+event: answer_chunk
+data: {"chunk": "-"}
+
+event: answer_chunk
+data: {"chunk": " **"}
+
+event: answer_chunk
+data: {"chunk": "Eastern"}
+
+event: answer_chunk
+data: {"chunk": " Travel"}
+
+event: answer_chunk
+data: {"chunk": "**"}
+
+event: answer_chunk
+data: {"chunk": ":"}
+
+event: answer_chunk
+data: {"chunk": " Trial"}
+
+event: answer_chunk
+data: {"chunk": " to"}
+
+event: answer_chunk
+data: {"chunk": " paid"}
+
+event: answer_chunk
+data: {"chunk": " \u2014"}
+
+event: answer_chunk
+data: {"chunk": " $"}
+
+event: answer_chunk
+data: {"chunk": "8"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": "000"}
+
+event: answer_chunk
+data: {"chunk": " ("}
+
+event: answer_chunk
+data: {"chunk": "New"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " closes"}
+
+event: answer_chunk
+data: {"chunk": " April"}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "11"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "202"}
+
+event: answer_chunk
+data: {"chunk": "6"}
+
+event: answer_chunk
+data: {"chunk": ")"}
+
+event: answer_chunk
+data: {"chunk": "  \n"}
+
+event: answer_chunk
+data: {"chunk": "-"}
+
+event: answer_chunk
+data: {"chunk": " **"}
+
+event: answer_chunk
+data: {"chunk": "Fusion"}
+
+event: answer_chunk
+data: {"chunk": " Retail"}
+
+event: answer_chunk
+data: {"chunk": "**"}
+
+event: answer_chunk
+data: {"chunk": ":"}
+
+event: answer_chunk
+data: {"chunk": " Seats"}
+
+event: answer_chunk
+data: {"chunk": " expansion"}
+
+event: answer_chunk
+data: {"chunk": " \u2014"}
+
+event: answer_chunk
+data: {"chunk": " $"}
+
+event: answer_chunk
+data: {"chunk": "12"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": "000"}
+
+event: answer_chunk
+data: {"chunk": " ("}
+
+event: answer_chunk
+data: {"chunk": "Qualified"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " closes"}
+
+event: answer_chunk
+data: {"chunk": " June"}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "24"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "202"}
+
+event: answer_chunk
+data: {"chunk": "6"}
+
+event: answer_chunk
+data: {"chunk": ")"}
+
+event: answer_chunk
+data: {"chunk": "  \n"}
+
+event: answer_chunk
+data: {"chunk": "-"}
+
+event: answer_chunk
+data: {"chunk": " **"}
+
+event: answer_chunk
+data: {"chunk": "Har"}
+
+event: answer_chunk
+data: {"chunk": "bor"}
+
+event: answer_chunk
+data: {"chunk": " Logistics"}
+
+event: answer_chunk
+data: {"chunk": "**"}
+
+event: answer_chunk
+data: {"chunk": ":"}
+
+event: answer_chunk
+data: {"chunk": " Initial"}
+
+event: answer_chunk
+data: {"chunk": " rollout"}
+
+event: answer_chunk
+data: {"chunk": " \u2014"}
+
+event: answer_chunk
+data: {"chunk": " $"}
+
+event: answer_chunk
+data: {"chunk": "26"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": "000"}
+
+event: answer_chunk
+data: {"chunk": " ("}
+
+event: answer_chunk
+data: {"chunk": "Discovery"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " closes"}
+
+event: answer_chunk
+data: {"chunk": " March"}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "14"}
+
+event: answer_chunk
+data: {"chunk": ","}
+
+event: answer_chunk
+data: {"chunk": " "}
+
+event: answer_chunk
+data: {"chunk": "202"}
+
+event: answer_chunk
+data: {"chunk": "6"}
+
+event: answer_chunk
+data: {"chunk": ")"}
+
+event: followup_ready
+data: {"follow_up_suggestions": ["What are the largest deals in the pipeline?", "How are deals distributed across stages?", "Who owns the most pipeline value?"]}
+
+event: action_ready
+data: {"suggested_action": "Review and update the pipeline with a focus on time-sensitive deals: (1) Delta Health \u2014 Renewal ($22,000) shows a close date of Sep 01, 2025 (past due) \u2014 confirm status, update close date/stage, and create an urgent follow-up task. (2) Prioritize near-term closing deals in Proposal/Negotiation: Acme Manufacturing \u2014 Pro to Enterprise upgrade ($15,000, closes Feb 08, 2026) and Crown Foods \u2014 Subscription renewal ($18,000, closes Feb 13, 2026); Beta Tech \u2014 New rollout ($32,000, Negotiation, closes Mar 01, 2026). Schedule customer touchpoints this week and confirm next steps/decision makers for each."}
+
+event: done
+data: {"answer": "There are **11 deals in the pipeline totaling $194,000**.\n\n- **Acme Manufacturing**: Pro to Enterprise upgrade \u2014 $15,000 (Proposal, closes February 08, 2026); Annual renewal \u2014 $24,000 (Qualified, closes April 29, 2026)  \n- **Beta Tech**: New rollout \u2014 $32,000 (Negotiation, closes March 01, 2026); Analytics add-on \u2014 $8,000 (Discovery, closes March 29, 2026)  \n- **Crown Foods**: Subscription renewal \u2014 $18,000 (Proposal, closes February 13, 2026); Warehouse expansion \u2014 $14,000 (Qualified, closes March 29, 2026)  \n- **Delta Health**: Renewal \u2014 $22,000 (Qualified, closes September 01, 2025); Additional clinics \u2014 $15,000 (Discovery, closes April 15, 2026)  \n- **Eastern Travel**: Trial to paid \u2014 $8,000 (New, closes April 11, 2026)  \n- **Fusion Retail**: Seats expansion \u2014 $12,000 (Qualified, closes June 24, 2026)  \n- **Harbor Logistics**: Initial rollout \u2014 $26,000 (Discovery, closes March 14, 2026)", "sql_results": {"data": [{"opportunity_id": "OPP-ACME-UPGRADE", "company_id": "ACME-MFG", "contact_id": "C-ACME-ANNA", "name": "Acme Manufacturing - Pro to Enterprise upgrade", "stage": "Proposal", "type": "Expansion", "amount": 15000, "currency": "USD", "probability": 60, "source": "Existing Customer", "owner": "jsmith", "expected_close_date": "2026-02-08", "created_at": "2025-10-01", "updated_at": "2025-11-10", "closed_date": null, "notes": "Acme Manufacturing opportunity context:\n- Stage: Proposal\n- Value: 15000 USD\n- Expected close: 2025-12-15\n\nSummary: Customer is exploring changes focused on automating follow-ups and reminders. Primary risk noted is duplicate contacts causing confusion. Recommended next step: build a renewal dashboard and set weekly review cadence."}, {"opportunity_id": "OPP-ACME-RENEWAL", "company_id": "ACME-MFG", "contact_id": "C-ACME-JOE", "name": "Acme Manufacturing - Annual renewal", "stage": "Qualified", "type": "Renewal", "amount": 24000, "currency": "USD", "probability": 40, "source": "Existing Customer", "owner": "jsmith", "expected_close_date": "2026-04-29", "created_at": "2025-09-15", "updated_at": "2025-11-01", "closed_date": null, "notes": "Acme Manufacturing opportunity context:\n- Stage: Qualified\n- Value: 24000 USD\n- Expected close: 2026-03-15\n\nSummary: Customer is exploring changes focused on consolidating history/notes into a single customer timeline. Primary risk noted is inconsistent activity logging across the team. Recommended next step: schedule a 30-minute admin setup call."}, {"opportunity_id": "OPP-BETA-NEW", "company_id": "BETA-TECH", "contact_id": "C-BETA-LISA", "name": "Beta Tech - New rollout", "stage": "Negotiation", "type": "New Business", "amount": 32000, "currency": "USD", "probability": 80, "source": "Referral", "owner": "ljones", "expected_close_date": "2026-03-01", "created_at": "2025-08-20", "updated_at": "2025-11-02", "closed_date": null, "notes": "Beta Tech Solutions opportunity context:\n- Stage: Negotiation\n- Value: 32000 USD\n- Expected close: 2025-12-31\n\nSummary: Customer is exploring changes focused on segmenting contacts for targeted campaigns. Primary risk noted is inconsistent activity logging across the team. Recommended next step: import an updated contact list and resolve duplicates."}, {"opportunity_id": "OPP-BETA-ADDON", "company_id": "BETA-TECH", "contact_id": "C-BETA-SAM", "name": "Beta Tech - Analytics add-on", "stage": "Discovery", "type": "Expansion", "amount": 8000, "currency": "USD", "probability": 20, "source": "Existing Customer", "owner": "ljones", "expected_close_date": "2026-03-29", "created_at": "2025-11-01", "updated_at": "2025-11-15", "closed_date": null, "notes": "Beta Tech Solutions opportunity context:\n- Stage: Discovery\n- Value: 8000 USD\n- Expected close: 2026-02-15\n\nSummary: Technical team expressed interest in analytics add-on module. Sam Clarke is evaluating requirements. Depends on successful completion of main rollout (OPP-BETA-NEW). Low-touch opportunity that can be bundled with initial contract."}, {"opportunity_id": "OPP-CROWN-RENEW", "company_id": "CROWN-FOODS", "contact_id": "C-CROWN-MARIA", "name": "Crown Foods - Subscription renewal", "stage": "Proposal", "type": "Renewal", "amount": 18000, "currency": "USD", "probability": 60, "source": "Existing Customer", "owner": "jsmith", "expected_close_date": "2026-02-13", "created_at": "2025-09-10", "updated_at": "2025-10-30", "closed_date": null, "notes": "Crown Foods opportunity context:\n- Stage: Proposal\n- Value: 18000 USD\n- Expected close: 2025-12-20\n\nSummary: Customer is exploring changes focused on segmenting contacts for targeted campaigns. Primary risk noted is inconsistent activity logging across the team. Recommended next step: create a saved group for renewals and start outreach."}, {"opportunity_id": "OPP-DELTA-RENEW", "company_id": "DELTA-HEALTH", "contact_id": "C-DELTA-ERIN", "name": "Delta Health - Renewal", "stage": "Qualified", "type": "Renewal", "amount": 22000, "currency": "USD", "probability": 40, "source": "Existing Customer", "owner": "amartin", "expected_close_date": "2025-09-01", "created_at": "2025-06-01", "updated_at": "2025-08-15", "closed_date": null, "notes": "Delta Health Clinics opportunity context:\n- Stage: Qualified\n- Value: 22000 USD\n- Expected close: 2025-09-01\n\nSummary: Customer is exploring changes focused on streamlining contact management and deduplication. Primary risk noted is inconsistent activity logging across the team. Recommended next step: schedule a 30-minute admin setup call."}, {"opportunity_id": "OPP-DELTA-EXPAND", "company_id": "DELTA-HEALTH", "contact_id": "C-DELTA-ERIN", "name": "Delta Health - Additional clinics", "stage": "Discovery", "type": "Expansion", "amount": 15000, "currency": "USD", "probability": 20, "source": "Existing Customer", "owner": "amartin", "expected_close_date": "2026-04-15", "created_at": "2025-10-01", "updated_at": "2025-11-10", "closed_date": null, "notes": "Delta Health Clinics opportunity context:\n- Stage: Discovery\n- Value: 15000 USD\n- Expected close: 2026-03-01\n\nSummary: Following successful renewal, Erin Cho mentioned plans to expand to 3 additional clinic locations in Q1 2026. Need to present multi-location pricing and training package. Key risk: budget approval from corporate."}, {"opportunity_id": "OPP-EAST-TRIAL", "company_id": "EASTERN-TRAVEL", "contact_id": "C-EAST-SANJAY", "name": "Eastern Travel - Trial to paid", "stage": "New", "type": "New Business", "amount": 8000, "currency": "USD", "probability": 10, "source": "Inbound", "owner": "mmalik", "expected_close_date": "2026-04-11", "created_at": "2025-01-10", "updated_at": "2025-10-05", "closed_date": null, "notes": "Eastern Travel Co. opportunity context:\n- Stage: New\n- Value: 8000 USD\n- Expected close: 2025-02-28\n\nSummary: Customer is exploring changes focused on cleaning up pipeline stages and forecasting accuracy. Primary risk noted is low engagement from key contacts. Recommended next step: schedule a 30-minute admin setup call."}, {"opportunity_id": "OPP-FUSION-UPSELL", "company_id": "FUSION-RETAIL", "contact_id": "C-FUSION-EMMA", "name": "Fusion Retail - Seats expansion", "stage": "Qualified", "type": "Expansion", "amount": 12000, "currency": "USD", "probability": 40, "source": "Existing Customer", "owner": "jsmith", "expected_close_date": "2026-06-24", "created_at": "2025-07-01", "updated_at": "2025-10-25", "closed_date": null, "notes": "Fusion Retail Group opportunity context:\n- Stage: Qualified\n- Value: 12000 USD\n- Expected close: 2026-05-10\n\nSummary: Customer is exploring changes focused on streamlining contact management and deduplication. Primary risk noted is inconsistent activity logging across the team. Recommended next step: create a saved group for renewals and start outreach."}, {"opportunity_id": "OPP-HARBOR-NEW", "company_id": "HARBOR-LOGISTICS", "contact_id": "C-HARBOR-JACOB", "name": "Harbor Logistics - Initial rollout", "stage": "Discovery", "type": "New Business", "amount": 26000, "currency": "USD", "probability": 20, "source": "Outbound", "owner": "mmalik", "expected_close_date": "2026-03-14", "created_at": "2025-05-15", "updated_at": "2025-11-10", "closed_date": null, "notes": "Harbor Logistics opportunity context:\n- Stage: Discovery\n- Value: 26000 USD\n- Expected close: 2025-08-30\n\nSummary: Customer is exploring changes focused on cleaning up pipeline stages and forecasting accuracy. Primary risk noted is inconsistent activity logging across the team. Recommended next step: create a saved group for renewals and start outreach."}, {"opportunity_id": "OPP-CROWN-EXPAND", "company_id": "CROWN-FOODS", "contact_id": "C-CROWN-MARIA", "name": "Crown Foods - Warehouse expansion", "stage": "Qualified", "type": "Expansion", "amount": 14000, "currency": "USD", "probability": 50, "source": "Existing Customer", "owner": "jsmith", "expected_close_date": "2026-03-29", "created_at": "2025-11-01", "updated_at": "2025-11-20", "closed_date": null, "notes": "Crown Foods opportunity context:\n- Stage: Qualified\n- Value: 14000 USD\n- Expected close: 2026-03-15\n\nSummary: Maria Silva wants to expand CRM usage to 2 additional warehouse locations. Mobile app improvements addressed their concerns. Pending final budget approval from head office. Strong champion support."}]}, "follow_up_suggestions": ["What are the largest deals in the pipeline?", "How are deals distributed across stages?", "Who owns the most pipeline value?"], "suggested_action": "Review and update the pipeline with a focus on time-sensitive deals: (1) Delta Health \u2014 Renewal ($22,000) shows a close date of Sep 01, 2025 (past due) \u2014 confirm status, update close date/stage, and create an urgent follow-up task. (2) Prioritize near-term closing deals in Proposal/Negotiation: Acme Manufacturing \u2014 Pro to Enterprise upgrade ($15,000, closes Feb 08, 2026) and Crown Foods \u2014 Subscription renewal ($18,000, closes Feb 13, 2026); Beta Tech \u2014 New rollout ($32,000, Negotiation, closes Mar 01, 2026). Schedule customer touchpoints this week and confirm next steps/decision makers for each."}
+

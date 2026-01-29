@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 class TestFollowupNode:
     """Tests for followup_node function."""
 
-    @patch("backend.agent.followup.node._is_answerable", return_value=True)
     @patch("backend.agent.followup.node.get_connection")
     @patch("backend.agent.followup.node.generate_follow_up_suggestions")
     @patch("backend.agent.followup.node.format_conversation_for_prompt")
@@ -17,7 +16,6 @@ class TestFollowupNode:
         mock_format: MagicMock,
         mock_generate: MagicMock,
         mock_conn: MagicMock,
-        mock_answerable: MagicMock,
     ):
         """followup_node passes state answer to the generator."""
         from backend.agent.followup.node import followup_node
@@ -43,7 +41,6 @@ class TestFollowupNode:
         )
         assert result == {"follow_up_suggestions": ["Q1?", "Q2?", "Q3?"]}
 
-    @patch("backend.agent.followup.node._is_answerable", return_value=True)
     @patch("backend.agent.followup.node.get_connection")
     @patch("backend.agent.followup.node.generate_follow_up_suggestions")
     @patch("backend.agent.followup.node.format_conversation_for_prompt")
@@ -52,7 +49,6 @@ class TestFollowupNode:
         mock_format: MagicMock,
         mock_generate: MagicMock,
         mock_conn: MagicMock,
-        mock_answerable: MagicMock,
     ):
         """followup_node passes empty string when answer not in state."""
         from backend.agent.followup.node import followup_node
@@ -73,7 +69,6 @@ class TestFollowupNode:
             conn=mock_connection,
         )
 
-    @patch("backend.agent.followup.node._is_answerable", return_value=True)
     @patch("backend.agent.followup.node.get_connection")
     @patch("backend.agent.followup.node.generate_follow_up_suggestions")
     @patch("backend.agent.followup.node.format_conversation_for_prompt")
@@ -82,7 +77,6 @@ class TestFollowupNode:
         mock_format: MagicMock,
         mock_generate: MagicMock,
         mock_conn: MagicMock,
-        mock_answerable: MagicMock,
     ):
         """followup_node passes sql_results from state to generator."""
         from backend.agent.followup.node import followup_node
@@ -109,7 +103,6 @@ class TestFollowupNode:
             conn=mock_connection,
         )
 
-    @patch("backend.agent.followup.node._is_answerable", return_value=True)
     @patch("backend.agent.followup.node.get_connection")
     @patch("backend.agent.followup.node.generate_follow_up_suggestions")
     @patch("backend.agent.followup.node.format_conversation_for_prompt")
@@ -118,7 +111,6 @@ class TestFollowupNode:
         mock_format: MagicMock,
         mock_generate: MagicMock,
         mock_conn: MagicMock,
-        mock_answerable: MagicMock,
     ):
         """followup_node filters out empty/whitespace suggestions."""
         from backend.agent.followup.node import followup_node
@@ -143,53 +135,6 @@ class TestFollowupNode:
 
         mock_format.return_value = ""
         mock_generate.side_effect = ValueError("LLM error")
-
-        state = {"question": "Test?", "answer": "Answer.", "messages": []}
-
-        result = followup_node(state)
-
-        assert result == {"follow_up_suggestions": []}
-
-    @patch("backend.agent.followup.node._is_answerable")
-    @patch("backend.agent.followup.node.get_connection")
-    @patch("backend.agent.followup.node.generate_follow_up_suggestions")
-    @patch("backend.agent.followup.node.format_conversation_for_prompt")
-    def test_filters_unanswerable_suggestions(
-        self,
-        mock_format: MagicMock,
-        mock_generate: MagicMock,
-        mock_conn: MagicMock,
-        mock_answerable: MagicMock,
-    ):
-        """followup_node filters out unanswerable suggestions."""
-        from backend.agent.followup.node import followup_node
-
-        mock_format.return_value = ""
-        mock_generate.return_value = ["Q1?", "Q2?", "Q3?"]
-        mock_answerable.side_effect = [True, False, True]
-
-        state = {"question": "Test?", "answer": "Answer.", "messages": []}
-
-        result = followup_node(state)
-
-        assert result == {"follow_up_suggestions": ["Q1?", "Q3?"]}
-
-    @patch("backend.agent.followup.node._is_answerable", return_value=False)
-    @patch("backend.agent.followup.node.get_connection")
-    @patch("backend.agent.followup.node.generate_follow_up_suggestions")
-    @patch("backend.agent.followup.node.format_conversation_for_prompt")
-    def test_all_unanswerable_returns_empty(
-        self,
-        mock_format: MagicMock,
-        mock_generate: MagicMock,
-        mock_conn: MagicMock,
-        mock_answerable: MagicMock,
-    ):
-        """followup_node returns empty when all suggestions unanswerable."""
-        from backend.agent.followup.node import followup_node
-
-        mock_format.return_value = ""
-        mock_generate.return_value = ["Q1?", "Q2?", "Q3?"]
 
         state = {"question": "Test?", "answer": "Answer.", "messages": []}
 

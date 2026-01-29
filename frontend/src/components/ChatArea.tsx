@@ -140,7 +140,6 @@ function EmptyState({ onSuggestionClick }: EmptyStateProps) {
               type="button"
               aria-label={`Ask: ${prompt}`}
             >
-              <span className="suggestion-btn__icon">💬</span>
               <span className="suggestion-btn__text">{prompt}</span>
             </button>
           ))

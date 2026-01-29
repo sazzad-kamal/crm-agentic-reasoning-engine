@@ -178,4 +178,14 @@ describe("config", () => {
     expect(endpoints.chatStream).toContain(config.apiUrl);
     expect(endpoints.health).toContain(config.apiUrl);
   });
+
+  it("starterQuestions endpoint is defined", () => {
+    expect(endpoints.starterQuestions).toBeDefined();
+    expect(endpoints.starterQuestions).toContain("/api/chat/starter-questions");
+  });
+
+  it("defaults to localhost when no VITE_API_URL env", () => {
+    // In test environment, VITE_API_URL is not set
+    expect(config.apiUrl).toBe("http://localhost:8000");
+  });
 });

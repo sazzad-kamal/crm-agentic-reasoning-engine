@@ -273,4 +273,277 @@ describe("useChatStream", () => {
 
     expect(onError).toHaveBeenCalled();
   });
+
+  // ===========================================================================
+  // Per-section SSE events
+  // ===========================================================================
+
+  it("handles data_ready event", async () => {
+    const events = [
+      'event: data_ready\ndata: {"sql_results": {"companies": [{"name": "Acme"}]}}\n\n',
+      `event: done\ndata: ${JSON.stringify({ answer: "Done", sources: [], steps: [], sql_results: { companies: [{ name: "Acme" }] }, meta: {} })}\n\n`,
+    ];
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: createMockSSEStream(events),
+    });
+
+    const { result } = renderHook(() => useChatStream());
+
+    await act(async () => {
+      await result.current.sendMessage("Show companies");
+    });
+
+    expect(result.current.messages[0].response?.sql_results).toEqual({
+      companies: [{ name: "Acme" }],
+    });
+    expect(result.current.messages[0].sectionStatus).toBeUndefined();
+  });
+
+  it("handles action_ready event", async () => {
+    const events = [
+      'event: action_ready\ndata: {"suggested_action": "Schedule a call"}\n\n',
+      `event: done\ndata: ${JSON.stringify({ answer: "Done", sources: [], steps: [], sql_results: {}, suggested_action: "Schedule a call", meta: {} })}\n\n`,
+    ];
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: createMockSSEStream(events),
+    });
+
+    const { result } = renderHook(() => useChatStream());
+
+    await act(async () => {
+      await result.current.sendMessage("What should I do?");
+    });
+
+    expect(result.current.messages[0].response?.suggested_action).toBe("Schedule a call");
+  });
+
+  it("handles action_ready with null action", async () => {
+    const events = [
+      'event: action_ready\ndata: {"suggested_action": null}\n\n',
+      `event: done\ndata: ${JSON.stringify({ answer: "No action", sources: [], steps: [], sql_results: {}, suggested_action: null, meta: {} })}\n\n`,
+    ];
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: createMockSSEStream(events),
+    });
+
+    const { result } = renderHook(() => useChatStream());
+
+    await act(async () => {
+      await result.current.sendMessage("Anything to do?");
+    });
+
+    expect(result.current.messages[0].response?.suggested_action).toBeNull();
+  });
+
+  it("handles followup_ready event", async () => {
+    const events = [
+      'event: followup_ready\ndata: {"follow_up_suggestions": ["Q1", "Q2"]}\n\n',
+      `event: done\ndata: ${JSON.stringify({ answer: "Done", sources: [], steps: [], sql_results: {}, follow_up_suggestions: ["Q1", "Q2"], meta: {} })}\n\n`,
+    ];
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: createMockSSEStream(events),
+    });
+
+    const { result } = renderHook(() => useChatStream());
+
+    await act(async () => {
+      await result.current.sendMessage("Tell me more");
+    });
+
+    expect(result.current.messages[0].response?.follow_up_suggestions).toEqual(["Q1", "Q2"]);
+  });
+
+  it("handles all section events together", async () => {
+    const events = [
+      'event: data_ready\ndata: {"sql_results": {"companies": []}}\n\n',
+      'event: answer_chunk\ndata: {"chunk": "Here is "}\n\n',
+      'event: answer_chunk\ndata: {"chunk": "the answer"}\n\n',
+      'event: action_ready\ndata: {"suggested_action": "Follow up"}\n\n',
+      'event: followup_ready\ndata: {"follow_up_suggestions": ["Next?"]}\n\n',
+      `event: done\ndata: ${JSON.stringify({ answer: "Here is the answer", sources: [], steps: [], sql_results: { companies: [] }, suggested_action: "Follow up", follow_up_suggestions: ["Next?"], meta: {} })}\n\n`,
+    ];
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: createMockSSEStream(events),
+    });
+
+    const { result } = renderHook(() => useChatStream());
+
+    await act(async () => {
+      await result.current.sendMessage("Full response");
+    });
+
+    const msg = result.current.messages[0];
+    expect(msg.response?.answer).toBe("Here is the answer");
+    expect(msg.response?.sql_results).toEqual({ companies: [] });
+    expect(msg.response?.suggested_action).toBe("Follow up");
+    expect(msg.response?.follow_up_suggestions).toEqual(["Next?"]);
+    expect(msg.sectionStatus).toBeUndefined();
+  });
+
+  it("removes sectionStatus after done event", async () => {
+    const events = [
+      `event: done\ndata: ${JSON.stringify({ answer: "Answer", sources: [], steps: [], sql_results: {}, meta: {} })}\n\n`,
+    ];
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: createMockSSEStream(events),
+    });
+
+    const { result } = renderHook(() => useChatStream());
+
+    await act(async () => {
+      await result.current.sendMessage("Test");
+    });
+
+    expect(result.current.messages[0].sectionStatus).toBeUndefined();
+  });
+
+  it("ignores unknown event types", async () => {
+    const events = [
+      'event: unknown_event\ndata: {"foo": "bar"}\n\n',
+      `event: done\ndata: ${JSON.stringify({ answer: "Answer", sources: [], steps: [], sql_results: {}, meta: {} })}\n\n`,
+    ];
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: createMockSSEStream(events),
+    });
+
+    const { result } = renderHook(() => useChatStream());
+
+    await act(async () => {
+      await result.current.sendMessage("Test");
+    });
+
+    expect(result.current.messages[0].response?.answer).toBe("Answer");
+  });
+
+  it("handles malformed SSE data gracefully", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const events = [
+      "event: answer_chunk\ndata: {invalid json\n\n",
+      `event: done\ndata: ${JSON.stringify({ answer: "Answer", sources: [], steps: [], sql_results: {}, meta: {} })}\n\n`,
+    ];
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: createMockSSEStream(events),
+    });
+
+    const { result } = renderHook(() => useChatStream());
+
+    await act(async () => {
+      await result.current.sendMessage("Test");
+    });
+
+    expect(result.current.messages[0].response?.answer).toBe("Answer");
+    expect(warnSpy).toHaveBeenCalledWith("Failed to parse SSE data:", expect.any(String));
+    warnSpy.mockRestore();
+  });
+
+  it("handles no response body", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: null,
+    });
+
+    const { result } = renderHook(() => useChatStream());
+
+    await act(async () => {
+      await result.current.sendMessage("Test");
+    });
+
+    expect(result.current.error).toBe("No response body");
+    expect(result.current.messages).toHaveLength(0);
+  });
+
+  it("handles network error with connection message", async () => {
+    mockFetch.mockRejectedValueOnce("network failure");
+
+    const { result } = renderHook(() => useChatStream());
+
+    await act(async () => {
+      await result.current.sendMessage("Test");
+    });
+
+    expect(result.current.error).toBe(
+      "Unable to reach the assistant. Please check that the backend is running."
+    );
+  });
+
+  it("handles HTTP error with text() failure", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      text: async () => { throw new Error("read failed"); },
+    });
+
+    const { result } = renderHook(() => useChatStream());
+
+    await act(async () => {
+      await result.current.sendMessage("Test");
+    });
+
+    expect(result.current.error).toBe("HTTP 503: Unknown error");
+  });
+
+  it("does not send when already loading", async () => {
+    const neverEndingStream = new ReadableStream({ start() {} });
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: neverEndingStream,
+    });
+
+    const { result } = renderHook(() => useChatStream());
+
+    act(() => {
+      result.current.sendMessage("First");
+    });
+
+    // Try sending while first is still loading
+    await act(async () => {
+      await result.current.sendMessage("Second");
+    });
+
+    // Only first message should be there
+    expect(result.current.messages).toHaveLength(1);
+    expect(result.current.messages[0].question).toBe("First");
+  });
+
+  it("abortStream stops loading and streaming", async () => {
+    const neverEndingStream = new ReadableStream({ start() {} });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: neverEndingStream,
+    });
+
+    const { result } = renderHook(() => useChatStream());
+
+    act(() => {
+      result.current.sendMessage("Test");
+    });
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.isStreaming).toBe(true);
+
+    act(() => {
+      result.current.abortStream();
+    });
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isStreaming).toBe(false);
+  });
 });

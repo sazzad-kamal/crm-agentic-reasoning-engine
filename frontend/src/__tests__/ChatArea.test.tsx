@@ -368,6 +368,46 @@ describe("ChatArea", () => {
     expect(screen.getByTestId("message-msg1")).toBeInTheDocument();
   });
 
+  it("handles fetch failure for starter questions gracefully", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("Network error"))));
+
+    render(<ChatArea {...defaultProps} />);
+
+    // Should still show fallback prompts
+    await waitFor(() => {
+      expect(screen.getByText(/How's my pipeline/)).toBeInTheDocument();
+    });
+  });
+
+  it("handles non-ok fetch response for starter questions", async () => {
+    vi.stubGlobal("fetch", vi.fn(() =>
+      Promise.resolve({ ok: false, json: () => Promise.resolve({}) })
+    ));
+
+    render(<ChatArea {...defaultProps} />);
+
+    // Should still show fallback prompts
+    await waitFor(() => {
+      expect(screen.getByText(/How's my pipeline/)).toBeInTheDocument();
+    });
+  });
+
+  it("handles empty questions array from API", async () => {
+    vi.stubGlobal("fetch", vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ questions: [] }),
+      })
+    ));
+
+    render(<ChatArea {...defaultProps} />);
+
+    // Should still show fallback prompts (empty array doesn't replace)
+    await waitFor(() => {
+      expect(screen.getByText(/How's my pipeline/)).toBeInTheDocument();
+    });
+  });
+
   it("updates when messages array changes", () => {
     const messages1: ChatMessage[] = [
       {

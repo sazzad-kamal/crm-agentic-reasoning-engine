@@ -356,4 +356,84 @@ describe("App", () => {
     });
   });
 
+  it("ignores suggestion click while loading", async () => {
+    // Use a never-ending stream to keep isLoading=true
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/data/") || url.includes("/starter-questions")) {
+        return Promise.resolve(mockDataResponse);
+      }
+      return new Promise(() => {}); // Never resolves for chat
+    });
+
+    render(<App />);
+
+    // Wait for starter questions to load
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Ask a question/i)).toBeInTheDocument();
+    });
+
+    // Submit a question first to put into loading state
+    const input = screen.getByPlaceholderText(/Ask a question/i);
+    fireEvent.change(input, { target: { value: "First question" } });
+    fireEvent.submit(input.closest("form")!);
+
+    // Should be loading now
+    await waitFor(() => {
+      expect(screen.getByRole("status", { name: /generating answer/i })).toBeInTheDocument();
+    });
+
+    // The send button should be disabled while loading
+    const sendBtn = screen.getByRole("button", { name: /send/i });
+    expect(sendBtn).toBeDisabled();
+  });
+
+  it("updates document title when loading", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/data/") || url.includes("/starter-questions")) {
+        return Promise.resolve(mockDataResponse);
+      }
+      return new Promise(() => {}); // Never resolves
+    });
+
+    render(<App />);
+
+    const input = screen.getByPlaceholderText(/Ask a question/i);
+    fireEvent.change(input, { target: { value: "Test" } });
+    fireEvent.submit(input.closest("form")!);
+
+    await waitFor(() => {
+      expect(document.title).toBe("Thinking... | Acme CRM AI");
+    });
+  });
+
+  it("updates document title with message count", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/data/") || url.includes("/starter-questions")) {
+        return Promise.resolve(mockDataResponse);
+      }
+      const response = {
+        answer: "Answer",
+        sources: [],
+        steps: [],
+        sql_results: {},
+        meta: { mode_used: "data", latency_ms: 50 },
+      };
+      const events = [`event: done\ndata: ${JSON.stringify(response)}\n\n`];
+      return Promise.resolve({
+        ok: true,
+        body: createMockSSEStream(events),
+      });
+    });
+
+    render(<App />);
+
+    const input = screen.getByPlaceholderText(/Ask a question/i);
+    fireEvent.change(input, { target: { value: "Test" } });
+    fireEvent.submit(input.closest("form")!);
+
+    await waitFor(() => {
+      expect(document.title).toContain("messages | Acme CRM AI");
+    });
+  });
+
 });

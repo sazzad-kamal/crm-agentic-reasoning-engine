@@ -21,13 +21,16 @@ export default defineConfig({
         "**/*.d.ts",
         "**/main.tsx",
         "**/vite-env.d.ts",
+        "**/*.css",
+        "**/components/index.ts",
+        "**/components/dataExplorer/index.ts",
+        "**/components/dataExplorer/types.ts",
       ],
       thresholds: {
-        // Target 80% coverage across all metrics
-        statements: 80,
-        branches: 75,
-        functions: 80,
-        lines: 80,
+        statements: 98,
+        branches: 90,
+        functions: 99,
+        lines: 99,
       },
     },
     // Timeout settings

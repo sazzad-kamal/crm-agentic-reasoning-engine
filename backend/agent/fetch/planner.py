@@ -24,6 +24,7 @@ Today: {today}
 - Each table has a "notes" column containing free-text context (insights, concerns, history)
 - Include notes in SELECT when the question asks about qualitative information
 - For qualitative questions (why, details, concerns), the answer is often in the primary entity's notes - don't add extra JOINs unless you are certain that you need it
+- "Tell me more about [company]" means fetch the company's interaction history from the history table (JOIN with companies to filter by name)
 - "Recent" or "recently" means within the last 90 days
 - "Pipeline" = opportunities NOT IN ('Closed Won', 'Closed Lost')
 - Use CURRENT_DATE for relative date calculations, never hardcode dates
@@ -48,14 +49,11 @@ SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost')
 Q: "Which accounts are up for renewal?"
 SELECT * FROM companies WHERE renewal_date >= CURRENT_DATE AND status = 'Active' ORDER BY renewal_date
 
-Q: "Who are the contacts at Delta Health?"
-SELECT c.* FROM contacts c JOIN companies co ON c.company_id = co.company_id WHERE co.name = 'Delta Health Clinics'
-
 Q: "Which deals are expected to close next?"
 SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') ORDER BY expected_close_date ASC
 
 Q: "How are deals distributed across stages?"
-SELECT stage, COUNT(*) AS deal_count FROM opportunities GROUP BY stage ORDER BY deal_count DESC
+SELECT stage, COUNT(*) AS deal_count FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY stage ORDER BY deal_count DESC
 
 Q: "Who owns the most pipeline value?"
 SELECT owner, SUM(amount) AS total_value FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY owner ORDER BY total_value DESC
@@ -64,7 +62,13 @@ Q: "Which renewals are at risk?"
 SELECT * FROM companies WHERE health_status LIKE '%at-risk%' AND renewal_date IS NOT NULL
 
 Q: "Tell me more about Crown Foods"
-SELECT h.* FROM history h JOIN companies c ON h.company_id = c.company_id WHERE c.name = 'Crown Foods'"""
+SELECT h.* FROM history h JOIN companies c ON h.company_id = c.company_id WHERE c.name = 'Crown Foods'
+
+Q: "What tasks are due this week?"
+SELECT * FROM activities WHERE due_date >= date_trunc('week', CURRENT_DATE) AND due_date < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days' AND status = 'Open'
+
+Q: "What meetings are coming up?"
+SELECT * FROM activities WHERE type = 'Meeting' AND status = 'Open' ORDER BY due_date"""
 
 _HUMAN_PROMPT = """User's question: {question}
 

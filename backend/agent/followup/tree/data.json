@@ -11,9 +11,9 @@
     "Tell me more about Crown Foods"
   ],
 
-  "Who are the contacts at Delta Health?": [
-    "Who is the decision maker at Delta Health?",
-    "What open deals does Delta Health have?",
-    "What's our recent activity with Delta Health?"
+  "What tasks are due this week?": [
+    "Which high-priority tasks need attention?",
+    "What meetings are coming up?",
+    "Who has the most open tasks?"
   ]
 }

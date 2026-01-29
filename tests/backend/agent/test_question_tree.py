@@ -24,7 +24,7 @@ class TestGetStarters:
         assert isinstance(starters, list)
 
     def test_returns_expected_count(self):
-        """Returns expected number of starters (3 CRM entities)."""
+        """Returns expected number of starters (3 demo branches)."""
         starters = get_starters()
         assert len(starters) == 3
 
@@ -43,11 +43,11 @@ class TestGetStarters:
         assert "modified" not in starters2
 
     def test_contains_entity_starters(self):
-        """Contains starters for 3 CRM entities."""
+        """Contains starters for 3 demo branches."""
         starters = get_starters()
-        assert "What deals are in the pipeline?" in starters  # Opportunities
-        assert "Which accounts are up for renewal?" in starters  # Companies
-        assert "Who are the contacts at Delta Health?" in starters  # Contacts
+        assert "What deals are in the pipeline?" in starters  # Pipeline
+        assert "Which accounts are up for renewal?" in starters  # Renewals
+        assert "What tasks are due this week?" in starters  # Activities
 
 
 # =============================================================================
@@ -86,11 +86,11 @@ class TestGetFollowUps:
         assert len(follow_ups) == 3
         assert "Which renewals are at risk?" in follow_ups
 
-    def test_contacts_starter_has_follow_ups(self):
-        """Contacts starter has follow-ups."""
-        follow_ups = get_follow_ups("Who are the contacts at Delta Health?")
+    def test_activities_starter_has_follow_ups(self):
+        """Activities starter has follow-ups."""
+        follow_ups = get_follow_ups("What tasks are due this week?")
         assert len(follow_ups) == 3
-        assert "Who is the decision maker at Delta Health?" in follow_ups
+        assert "Which high-priority tasks need attention?" in follow_ups
 
 
 # =============================================================================
@@ -137,7 +137,7 @@ class TestGetAllPaths:
         expected_starters = {
             "What deals are in the pipeline?",
             "Which accounts are up for renewal?",
-            "Who are the contacts at Delta Health?",
+            "What tasks are due this week?",
         }
         assert starters_covered == expected_starters
 

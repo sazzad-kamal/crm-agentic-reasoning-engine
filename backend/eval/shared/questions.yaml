@@ -4,7 +4,7 @@
 
 questions:
   # =============================================================================
-  # DEMO TREE: Starters (Difficulty 1)
+  # DEMO TREE — Branch 1: Pipeline
   # =============================================================================
   - text: "What deals are in the pipeline?"
     difficulty: 1
@@ -12,21 +12,6 @@ questions:
     expected_answer: "Current pipeline has 11 open deals totaling approximately $194K. Key deals include Beta Tech new business ($32K, Negotiation), Harbor Logistics ($26K, Discovery), Acme renewal ($24K, Qualified), and Delta Health renewal ($22K, Qualified)."
     expected_action: true
 
-  - text: "Which accounts are up for renewal?"
-    difficulty: 1
-    expected_sql: "SELECT * FROM companies WHERE renewal_date >= CURRENT_DATE AND status = 'Active' ORDER BY renewal_date"
-    expected_answer: "Six accounts have upcoming renewals. Crown Foods (Feb 14) and Delta Health (Feb 15) are the most urgent and both flagged as at-risk. Beta Tech (Mar 1), Harbor Logistics (Mar 29), Acme Manufacturing (Apr 14), and Fusion Retail (May 15) are in healthy standing."
-    expected_action: true
-
-  - text: "Who are the contacts at Delta Health?"
-    difficulty: 2
-    expected_sql: "SELECT * FROM contacts c JOIN companies co ON c.company_id = co.company_id WHERE co.name = 'Delta Health Clinics'"
-    expected_answer: "Delta Health has 3 contacts: Erin Cho (Clinic Director, Decision Maker), Mike Rivera (IT Coordinator, Technical Contact), and Priya Sharma (Office Manager, User)."
-    expected_action: true
-
-  # =============================================================================
-  # DEMO TREE: Follow-ups (Difficulty 2)
-  # =============================================================================
   - text: "Which deals are expected to close next?"
     difficulty: 1
     expected_sql: "SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') ORDER BY expected_close_date ASC"
@@ -35,7 +20,7 @@ questions:
 
   - text: "How are deals distributed across stages?"
     difficulty: 2
-    expected_sql: "SELECT stage, COUNT(*) AS deal_count FROM opportunities GROUP BY stage ORDER BY deal_count DESC"
+    expected_sql: "SELECT stage, COUNT(*) AS deal_count FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY stage ORDER BY deal_count DESC"
     expected_answer: "Qualified has the most open deals (4): Acme renewal, Delta renewal, Fusion upsell, Crown expansion. Discovery has 3: Beta addon, Delta expand, Harbor new. Proposal has 2: Acme upgrade and Crown renewal. Negotiation has 1: Beta Tech new business. New has 1: Eastern Travel trial."
     expected_action: true
 
@@ -43,6 +28,15 @@ questions:
     difficulty: 2
     expected_sql: "SELECT owner, SUM(amount) AS total_value FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY owner ORDER BY total_value DESC"
     expected_answer: "jsmith owns the most pipeline value at approximately $83K across 5 deals (Acme upgrade, Acme renewal, Crown renewal, Fusion upsell, Crown expansion). ljones follows with $40K (Beta Tech new, Beta addon), amartin with $37K (Delta renewal, Delta expansion), and mmalik with $34K (Harbor new, Eastern trial)."
+    expected_action: true
+
+  # =============================================================================
+  # DEMO TREE — Branch 2: Renewals
+  # =============================================================================
+  - text: "Which accounts are up for renewal?"
+    difficulty: 1
+    expected_sql: "SELECT * FROM companies WHERE renewal_date >= CURRENT_DATE AND status = 'Active' ORDER BY renewal_date"
+    expected_answer: "Six accounts have upcoming renewals. Crown Foods (Feb 14) and Delta Health (Feb 15) are the most urgent and both flagged as at-risk. Beta Tech (Mar 1), Harbor Logistics (Mar 29, health-check), Acme Manufacturing (Apr 14), and Fusion Retail (May 15) follow."
     expected_action: true
 
   - text: "Which renewals are at risk?"
@@ -63,22 +57,31 @@ questions:
     expected_answer: "Crown Foods has 5 interaction records. Maria Silva confirmed a 2-year renewal commitment. Key wins include 60% reduction in report generation time and IT team satisfaction with API flexibility. Nina Foster's analytics team is expanding use cases. Integration support was provided for API troubleshooting."
     expected_action: true
 
-  - text: "Who is the decision maker at Delta Health?"
-    difficulty: 2
-    expected_sql: "SELECT * FROM contacts c JOIN companies co ON c.company_id = co.company_id WHERE co.name = 'Delta Health Clinics' AND c.role = 'Decision Maker'"
-    expected_answer: "Erin Cho is the decision maker at Delta Health. She is the Clinic Director and champions expansion but needs board approval."
+  # =============================================================================
+  # DEMO TREE — Branch 3: Activities
+  # =============================================================================
+  - text: "What tasks are due this week?"
+    difficulty: 1
+    expected_sql: "SELECT * FROM activities WHERE due_date >= date_trunc('week', CURRENT_DATE) AND due_date < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days' AND status = 'Open'"
+    expected_answer: "Five tasks are due this week. Three are high priority: follow up on Acme upgrade proposal (jsmith, Jan 29), Crown Foods renewal check-in (jsmith, Jan 30), and Fusion Retail contract review (jsmith, Jan 31). Also due: Delta Health support ticket follow-up (amartin, Jan 28) and Beta Tech quarterly business review (ljones, Feb 1)."
     expected_action: true
 
-  - text: "What open deals does Delta Health have?"
-    difficulty: 2
-    expected_sql: "SELECT o.* FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE c.name = 'Delta Health Clinics'"
-    expected_answer: "Delta Health has two open deals: a renewal ($22K, Qualified, overdue) and an expansion ($15K, Discovery) for 3 additional clinic locations. The expansion depends on the renewal completing first."
+  - text: "Which high-priority tasks need attention?"
+    difficulty: 1
+    expected_sql: "SELECT * FROM activities WHERE priority = 'High' AND status = 'Open' ORDER BY due_date"
+    expected_answer: "Seven high-priority tasks are open. Most urgent: Acme upgrade follow-up (jsmith, due Jan 29), Crown Foods renewal check-in (jsmith, Jan 30), and Fusion Retail contract review (jsmith, Jan 31). Coming up: Beta Tech executive demo (ljones, Feb 5), Beta Tech security questionnaire (ljones, Feb 8), Harbor Logistics implementation kickoff (mmalik, Feb 8), and Eastern Travel proposal (mmalik, Mar 1)."
     expected_action: true
 
-  - text: "What's our recent activity with Delta Health?"
-    difficulty: 2
-    expected_sql: "SELECT * FROM history h JOIN companies c ON h.company_id = c.company_id WHERE c.name = 'Delta Health Clinics'"
-    expected_answer: "Delta Health has 6 interaction records. Recent risk assessment flags the renewal as AT RISK with low usage in 3 of 5 clinics, a competitor demo scheduled, and open support tickets on reporting. Despite this, expansion to 3 additional clinics is possible if the renewal is secured. Erin Cho is championing internally."
+  - text: "What meetings are coming up?"
+    difficulty: 1
+    expected_sql: "SELECT * FROM activities WHERE type = 'Meeting' AND status = 'Open' ORDER BY due_date"
+    expected_answer: "Nine meetings are scheduled. This week: Beta Tech QBR (ljones, Feb 1). Next week: Acme executive intro with CFO Beth Turner (jsmith, Feb 3), Delta Health expansion discussion (amartin, Feb 4), and Beta Tech executive demo for CEO Omar (ljones, Feb 5). Later: Harbor Logistics kickoff (mmalik, Feb 8), Crown Foods training (jsmith, Feb 11), Fusion Retail onboarding (jsmith, Feb 22), Eastern Travel demo (mmalik, Feb 24), and Harbor training (mmalik, Mar 1)."
+    expected_action: true
+
+  - text: "Who has the most open tasks?"
+    difficulty: 1
+    expected_sql: "SELECT owner, COUNT(*) AS task_count FROM activities WHERE status = 'Open' GROUP BY owner ORDER BY task_count DESC"
+    expected_answer: "jsmith has the most open tasks with 9, covering Acme Manufacturing, Crown Foods, and Fusion Retail. mmalik follows with 6 tasks across Eastern Travel and Harbor Logistics. ljones has 4 tasks for Beta Tech and Green Energy. amartin has the lightest load with 2 tasks for Delta Health."
     expected_action: true
 
   # =============================================================================

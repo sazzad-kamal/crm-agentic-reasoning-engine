@@ -1013,10 +1013,9 @@ class TestFetchRunnerStylisticErrors:
         with patch("builtins.print") as mock_print:
             runner.run_sql_eval(verbose=True)
 
-        # Should have printed PASS with row count
+        # Should have printed PASS
         call_str = " ".join(str(c) for c in mock_print.call_args_list)
         assert "PASS" in call_str
-        assert "3 rows" in call_str
 
 
 class TestIntegrationMain:

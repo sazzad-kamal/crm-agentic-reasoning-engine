@@ -571,27 +571,14 @@ class TestFixtureCompleteness:
         assert not missing_action, f"Questions missing expected action: {missing_action}"
 
 
-class TestYamlLoadingErrors:
-    def test_nonexistent_file(self, monkeypatch, tmp_path):
+class TestLoadExpectedErrors:
+    def test_load_questions_raises(self, monkeypatch):
         import backend.eval.integration.tree as tree_module
         tree_module._load_expected.cache_clear()
-        monkeypatch.setattr(tree_module, "_EVAL_FIXTURES_PATH", tmp_path / "nonexistent")
-        assert tree_module._load_expected() == {}
-        tree_module._load_expected.cache_clear()
-
-    def test_invalid_yaml(self, monkeypatch, tmp_path):
-        import backend.eval.integration.tree as tree_module
-        tree_module._load_expected.cache_clear()
-        (tmp_path / "expected.yaml").write_text("::invalid:: yaml: [content")
-        monkeypatch.setattr(tree_module, "_EVAL_FIXTURES_PATH", tmp_path)
-        assert tree_module._load_expected() == {}
-        tree_module._load_expected.cache_clear()
-
-    def test_empty_file(self, monkeypatch, tmp_path):
-        import backend.eval.integration.tree as tree_module
-        tree_module._load_expected.cache_clear()
-        (tmp_path / "expected.yaml").write_text("")
-        monkeypatch.setattr(tree_module, "_EVAL_FIXTURES_PATH", tmp_path)
+        monkeypatch.setattr(
+            "backend.eval.answer.shared.loader.load_questions",
+            lambda: (_ for _ in ()).throw(RuntimeError("boom")),
+        )
         assert tree_module._load_expected() == {}
         tree_module._load_expected.cache_clear()
 

@@ -9,19 +9,19 @@ questions:
   - text: "What deals are in the pipeline?"
     difficulty: 1
     expected_sql: "SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost')"
-    expected_answer: "Current pipeline includes open deals across multiple stages including Negotiation, Proposal, Qualified, and Discovery."
+    expected_answer: "Current pipeline has 11 open deals totaling approximately $194K. Key deals include Beta Tech new business ($32K, Negotiation), Harbor Logistics ($26K, Discovery), Acme renewal ($24K, Qualified), and Delta Health renewal ($22K, Qualified)."
     expected_action: true
 
   - text: "Which accounts are up for renewal?"
     difficulty: 1
-    expected_sql: "SELECT * FROM companies WHERE renewal_date >= CURRENT_DATE ORDER BY renewal_date"
-    expected_answer: "Accounts with upcoming renewals include Crown Foods, Delta Health, Beta Tech, Harbor Logistics, and Acme Manufacturing."
+    expected_sql: "SELECT * FROM companies WHERE renewal_date >= CURRENT_DATE AND status = 'Active' ORDER BY renewal_date"
+    expected_answer: "Six accounts have upcoming renewals. Crown Foods (Feb 14) and Delta Health (Feb 15) are the most urgent and both flagged as at-risk. Beta Tech (Mar 1), Harbor Logistics (Mar 29), Acme Manufacturing (Apr 14), and Fusion Retail (May 15) are in healthy standing."
     expected_action: true
 
   - text: "Who are the contacts at Delta Health?"
     difficulty: 1
     expected_sql: "SELECT * FROM contacts c JOIN companies co ON c.company_id = co.company_id WHERE co.name = 'Delta Health Clinics'"
-    expected_answer: "Delta Health has 3 contacts: Erin Cho (Decision Maker), Mike Rivera (Technical Contact), and Priya Sharma (User)."
+    expected_answer: "Delta Health has 3 contacts: Erin Cho (Clinic Director, Decision Maker), Mike Rivera (IT Coordinator, Technical Contact), and Priya Sharma (Office Manager, User)."
     expected_action: true
 
   # =============================================================================
@@ -30,55 +30,55 @@ questions:
   - text: "Which deals are closest to closing?"
     difficulty: 2
     expected_sql: "SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') ORDER BY expected_close_date ASC"
-    expected_answer: "Beta Tech is in Negotiation stage. Acme upgrade and Crown Foods renewal are in Proposal stage."
+    expected_answer: "Delta Health renewal ($22K) is overdue with expected close of Sep 2025. Next closest are Acme upgrade ($15K, Proposal, Feb 8), Crown Foods renewal ($18K, Proposal, Feb 13), and Beta Tech new business ($32K, Negotiation, Mar 1) which is the highest-value open deal."
     expected_action: true
 
   - text: "What stages have the most deals?"
     difficulty: 2
     expected_sql: "SELECT stage, COUNT(*) AS deal_count FROM opportunities GROUP BY stage ORDER BY deal_count DESC"
-    expected_answer: "Qualified has the most deals, followed by Discovery and Proposal stages."
+    expected_answer: "Qualified has the most open deals (4): Acme renewal, Delta renewal, Fusion upsell, Crown expansion. Discovery has 3: Beta addon, Delta expand, Harbor new. Proposal has 2: Acme upgrade and Crown renewal. Negotiation has 1: Beta Tech new business. New has 1: Eastern Travel trial."
     expected_action: true
 
   - text: "Who owns the most pipeline value?"
     difficulty: 2
     expected_sql: "SELECT owner, SUM(amount) AS total_value FROM opportunities WHERE stage NOT IN ('Closed Won', 'Closed Lost') GROUP BY owner ORDER BY total_value DESC"
-    expected_answer: "jsmith owns the most pipeline value across multiple deals."
+    expected_answer: "jsmith owns the most pipeline value at approximately $83K across 5 deals (Acme upgrade, Acme renewal, Crown renewal, Fusion upsell, Crown expansion). ljones follows with $40K (Beta Tech new, Beta addon), amartin with $37K (Delta renewal, Delta expansion), and mmalik with $34K (Harbor new, Eastern trial)."
     expected_action: true
 
   - text: "Which renewals are at risk?"
     difficulty: 2
     expected_sql: "SELECT * FROM companies WHERE health_status LIKE '%at-risk%' AND renewal_date IS NOT NULL"
-    expected_answer: "Delta Health and Crown Foods renewals are at risk based on their health status."
+    expected_answer: "Two renewals are at risk. Delta Health (renewal Feb 15, at-risk-renewal-soon) has HIPAA audit logging concerns and needs board approval for expansion. Crown Foods (renewal Feb 14, at-risk-renewal-soon) has mobile app performance concerns despite strong product adoption. Combined at-risk renewal value is approximately $40K."
     expected_action: true
 
   - text: "What's the total renewal value at stake?"
     difficulty: 2
     expected_sql: "SELECT SUM(amount) FROM opportunities WHERE type = 'Renewal' AND stage NOT IN ('Closed Won', 'Closed Lost')"
-    expected_answer: "Open renewal opportunities total approximately $64K across Acme, Delta Health, and Crown Foods."
+    expected_answer: "Open renewal opportunities total approximately $64K: Acme ($24K), Delta Health ($22K), and Crown Foods ($18K). At-risk renewals account for $40K (Delta $22K + Crown $18K)."
     expected_action: true
 
   - text: "What's the history with Crown Foods?"
     difficulty: 2
     expected_sql: "SELECT * FROM history h JOIN companies c ON h.company_id = c.company_id WHERE c.name = 'Crown Foods'"
-    expected_answer: "Crown Foods history includes renewal planning, integration support, user feedback, and mobile app escalation."
+    expected_answer: "Crown Foods has 5 interaction records. Maria Silva confirmed a 2-year renewal commitment. Key wins include 60% reduction in report generation time and IT team satisfaction with API flexibility. Nina Foster's analytics team is expanding use cases. Integration support was provided for API troubleshooting."
     expected_action: true
 
   - text: "Who is the decision maker at Delta Health?"
     difficulty: 2
     expected_sql: "SELECT * FROM contacts c JOIN companies co ON c.company_id = co.company_id WHERE co.name = 'Delta Health Clinics' AND c.role = 'Decision Maker'"
-    expected_answer: "Erin Cho is the decision maker at Delta Health. She is the Clinic Director."
+    expected_answer: "Erin Cho is the decision maker at Delta Health. She is the Clinic Director and champions expansion but needs board approval."
     expected_action: true
 
   - text: "What deals does Delta Health have?"
     difficulty: 2
     expected_sql: "SELECT o.* FROM opportunities o JOIN companies c ON o.company_id = c.company_id WHERE c.name = 'Delta Health Clinics'"
-    expected_answer: "Delta Health has a renewal ($22K) and an expansion ($15K) deal."
+    expected_answer: "Delta Health has two open deals: a renewal ($22K, Qualified, overdue) and an expansion ($15K, Discovery) for 3 additional clinic locations. The expansion depends on the renewal completing first."
     expected_action: true
 
   - text: "What's the interaction history with Delta Health?"
     difficulty: 2
     expected_sql: "SELECT * FROM history h JOIN companies c ON h.company_id = c.company_id WHERE c.name = 'Delta Health Clinics'"
-    expected_answer: "Delta Health interactions include usage reviews, training sessions, renewal discussions, and support escalations."
+    expected_answer: "Delta Health has 6 interaction records. Recent risk assessment flags the renewal as AT RISK with low usage in 3 of 5 clinics, a competitor demo scheduled, and open support tickets on reporting. Despite this, expansion to 3 additional clinics is possible if the renewal is secured. Erin Cho is championing internally."
     expected_action: true
 
   # =============================================================================

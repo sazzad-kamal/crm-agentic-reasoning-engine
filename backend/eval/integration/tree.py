@@ -4,16 +4,12 @@ from __future__ import annotations
 
 import logging
 from functools import cache
-from pathlib import Path
 
 import networkx as nx
-import yaml
 
 from backend.agent.followup.tree import get_graph, get_starters
 
 logger = logging.getLogger(__name__)
-
-_EVAL_FIXTURES_PATH = Path(__file__).parent / "fixtures"
 
 
 # --- Expected fixtures ---
@@ -21,14 +17,17 @@ _EVAL_FIXTURES_PATH = Path(__file__).parent / "fixtures"
 
 @cache
 def _load_expected() -> dict[str, dict]:
-    """Load expected fixtures (cached)."""
-    filepath = _EVAL_FIXTURES_PATH / "expected.yaml"
+    """Load expected fixtures from shared questions (cached)."""
+    from backend.eval.answer.shared.loader import load_questions
+
     try:
-        with open(filepath, encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-            return data if data else {}
+        questions = load_questions()
+        return {
+            q.text: {"answer": q.expected_answer or None, "action": q.expected_action}
+            for q in questions
+        }
     except Exception as e:
-        logger.warning(f"Failed to load expected.yaml: {e}")
+        logger.warning(f"Failed to load questions: {e}")
         return {}
 
 

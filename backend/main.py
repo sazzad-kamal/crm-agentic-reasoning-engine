@@ -1,7 +1,9 @@
 """FastAPI backend for the CRM AI Companion."""
 
+import base64
 import logging
 import os
+import secrets
 import time
 import uuid
 from collections.abc import AsyncGenerator, Callable
@@ -12,7 +14,7 @@ from typing import Any
 from dotenv import load_dotenv
 from fastapi import APIRouter, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -24,6 +26,8 @@ from backend.api.data import router as data_router
 # Configuration
 APP_NAME = "Acme CRM AI Companion API"
 CORS_ORIGINS = os.getenv("ACME_CORS_ORIGINS", "http://localhost:5173").split(",")
+AUTH_USER = os.getenv("AUTH_USER", "")
+AUTH_PASS = os.getenv("AUTH_PASS", "")
 
 # Logging setup
 logging.basicConfig(
@@ -37,9 +41,48 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    logger.info(f"Starting {APP_NAME}")
+    auth_status = "enabled" if AUTH_USER and AUTH_PASS else "disabled (no AUTH_USER/AUTH_PASS)"
+    logger.info(f"Starting {APP_NAME} — auth {auth_status}")
     yield
     logger.info("Shutting down...")
+
+
+class BasicAuthMiddleware(BaseHTTPMiddleware):
+    """HTTP Basic Auth — only active when AUTH_USER and AUTH_PASS are set."""
+
+    REALM = 'Basic realm="Acme CRM AI"'
+    EXEMPT_PATHS = {"/api/health"}
+
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Any]) -> Response:
+        if request.url.path in self.EXEMPT_PATHS:
+            return await call_next(request)
+
+        header = request.headers.get("authorization", "")
+        if not header:
+            return PlainTextResponse(
+                "Authentication required",
+                status_code=401,
+                headers={"WWW-Authenticate": self.REALM},
+            )
+
+        parts = header.split(" ", 1)
+        if len(parts) != 2 or parts[0] != "Basic":
+            return PlainTextResponse("Invalid auth format", status_code=401)
+
+        try:
+            decoded = base64.b64decode(parts[1]).decode()
+            user, password = decoded.split(":", 1)
+        except Exception:
+            return PlainTextResponse("Invalid auth format", status_code=401)
+
+        if secrets.compare_digest(user, AUTH_USER) and secrets.compare_digest(password, AUTH_PASS):
+            return await call_next(request)
+
+        return PlainTextResponse(
+            "Invalid credentials",
+            status_code=401,
+            headers={"WWW-Authenticate": self.REALM},
+        )
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
@@ -70,8 +113,10 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=CORS_ORIGINS,
         allow_methods=["GET", "POST"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "Authorization"],
     )
+    if AUTH_USER and AUTH_PASS:
+        app.add_middleware(BasicAuthMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
 
     router = APIRouter(prefix="/api")

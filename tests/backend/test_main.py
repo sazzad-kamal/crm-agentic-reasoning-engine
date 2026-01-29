@@ -119,3 +119,76 @@ class TestMiddlewareConfiguration:
         response = client.get("/api/data/companies")
 
         assert "x-response-time" in response.headers
+
+
+# =============================================================================
+# Basic Auth Middleware Tests
+# =============================================================================
+
+
+class TestBasicAuth:
+    """Tests for HTTP Basic Auth middleware."""
+
+    def test_no_auth_required_when_env_vars_unset(self, monkeypatch):
+        """Without AUTH_USER/AUTH_PASS, all requests pass through."""
+        monkeypatch.setattr("backend.main.AUTH_USER", "")
+        monkeypatch.setattr("backend.main.AUTH_PASS", "")
+        from backend.main import create_app
+
+        client = TestClient(create_app())
+        response = client.get("/api/health")
+        assert response.status_code == 200
+
+    def test_health_exempt_from_auth(self, monkeypatch):
+        """Health endpoint is always accessible, even with auth enabled."""
+        monkeypatch.setattr("backend.main.AUTH_USER", "admin")
+        monkeypatch.setattr("backend.main.AUTH_PASS", "secret")
+        from backend.main import create_app
+
+        client = TestClient(create_app())
+        response = client.get("/api/health")
+        assert response.status_code == 200
+
+    def test_auth_required_returns_401(self, monkeypatch):
+        """Requests without credentials return 401."""
+        monkeypatch.setattr("backend.main.AUTH_USER", "admin")
+        monkeypatch.setattr("backend.main.AUTH_PASS", "secret")
+        from backend.main import create_app
+
+        client = TestClient(create_app())
+        response = client.get("/api/data/companies")
+        assert response.status_code == 401
+        assert "WWW-Authenticate" in response.headers
+
+    def test_valid_credentials_pass(self, monkeypatch):
+        """Correct credentials allow access."""
+        monkeypatch.setattr("backend.main.AUTH_USER", "admin")
+        monkeypatch.setattr("backend.main.AUTH_PASS", "secret")
+        from backend.main import create_app
+
+        client = TestClient(create_app())
+        response = client.get("/api/data/companies", auth=("admin", "secret"))
+        assert response.status_code == 200
+
+    def test_invalid_credentials_rejected(self, monkeypatch):
+        """Wrong credentials return 401."""
+        monkeypatch.setattr("backend.main.AUTH_USER", "admin")
+        monkeypatch.setattr("backend.main.AUTH_PASS", "secret")
+        from backend.main import create_app
+
+        client = TestClient(create_app())
+        response = client.get("/api/data/companies", auth=("admin", "wrong"))
+        assert response.status_code == 401
+
+    def test_invalid_auth_format_rejected(self, monkeypatch):
+        """Non-Basic auth scheme returns 401."""
+        monkeypatch.setattr("backend.main.AUTH_USER", "admin")
+        monkeypatch.setattr("backend.main.AUTH_PASS", "secret")
+        from backend.main import create_app
+
+        client = TestClient(create_app())
+        response = client.get(
+            "/api/data/companies",
+            headers={"Authorization": "Bearer some-token"},
+        )
+        assert response.status_code == 401

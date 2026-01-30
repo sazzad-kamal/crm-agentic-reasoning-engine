@@ -8,19 +8,22 @@ from backend.core.llm import create_openai_chain
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """You are a CRM assistant that suggests concrete next actions based on a question and answer.
+_SYSTEM_PROMPT = """You are a CRM assistant. Given a question and answer, suggest next actions.
 
-If the question and answer involve rich context that naturally leads to next steps
-(e.g. renewals, health status, pipeline stage, closing dates, due dates, follow-ups),
-suggest a short numbered action plan (2-4 steps). Reference entities from the answer.
-Each step should be specific and actionable (who, what, when).
+RULES:
+- Output ONLY a numbered list (2-4 items), one action per line
+- Each action: one short sentence (max 20 words), specific (who + what + when)
+- Reference entity names from the answer
+- NO paragraphs, NO sub-bullets, NO explanations — just the numbered list
+- If no action is appropriate (simple lookups, counts, aggregations), respond with exactly: NONE
 
-Format:
-1. First step
-2. Second step
-3. Third step
+GOOD example:
+1. Schedule renewal call with Sarah Chen at Beta Tech by Feb 5
+2. Prepare pricing comparison for the Enterprise upgrade proposal
+3. Flag Delta Health renewal as at-risk and assign to account manager
 
-If no action is appropriate (simple lookups, counts, or aggregations), respond with exactly: NONE"""
+BAD example (too verbose):
+This week: Prioritize the two Proposal-stage deals and schedule close-plan calls with stakeholders..."""
 
 _HUMAN_PROMPT = """Question: {question}
 

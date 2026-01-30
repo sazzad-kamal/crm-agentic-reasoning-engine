@@ -12,9 +12,9 @@ export function SuggestedActions({ action }: SuggestedActionsProps) {
     <div
       className="suggested-actions"
       role="complementary"
-      aria-label="Suggested action"
+      aria-label="Suggested actions"
     >
-      <span className="suggested-actions__label">Suggested action:</span>
+      <span className="suggested-actions__label">Suggested actions:</span>
       <MarkdownText text={action} className="suggested-actions__content" />
     </div>
   );

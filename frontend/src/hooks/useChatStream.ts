@@ -223,11 +223,14 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
 
           for (const event of events) {
             switch (event.type) {
-              case "data_ready":
-                accumulatedSqlResults = event.data.sql_results as RawData;
+              case "data_ready": {
+                const rawData = event.data.sql_results as RawData | undefined;
+                // Only set sql_results if it contains actual data (hide empty data section)
+                accumulatedSqlResults = rawData && Object.keys(rawData).length > 0 ? rawData : undefined;
                 sectionStatus.data = "done";
                 updateMessage();
                 break;
+              }
 
               case "answer_chunk":
                 accumulatedAnswer += event.data.chunk as string;

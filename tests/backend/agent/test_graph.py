@@ -12,7 +12,9 @@ import pytest
 # Set mock mode
 os.environ["MOCK_LLM"] = "1"
 
-from backend.agent.graph import agent_graph, build_thread_config
+from langgraph.graph import END
+
+from backend.agent.graph import ACTION_NODE, FOLLOWUP_NODE, _route_after_answer, agent_graph, build_thread_config
 
 
 def _invoke_agent(question: str, session_id: str | None = None) -> dict:
@@ -29,6 +31,34 @@ class TestGraphConstruction:
         """Test that agent_graph is a compiled graph."""
         assert agent_graph is not None
         assert hasattr(agent_graph, "invoke")
+
+
+class TestRouteAfterAnswer:
+    """Tests for _route_after_answer conditional routing."""
+
+    def test_routes_to_action_and_followup_when_data_present(self):
+        """Fan out to action+followup when sql_results has data."""
+        state = {"sql_results": {"data": [{"id": 1}]}}
+        result = _route_after_answer(state)
+        assert result == [ACTION_NODE, FOLLOWUP_NODE]
+
+    def test_routes_to_end_when_no_data(self):
+        """Skip action+followup when sql_results is empty."""
+        state = {"sql_results": {}}
+        result = _route_after_answer(state)
+        assert result == END
+
+    def test_routes_to_end_when_sql_results_missing(self):
+        """Skip action+followup when sql_results key is missing."""
+        state = {}
+        result = _route_after_answer(state)
+        assert result == END
+
+    def test_routes_to_end_when_data_is_empty_list(self):
+        """Skip action+followup when data key exists but is empty."""
+        state = {"sql_results": {"data": []}}
+        result = _route_after_answer(state)
+        assert result == END
 
 
 # =============================================================================

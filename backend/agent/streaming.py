@@ -5,6 +5,7 @@ import logging
 from collections.abc import AsyncGenerator
 from typing import Any
 
+from backend.agent.followup.tree.loader import get_starters
 from backend.agent.graph import (
     ACTION_NODE,
     ANSWER_NODE,
@@ -79,9 +80,16 @@ async def stream_agent(question: str, session_id: str | None = None) -> AsyncGen
                 try:
                     output = e.get("data", {}).get("output") or {}
                     if name == FETCH_NODE:
+                        sql_results = output.get("sql_results", {})
                         yield _format_sse(StreamEvent.DATA_READY, {
-                            "sql_results": output.get("sql_results", {}),
+                            "sql_results": sql_results,
                         })
+                        # No data → action+followup nodes skipped; resolve skeletons immediately
+                        if not sql_results.get("data"):
+                            yield _format_sse(StreamEvent.ACTION_READY, {"suggested_action": None})
+                            yield _format_sse(StreamEvent.FOLLOWUP_READY, {
+                                "follow_up_suggestions": get_starters(),
+                            })
                     elif name == ACTION_NODE:
                         yield _format_sse(StreamEvent.ACTION_READY, {
                             "suggested_action": output.get("suggested_action"),

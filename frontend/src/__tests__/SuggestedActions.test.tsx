@@ -12,7 +12,7 @@ describe("SuggestedActions", () => {
   it("renders the label", () => {
     render(<SuggestedActions action="Review pipeline" />);
 
-    expect(screen.getByText("Suggested action:")).toBeInTheDocument();
+    expect(screen.getByText("Suggested actions:")).toBeInTheDocument();
   });
 
   it("has complementary role", () => {
@@ -25,7 +25,7 @@ describe("SuggestedActions", () => {
     render(<SuggestedActions action="Test action" />);
 
     const element = screen.getByRole("complementary");
-    expect(element).toHaveAttribute("aria-label", "Suggested action");
+    expect(element).toHaveAttribute("aria-label", "Suggested actions");
   });
 
   it("renders with correct class names", () => {
@@ -33,6 +33,6 @@ describe("SuggestedActions", () => {
 
     expect(container.querySelector(".suggested-actions")).toBeInTheDocument();
     expect(container.querySelector(".suggested-actions__label")).toBeInTheDocument();
-    expect(container.querySelector(".suggested-actions__item")).toBeInTheDocument();
+    expect(container.querySelector(".suggested-actions__content")).toBeInTheDocument();
   });
 });

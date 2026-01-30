@@ -32,6 +32,14 @@ def build_thread_config(session_id: str | None) -> RunnableConfig:
     return {"configurable": {"thread_id": session_id or str(uuid.uuid4())}}
 
 
+def _route_after_answer(state: AgentState) -> list[str] | str:
+    """Route after answer: skip action+followup when no data was fetched."""
+    sql_results = state.get("sql_results", {})
+    if sql_results.get("data"):
+        return [ACTION_NODE, FOLLOWUP_NODE]
+    return END
+
+
 def _build_graph():
     """Build and compile the LangGraph workflow."""
     graph = StateGraph(AgentState)
@@ -45,11 +53,12 @@ def _build_graph():
     # Entry point
     graph.set_entry_point(FETCH_NODE)
 
-    # Flow: fetch → answer → [action, followup] → END (parallel fan-out)
+    # Flow: fetch → answer → [action, followup] → END
+    # When no data: fetch → answer → END (skip action+followup)
     graph.add_edge(FETCH_NODE, ANSWER_NODE)
     graph.add_conditional_edges(
         ANSWER_NODE,
-        lambda _: [ACTION_NODE, FOLLOWUP_NODE],
+        _route_after_answer,
     )
     graph.add_edge(ACTION_NODE, END)
     graph.add_edge(FOLLOWUP_NODE, END)
@@ -59,4 +68,4 @@ def _build_graph():
 
 agent_graph = _build_graph()
 
-__all__ = ["agent_graph", "build_thread_config", "LangGraphEvent", "GRAPH_NAME", "FETCH_NODE", "ANSWER_NODE", "ACTION_NODE", "FOLLOWUP_NODE"]
+__all__ = ["agent_graph", "build_thread_config", "LangGraphEvent", "GRAPH_NAME", "FETCH_NODE", "ANSWER_NODE", "ACTION_NODE", "FOLLOWUP_NODE", "_route_after_answer"]

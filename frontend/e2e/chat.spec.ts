@@ -13,7 +13,7 @@ test.describe('Chat Application', () => {
   });
 
   test('has correct title and header', async ({ page }) => {
-    await expect(page).toHaveTitle(/Helios CRM/i);
+    await expect(page).toHaveTitle(/Acme CRM/i);
     await expect(page.locator('header')).toBeVisible();
   });
 

@@ -453,7 +453,7 @@ test.describe('Starter Questions', () => {
   });
 
   test('empty state disappears after sending starter question', async ({ page }) => {
-    const welcomeText = page.getByText('Welcome to Helios CRM AI');
+    const welcomeText = page.getByText('Welcome to Acme CRM AI');
     await expect(welcomeText).toBeVisible();
 
     const firstButton = page.locator('.suggestion-btn').first();
@@ -475,9 +475,9 @@ test.describe('Document Title', () => {
     await page.goto('/');
   });
 
-  test('initial title contains Helios CRM', async ({ page }) => {
+  test('initial title contains Acme CRM', async ({ page }) => {
     const title = await page.title();
-    expect(title).toMatch(/Helios CRM/i);
+    expect(title).toMatch(/Acme CRM/i);
   });
 
   test('title changes during loading', async ({ page }) => {
@@ -489,7 +489,7 @@ test.describe('Document Title', () => {
     // Wait briefly for state update
     await expect(page.locator('.skeleton-answer')).toBeVisible({ timeout: 5000 });
     const loadingTitle = await page.title();
-    expect(loadingTitle).toMatch(/thinking|loading|helios crm/i);
+    expect(loadingTitle).toMatch(/thinking|loading|acme crm/i);
   });
 
   test('title updates after receiving response', async ({ page }) => {
@@ -497,7 +497,7 @@ test.describe('Document Title', () => {
 
     const title = await page.title();
     // Title should reflect that there are messages
-    expect(title).toMatch(/\(1\)|Helios CRM/i);
+    expect(title).toMatch(/\(1\)|Acme CRM/i);
   });
 });
 

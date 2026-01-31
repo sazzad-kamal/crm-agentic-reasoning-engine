@@ -111,7 +111,7 @@ function EmptyState({ onSuggestionClick }: EmptyStateProps) {
       </div>
 
       <h2 className="empty-state__heading">
-        Welcome to Helios CRM AI
+        Welcome to Acme CRM AI
       </h2>
       
       <p className="empty-state__description">

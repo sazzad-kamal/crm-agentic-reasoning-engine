@@ -39,7 +39,7 @@ describe("ChatArea", () => {
   it("renders empty state when no messages", () => {
     render(<ChatArea {...defaultProps} />);
 
-    expect(screen.getByText("Welcome to Helios CRM AI")).toBeInTheDocument();
+    expect(screen.getByText("Welcome to Acme CRM AI")).toBeInTheDocument();
   });
 
   it("renders empty state description", () => {
@@ -103,7 +103,7 @@ describe("ChatArea", () => {
 
     render(<ChatArea {...defaultProps} messages={messages} />);
 
-    expect(screen.queryByText("Welcome to Helios CRM AI")).not.toBeInTheDocument();
+    expect(screen.queryByText("Welcome to Acme CRM AI")).not.toBeInTheDocument();
     expect(screen.getByTestId("message-msg1")).toBeInTheDocument();
   });
 
@@ -252,7 +252,7 @@ describe("ChatArea", () => {
   it("handles transition from empty to messages", () => {
     const { rerender } = render(<ChatArea {...defaultProps} messages={[]} />);
 
-    expect(screen.getByText("Welcome to Helios CRM AI")).toBeInTheDocument();
+    expect(screen.getByText("Welcome to Acme CRM AI")).toBeInTheDocument();
 
     const messages: ChatMessage[] = [
       {
@@ -265,7 +265,7 @@ describe("ChatArea", () => {
 
     rerender(<ChatArea {...defaultProps} messages={messages} />);
 
-    expect(screen.queryByText("Welcome to Helios CRM AI")).not.toBeInTheDocument();
+    expect(screen.queryByText("Welcome to Acme CRM AI")).not.toBeInTheDocument();
     expect(screen.getByTestId("message-msg1")).toBeInTheDocument();
   });
 
@@ -286,7 +286,7 @@ describe("ChatArea", () => {
     rerender(<ChatArea {...defaultProps} messages={[]} />);
 
     expect(screen.queryByTestId("message-msg1")).not.toBeInTheDocument();
-    expect(screen.getByText("Welcome to Helios CRM AI")).toBeInTheDocument();
+    expect(screen.getByText("Welcome to Acme CRM AI")).toBeInTheDocument();
   });
 
   it("handles messages with duplicate IDs gracefully", () => {

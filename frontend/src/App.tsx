@@ -12,7 +12,7 @@ import {
 import "./styles/index.css";
 
 /**
- * Helios CRM AI Companion - Main Application
+ * Acme CRM AI Companion - Main Application
  *
  * A conversational interface for querying CRM data using natural language.
  * Features:
@@ -113,10 +113,10 @@ export default function App() {
   // Update document title based on state
   useEffect(() => {
     const pageTitle = isLoading
-      ? "Thinking... | Helios CRM AI"
+      ? "Thinking... | Acme CRM AI"
       : messages.length > 0
-        ? `${messages.length} messages | Helios CRM AI`
-        : "Helios CRM AI Companion";
+        ? `${messages.length} messages | Acme CRM AI`
+        : "Acme CRM AI Companion";
 
     document.title = pageTitle;
   }, [isLoading, messages.length]);
@@ -143,7 +143,7 @@ export default function App() {
               </svg>
             </div>
             <div className="header__text">
-              <h1 className="header__title">Helios CRM AI Companion</h1>
+              <h1 className="header__title">Acme CRM AI Companion</h1>
               <p className="header__subtitle">
                 Your AI assistant for accounts, deals, tasks, and contacts.
               </p>

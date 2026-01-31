@@ -14,7 +14,7 @@ if (AUTH_USER && AUTH_PASS) {
   app.use((req, res, next) => {
     const header = req.headers.authorization;
     if (!header) {
-      res.setHeader("WWW-Authenticate", 'Basic realm="Helios CRM AI"');
+      res.setHeader("WWW-Authenticate", 'Basic realm="Acme CRM AI"');
       return res.status(401).send("Authentication required");
     }
 
@@ -28,7 +28,7 @@ if (AUTH_USER && AUTH_PASS) {
       return next();
     }
 
-    res.setHeader("WWW-Authenticate", 'Basic realm="Helios CRM AI"');
+    res.setHeader("WWW-Authenticate", 'Basic realm="Acme CRM AI"');
     return res.status(401).send("Invalid credentials");
   });
 }

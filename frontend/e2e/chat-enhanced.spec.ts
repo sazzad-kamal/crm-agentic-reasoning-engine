@@ -338,7 +338,7 @@ test.describe('Chat - Visual States', () => {
     const chatArea = page.locator('.chat-area, [role="log"]');
     await expect(chatArea).toBeVisible();
 
-    const welcomeText = page.getByText('Welcome to Helios CRM AI');
+    const welcomeText = page.getByText('Welcome to Acme CRM AI');
     await expect(welcomeText).toBeVisible();
   });
 });

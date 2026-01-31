@@ -201,7 +201,7 @@ class TestPrintSummary:
 
         captured = capsys.readouterr()
         assert "FAIL" in captured.out
-        assert "All Cases" in captured.out
+        assert "Failed Cases" in captured.out
 
     def test_print_summary_with_error_case(self, capsys):
         """Test print_summary with a failed case that has errors."""

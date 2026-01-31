@@ -15,13 +15,18 @@ from backend.eval.followup.models import (
 class FollowupJudgeResult(BaseModel):
     """Result from the followup judge."""
 
-    question_relevance: float = Field(description="0-1: Are suggestions related to the original question topic?")
-    answer_grounding: float = Field(description="0-1: Do suggestions mention specific names from the answer (e.g. 'Enterprise Upgrade', 'Acme Corp')?")
-    diversity: float = Field(description="0-1: Do suggestions cover different angles/topics?")
+    question_relevance: float = Field(description="0-1: Do suggestions stay within the same CRM topic as the original question?")
+    answer_grounding: float = Field(description="0-1: Do suggestions build on specific details from the answer to surface new information?")
+    diversity: float = Field(description="0-1: Do suggestions cover different angles/topics from each other?")
     explanation: str = Field(description="Brief reasoning")
 
 
-_SYSTEM_PROMPT = """Evaluate follow-up question suggestions for a CRM assistant."""
+_SYSTEM_PROMPT = """Evaluate follow-up question suggestions for a CRM assistant.
+
+Score each dimension 0.0 to 1.0:
+1. Question Relevance: Do suggestions stay within the same CRM topic as the original question (e.g. deals, contacts, activities)?
+2. Answer Grounding: Do suggestions build on specific details from the answer to surface new information? Score high when they reference entities from the answer AND explore a new angle (e.g. after a pipeline summary, "What's the close plan for the Beta Tech deal?"). Score low if they restate what was already covered or could be asked without seeing the answer.
+3. Diversity: Do suggestions cover different angles/topics from each other?"""
 
 _HUMAN_PROMPT = """Question: {question}
 Answer: {answer}

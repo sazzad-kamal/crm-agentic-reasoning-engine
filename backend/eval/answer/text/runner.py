@@ -91,18 +91,25 @@ def print_summary(results: TextEvalResults) -> None:
         f"({results.ragas_success_rate * 100:.1f}%)"
     )
 
-    # All cases
-    print(f"\nAll Cases ({len(results.cases)})\n")
-    for i, c in enumerate(results.cases, 1):
-        status = "PASS" if c.passed else "FAIL"
-        print(f"{i}. [{status}] {c.question}")
-        if c.errors:
+    # Error cases
+    error_cases = [c for c in results.cases if c.errors]
+    if error_cases:
+        print(f"\nError Cases ({len(error_cases)})\n")
+        for i, c in enumerate(error_cases, 1):
+            print(f"{i}. {c.question[:60]}")
             print(f"   Error: {'; '.join(c.errors)}")
-        else:
+            print()
+
+    # Failed cases (non-error)
+    failed = [c for c in results.cases if not c.passed and not c.errors]
+    if failed:
+        print(f"\nFailed Cases ({len(failed)})\n")
+        for i, c in enumerate(failed, 1):
+            print(f"{i}. {c.question}")
             print(f"   Correctness: {c.answer_correctness_score:.2f}, Relevancy: {c.answer_relevancy_score:.2f}, Faithfulness: {c.faithfulness_score:.2f}")
-        if c.answer:
-            print(f"   Answer: {c.answer}")
-        print()
+            if c.answer:
+                print(f"   Answer: {c.answer}")
+            print()
 
 
 def main(

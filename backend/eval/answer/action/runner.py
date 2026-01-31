@@ -105,26 +105,34 @@ def print_summary(results: ActionEvalResults) -> None:
     if results.error_count > 0:
         print(f"  Errors:                      {results.error_count} failed")
 
-    # All cases
-    print(f"\nAll Cases ({len(results.cases)})\n")
-    for i, c in enumerate(results.cases, 1):
-        status = "PASS" if c.action_passed and not c.errors else "FAIL"
-        print(f"{i}. [{status}] {c.question}")
-        if c.errors:
+    # Error cases
+    error_cases = [c for c in results.cases if c.errors]
+    if error_cases:
+        print(f"\nError Cases ({len(error_cases)})\n")
+        for i, c in enumerate(error_cases, 1):
+            print(f"{i}. {c.question[:60]}")
             print(f"   Error: {'; '.join(c.errors)}")
-        if c.answer:
-            print(f"   Answer: {c.answer}")
-        if c.suggested_action:
-            print(f"   Action: {c.suggested_action}")
-            if c.relevance or c.actionability or c.appropriateness:
-                print(f"   Scores: rel={c.relevance:.2f} act={c.actionability:.2f} app={c.appropriateness:.2f}")
-            if c.explanation:
-                print(f"   Judge: {c.explanation}")
-        elif c.expected_action:
-            print("   Action: (none produced - expected)")
-        else:
-            print("   Action: (none - not expected)")
-        print()
+            print()
+
+    # Failed cases (non-error)
+    failed = [c for c in results.cases if not c.action_passed and not c.errors]
+    if failed:
+        print(f"\nFailed Cases ({len(failed)})\n")
+        for i, c in enumerate(failed, 1):
+            print(f"{i}. {c.question}")
+            if c.answer:
+                print(f"   Answer: {c.answer}")
+            if c.suggested_action:
+                print(f"   Action: {c.suggested_action}")
+                if c.relevance or c.actionability or c.appropriateness:
+                    print(f"   Scores: rel={c.relevance:.2f} act={c.actionability:.2f} app={c.appropriateness:.2f}")
+                if c.explanation:
+                    print(f"   Judge: {c.explanation}")
+            elif c.expected_action:
+                print("   Action: (none produced - expected)")
+            else:
+                print("   Action: (none - not expected)")
+            print()
 
 
 def main(

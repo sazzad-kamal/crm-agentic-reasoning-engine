@@ -358,7 +358,7 @@ class TestPrintSummary:
 
         captured = capsys.readouterr()
         assert "FAIL" in captured.out
-        assert "All Cases" in captured.out
+        assert "Failed Cases" in captured.out
         assert "Answer: Answer" in captured.out
         assert "Judge: Action is too generic" in captured.out
 
@@ -435,7 +435,7 @@ class TestPrintSummary:
         print_summary(results)
 
         captured = capsys.readouterr()
-        assert "All Cases (1)" in captured.out
+        assert "Error Cases (1)" in captured.out
         assert "Error: SQL timeout; Connection failed" in captured.out
 
     def test_print_summary_error_count_in_breakdown(self, capsys):

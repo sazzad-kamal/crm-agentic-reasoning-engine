@@ -12,7 +12,7 @@ class ActionJudgeResult(BaseModel):
     """Result from the action judge."""
 
     relevance: float = Field(description="0-1: Does action relate to question/answer?")
-    actionability: float = Field(description="0-1: Is it specific and executable?")
+    actionability: float = Field(description="0-1: Is it specific enough to execute and drive immediate progress (who + what + when)?")
     appropriateness: float = Field(description="0-1: Is it sensible for CRM context?")
     explanation: str = Field(description="Brief reasoning")
 
@@ -23,7 +23,7 @@ Context: The assistant answers CRM questions and optionally suggests a next acti
 
 Score each dimension 0.0 to 1.0:
 1. Relevance: Does the action relate to the question and answer?
-2. Actionability: Is it specific enough to execute? Be strict — vague actions like "follow up" should score low.
+2. Actionability: Is it specific enough to execute and drive immediate progress? Score high when the action names who should act, what to do, and by when (e.g. "Schedule renewal call with Sarah Chen at Beta Tech by Feb 5"). Score low for vague actions like "follow up" with no owner or timeline.
 3. Appropriateness: Is it sensible given CRM best practices?"""
 
 _HUMAN_PROMPT = """Question: {question}

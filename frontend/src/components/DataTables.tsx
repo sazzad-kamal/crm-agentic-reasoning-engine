@@ -259,7 +259,11 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
           )}
 
           {/* Generic Data Table (raw query results) */}
-          {rawData.data && rawData.data.length > 0 && (
+          {rawData.data && rawData.data.length > 0 && (() => {
+            const HIDDEN_COLS = new Set(["notes", "closed_date", "created_at", "updated_at"]);
+            const isVisible = (k: string) =>
+              !k.startsWith("_") && !k.endsWith("_id") && !HIDDEN_COLS.has(k);
+            return (
             <div role="region" aria-label="Query results" data-type="data">
               <h4 className="data-table__title" id="generic-table-label">
                 <span className="data-table__icon">📄</span>
@@ -268,7 +272,7 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
               <table className="data-table" aria-labelledby="generic-table-label">
                 <thead>
                   <tr>
-                    {Object.keys(rawData.data[0]).filter(k => !k.startsWith("_")).map((col) => (
+                    {Object.keys(rawData.data[0]).filter(isVisible).map((col) => (
                       <th key={col} scope="col">{col.replace(/_/g, " ")}</th>
                     ))}
                   </tr>
@@ -276,7 +280,7 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
                 <tbody>
                   {rawData.data.map((row, idx) => (
                     <tr key={idx}>
-                      {Object.entries(row).filter(([k]) => !k.startsWith("_")).map(([key, val]) => (
+                      {Object.entries(row).filter(([k]) => isVisible(k)).map(([key, val]) => (
                         <td key={key}>{String(val ?? "—")}</td>
                       ))}
                     </tr>
@@ -284,7 +288,8 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
                 </tbody>
               </table>
             </div>
-          )}
+            );
+          })()}
         </div>
       )}
     </section>

@@ -260,7 +260,7 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
 
           {/* Generic Data Table (raw query results) */}
           {rawData.data && rawData.data.length > 0 && (() => {
-            const HIDDEN_COLS = new Set(["notes", "closed_date", "created_at", "updated_at"]);
+            const HIDDEN_COLS = new Set(["notes", "closed_date", "created_at", "updated_at", "currency", "probability", "source"]);
             const isVisible = (k: string) =>
               !k.startsWith("_") && !k.endsWith("_id") && !HIDDEN_COLS.has(k);
             return (

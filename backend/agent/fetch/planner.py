@@ -30,7 +30,7 @@ Today: {today}
 - "Pipeline" = opportunities NOT IN ('Closed Won', 'Closed Lost')
 - Use CURRENT_DATE for relative date calculations, never hardcode dates
 - Only use columns that exist in the schema
-- CRITICAL: Only filter by values the user is asking to filter by, not contextual references
+- Resolve pronouns ("their", "them", "this company") using conversation history before building the query
 - No exclusion filters (NOT IN, IS NOT NULL) unless asked
 - CRITICAL: Minimal JOINs - query only the primary table unless a JOIN is essential for the answer
 - Use INNER JOIN by default; LEFT JOIN only for optional relationships

@@ -74,7 +74,10 @@ Q: "What tasks are due this week?"
 SELECT * FROM activities WHERE due_date >= date_trunc('week', CURRENT_DATE) AND due_date < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days' AND status = 'Open'
 
 Q: "What meetings are coming up?"
-SELECT * FROM activities WHERE type = 'Meeting' AND status = 'Open' ORDER BY due_date"""
+SELECT * FROM activities WHERE type = 'Meeting' AND status = 'Open' ORDER BY due_date
+
+Q: "Any upcoming activity with their key contact?" (conversation context: Crown Foods)
+SELECT a.*, c.first_name, c.last_name, c.role FROM activities a INNER JOIN contacts c ON a.contact_id = c.contact_id WHERE a.company_id = (SELECT company_id FROM companies WHERE name = 'Crown Foods') AND c.role = 'Decision Maker' AND a.status = 'Open' ORDER BY a.due_date"""
 
 _HUMAN_PROMPT = """User's question: {question}
 

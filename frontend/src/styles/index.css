@@ -1452,6 +1452,16 @@ body {
 [data-type="renewals"] .data-table__title { color: var(--color-success); }
 [data-type="renewals"] .data-table { border-left: 3px solid var(--color-success); }
 
+/* Grouped source tables (from UNION ALL cross-table queries) */
+[data-type="company"] .data-table__title { color: var(--color-success); }
+[data-type="company"] .data-table { border-left: 3px solid var(--color-success); }
+
+[data-type="opportunity"] .data-table__title { color: var(--color-warning); }
+[data-type="opportunity"] .data-table { border-left: 3px solid var(--color-warning); }
+
+[data-type="activity"] .data-table__title { color: var(--color-info); }
+[data-type="activity"] .data-table { border-left: 3px solid var(--color-info); }
+
 [data-type="pipeline"] .data-table__title { color: var(--color-primary); }
 [data-type="pipeline"] .data-table { border-left: 3px solid var(--color-primary); }
 

@@ -270,10 +270,10 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
             if (hasSourceColumn) {
               // Group rows by source for separate tables with proper column labels
               const SOURCE_CONFIG: Record<string, { title: string; icon: string; columns: { key: string; label: string }[] }> = {
-                company:     { title: "Company",      icon: "🏢", columns: [{ key: "name", label: "Name" }, { key: "plan", label: "Plan" }, { key: "status", label: "Status" }, { key: "health_status", label: "Health" }, { key: "key_date", label: "Renewal Date" }] },
-                opportunity: { title: "Opportunities", icon: "💰", columns: [{ key: "name", label: "Name" }, { key: "plan", label: "Stage" }, { key: "status", label: "Type" }, { key: "health_status", label: "Value" }, { key: "key_date", label: "Close Date" }] },
-                activity:    { title: "Activities",    icon: "📋", columns: [{ key: "name", label: "Type" }, { key: "plan", label: "Subject" }, { key: "status", label: "Status" }, { key: "health_status", label: "Priority" }, { key: "key_date", label: "Due Date" }] },
-                history:     { title: "History",       icon: "📜", columns: [{ key: "name", label: "Type" }, { key: "plan", label: "Subject" }, { key: "key_date", label: "Date" }] },
+                company:     { title: "Company",      icon: "🏢", columns: [{ key: "name", label: "Name" }, { key: "plan", label: "Plan" }, { key: "status", label: "Status" }, { key: "health_status", label: "Health" }, { key: "key_date", label: "Renewal Date" }, { key: "notes", label: "Notes" }] },
+                opportunity: { title: "Opportunities", icon: "💰", columns: [{ key: "name", label: "Name" }, { key: "plan", label: "Stage" }, { key: "status", label: "Type" }, { key: "health_status", label: "Value" }, { key: "key_date", label: "Close Date" }, { key: "notes", label: "Notes" }] },
+                activity:    { title: "Activities",    icon: "📋", columns: [{ key: "name", label: "Type" }, { key: "plan", label: "Subject" }, { key: "status", label: "Status" }, { key: "health_status", label: "Priority" }, { key: "key_date", label: "Due Date" }, { key: "notes", label: "Notes" }] },
+                history:     { title: "History",       icon: "📜", columns: [{ key: "name", label: "Type" }, { key: "plan", label: "Subject" }, { key: "key_date", label: "Date" }, { key: "notes", label: "Notes" }] },
               };
 
               const grouped = new Map<string, Record<string, unknown>[]>();
@@ -306,9 +306,13 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
                           <tbody>
                             {rows.map((row, idx) => (
                               <tr key={idx}>
-                                {config.columns.map((col) => (
-                                  <td key={col.key}>{String(row[col.key] ?? "—")}</td>
-                                ))}
+                                {config.columns.map((col) => {
+                                  const raw = String(row[col.key] ?? "—");
+                                  if (col.key === "notes" && raw.length > 80) {
+                                    return <td key={col.key} title={raw}>{raw.slice(0, 80)}…</td>;
+                                  }
+                                  return <td key={col.key}>{raw}</td>;
+                                })}
                               </tr>
                             ))}
                           </tbody>

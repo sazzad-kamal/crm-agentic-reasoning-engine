@@ -1,7 +1,7 @@
 # Demo Cheatsheet — Keystroke Meeting (Monday Feb 3, 2:30 PM, Toronto)
 
 ## OPEN
-"Pulls from all relevant tables per question. Answers CRM questions in plain English."
+"Ask any CRM question in plain English, get an answer with next steps."
 
 ## ACT 1: Sales Pipeline
 

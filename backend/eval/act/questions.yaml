@@ -19,7 +19,7 @@ questions:
     expected_min_rows: 1
     loading_message: "Finding items that need attention..."
 
-  - text: "Catch me up"
-    expected_action: true
+  - text: "How is my pipeline looking?"
+    expected_action: false
     expected_min_rows: 1
-    loading_message: "Gathering recent activity..."
+    loading_message: "Analyzing your sales pipeline..."

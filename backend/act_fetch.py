@@ -29,7 +29,7 @@ DEMO_STARTERS = [
     "What's coming up?",
     "Who should I contact next?",
     "What needs attention?",
-    "Catch me up",
+    "How is my pipeline looking?",
 ]
 
 # Token cache
@@ -148,20 +148,22 @@ def act_fetch(question: str) -> dict[str, Any]:
 
     try:
         if q == "Brief me on my next call":
-            # Fetch next scheduled activity (meeting/call) that hasn't been cleared
+            # Fetch next upcoming activity (future, not cleared)
+            now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             data = _get("/api/activities", {
                 "$top": 5,
                 "$orderby": "startTime asc",
-                "$filter": "isCleared eq false",
+                "$filter": f"startTime ge {now} and isCleared eq false",
             })
             return {"data": data, "error": None}
 
         elif q == "What's coming up?":
-            # Fetch upcoming activities (not cleared, ordered by start time)
+            # Fetch upcoming activities (future, not cleared)
+            now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             data = _get("/api/activities", {
-                "$filter": "isCleared eq false",
+                "$filter": f"startTime ge {now} and isCleared eq false",
                 "$orderby": "startTime asc",
-                "$top": 5,
+                "$top": 10,
             })
             return {"data": data, "error": None}
 
@@ -183,11 +185,11 @@ def act_fetch(question: str) -> dict[str, Any]:
             })
             return {"data": data, "error": None}
 
-        elif q == "Catch me up":
-            # Fetch recent activities ordered by edit time
-            data = _get("/api/activities", {
+        elif q == "How is my pipeline looking?":
+            # Fetch open opportunities sorted by probability (highest first)
+            data = _get("/api/opportunities", {
                 "$top": 10,
-                "$orderby": "edited desc",
+                "$orderby": "probability desc",
             })
             return {"data": data, "error": None}
 

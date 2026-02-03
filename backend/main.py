@@ -43,7 +43,8 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     auth_status = "enabled" if AUTH_USER and AUTH_PASS else "disabled (no AUTH_USER/AUTH_PASS)"
-    logger.info(f"Starting {APP_NAME} — auth {auth_status}")
+    demo_status = f"enabled (db={ACT_API_DB})" if DEMO_MODE else "disabled"
+    logger.info(f"Starting {APP_NAME} — auth {auth_status}, demo mode {demo_status}")
     yield
     logger.info("Shutting down...")
 

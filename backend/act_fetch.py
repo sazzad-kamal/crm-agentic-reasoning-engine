@@ -71,16 +71,22 @@ def _auth() -> str:
             timeout=TIMEOUT,
         )
         resp.raise_for_status()
-        data = resp.json()
 
-        # Token might be in different fields depending on API version
-        token = data.get("token") or data.get("access_token") or data.get("Token")
-        if not token:
-            # If response is a string, it might be the token itself
-            if isinstance(data, str):
-                token = data
-            else:
-                raise ValueError(f"No token in auth response: {data}")
+        # API returns JWT token as raw text, not JSON
+        text = resp.text.strip()
+
+        # Check if it's a JWT (starts with eyJ)
+        if text.startswith("eyJ"):
+            token = text
+        else:
+            # Try JSON format as fallback
+            try:
+                data = resp.json()
+                token = data.get("token") or data.get("access_token") or data.get("Token")
+                if not token:
+                    raise ValueError(f"No token in auth response: {data}")
+            except Exception:
+                raise ValueError(f"Unexpected auth response format: {text[:100]}") from None
 
         _token = token
         # Set expiry (default 1 hour, adjust based on actual API)
@@ -142,53 +148,46 @@ def act_fetch(question: str) -> dict[str, Any]:
 
     try:
         if q == "Brief me on my next call":
-            # Fetch next scheduled activity (meeting/call)
-            data = _get("/api/calendar", {
-                "$top": 1,
-                "$orderby": "startDateTime asc",
-                "$filter": "startDateTime ge now()",
+            # Fetch next scheduled activity (meeting/call) that hasn't been cleared
+            data = _get("/api/activities", {
+                "$top": 5,
+                "$orderby": "startTime asc",
+                "$filter": "isCleared eq false",
             })
-            # If calendar doesn't work, try activities
-            if not data:
-                data = _get("/api/activities", {
-                    "$top": 1,
-                    "$orderby": "startDate asc",
-                    "$filter": "isCompleted eq false",
-                })
             return {"data": data, "error": None}
 
         elif q == "What should I focus on today?":
             # Fetch today's activities/tasks
             today = time.strftime("%Y-%m-%d")
             data = _get("/api/activities", {
-                "$filter": f"startDate ge {today}T00:00:00Z and startDate lt {today}T23:59:59Z",
-                "$orderby": "startDate asc",
+                "$filter": f"startTime ge {today}T00:00:00Z and startTime lt {today}T23:59:59Z",
+                "$orderby": "startTime asc",
                 "$top": 10,
             })
             return {"data": data, "error": None}
 
         elif q == "Who should I contact next?":
-            # Fetch contacts that haven't been contacted recently
+            # Fetch contacts ordered by last edit (proxy for needing follow-up)
             data = _get("/api/contacts", {
-                "$orderby": "lastContact asc",
+                "$orderby": "edited asc",
                 "$top": 5,
             })
             return {"data": data, "error": None}
 
         elif q == "What's urgent?":
-            # Fetch high-priority or overdue items
+            # Fetch high-priority activities that aren't cleared
             data = _get("/api/activities", {
-                "$filter": "priority eq 'High' or isOverdue eq true",
-                "$orderby": "dueDate asc",
+                "$filter": "activityPriorityName eq 'High' and isCleared eq false",
+                "$orderby": "startTime asc",
                 "$top": 10,
             })
             return {"data": data, "error": None}
 
         elif q == "Catch me up":
-            # Fetch recent activity across all entities
+            # Fetch recent activities ordered by edit time
             data = _get("/api/activities", {
                 "$top": 10,
-                "$orderby": "lastModified desc",
+                "$orderby": "edited desc",
             })
             return {"data": data, "error": None}
 

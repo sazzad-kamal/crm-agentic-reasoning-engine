@@ -4,14 +4,13 @@ Run with: python -m backend.eval.act.discover_schema
 """
 
 import json
-import os
 import sys
 from pathlib import Path
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from backend.act_fetch import _auth, _get, ACT_API_URL, set_database
+from backend.act_fetch import ACT_API_URL, _auth, _get
 
 
 def discover_endpoint_schema(endpoint: str, params: dict | None = None) -> dict:
@@ -73,7 +72,10 @@ def main():
         return
 
     # Endpoints to discover
-    endpoints = [
+    import time
+    today = time.strftime("%Y-%m-%d", time.gmtime())
+
+    endpoints: list[tuple[str, dict[str, str | int]]] = [
         ("/api/contacts", {"$top": 5}),
         ("/api/opportunities", {"$top": 5}),
         ("/api/activities", {"$top": 5}),
@@ -81,12 +83,8 @@ def main():
         ("/api/companies", {"$top": 5}),
         ("/api/groups", {"$top": 5}),
         ("/api/notes", {"$top": 5}),
+        ("/api/calendar", {"startDate": today, "$top": 5}),
     ]
-
-    # Also try calendar with date range
-    import time
-    today = time.strftime("%Y-%m-%d", time.gmtime())
-    endpoints.append(("/api/calendar", {"startDate": today, "$top": 5}))
 
     results = {}
 
@@ -118,7 +116,7 @@ def main():
     for endpoint, result in results.items():
         if result.get("fields"):
             schema_text += f"### {endpoint}\n"
-            schema_text += f"Fields:\n"
+            schema_text += "Fields:\n"
             for field, info in result["fields"].items():
                 schema_text += f"- {field} ({info['type']})\n"
             schema_text += "\n"

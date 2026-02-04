@@ -194,16 +194,19 @@ export default function App() {
 
             {/* Database dropdown for demo mode */}
             {isDemoMode && (
-              <select
-                className="header__database-select"
-                value={currentDatabase}
-                onChange={(e) => handleDatabaseChange(e.target.value)}
-                aria-label="Select database"
-              >
-                {DATABASES.map((db) => (
-                  <option key={db} value={db}>{db}</option>
-                ))}
-              </select>
+              <div className="header__database">
+                <span className="header__database-label">Database:</span>
+                <select
+                  className="header__database-select"
+                  value={currentDatabase}
+                  onChange={(e) => handleDatabaseChange(e.target.value)}
+                  aria-label="Select database"
+                >
+                  {DATABASES.map((db) => (
+                    <option key={db} value={db}>{db}</option>
+                  ))}
+                </select>
+              </div>
             )}
 
             {/* Browse Data button - hidden in demo mode */}

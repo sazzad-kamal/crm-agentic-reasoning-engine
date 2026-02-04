@@ -286,9 +286,10 @@ def act_fetch(question: str) -> dict[str, Any]:
             return {"data": {"overdue_activities": overdue, "stale_opportunities": stale_opps}, "error": None}
 
         elif q == "What deals are closing soon?":
-            # Fetch opportunities sorted by close date
+            # Fetch opportunities sorted by estimated close date
+            # Real schema: estimatedCloseDate (not closeDate)
             data = _get("/api/opportunities", {
-                "$orderby": "closeDate asc",
+                "$orderby": "estimatedCloseDate asc",
                 "$top": 15,
             })
             return {"data": data, "error": None}

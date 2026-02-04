@@ -55,6 +55,7 @@ interface HistoryEntry {
 }
 
 export interface RawData {
+  // Legacy SQL mode entities
   companies?: Company[];
   activities?: Activity[];
   opportunities?: Opportunity[];
@@ -71,6 +72,8 @@ export interface RawData {
     stages: Record<string, number>;
   };
   data?: Record<string, unknown>[];
+  // Demo mode: allow any additional entity groups (dynamic keys)
+  [key: string]: unknown;
 }
 
 export interface ChatResponse {

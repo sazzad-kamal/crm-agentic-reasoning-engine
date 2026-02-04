@@ -57,7 +57,7 @@ describe("App", () => {
 
   it("renders the header", () => {
     render(<App />);
-    expect(screen.getByRole("heading", { name: /Acme CRM AI Companion/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: /Acme AI Companion/i })).toBeInTheDocument();
   });
 
   it("renders example prompts in empty state", () => {
@@ -412,7 +412,7 @@ describe("App", () => {
     fireEvent.submit(input.closest("form")!);
 
     await waitFor(() => {
-      expect(document.title).toBe("Thinking... | Acme CRM AI");
+      expect(document.title).toBe("Thinking... | Acme AI Companion");
     });
   });
 
@@ -442,8 +442,198 @@ describe("App", () => {
     fireEvent.submit(input.closest("form")!);
 
     await waitFor(() => {
-      expect(document.title).toContain("messages | Acme CRM AI");
+      expect(document.title).toContain("messages | Acme AI Companion");
     });
   });
 
+});
+
+describe("App - Demo Mode", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
+  it("shows database selector in demo mode", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/info")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ mode: "act", database: "KQC", username: "John" }),
+        });
+      }
+      if (url.includes("/api/data/")) {
+        return Promise.resolve(mockDataResponse);
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/select database/i)).toBeInTheDocument();
+    });
+  });
+
+  it("shows welcome message with username in demo mode", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/info")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ mode: "act", database: "KQC", username: "JohnDoe" }),
+        });
+      }
+      if (url.includes("/api/data/")) {
+        return Promise.resolve(mockDataResponse);
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Welcome, JohnDoe/i)).toBeInTheDocument();
+    });
+  });
+
+  it("hides input bar in demo mode", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/info")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ mode: "act", database: "KQC", username: "John" }),
+        });
+      }
+      if (url.includes("/api/data/")) {
+        return Promise.resolve(mockDataResponse);
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/select database/i)).toBeInTheDocument();
+    });
+
+    // Input bar should not be present in demo mode
+    expect(screen.queryByPlaceholderText(/Ask a question/i)).not.toBeInTheDocument();
+  });
+
+  it("hides Browse Data button in demo mode", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/info")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ mode: "act", database: "KQC", username: "John" }),
+        });
+      }
+      if (url.includes("/api/data/")) {
+        return Promise.resolve(mockDataResponse);
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/select database/i)).toBeInTheDocument();
+    });
+
+    // Browse Data button should not be present in demo mode
+    expect(screen.queryByRole("button", { name: /browse crm data/i })).not.toBeInTheDocument();
+  });
+
+  it("calls API to change database when select changes", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/info")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ mode: "act", database: "KQC", username: "John" }),
+        });
+      }
+      if (url.includes("/chat/database")) {
+        return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+      if (url.includes("/api/data/")) {
+        return Promise.resolve(mockDataResponse);
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/select database/i)).toBeInTheDocument();
+    });
+
+    const select = screen.getByLabelText(/select database/i);
+    fireEvent.change(select, { target: { value: "W31322003119" } });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/chat/database"),
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ database: "W31322003119" }),
+        })
+      );
+    });
+  });
+
+  it("handles database change API error gracefully", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/info")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ mode: "act", database: "KQC", username: "John" }),
+        });
+      }
+      if (url.includes("/chat/database")) {
+        return Promise.reject(new Error("Network error"));
+      }
+      if (url.includes("/api/data/")) {
+        return Promise.resolve(mockDataResponse);
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/select database/i)).toBeInTheDocument();
+    });
+
+    const select = screen.getByLabelText(/select database/i);
+    fireEvent.change(select, { target: { value: "W31322003119" } });
+
+    await waitFor(() => {
+      expect(consoleError).toHaveBeenCalledWith("Failed to switch database:", expect.any(Error));
+    });
+
+    consoleError.mockRestore();
+  });
+
+  it("sets initial database from API response", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/info")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ mode: "act", database: "W31322003119", username: "John" }),
+        });
+      }
+      if (url.includes("/api/data/")) {
+        return Promise.resolve(mockDataResponse);
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      const select = screen.getByLabelText(/select database/i) as HTMLSelectElement;
+      expect(select.value).toBe("W31322003119");
+    });
+  });
 });

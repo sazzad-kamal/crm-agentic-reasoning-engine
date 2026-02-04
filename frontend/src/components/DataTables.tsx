@@ -15,27 +15,218 @@ function createActivationHandler<T extends HTMLElement>(
   };
 }
 
+// Keys handled by legacy tables or internal (skip in dynamic rendering)
+const LEGACY_KEYS = new Set([
+  "companies", "activities", "opportunities", "history", "renewals",
+  "pipeline_summary", "data"
+]);
+const SKIP_KEYS = new Set(["duckdb", "error"]);
+
+// Friendly labels for known demo mode keys
+const KEY_LABELS: Record<string, string> = {
+  today_meetings: "Today's Meetings",
+  recent_history: "Recent History",
+  open_opportunities: "Open Opportunities",
+  overdue_followups: "Overdue Follow-ups",
+  forecast_30d: "30-Day Forecast",
+  forecast_60d: "60-Day Forecast",
+  forecast_90d: "90-Day Forecast",
+  slipped_deals: "Slipped Deals",
+  at_risk_deals: "At-Risk Deals",
+  expand: "Expand (High Engagement)",
+  save: "Save (At Risk)",
+  reactivate: "Re-activate",
+  relationship_analysis: "Relationship Analysis",
+  total_pipeline: "Total Pipeline",
+  total_weighted: "Weighted Pipeline",
+  at_risk_pct: "At-Risk %",
+  no_date_count: "Missing Close Date",
+};
+
+// Icons for entity groups
+const KEY_ICONS: Record<string, string> = {
+  today_meetings: "📅",
+  recent_history: "📜",
+  open_opportunities: "💰",
+  overdue_followups: "⚠️",
+  forecast_30d: "📊",
+  forecast_60d: "📊",
+  forecast_90d: "📊",
+  slipped_deals: "⏰",
+  at_risk_deals: "🚨",
+  expand: "📈",
+  save: "🛡️",
+  reactivate: "🔄",
+  relationship_analysis: "🤝",
+};
+
+/** Format snake_case key to Title Case */
+function formatKey(key: string): string {
+  if (KEY_LABELS[key]) return KEY_LABELS[key];
+  return key
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Get icon for key */
+function getIcon(key: string): string {
+  return KEY_ICONS[key] || "📄";
+}
+
+/** Check if value is an array */
+function isArray(val: unknown): val is unknown[] {
+  return Array.isArray(val);
+}
+
+/** Check if value is an object (not array, not null) */
+function isObject(val: unknown): val is Record<string, unknown> {
+  return val !== null && typeof val === "object" && !Array.isArray(val);
+}
+
+/** Check if key should be hidden in table columns */
+function isHiddenColumn(key: string): boolean {
+  if (key.startsWith("_")) return true;
+  if (key.endsWith("Id") || key.endsWith("ID")) return true;
+  if (key === "id" || key === "duckdb") return true;
+  return false;
+}
+
+/** Format cell value for display */
+function formatCellValue(val: unknown, key: string): string {
+  if (val === null || val === undefined) return "—";
+  if (typeof val === "number") {
+    // Format currency-like fields
+    if (key.includes("value") || key.includes("pipeline") || key.includes("weighted") || key === "productTotal") {
+      return formatCurrency(val);
+    }
+    // Format percentage
+    if (key.includes("pct") || key.includes("probability")) {
+      return `${val}%`;
+    }
+    return String(val);
+  }
+  if (typeof val === "boolean") return val ? "Yes" : "No";
+  if (typeof val === "string") {
+    // Try to detect and format dates
+    if (/^\d{4}-\d{2}-\d{2}/.test(val)) {
+      return formatDate(val);
+    }
+    return val || "—";
+  }
+  if (isArray(val)) return `${val.length} items`;
+  if (isObject(val)) return "[Object]";
+  return String(val);
+}
+
+/** Render a generic table from array of objects */
+function GenericTable({ data, labelId }: { data: Record<string, unknown>[]; labelId: string }) {
+  if (!data.length) return null;
+
+  // Get visible columns from first row
+  const columns = Object.keys(data[0]).filter(k => !isHiddenColumn(k));
+  if (!columns.length) return null;
+
+  return (
+    <table className="data-table" aria-labelledby={labelId}>
+      <thead>
+        <tr>
+          {columns.map((col) => (
+            <th key={col} scope="col">{formatKey(col)}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {data.map((row, idx) => (
+          <tr key={idx}>
+            {columns.map((col) => {
+              const val = formatCellValue(row[col], col);
+              // Truncate long text
+              if (val.length > 80) {
+                return <td key={col} title={val}>{val.slice(0, 80)}…</td>;
+              }
+              return <td key={col}>{val}</td>;
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** Render scalar metrics as key-value pairs */
+function ScalarMetrics({ metrics }: { metrics: [string, unknown][] }) {
+  return (
+    <table className="data-table data-table--metrics">
+      <tbody>
+        {metrics.map(([key, val]) => (
+          <tr key={key}>
+            <th scope="row">{formatKey(key)}</th>
+            <td>{formatCellValue(val, key)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 interface DataTablesProps {
   rawData: RawData;
 }
 
 /**
  * Collapsible data tables showing raw CRM data.
+ * Supports both legacy SQL mode entities and dynamic demo mode entity groups.
  * Memoized for performance with large datasets.
  */
 export const DataTables = memo(function DataTables({ rawData }: DataTablesProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const hasData = useMemo(
+  // Separate dynamic keys from legacy keys
+  const { dynamicEntries, scalarMetrics } = useMemo(() => {
+    const entries: [string, unknown][] = [];
+    const scalars: [string, unknown][] = [];
+
+    for (const [key, val] of Object.entries(rawData)) {
+      if (LEGACY_KEYS.has(key) || SKIP_KEYS.has(key) || key.startsWith("_")) continue;
+
+      if (isArray(val) && val.length > 0) {
+        entries.push([key, val]);
+      } else if (isObject(val)) {
+        // Object with nested data (like forecast_30d with deals[])
+        const nested = val as Record<string, unknown>;
+        // Check for deals array inside
+        if (isArray(nested.deals) && nested.deals.length > 0) {
+          entries.push([key, nested.deals]);
+        }
+        // Collect scalar summaries from the object
+        for (const [k, v] of Object.entries(nested)) {
+          if (k !== "deals" && typeof v === "number") {
+            scalars.push([`${key}_${k}`, v]);
+          }
+        }
+      } else if (typeof val === "number" || typeof val === "string") {
+        // Scalar value (total_pipeline, at_risk_pct, etc.)
+        scalars.push([key, val]);
+      }
+    }
+
+    return { dynamicEntries: entries, scalarMetrics: scalars };
+  }, [rawData]);
+
+  const hasLegacyData = useMemo(
     () =>
       (rawData.companies && rawData.companies.length > 0) ||
       (rawData.activities && rawData.activities.length > 0) ||
       (rawData.opportunities && rawData.opportunities.length > 0) ||
       (rawData.history && rawData.history.length > 0) ||
       (rawData.renewals && rawData.renewals.length > 0) ||
-      (rawData.data && rawData.data.length > 0),
+      (rawData.data && rawData.data.length > 0) ||
+      rawData.pipeline_summary,
     [rawData]
   );
+
+  const hasDynamicData = dynamicEntries.length > 0 || scalarMetrics.length > 0;
+  const hasData = hasLegacyData || hasDynamicData;
 
   const toggleExpanded = useCallback(() => {
     setExpanded((prev) => !prev);
@@ -46,18 +237,31 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
     [toggleExpanded]
   );
 
-  // Build list of present data types with icons (must be before early return for hooks rules)
+  // Build list of present data types for preview badges
   const presentDataTypes = useMemo(() => {
-    const types: { key: string; icon: string; count: number }[] = [];
-    if (rawData.companies?.length) types.push({ key: "companies", icon: "🏢", count: rawData.companies.length });
-    if (rawData.activities?.length) types.push({ key: "activities", icon: "📋", count: rawData.activities.length });
-    if (rawData.opportunities?.length) types.push({ key: "opportunities", icon: "💰", count: rawData.opportunities.length });
-    if (rawData.history?.length) types.push({ key: "history", icon: "📜", count: rawData.history.length });
-    if (rawData.renewals?.length) types.push({ key: "renewals", icon: "🔄", count: rawData.renewals.length });
-    if (rawData.pipeline_summary) types.push({ key: "pipeline", icon: "📊", count: 1 });
-    if (rawData.data?.length) types.push({ key: "records", icon: "📄", count: rawData.data.length });
+    const types: { key: string; label: string; count: number }[] = [];
+
+    // Legacy types
+    if (rawData.companies?.length) types.push({ key: "companies", label: "companies", count: rawData.companies.length });
+    if (rawData.activities?.length) types.push({ key: "activities", label: "activities", count: rawData.activities.length });
+    if (rawData.opportunities?.length) types.push({ key: "opportunities", label: "opportunities", count: rawData.opportunities.length });
+    if (rawData.history?.length) types.push({ key: "history", label: "history", count: rawData.history.length });
+    if (rawData.renewals?.length) types.push({ key: "renewals", label: "renewals", count: rawData.renewals.length });
+    if (rawData.pipeline_summary) types.push({ key: "pipeline", label: "pipeline", count: 1 });
+    if (rawData.data?.length) types.push({ key: "data", label: "records", count: rawData.data.length });
+
+    // Dynamic types
+    for (const [key, val] of dynamicEntries) {
+      const arr = val as unknown[];
+      types.push({ key, label: formatKey(key), count: arr.length });
+    }
+
+    if (scalarMetrics.length > 0) {
+      types.push({ key: "metrics", label: "metrics", count: scalarMetrics.length });
+    }
+
     return types;
-  }, [rawData]);
+  }, [rawData, dynamicEntries, scalarMetrics]);
 
   if (!hasData) return null;
 
@@ -76,12 +280,15 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
       >
         <span className="data-section__arrow" aria-hidden="true">{expanded ? "▼" : "▶"}</span>
         <span className="data-section__label">Data used</span>
-        <span className="data-section__preview" aria-label={`Contains ${presentDataTypes.map(t => `${t.count} ${t.key}`).join(", ")}`}>
-          {presentDataTypes.map((type) => (
-            <span key={type.key} className="data-section__preview-badge" title={`${type.key} (${type.count})`}>
-              {type.count} {type.key}
+        <span className="data-section__preview" aria-label={`Contains ${presentDataTypes.map(t => `${t.count} ${t.label}`).join(", ")}`}>
+          {presentDataTypes.slice(0, 4).map((type) => (
+            <span key={type.key} className="data-section__preview-badge" title={`${type.label} (${type.count})`}>
+              {type.count} {type.label}
             </span>
           ))}
+          {presentDataTypes.length > 4 && (
+            <span className="data-section__preview-badge">+{presentDataTypes.length - 4} more</span>
+          )}
         </span>
       </button>
 
@@ -92,6 +299,40 @@ export const DataTables = memo(function DataTables({ rawData }: DataTablesProps)
           role="region"
           aria-label="Data tables"
         >
+          {/* ============================================================= */}
+          {/* Dynamic Entity Groups (Demo Mode) */}
+          {/* ============================================================= */}
+
+          {/* Scalar Metrics Summary */}
+          {scalarMetrics.length > 0 && (
+            <div role="region" aria-label="Summary metrics" data-type="metrics">
+              <h4 className="data-table__title" id="metrics-table-label">
+                <span className="data-table__icon">📊</span>
+                Summary Metrics
+              </h4>
+              <ScalarMetrics metrics={scalarMetrics} />
+            </div>
+          )}
+
+          {/* Dynamic Array Tables */}
+          {dynamicEntries.map(([key, val]) => {
+            const arr = val as Record<string, unknown>[];
+            const labelId = `dynamic-${key}-table-label`;
+            return (
+              <div key={key} role="region" aria-label={`${formatKey(key)} data`} data-type={key}>
+                <h4 className="data-table__title" id={labelId}>
+                  <span className="data-table__icon">{getIcon(key)}</span>
+                  {formatKey(key)} ({arr.length})
+                </h4>
+                <GenericTable data={arr} labelId={labelId} />
+              </div>
+            );
+          })}
+
+          {/* ============================================================= */}
+          {/* Legacy Tables (SQL Mode) */}
+          {/* ============================================================= */}
+
           {/* Companies Table */}
           {rawData.companies && rawData.companies.length > 0 && (
             <div role="region" aria-label="Companies data" data-type="companies">

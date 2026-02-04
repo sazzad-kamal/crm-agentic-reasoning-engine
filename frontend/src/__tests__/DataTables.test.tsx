@@ -680,4 +680,338 @@ describe("DataTables", () => {
     const table = region.querySelector("table");
     expect(table).toHaveAttribute("aria-labelledby", "grouped-company-table-label");
   });
+
+  // =========================================================================
+  // Dynamic Entity Groups (Demo Mode)
+  // =========================================================================
+
+  it("renders dynamic array entities from demo mode", () => {
+    const rawData: RawData = {
+      today_meetings: [
+        { name: "Call with John", time: "10:00 AM" },
+        { name: "Team standup", time: "9:00 AM" },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByText("Today's Meetings (2)")).toBeInTheDocument();
+    expect(screen.getByText("Call with John")).toBeInTheDocument();
+    expect(screen.getByText("Team standup")).toBeInTheDocument();
+  });
+
+  it("renders scalar metrics from demo mode", () => {
+    const rawData: RawData = {
+      total_pipeline: 500000,
+      at_risk_pct: 15.5,
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByText("Summary Metrics")).toBeInTheDocument();
+    expect(screen.getByText("Total Pipeline")).toBeInTheDocument();
+    expect(screen.getByText("At-Risk %")).toBeInTheDocument();
+  });
+
+  it("renders nested forecast object with deals array", () => {
+    const rawData: RawData = {
+      forecast_30d: {
+        deals: [
+          { name: "Deal A", value: 10000 },
+          { name: "Deal B", value: 20000 },
+        ],
+        weighted: 25000,
+        count: 2,
+      },
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    // Should show the deals array as a table
+    expect(screen.getByText("30-Day Forecast (2)")).toBeInTheDocument();
+    expect(screen.getByText("Deal A")).toBeInTheDocument();
+    expect(screen.getByText("Deal B")).toBeInTheDocument();
+
+    // Should show numeric summaries as metrics
+    expect(screen.getByText("Summary Metrics")).toBeInTheDocument();
+  });
+
+  it("renders at-risk deals with proper formatting", () => {
+    const rawData: RawData = {
+      at_risk_deals: [
+        { name: "Stalled Deal", risk_reason: "Stalled", value: 50000, probability: 60 },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByText("At-Risk Deals (1)")).toBeInTheDocument();
+    expect(screen.getByText("Stalled Deal")).toBeInTheDocument();
+    expect(screen.getByText("Stalled")).toBeInTheDocument();
+    expect(screen.getByText(/\$50,000/)).toBeInTheDocument();
+    expect(screen.getByText("60%")).toBeInTheDocument();
+  });
+
+  it("renders relationship analysis", () => {
+    const rawData: RawData = {
+      relationship_analysis: [
+        { opp: "Big Deal", engaged: 3, single_threaded: false },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByText("Relationship Analysis (1)")).toBeInTheDocument();
+    expect(screen.getByText("Big Deal")).toBeInTheDocument();
+    expect(screen.getByText("No")).toBeInTheDocument(); // boolean false
+  });
+
+  it("renders expand/save/reactivate categories", () => {
+    const rawData: RawData = {
+      expand: [{ name: "Growth Co", pipeline: 100000 }],
+      save: [{ name: "At Risk Co", pipeline: 50000 }],
+      reactivate: [{ name: "Dormant Co", last: "2023-01-01" }],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByText("Expand (High Engagement) (1)")).toBeInTheDocument();
+    expect(screen.getByText("Save (At Risk) (1)")).toBeInTheDocument();
+    expect(screen.getByText("Re-activate (1)")).toBeInTheDocument();
+  });
+
+  it("skips _private keys and duckdb key", () => {
+    const rawData: RawData = {
+      today_meetings: [{ name: "Meeting" }],
+      duckdb: "some query",
+      _internal: [{ data: "hidden" }],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByText("Today's Meetings (1)")).toBeInTheDocument();
+    expect(screen.queryByText("duckdb")).not.toBeInTheDocument();
+    expect(screen.queryByText("some query")).not.toBeInTheDocument();
+    expect(screen.queryByText("_internal")).not.toBeInTheDocument();
+  });
+
+  it("shows +N more badge when more than 4 data types", () => {
+    const rawData: RawData = {
+      today_meetings: [{ name: "M1" }],
+      at_risk_deals: [{ name: "D1" }],
+      expand: [{ name: "E1" }],
+      save: [{ name: "S1" }],
+      reactivate: [{ name: "R1" }],
+      slipped_deals: [{ name: "SD1" }],
+    };
+
+    render(<DataTables rawData={rawData} />);
+
+    expect(screen.getByText("+2 more")).toBeInTheDocument();
+  });
+
+  // =========================================================================
+  // GenericTable cell formatting
+  // =========================================================================
+
+  it("formats currency values in dynamic tables", () => {
+    const rawData: RawData = {
+      open_opportunities: [
+        { name: "Deal", value: 75000, productTotal: 50000 },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByText(/\$75,000/)).toBeInTheDocument();
+    expect(screen.getByText(/\$50,000/)).toBeInTheDocument();
+  });
+
+  it("formats percentage values", () => {
+    const rawData: RawData = {
+      deals: [
+        { name: "Deal", probability: 75, at_risk_pct: 10 },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByText("75%")).toBeInTheDocument();
+    expect(screen.getByText("10%")).toBeInTheDocument();
+  });
+
+  it("formats date strings", () => {
+    const rawData: RawData = {
+      deals: [
+        { name: "Deal", closeDate: "2024-06-15" },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    // formatDate should transform "2024-06-15" to readable format
+    // Allow for timezone differences (Jun 14 or Jun 15)
+    expect(screen.getByText(/Jun 1[45], 2024/)).toBeInTheDocument();
+  });
+
+  it("formats boolean values as Yes/No", () => {
+    const rawData: RawData = {
+      analysis: [
+        { name: "Deal", single_threaded: true, active: false },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByText("Yes")).toBeInTheDocument();
+    expect(screen.getByText("No")).toBeInTheDocument();
+  });
+
+  it("formats arrays as item count", () => {
+    const rawData: RawData = {
+      meetings: [
+        { name: "Meeting", contacts: [{ id: 1 }, { id: 2 }, { id: 3 }] },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByText("3 items")).toBeInTheDocument();
+  });
+
+  it("formats nested objects as [Object]", () => {
+    const rawData: RawData = {
+      deals: [
+        { name: "Deal", primary_contact: { name: "John", email: "john@test.com" } },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByText("[Object]")).toBeInTheDocument();
+  });
+
+  it("truncates long text values in generic table", () => {
+    const longText = "A".repeat(100);
+    const rawData: RawData = {
+      notes: [
+        { id: "1", content: longText },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    const truncated = "A".repeat(80) + "…";
+    expect(screen.getByText(truncated)).toBeInTheDocument();
+  });
+
+  it("hides columns ending with Id or ID", () => {
+    const rawData: RawData = {
+      items: [
+        { title: "Item", companyId: "123", contactID: "456", visible: "yes" },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByText("Title")).toBeInTheDocument();
+    expect(screen.getByText("Visible")).toBeInTheDocument();
+    expect(screen.queryByText("companyId")).not.toBeInTheDocument();
+    expect(screen.queryByText("contactID")).not.toBeInTheDocument();
+  });
+
+  it("returns null for generic table with empty data array", () => {
+    const rawData: RawData = {
+      empty_array: [],
+    };
+
+    const { container } = render(<DataTables rawData={rawData} />);
+
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("handles table when all columns are hidden", () => {
+    const rawData: RawData = {
+      items: [
+        { _hidden: "value", id: "123", companyId: "456" },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+    // The header shows but no table content since all columns are hidden
+    // The GenericTable returns null when no visible columns
+    expect(screen.getByText(/Items \(1\)/)).toBeInTheDocument();
+  });
+
+  it("uses default icon for unknown entity types", () => {
+    const rawData: RawData = {
+      custom_data: [
+        { name: "Custom Item" },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    // Default icon is 📄
+    expect(screen.getByText("📄")).toBeInTheDocument();
+  });
+
+  it("formats key with underscores to Title Case", () => {
+    const rawData: RawData = {
+      my_custom_entity: [
+        { name: "Test" },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByText("My Custom Entity (1)")).toBeInTheDocument();
+  });
+
+  it("shows empty string values as em dash", () => {
+    const rawData: RawData = {
+      items: [
+        { name: "Test", description: "" },
+      ],
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    const dashes = screen.getAllByText("—");
+    expect(dashes.length).toBeGreaterThan(0);
+  });
+
+  it("handles nested object without deals array", () => {
+    const rawData: RawData = {
+      summary: {
+        total: 100,
+        average: 50,
+      },
+    };
+
+    render(<DataTables rawData={rawData} />);
+    fireEvent.click(screen.getByRole("button"));
+
+    // Should show scalar metrics from the nested object
+    expect(screen.getByText("Summary Metrics")).toBeInTheDocument();
+  });
 });

@@ -234,6 +234,39 @@ body {
   to { opacity: 1; }
 }
 
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /* -----------------------------------------------------------------------------
    Utility Classes
    ----------------------------------------------------------------------------- */
@@ -425,7 +458,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
   margin-left: auto;
 }
 
@@ -711,7 +744,16 @@ body {
   /* text flows naturally */
 }
 
-/* No entrance animation — buttons are visible immediately */
+/* Staggered entrance animation for suggestion buttons */
+.suggestion-btn {
+  animation: fadeInScale 0.3s ease-out backwards;
+}
+
+.suggestion-btn:nth-child(1) { animation-delay: 0.1s; }
+.suggestion-btn:nth-child(2) { animation-delay: 0.15s; }
+.suggestion-btn:nth-child(3) { animation-delay: 0.2s; }
+.suggestion-btn:nth-child(4) { animation-delay: 0.25s; }
+.suggestion-btn:nth-child(5) { animation-delay: 0.3s; }
 
 /* -----------------------------------------------------------------------------
    Messages
@@ -998,6 +1040,16 @@ body {
   .skeleton-followup__pill {
     animation: none;
     background: var(--color-border-light);
+  }
+
+  .message-block,
+  .suggestion-btn,
+  .follow-up-btn,
+  .follow-up-container,
+  .data-table__title,
+  .data-table,
+  .suggested-actions {
+    animation: none;
   }
 }
 
@@ -1325,7 +1377,20 @@ body {
   transform: translateY(0);
 }
 
-/* No entrance animation for follow-up buttons */
+/* Staggered entrance animation for follow-up buttons */
+.follow-up-container {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.follow-up-btn {
+  animation: fadeInScale 0.25s ease-out backwards;
+}
+
+.follow-up-btn:nth-child(1) { animation-delay: 0.05s; }
+.follow-up-btn:nth-child(2) { animation-delay: 0.1s; }
+.follow-up-btn:nth-child(3) { animation-delay: 0.15s; }
+.follow-up-btn:nth-child(4) { animation-delay: 0.2s; }
+.follow-up-btn:nth-child(5) { animation-delay: 0.25s; }
 
 /* -----------------------------------------------------------------------------
    Suggested Actions
@@ -1443,16 +1508,28 @@ body {
   color: var(--color-text);
   margin-bottom: var(--space-sm);
   margin-top: var(--space-lg);
+  animation: slideInLeft 0.25s ease-out backwards;
+  display: flex;
+  align-items: center;
 }
 
 .data-table__title:first-child {
   margin-top: 0;
 }
 
+/* Staggered animation for multiple tables */
+.data-table__title:nth-of-type(1) { animation-delay: 0s; }
+.data-table__title:nth-of-type(2) { animation-delay: 0.08s; }
+.data-table__title:nth-of-type(3) { animation-delay: 0.16s; }
+.data-table__title:nth-of-type(4) { animation-delay: 0.24s; }
+.data-table__title:nth-of-type(5) { animation-delay: 0.32s; }
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
+  animation: fadeInScale 0.3s ease-out backwards;
+  animation-delay: 0.1s;
 }
 
 .data-table th {
@@ -1468,6 +1545,7 @@ body {
   padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--color-border);
   color: var(--color-text);
+  transition: background-color var(--transition-fast);
 }
 
 .data-table tr:last-child td {
@@ -1936,6 +2014,14 @@ input:focus-visible {
 
   .header__subtitle {
     font-size: var(--font-size-sm);
+  }
+
+  .header__welcome {
+    display: none;
+  }
+
+  .header__user-info {
+    gap: 0;
   }
 
   .input-bar {

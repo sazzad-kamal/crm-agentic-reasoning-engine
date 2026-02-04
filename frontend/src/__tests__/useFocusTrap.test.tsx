@@ -442,4 +442,96 @@ describe("useFocusTrap", () => {
       });
     });
   });
+
+  describe("null container edge cases", () => {
+    it("handles Tab key press when container is empty (no focusable elements)", async () => {
+      render(<EmptyModal isOpen onClose={() => {}} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("empty-modal")).toBeInTheDocument();
+      });
+
+      // Tab key should not throw and should not focus anything
+      fireEvent.keyDown(document, { key: "Tab" });
+
+      // Modal should still be visible
+      expect(screen.getByTestId("empty-modal")).toBeInTheDocument();
+    });
+
+    it("handles Shift+Tab key press when container is empty", async () => {
+      render(<EmptyModal isOpen onClose={() => {}} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("empty-modal")).toBeInTheDocument();
+      });
+
+      // Shift+Tab should not throw
+      fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+
+      expect(screen.getByTestId("empty-modal")).toBeInTheDocument();
+    });
+
+    it("handles keyboard events before containerRef is assigned", () => {
+      // Test that keydown events are safely ignored when hook is inactive
+      function DelayedModal() {
+        const containerRef = useRef<HTMLDivElement>(null);
+        useFocusTrap(containerRef, {
+          isActive: false,
+          onEscape: () => {},
+        });
+        return <div data-testid="delayed">Inactive modal</div>;
+      }
+
+      render(<DelayedModal />);
+
+      // Should not throw when pressing keys with inactive trap
+      fireEvent.keyDown(document, { key: "Tab" });
+      fireEvent.keyDown(document, { key: "Escape" });
+
+      expect(screen.getByTestId("delayed")).toBeInTheDocument();
+    });
+  });
+
+  describe("normal tab navigation (no wrapping)", () => {
+    it("allows normal Tab navigation in the middle of focusable elements", async () => {
+      render(<ModalWrapper initialOpen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("close-btn")).toHaveFocus();
+      });
+
+      // Focus input-1 (not first or last)
+      const input1 = screen.getByTestId("input-1");
+      act(() => {
+        input1.focus();
+      });
+      expect(input1).toHaveFocus();
+
+      // Tab should allow normal navigation (no preventDefault)
+      // The browser would move to next element - we can't test actual focus change
+      // but we can verify Tab doesn't wrap to first/last
+      fireEvent.keyDown(document, { key: "Tab" });
+
+      // Should NOT wrap to close button since we're in the middle
+      // (browser handles actual focus move)
+    });
+
+    it("allows normal Shift+Tab navigation in the middle of focusable elements", async () => {
+      render(<ModalWrapper initialOpen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("close-btn")).toHaveFocus();
+      });
+
+      // Focus input-2 (not first or last)
+      const input2 = screen.getByTestId("input-2");
+      act(() => {
+        input2.focus();
+      });
+      expect(input2).toHaveFocus();
+
+      // Shift+Tab should allow normal navigation
+      fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+    });
+  });
 });

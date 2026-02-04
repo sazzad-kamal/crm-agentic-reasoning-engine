@@ -1,14 +1,17 @@
 """Action suggestion LLM chain functions."""
 
 import logging
-from functools import cache
+import os
 from typing import Any
 
 from backend.core.llm import create_openai_chain
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """You are a CRM assistant. Given a question and answer, suggest next actions.
+# Check for demo mode
+_DEMO_MODE = os.getenv("ACME_DEMO_MODE", "").lower() in ("true", "1")
+
+_SYSTEM_PROMPT_BASE = """You are a CRM assistant. Given a question and answer, suggest next actions.
 
 RULES:
 - Output ONLY a numbered list (2-4 items), one action per line
@@ -25,6 +28,37 @@ GOOD example:
 BAD example (too verbose):
 This week: Prioritize the two Proposal-stage deals and schedule close-plan calls with stakeholders..."""
 
+# Extended prompt for Act! demo mode with CRM-specific actions
+_ACT_ACTION_CONTEXT = """
+
+## Act! CRM Action Context
+When suggesting actions for Act! CRM users, focus on:
+
+### Follow-up Actions
+- Schedule calls/meetings with specific contacts
+- Send follow-up emails referencing past conversations
+- Create history entries to document interactions
+- Update contact last-reach dates
+
+### Opportunity Actions
+- Update opportunity stage or probability
+- Add notes about deal progress
+- Schedule next-step activities
+- Link additional contacts to deals
+
+### Pipeline Management
+- Flag stale opportunities for review
+- Schedule close-plan meetings for deals closing soon
+- Update estimated close dates if slipping
+- Document competitor information"""
+
+
+def _get_system_prompt() -> str:
+    """Get system prompt with optional Act! action context."""
+    if _DEMO_MODE:
+        return _SYSTEM_PROMPT_BASE + _ACT_ACTION_CONTEXT
+    return _SYSTEM_PROMPT_BASE
+
 _HUMAN_PROMPT = """Question: {question}
 
 Answer: {answer}"""
@@ -32,16 +66,15 @@ Answer: {answer}"""
 _NONE_MARKER = "NONE"
 
 
-@cache
 def _get_action_chain() -> Any:
-    """Get cached action chain."""
+    """Get action chain with optional Act! context."""
     chain = create_openai_chain(
-        system_prompt=_SYSTEM_PROMPT,
+        system_prompt=_get_system_prompt(),
         human_prompt=_HUMAN_PROMPT,
         max_tokens=500,
         streaming=True,
     )
-    logger.debug("Created action chain")
+    logger.debug("Created action chain (demo_mode=%s)", _DEMO_MODE)
     return chain
 
 

@@ -12,9 +12,6 @@ import {
 import { endpoints } from "./config";
 import "./styles/index.css";
 
-// Available databases for demo mode
-const DATABASES = ["KQC", "W31322003119"];
-
 /**
  * Acme CRM AI Companion - Main Application
  *
@@ -37,8 +34,7 @@ export default function App() {
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
 
   // Demo mode state
-  const [appInfo, setAppInfo] = useState<{ mode: "csv" | "act"; database: string | null; username: string | null } | null>(null);
-  const [currentDatabase, setCurrentDatabase] = useState<string>("KQC");
+  const [appInfo, setAppInfo] = useState<{ mode: "csv" | "act" } | null>(null);
 
   // Memoized error handler to prevent hook re-initialization
   const chatOptions = useMemo(
@@ -72,13 +68,8 @@ export default function App() {
   useEffect(() => {
     fetch(endpoints.info)
       .then((r) => r.json())
-      .then((data) => {
-        setAppInfo(data);
-        if (data.database) {
-          setCurrentDatabase(data.database);
-        }
-      })
-      .catch(() => setAppInfo({ mode: "csv", database: null, username: null }));
+      .then((data) => setAppInfo({ mode: data.mode }))
+      .catch(() => setAppInfo({ mode: "csv" }));
   }, []);
 
   // Close drawer handler (stable reference for focus trap)
@@ -134,20 +125,6 @@ export default function App() {
     setTimeout(() => inputRef.current?.focus(), 100);
   }, []);
 
-  // Handle database change (demo mode only)
-  const handleDatabaseChange = useCallback(async (database: string) => {
-    setCurrentDatabase(database);
-    try {
-      await fetch(`${endpoints.info.replace("/info", "/chat/database")}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ database }),
-      });
-    } catch (e) {
-      console.error("Failed to switch database:", e);
-    }
-  }, []);
-
   // Update document title based on state
   useEffect(() => {
     const appName = "Acme AI Companion";
@@ -187,28 +164,6 @@ export default function App() {
                 AI-powered insights for your Act! CRM
               </p>
             </div>
-
-            {/* User info section for demo mode */}
-            {isDemoMode && (
-              <div className="header__user-info">
-                {appInfo?.username && (
-                  <span className="header__welcome">Welcome, {appInfo.username}</span>
-                )}
-                <div className="header__database">
-                  <span className="header__database-label">Database:</span>
-                  <select
-                    className="header__database-select"
-                    value={currentDatabase}
-                    onChange={(e) => handleDatabaseChange(e.target.value)}
-                    aria-label="Select database"
-                  >
-                    {DATABASES.map((db) => (
-                      <option key={db} value={db}>{db}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
 
             {/* Browse Data button - hidden in demo mode */}
             {!isDemoMode && (

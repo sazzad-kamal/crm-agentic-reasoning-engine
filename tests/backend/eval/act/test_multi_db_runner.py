@@ -290,9 +290,9 @@ class TestRunMultiDbEval:
 
         summary = run_multi_db_eval()
 
-        # Should use AVAILABLE_DATABASES (6) and DEMO_STARTERS (5)
-        assert len(summary.databases) == 6
-        assert summary.total_evaluations == 30  # 6 DBs x 5 questions
+        # Should use AVAILABLE_DATABASES (2) and DEMO_STARTERS (5)
+        assert len(summary.databases) == 2
+        assert summary.total_evaluations == 10  # 2 DBs x 5 questions
 
 
 class TestPrintSummary:

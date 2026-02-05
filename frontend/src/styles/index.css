@@ -2966,3 +2966,94 @@ input:focus-visible {
     font-size: 20px;
   }
 }
+
+/* =============================================================================
+   Progress Checklist (Progressive Loading UI)
+   ============================================================================= */
+.progress-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background-color: var(--color-border-light);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-md);
+}
+
+.progress-checklist__step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+}
+
+.progress-checklist__icon {
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+}
+
+.progress-checklist__label {
+  flex: 1;
+}
+
+/* Step States */
+.progress-checklist__step--pending {
+  opacity: 0.5;
+  color: var(--color-text-muted);
+}
+
+.progress-checklist__step--done {
+  opacity: 1;
+  color: var(--color-success);
+}
+
+.progress-checklist__step--done .progress-checklist__icon {
+  color: var(--color-success);
+}
+
+.progress-checklist__step--error {
+  opacity: 1;
+  color: var(--color-error);
+}
+
+.progress-checklist__step--error .progress-checklist__icon {
+  color: var(--color-error);
+}
+
+.progress-checklist__step--cached {
+  opacity: 1;
+  color: var(--color-warning);
+}
+
+.progress-checklist__step--cached .progress-checklist__icon {
+  color: var(--color-warning);
+}
+
+/* Animation for step completion */
+@keyframes stepComplete {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.progress-checklist__step--done .progress-checklist__icon {
+  animation: stepComplete 0.2s ease-out;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .progress-checklist__step,
+  .progress-checklist__icon {
+    animation: none;
+    transition: none;
+  }
+}

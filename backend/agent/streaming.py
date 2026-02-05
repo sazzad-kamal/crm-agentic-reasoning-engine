@@ -5,6 +5,7 @@ import logging
 from collections.abc import AsyncGenerator
 from typing import Any
 
+from backend.act_fetch import QUESTION_STEPS
 from backend.agent.followup.tree.loader import get_starters
 from backend.agent.graph import (
     ACTION_NODE,
@@ -22,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 
 class StreamEvent:
+    FETCH_START = "fetch_start"  # Sent when fetch begins with expected steps
+    FETCH_PROGRESS = "fetch_progress"  # Sent as each step completes
     ANSWER_CHUNK = "answer_chunk"
     ACTION_CHUNK = "action_chunk"
     DATA_READY = "data_ready"
@@ -42,9 +45,20 @@ async def stream_agent(question: str, session_id: str | None = None) -> AsyncGen
     in_answer_node = False
     in_action_node = False
 
+    # Check if this question has known steps for progress tracking
+    q = question.strip()
+    expected_steps = QUESTION_STEPS.get(q, [])
+
     try:
         async for e in agent_graph.astream_events(state, config=config, version="v2"):
             event_type, name = e.get("event"), e.get("name", "")
+
+            # Emit FETCH_START when fetch node begins (with expected steps)
+            if event_type == LangGraphEvent.CHAIN_START and name == FETCH_NODE and expected_steps:
+                yield _format_sse(StreamEvent.FETCH_START, {
+                    "question": q,
+                    "steps": expected_steps,
+                })
 
             if event_type == LangGraphEvent.CHAIN_START and name == ANSWER_NODE:
                 in_answer_node = True
@@ -81,6 +95,11 @@ async def stream_agent(question: str, session_id: str | None = None) -> AsyncGen
                 try:
                     output = e.get("data", {}).get("output") or {}
                     if name == FETCH_NODE:
+                        # Emit progress events first (collected during fetch)
+                        fetch_progress = output.get("fetch_progress", [])
+                        for progress in fetch_progress:
+                            yield _format_sse(StreamEvent.FETCH_PROGRESS, progress)
+
                         sql_results = output.get("sql_results", {})
                         yield _format_sse(StreamEvent.DATA_READY, {
                             "sql_results": sql_results,

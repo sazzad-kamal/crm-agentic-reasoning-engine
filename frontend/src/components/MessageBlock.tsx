@@ -3,6 +3,7 @@ import type { ChatMessage } from "../types";
 import { config } from "../config";
 import { DataTables } from "./DataTables";
 import { FollowUpSuggestions } from "./FollowUpSuggestions";
+import { ProgressChecklist } from "./ProgressChecklist";
 import { SuggestedActions } from "./SuggestedActions";
 import { Avatar } from "./Avatar";
 import { CopyButton } from "./CopyButton";
@@ -126,7 +127,12 @@ export const MessageBlock = memo(function MessageBlock({
 
             {/* Data Tables Section */}
             {isStreaming && sectionStatus.data === "loading" ? (
-              <DataSkeleton />
+              // Show progress checklist if steps available, otherwise show skeleton
+              response?.fetchSteps && response.fetchSteps.length > 0 ? (
+                <ProgressChecklist steps={response.fetchSteps} />
+              ) : (
+                <DataSkeleton />
+              )
             ) : config.features.showDataTables && response?.sql_results ? (
               <DataTables rawData={response.sql_results} />
             ) : null}

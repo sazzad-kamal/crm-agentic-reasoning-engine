@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import type { ChatMessage, ChatResponse, ChatRequest, SectionStatus, RawData } from "../types";
+import type { ChatMessage, ChatResponse, ChatRequest, SectionStatus, RawData, FetchStep } from "../types";
 import { config } from "../config";
 
 // =============================================================================
@@ -156,6 +156,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
       let accumulatedSqlResults: RawData | undefined;
       let accumulatedAction: string | null | undefined;
       let accumulatedFollowUps: string[] | undefined;
+      let accumulatedFetchSteps: FetchStep[] | undefined;
       let finalResponse: ChatResponse | null = null;
 
       // Helper to update message with current state
@@ -170,6 +171,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
                     ...(accumulatedSqlResults !== undefined && { sql_results: accumulatedSqlResults }),
                     ...(accumulatedAction !== undefined && { suggested_action: accumulatedAction }),
                     ...(accumulatedFollowUps !== undefined && { follow_up_suggestions: accumulatedFollowUps }),
+                    ...(accumulatedFetchSteps !== undefined && { fetchSteps: accumulatedFetchSteps }),
                   },
                   sectionStatus: { ...sectionStatus },
                 }
@@ -223,6 +225,28 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
 
           for (const event of events) {
             switch (event.type) {
+              // Progressive loading events
+              case "fetch_start": {
+                // Initialize all steps as pending
+                const steps = event.data.steps as string[];
+                accumulatedFetchSteps = steps.map((id) => ({ id, status: "pending" as const }));
+                updateMessage();
+                break;
+              }
+
+              case "fetch_progress": {
+                // Update individual step status
+                const stepId = event.data.step as string;
+                const status = event.data.status as FetchStep["status"];
+                if (accumulatedFetchSteps) {
+                  accumulatedFetchSteps = accumulatedFetchSteps.map((step) =>
+                    step.id === stepId ? { ...step, status } : step
+                  );
+                  updateMessage();
+                }
+                break;
+              }
+
               case "data_ready": {
                 const rawData = event.data.sql_results as RawData | undefined;
                 // Only set sql_results if it contains actual data (hide empty data section)
@@ -279,6 +303,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
         // Apply final response and remove sectionStatus (streaming complete).
         // Accumulated section data (from per-section events) takes priority over
         // the done event's payload, which may contain empty defaults like sql_results: {}.
+        // Clear fetchSteps after streaming complete (no longer needed for UI)
         if (finalResponse) {
           setMessages((prev) =>
             prev.map((msg) =>
@@ -291,6 +316,7 @@ export function useChatStream(options: UseChatStreamOptions = {}): UseChatStream
                       ...(accumulatedSqlResults !== undefined && { sql_results: accumulatedSqlResults }),
                       ...(accumulatedAction !== undefined && { suggested_action: accumulatedAction }),
                       ...(accumulatedFollowUps !== undefined && { follow_up_suggestions: accumulatedFollowUps }),
+                      fetchSteps: undefined,  // Clear - no longer needed after streaming
                     },
                     sectionStatus: undefined,
                   }

@@ -8,7 +8,10 @@ import json
 import logging
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import UTC
+from threading import Lock
 from typing import Any
 
 import httpx
@@ -63,93 +66,123 @@ DEMO_FOLLOWUPS: dict[str, list[str]] = {
     "Relationship gaps": ["Account momentum", "At-risk deals"],
 }
 
+# Progress callback type: (step_id, status) where status is "done", "error", or "cached"
+ProgressCallback = Callable[[str, str], None]
+
+# Steps per question for progressive loading UI (backend is source of truth)
+# Order matters: Pass 1 steps first, then Pass 2 parallel steps
+QUESTION_STEPS: dict[str, list[str]] = {
+    "Daily briefing": ["calendar", "contacts", "history", "opportunities"],
+    "Forecast health": ["opportunities", "contacts"],
+    "At-risk deals": ["opportunities", "contacts", "history"],
+    "Account momentum": ["companies", "opportunities", "contacts", "history"],
+    "Relationship gaps": ["opportunities", "contacts", "companies", "history"],
+}
+
+def _build_skeleton(question: str, data: dict) -> dict:
+    """Pre-filter data to ONLY include non-empty sections.
+
+    Empty arrays are removed entirely - LLM cannot see or hallucinate them.
+    This prevents hallucination by structurally removing empty data before LLM sees it.
+    """
+    skeleton = {}
+
+    if question == "Daily briefing":
+        for s in ["today_meetings", "recent_history", "open_opportunities", "overdue_followups"]:
+            if data.get(s):  # Only include if non-empty
+                skeleton[s] = data[s][:10] if isinstance(data[s], list) else data[s]
+
+    elif question == "Forecast health":
+        for s in ["forecast_30d", "forecast_60d", "forecast_90d", "slipped_deals"]:
+            val = data.get(s)
+            if val:  # Only include if non-empty
+                if isinstance(val, dict):
+                    # For forecast dicts, only include if deals array is non-empty
+                    if val.get("deals"):
+                        skeleton[s] = val
+                elif isinstance(val, list) and val:
+                    skeleton[s] = val[:10]
+        # Copy scalar totals (always include if present and non-zero/non-null)
+        for k in ["beyond_90d_count", "no_date_count", "total_pipeline", "total_weighted", "at_risk_pct"]:
+            if k in data and data[k] is not None:
+                skeleton[k] = data[k]
+
+    elif question == "At-risk deals":
+        if data.get("at_risk_deals"):
+            skeleton["at_risk_deals"] = data["at_risk_deals"][:10]
+
+    elif question == "Account momentum":
+        for s in ["expand", "save", "reactivate"]:
+            if data.get(s):
+                skeleton[s] = data[s][:5]
+
+    elif question == "Relationship gaps" and data.get("relationship_analysis"):
+        skeleton["relationship_analysis"] = data["relationship_analysis"][:10]
+
+    # Copy duckdb metadata if present
+    if "duckdb" in data:
+        skeleton["duckdb"] = data["duckdb"]
+
+    return skeleton
+
+
 # Custom prompts for each demo question (used by answer/action nodes)
-# Gold Standard set - grounded in Act! API + DuckDB + LLM capabilities
+# SIMPLIFIED: Skeleton pre-filters data, so guidance just says "report what exists"
 DEMO_PROMPTS = {
     "Daily briefing": {
         "answer": (
-            "Data: today_meetings[] (each with meeting{} from calendar.items, contacts[] with full details, "
-            "history[] for those contacts, opportunities[] linked via contacts.companyID), "
-            "recent_history[], open_opportunities[], overdue_followups[] (contacts missing lastAttempt or > 7 days). "
-            "Show for each meeting: time, subject, attendee names, recent history summary, linked opportunities."
+            "Report ONLY what exists in the data. Do not mention absent sections. "
+            "Every claim needs [E#] citation. "
+            "Format: meetings (time, subject, attendees), activities (type, subject, date), "
+            "opportunities (name, value), followups (name, days overdue)."
         ),
         "action": (
-            "If today_meetings has meetings with contacts[]: "
-            "1) WHO: Extract contacts[0].fullName and contacts[0].emailAddress from today_meetings[0], "
-            "2) WHAT: draft pre-meeting email referencing history[0].details if available, "
-            "confirming the meeting and asking about agenda priorities, "
-            "3) WHEN: send at least 1 hour before meeting.startTime. "
-            "Include: subject line, greeting, body, sign-off. "
-            "FALLBACK: If no meetings with contacts, use overdue_followups[0]: extract fullName and emailAddress, draft check-in email. "
-            "Log outreach as History in Act!."
+            "ONLY suggest action if ANSWER names a contact with email/phone. "
+            "If no actionable contacts: output NONE."
         ),
     },
     "Forecast health": {
         "answer": (
-            "Data: forecast_30d/60d/90d (each with deals[], weighted, count), slipped_deals[] sorted by value with "
-            "_days_overdue, _primary_contact{name, email, phone}, beyond_90d_count (deals > 90 days out), "
-            "no_date_count (opps missing close date), total_pipeline, total_weighted (all dated opps including >90d). "
-            "Show: forecast by period, slipped deals needing attention, note beyond_90d_count and no_date_count."
+            "Report ONLY what exists in the data. Do not mention absent sections. "
+            "Every claim needs [E#] citation. "
+            "For deals: cite name, value, _days_overdue, _primary_contact (if present)."
         ),
         "action": (
-            "For slipped_deals[0] (highest value, most urgent): "
-            "1) WHO: _primary_contact.name with _primary_contact.phone or email. "
-            "FALLBACK: If _primary_contact is null, use contactNames or assign deal owner to identify stakeholder, "
-            "2) WHAT: urgent call to reconfirm close date - ask about blockers and timeline. "
-            "After call: update estimatedCloseDate in Act! and log call as History, "
-            "3) WHEN: call TODAY - deal is _days_overdue days past expected close. "
-            "ALSO: If no_date_count > 0, note that X deals need estimatedCloseDate populated for accurate forecasting."
+            "ONLY suggest action if ANSWER names a deal with _primary_contact. "
+            "If _primary_contact is null: suggest 'Identify stakeholder for [deal name]'."
         ),
     },
     "At-risk deals": {
         "answer": (
-            "Data: at_risk_deals[] with name, company (from opp.companies[0] or contact.company fallback), value, "
-            "probability, risk_reason (Stalled/Overdue/Low-activity), days_in_stage, last_touch (via contacts.companyID), "
-            "primary_contact{name, email, phone}. Sorted by severity (Overdue first). "
-            "Show: deal name, company, value, risk_reason, days_in_stage, last_touch, primary contact."
+            "Report ONLY deals in the data. Every claim needs [E#] citation. "
+            "For each: name, company, value, risk_reason, days_in_stage, last_touch, primary_contact. "
+            "If primary_contact is null, state 'null' - do not invent."
         ),
         "action": (
-            "For at_risk_deals[0] (highest severity): "
-            "1) WHO: Extract primary_contact.name and primary_contact.phone or primary_contact.email from the deal. "
-            "FALLBACK: If primary_contact is null, create task: 'Identify stakeholder for [deal name]' assigned to manager, "
-            "2) WHAT: recovery action based on risk_reason - "
-            "Stalled: schedule alignment call; Overdue: reconfirm timeline and update estimatedCloseDate; "
-            "Low-activity: reach out referencing last_touch. Log as History in Act!, "
-            "3) WHEN: take action TODAY - at-risk deals need immediate attention."
+            "ONLY suggest action for deals in ANSWER. "
+            "If primary_contact is null: suggest 'Identify stakeholder for [deal name]'."
         ),
     },
     "Account momentum": {
         "answer": (
-            "Data: expand[], save[], reactivate[] - each company with name, id, pipeline (sum of opps via contacts.companyID), "
-            "eng30 (engagement last 30 days via history.contacts.companyID), last (last touch), last_touch_days, category, "
-            "top_contact{name, email, phone} (most recently engaged). "
-            "Show: categorized company lists with pipeline value, engagement metrics, and top contact."
+            "Report ONLY categories that exist in the data (expand/save/reactivate). "
+            "Do not mention absent categories. Every claim needs [E#] citation. "
+            "For each company: name, pipeline, eng30, last_touch_days, top_contact (if present)."
         ),
         "action": (
-            "For save[0] (highest pipeline at churn risk): "
-            "1) WHO: Extract top_contact.name, top_contact.phone or top_contact.email, and company name from save[0]. "
-            "FALLBACK: If top_contact is null, create task: 'Identify stakeholder at [company name] via LinkedIn', "
-            "2) WHAT: proactive check-in call - acknowledge it's been last_touch_days days since contact, "
-            "ask about current priorities and concerns. Log call as History in Act!, "
-            "3) WHEN: schedule call within 3 business days - declining engagement signals churn risk."
+            "ONLY suggest action if ANSWER names a company with top_contact. "
+            "If top_contact is null: suggest 'Identify stakeholder at [company name]'."
         ),
     },
     "Relationship gaps": {
         "answer": (
-            "Data: relationship_analysis[] with opp (deal name), company (from opp.companies or contact.company), "
-            "value, engaged (count), single_threaded (bool), dark_contacts[] sorted by staleness (null lastReach first) "
-            "with name, title, lastReach, channel, email, phone. Sorted by single_threaded first, then value desc. "
-            "Show: deals with engagement count, single-threaded flag, and dark contacts prioritized by staleness."
+            "Report ONLY opportunities in the data. Every claim needs [E#] citation. "
+            "For each: name, company, value, engaged count, single_threaded, dark_contacts. "
+            "If dark_contacts is empty, state 'none' - do not invent."
         ),
         "action": (
-            "For first single_threaded deal in relationship_analysis[]: "
-            "1) WHO: Extract from dark_contacts[0]: state the contact's name, their title, "
-            "and include their email (dark_contacts[0].email) or phone (dark_contacts[0].phone). "
-            "FALLBACK: If dark_contacts is empty or all have channel='None', create task: 'Research [company] stakeholders on LinkedIn', "
-            "2) WHAT: draft email/call script to multi-thread - "
-            "greet by name, introduce yourself, reference the opp name and company, ask about their priorities. "
-            "After outreach: log as History in Act! linked to contact and opportunity, "
-            "3) WHEN: complete outreach within 3 business days - single-threaded = high risk."
+            "ONLY suggest action if ANSWER names a contact from dark_contacts. "
+            "If dark_contacts is empty: suggest 'Research [company] stakeholders'."
         ),
     },
 }
@@ -367,14 +400,21 @@ def _add_cache_timestamp(result: dict[str, Any]) -> dict[str, Any]:
     """Add _cached_at timestamp to result if cache was used during this request."""
     if _cache_used_timestamp is not None:
         # Convert to ISO format for frontend
-        from datetime import datetime, timezone
-        cached_dt = datetime.fromtimestamp(_cache_used_timestamp, tz=timezone.utc)
+        from datetime import datetime
+        cached_dt = datetime.fromtimestamp(_cache_used_timestamp, tz=UTC)
         result["_cached_at"] = cached_dt.isoformat()
     return result
 
 
-def act_fetch(question: str) -> dict[str, Any]:
+def act_fetch(
+    question: str,
+    on_progress: ProgressCallback | None = None,
+) -> dict[str, Any]:
     """Fetch data from Act! API for the 5 Gold Standard demo questions.
+
+    Args:
+        question: One of the 5 Gold Standard questions
+        on_progress: Optional callback for progress updates (step_id, status)
 
     Returns: {"data": {...}, "error": None, "_cached_at": "ISO timestamp" (if using cached data)}
              or {"data": {}, "error": "message"}
@@ -385,6 +425,15 @@ def act_fetch(question: str) -> dict[str, Any]:
     global _cache_used_timestamp
     _cache_used_timestamp = None  # Reset cache tracking for this request
 
+    # Thread-safe progress emission
+    progress_lock = Lock()
+
+    def emit_progress(step_id: str, status: str = "done") -> None:
+        """Emit progress update via callback (thread-safe)."""
+        if on_progress:
+            with progress_lock:
+                on_progress(step_id, status)
+
     q = question.strip()
     today = time.strftime("%Y-%m-%d", time.gmtime())
 
@@ -392,6 +441,7 @@ def act_fetch(question: str) -> dict[str, Any]:
         if q == "Daily briefing":
             # === PASS 1: Fetch calendar first to get attendee IDs ===
             calendar_raw = _get("/api/calendar", {"startDate": today, "endDate": today, "$top": 20})
+            emit_progress("calendar", "done")
 
             # Extract calendar items
             calendar_items: list[dict[str, Any]] = []
@@ -409,18 +459,34 @@ def act_fetch(question: str) -> dict[str, Any]:
                     if cid:
                         attendee_ids.add(str(cid))
 
-            # === PASS 2: Fetch everything in parallel, including attendee contacts by ID ===
+            # === PASS 2: Fetch everything in parallel, emit progress as each completes ===
             with ThreadPoolExecutor(max_workers=4 + len(attendee_ids)) as executor:
+                # Submit all requests
+                futures_map: dict[Any, str] = {}  # future -> step_id
                 f_history = executor.submit(_get, "/api/history", {"$orderby": "startTime desc", "$top": 200})
+                futures_map[f_history] = "history"
                 f_opps = executor.submit(_get, "/api/opportunities", {"$orderby": "estimatedCloseDate asc", "$top": 50, "$filter": "status eq 0"})
+                futures_map[f_opps] = "opportunities"
                 f_contacts = executor.submit(_get, "/api/contacts", {"$orderby": "lastAttempt asc", "$top": 200})
+                futures_map[f_contacts] = "contacts"
 
-                # Fetch each attendee contact by ID (ensures meeting attendees are always available)
+                # Fetch each attendee contact by ID (internal, not tracked as progress)
                 f_attendees = {cid: executor.submit(_get, f"/api/contacts/{cid}") for cid in attendee_ids}
 
-                history = _filter_noise_history(f_history.result())
-                opps = f_opps.result()
-                contacts = f_contacts.result()
+                # Collect results with progress emission
+                results: dict[str, Any] = {}
+                for future in as_completed(futures_map.keys()):
+                    step_id = futures_map[future]
+                    try:
+                        results[step_id] = future.result()
+                        emit_progress(step_id, "done")
+                    except Exception:
+                        emit_progress(step_id, "error")
+                        results[step_id] = []
+
+                history = _filter_noise_history(results.get("history", []))
+                opps = results.get("opportunities", [])
+                contacts = results.get("contacts", [])
 
                 # Add attendee contacts that aren't already in contacts list
                 existing_ids = {c.get("id") for c in contacts if c.get("id")}
@@ -506,15 +572,17 @@ def act_fetch(question: str) -> dict[str, Any]:
                        if (not c.get("lastAttempt") or str(c.get("lastAttempt"))[:10] < cutoff_date)
                        and (c.get("businessPhone") or c.get("mobilePhone") or c.get("emailAddress"))][:5]
 
-            return _add_cache_timestamp({"data": {
+            data = {
                 "today_meetings": enriched_meetings, "recent_history": history[:10],
                 "open_opportunities": open_opps[:5], "overdue_followups": overdue,
                 "duckdb": "JOIN calendar.items->contacts->history->opportunities (via contacts.companyID); filter overdue"
-            }, "error": None})
+            }
+            return _add_cache_timestamp({"data": _build_skeleton(q, data), "error": None})
 
         elif q == "Forecast health":
             # === PASS 1: Fetch opportunities first (increased limit) ===
             opps = _get("/api/opportunities", {"$orderby": "estimatedCloseDate asc", "$top": 200, "$filter": "status eq 0"})
+            emit_progress("opportunities", "done")
 
             # Extract contact IDs from opportunities for targeted fetch
             opp_contact_ids: set[str] = set()
@@ -525,7 +593,9 @@ def act_fetch(question: str) -> dict[str, Any]:
                         opp_contact_ids.add(str(cid))
 
             # === PASS 2: Fetch contacts by ID (ensures primary contacts are available) ===
+            # Emit single "contacts" progress when all contact fetches complete
             contacts: list[dict[str, Any]] = []  # type: ignore[no-redef]
+            contacts_error = False
             if opp_contact_ids:
                 with ThreadPoolExecutor(max_workers=min(len(opp_contact_ids), 10)) as executor:
                     f_contacts_map = {cid: executor.submit(_get, f"/api/contacts/{cid}") for cid in opp_contact_ids}
@@ -537,7 +607,8 @@ def act_fetch(question: str) -> dict[str, Any]:
                             elif isinstance(result, dict) and result.get("id"):
                                 contacts.append(result)
                         except Exception:
-                            pass  # Skip failed fetches
+                            contacts_error = True
+            emit_progress("contacts", "error" if contacts_error and not contacts else "done")
 
             # === DUCKDB: GROUP BY close_period; SUM weighted; calc days_overdue ===
             contact_map = {c.get("id"): c for c in contacts if c.get("id")}
@@ -598,7 +669,7 @@ def act_fetch(question: str) -> dict[str, Any]:
             no_date_count = len(forecast["no_date"])
             beyond_90d_count = len(forecast["beyond_90d"])
 
-            return _add_cache_timestamp({"data": {
+            data: dict[str, Any] = {  # type: ignore[no-redef]
                 "forecast_30d": {"deals": forecast["30d"][:10], "weighted": wsum(forecast["30d"]), "count": len(forecast["30d"])},
                 "forecast_60d": {"deals": forecast["60d"][:10], "weighted": wsum(forecast["60d"]), "count": len(forecast["60d"])},
                 "forecast_90d": {"deals": forecast["90d"][:10], "weighted": wsum(forecast["90d"]), "count": len(forecast["90d"])},
@@ -607,18 +678,34 @@ def act_fetch(question: str) -> dict[str, Any]:
                 "no_date_count": no_date_count,  # Opps without close date (excluded from pipeline/at_risk_pct)
                 "total_pipeline": total_pipeline, "total_weighted": all_weighted, "at_risk_pct": round(at_risk_pct, 1),
                 "duckdb": "GROUP BY period; SUM weighted; calc days_overdue; JOIN contacts for primary"
-            }, "error": None})
+            }
+            return _add_cache_timestamp({"data": _build_skeleton(q, data), "error": None})
 
         elif q == "At-risk deals":
-            # === API CALLS (parallel) ===
+            # === API CALLS (parallel with progress) ===
             with ThreadPoolExecutor(max_workers=3) as executor:
+                futures_map: dict[Any, str] = {}  # type: ignore[no-redef]
                 f_opps = executor.submit(_get, "/api/opportunities", {"$orderby": "daysInStage desc", "$top": 100, "$filter": "status eq 0"})
+                futures_map[f_opps] = "opportunities"
                 f_contacts = executor.submit(_get, "/api/contacts", {"$top": 250})
+                futures_map[f_contacts] = "contacts"
                 f_history = executor.submit(_get, "/api/history", {"$orderby": "startTime desc", "$top": 300})
+                futures_map[f_history] = "history"
 
-                opps = f_opps.result()
-                contacts = f_contacts.result()
-                history = _filter_noise_history(f_history.result())
+                # Collect results with progress emission
+                results: dict[str, Any] = {}  # type: ignore[no-redef]
+                for future in as_completed(futures_map.keys()):
+                    step_id = futures_map[future]
+                    try:
+                        results[step_id] = future.result()
+                        emit_progress(step_id, "done")
+                    except Exception:
+                        emit_progress(step_id, "error")
+                        results[step_id] = []
+
+                opps = results.get("opportunities", [])
+                contacts = results.get("contacts", [])
+                history = _filter_noise_history(results.get("history", []))
 
             # === DUCKDB: track last_touch via BOTH history.contacts AND history.companies ===
             contact_map = {c.get("id"): c for c in contacts if c.get("id")}
@@ -649,12 +736,19 @@ def act_fetch(question: str) -> dict[str, Any]:
             import calendar as cal
             cutoff_14d = time.strftime("%Y-%m-%d", time.gmtime(time.time() - 14*24*60*60))
 
+            # Cutoff for stale opportunities - skip deals with close dates > 365 days old
+            cutoff_365d = time.strftime("%Y-%m-%d", time.gmtime(time.time() - 365*24*60*60))
+
             at_risk = []
             for opp in opps:
                 if not _is_open_opportunity(opp):
                     continue
                 dis = opp.get("daysInStage") or 0
                 close = str(opp.get("estimatedCloseDate") or "")[:10]
+
+                # Skip ancient opportunities (close date > 365 days old)
+                if close and close < cutoff_365d:
+                    continue
 
                 # Compute last_touch FIRST so we can use it in risk classification
                 lt = None
@@ -741,20 +835,37 @@ def act_fetch(question: str) -> dict[str, Any]:
                 return (severity, -int(days_overdue), -int(days_in_stage))
 
             at_risk.sort(key=risk_sort_key)
-            return _add_cache_timestamp({"data": {"at_risk_deals": at_risk[:10], "duckdb": "filter risk; JOIN history(contacts+companies); ORDER BY severity"}, "error": None})
+            data = {"at_risk_deals": at_risk[:10], "duckdb": "filter risk; JOIN history(contacts+companies); ORDER BY severity"}
+            return _add_cache_timestamp({"data": _build_skeleton(q, data), "error": None})
 
         elif q == "Account momentum":
-            # === API CALLS (parallel) ===
+            # === API CALLS (parallel with progress) ===
             with ThreadPoolExecutor(max_workers=4) as executor:
+                futures_map: dict[Any, str] = {}  # type: ignore[no-redef]
                 f_companies = executor.submit(_get, "/api/companies", {"$top": 200})
+                futures_map[f_companies] = "companies"
                 f_opps = executor.submit(_get, "/api/opportunities", {"$top": 200, "$filter": "status eq 0"})
+                futures_map[f_opps] = "opportunities"
                 f_contacts = executor.submit(_get, "/api/contacts", {"$top": 300})
+                futures_map[f_contacts] = "contacts"
                 f_history = executor.submit(_get, "/api/history", {"$orderby": "startTime desc", "$top": 300})
+                futures_map[f_history] = "history"
 
-                companies = f_companies.result()
-                opps = f_opps.result()
-                contacts = f_contacts.result()
-                history = _filter_noise_history(f_history.result())
+                # Collect results with progress emission
+                results: dict[str, Any] = {}  # type: ignore[no-redef]
+                for future in as_completed(futures_map.keys()):
+                    step_id = futures_map[future]
+                    try:
+                        results[step_id] = future.result()
+                        emit_progress(step_id, "done")
+                    except Exception:
+                        emit_progress(step_id, "error")
+                        results[step_id] = []
+
+                companies = results.get("companies", [])
+                opps = results.get("opportunities", [])
+                contacts = results.get("contacts", [])
+                history = _filter_noise_history(results.get("history", []))
 
             open_opps = [o for o in opps if _is_open_opportunity(o)]  # Backup filter
 
@@ -869,20 +980,37 @@ def act_fetch(question: str) -> dict[str, Any]:
             save.sort(key=lambda x: -x["pipeline"])
             # Sort reactivate by stalest (oldest last touch first) - typical reactivation prioritizes accounts gone cold longest
             reactivate.sort(key=lambda x: (x["last"] or "0000-00-00"))
-            return _add_cache_timestamp({"data": {"expand": expand[:5], "save": save[:5], "reactivate": reactivate[:5], "duckdb": "GROUP BY company; SUM pipeline; JOIN contacts for top_contact; sort reactivate by staleness"}, "error": None})
+            data = {"expand": expand[:5], "save": save[:5], "reactivate": reactivate[:5], "duckdb": "GROUP BY company; SUM pipeline; JOIN contacts for top_contact; sort reactivate by staleness"}
+            return _add_cache_timestamp({"data": _build_skeleton(q, data), "error": None})
 
         elif q == "Relationship gaps":
-            # === API CALLS (parallel) ===
+            # === API CALLS (parallel with progress) ===
             with ThreadPoolExecutor(max_workers=4) as executor:
+                futures_map: dict[Any, str] = {}  # type: ignore[no-redef]
                 f_opps = executor.submit(_get, "/api/opportunities", {"$orderby": "estimatedCloseDate asc", "$top": 100, "$filter": "status eq 0"})
+                futures_map[f_opps] = "opportunities"
                 f_contacts = executor.submit(_get, "/api/contacts", {"$top": 300})
+                futures_map[f_contacts] = "contacts"
                 f_companies = executor.submit(_get, "/api/companies", {"$top": 100})
+                futures_map[f_companies] = "companies"
                 f_history = executor.submit(_get, "/api/history", {"$orderby": "startTime desc", "$top": 200})
+                futures_map[f_history] = "history"
 
-                opps = f_opps.result()
-                contacts = f_contacts.result()
-                companies = f_companies.result()
-                history = _filter_noise_history(f_history.result())
+                # Collect results with progress emission
+                results: dict[str, Any] = {}  # type: ignore[no-redef]
+                for future in as_completed(futures_map.keys()):
+                    step_id = futures_map[future]
+                    try:
+                        results[step_id] = future.result()
+                        emit_progress(step_id, "done")
+                    except Exception:
+                        emit_progress(step_id, "error")
+                        results[step_id] = []
+
+                opps = results.get("opportunities", [])
+                contacts = results.get("contacts", [])
+                companies = results.get("companies", [])
+                history = _filter_noise_history(results.get("history", []))
 
             open_opps = [o for o in opps if _is_open_opportunity(o)]  # Backup filter
             # Sort by productTotal desc client-side (API sort by productTotal is slow/timeouts)
@@ -924,7 +1052,7 @@ def act_fetch(question: str) -> dict[str, Any]:
                         if st >= cutoff_60d:
                             engaged_companies_set.add(coid)
 
-            results = []
+            analysis_results: list[dict[str, Any]] = []
             for opp in open_opps[:15]:  # Process top opps by value
                 opp_contacts = opp.get("contacts") or []
                 # Derive company IDs from opp.companies AND opp.contacts->contact.companyID
@@ -992,7 +1120,7 @@ def act_fetch(question: str) -> dict[str, Any]:
                             if co_name:
                                 break
 
-                results.append({"opp": opp.get("name"), "company": co_name, "value": opp.get("productTotal"), "engaged": eng_count, "single_threaded": single, "dark_contacts": dark[:3]})
+                analysis_results.append({"opp": opp.get("name"), "company": co_name, "value": opp.get("productTotal"), "engaged": eng_count, "single_threaded": single, "dark_contacts": dark[:3]})
 
             def result_sort_key(x: dict[str, Any]) -> tuple[int, int]:
                 """Sort key for relationship analysis: single-threaded first, then by value."""
@@ -1000,8 +1128,9 @@ def act_fetch(question: str) -> dict[str, Any]:
                 value = x["value"] or 0
                 return (st_priority, -int(value))
 
-            results.sort(key=result_sort_key)
-            return _add_cache_timestamp({"data": {"relationship_analysis": results[:10], "duckdb": "COUNT engaged; flag single_threaded; find dark_contacts (sorted by staleness)"}, "error": None})
+            analysis_results.sort(key=result_sort_key)
+            data = {"relationship_analysis": analysis_results[:10], "duckdb": "COUNT engaged; flag single_threaded; find dark_contacts (sorted by staleness)"}
+            return _add_cache_timestamp({"data": _build_skeleton(q, data), "error": None})
 
         return {"data": {}, "error": f"Unknown question: {q}"}
 
@@ -1018,6 +1147,8 @@ __all__ = [
     "DEMO_STARTERS",
     "DEMO_FOLLOWUPS",
     "DEMO_PROMPTS",
+    "QUESTION_STEPS",
+    "ProgressCallback",
     "ACT_API_DB",
     "ACT_API_USER",
     "AVAILABLE_DATABASES",

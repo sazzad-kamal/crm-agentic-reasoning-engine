@@ -78,11 +78,18 @@ export interface RawData {
   [key: string]: unknown;
 }
 
+// Progress tracking for progressive loading UI
+export interface FetchStep {
+  id: string;
+  status: "pending" | "done" | "error" | "cached";
+}
+
 export interface ChatResponse {
   answer: string;
   sql_results?: RawData;
   follow_up_suggestions?: string[];
   suggested_action?: string | null;
+  fetchSteps?: FetchStep[];  // Progress steps for progressive loading
 }
 
 export interface SectionStatus {

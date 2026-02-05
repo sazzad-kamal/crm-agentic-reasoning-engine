@@ -14,9 +14,13 @@ Run with: python -m backend.eval.act.answer_scorer <capture_file.json>
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
+
+# Fix Windows console encoding for Unicode output
+sys.stdout.reconfigure(encoding='utf-8')
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -157,7 +161,7 @@ def run_scoring(capture_path: Path) -> ScoringReport:
 
     print("=" * 70)
     print(f"Answer Scoring - Database: {capture_data['database']}")
-    print(f"Using: GPT-5.2-pro")
+    print("Using: GPT-5.2-pro")
     print("=" * 70)
 
     total_scores = {"usefulness": 0, "accuracy": 0, "freshness": 0, "actionability": 0}
@@ -230,7 +234,7 @@ def run_scoring(capture_path: Path) -> ScoringReport:
     print(f"  Avg Actionability: {report.summary['avg_actionability']:.1f}/5")
     print(f"  Avg Total:         {report.summary['avg_total']:.1f}/20")
     print(f"  Pass/Fail:         {report.summary['pass_count']}/{report.summary['fail_count']}")
-    print(f"\nRoot Causes:")
+    print("\nRoot Causes:")
     for cause, count in root_causes.items():
         print(f"    {cause}: {count}")
 

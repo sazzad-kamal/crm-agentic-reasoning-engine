@@ -21,11 +21,11 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 
-from backend.core.llm import create_openai_chain
+from backend.agent.action.suggester import _SYSTEM_PROMPT_BASE as ACTION_PROMPT
 
 # Import prompts from actual codebase files
 from backend.agent.answer.answerer import _SYSTEM_PROMPT_BASE as ANSWER_PROMPT
-from backend.agent.action.suggester import _SYSTEM_PROMPT_BASE as ACTION_PROMPT
+from backend.core.llm import create_openai_chain
 
 
 class DetailedScore(BaseModel):
@@ -312,9 +312,9 @@ def main() -> None:
     print("\n" + "=" * 70)
     print("FINAL SUMMARY")
     print("=" * 70)
-    print(f"\nAnswer Prompt:")
+    print("\nAnswer Prompt:")
     print(f"  Start: {answer_history[0].overall_score}/10 → Final: {answer_history[-1].overall_score}/10")
-    print(f"\nAction Prompt:")
+    print("\nAction Prompt:")
     print(f"  Start: {action_history[0].overall_score}/10 → Final: {action_history[-1].overall_score}/10")
 
     print("\n" + "=" * 70)

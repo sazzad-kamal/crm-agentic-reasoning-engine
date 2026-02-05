@@ -33,6 +33,9 @@ class AgentState(TypedDict, total=False):
     # SQL results from fetch node (includes notes columns)
     sql_results: dict[str, Any]
 
+    # Progress tracking for progressive loading UI
+    fetch_progress: list[dict[str, str]]  # [{step: str, status: str}, ...]
+
     # Final outputs
     answer: str
     follow_up_suggestions: list[str]

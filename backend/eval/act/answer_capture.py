@@ -97,6 +97,7 @@ def capture_question(question: str) -> QuestionCapture:
         capture.answer = call_answer_chain(
             question=question,
             sql_results={"data": capture.fetched_data},
+            guidance=capture.answer_guidance,
         )
         capture.answer_latency_ms = int((time.time() - answer_start) * 1000)
     except Exception as e:
@@ -109,6 +110,7 @@ def capture_question(question: str) -> QuestionCapture:
         capture.action = call_action_chain(
             question=question,
             answer=capture.answer,
+            guidance=capture.action_guidance,
         ) or ""
         capture.action_latency_ms = int((time.time() - action_start) * 1000)
     except Exception as e:

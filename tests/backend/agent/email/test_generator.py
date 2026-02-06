@@ -28,13 +28,13 @@ from backend.agent.email.generator import (
 class TestCategoryDefinitions:
     """Test category definitions and questions."""
 
-    def test_category_descriptions_has_5_categories(self) -> None:
-        """Verify we have exactly 5 categories."""
-        assert len(CATEGORY_DESCRIPTIONS) == 5
+    def test_category_descriptions_has_4_categories(self) -> None:
+        """Verify we have exactly 4 categories."""
+        assert len(CATEGORY_DESCRIPTIONS) == 4
 
     def test_category_descriptions_keys(self) -> None:
         """Verify category keys match expected values."""
-        expected_keys = {"awaiting_response", "support", "renewals", "billing", "quotes"}
+        expected_keys = {"support", "renewals", "billing", "quotes"}
         assert set(CATEGORY_DESCRIPTIONS.keys()) == expected_keys
 
     def test_category_descriptions_values_are_strings(self) -> None:
@@ -43,9 +43,9 @@ class TestCategoryDefinitions:
             assert isinstance(value, str), f"{key} description is not a string"
             assert len(value) > 10, f"{key} description is too short"
 
-    def test_email_questions_has_5_questions(self) -> None:
-        """Verify we have exactly 5 questions."""
-        assert len(EMAIL_QUESTIONS) == 5
+    def test_email_questions_has_4_questions(self) -> None:
+        """Verify we have exactly 4 questions."""
+        assert len(EMAIL_QUESTIONS) == 4
 
     def test_email_questions_structure(self) -> None:
         """Verify each question has id and label."""

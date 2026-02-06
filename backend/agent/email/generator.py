@@ -34,6 +34,16 @@ CATEGORY_DESCRIPTIONS = {
     "quotes": "Contacts with pending quotes, proposals, or pricing discussions that need follow-up",
 }
 
+# Tone guidance per category (used in email generation)
+CATEGORY_TONES: dict[str, tuple[str, str]] = {
+    # (tone_name, tone_instruction)
+    "quotes": ("professional", "Be professional and business-focused. Emphasize value and next steps."),
+    "billing": ("professional", "Be professional and tactful. Acknowledge the sensitive nature of payment discussions."),
+    "support": ("empathetic", "Be warm and understanding. Show you care about resolving their issue."),
+    "renewals": ("friendly", "Be friendly and appreciative. Emphasize the value of the ongoing relationship."),
+    "awaiting_response": ("direct", "Be concise and action-oriented. Get straight to the point."),
+}
+
 # Questions for each category
 EMAIL_QUESTIONS: list[dict[str, str]] = [
     {"id": "awaiting_response", "label": "Who is waiting for our response?"},
@@ -428,7 +438,7 @@ async def get_contacts_for_category(category: str) -> list[dict[str, Any]]:
     return contacts[:10]  # Max 10 contacts
 
 
-_EMAIL_PROMPT = """Generate a professional follow-up email for {contact_name} at {company}.
+_EMAIL_PROMPT = """Generate a follow-up email for {contact_name} at {company}.
 
 Context: This is a {category} follow-up.
 
@@ -438,13 +448,15 @@ Subject: {regarding}
 Details: {details}
 ---
 
+Tone: {tone}
+{tone_instruction}
+
 Requirements:
 1. Reference the specific interaction context
 2. Keep it concise (3-5 sentences)
 3. Include a clear call to action
-4. Professional but friendly tone
-5. No signature (user will add their own)
-6. Do not include "Subject:" in the body
+4. No signature (user will add their own)
+5. Do not include "Subject:" in the body
 
 Return a JSON object with "subject" and "body" fields.
 Example: {{"subject": "Following up on your quote request", "body": "Hi John,\\n\\nI wanted to follow up on..."}}
@@ -515,6 +527,9 @@ async def generate_email(contact_id: str, category: str) -> dict[str, Any]:
         streaming=False,
     )
 
+    # Get tone for this category
+    tone_name, tone_instruction = CATEGORY_TONES.get(category, ("professional", "Be professional and helpful."))
+
     try:
         result_text = chain.invoke({
             "contact_name": contact_name or "there",
@@ -523,6 +538,8 @@ async def generate_email(contact_id: str, category: str) -> dict[str, Any]:
             "date": date,
             "regarding": regarding,
             "details": details,
+            "tone": tone_name,
+            "tone_instruction": tone_instruction,
         })
 
         # Parse JSON response

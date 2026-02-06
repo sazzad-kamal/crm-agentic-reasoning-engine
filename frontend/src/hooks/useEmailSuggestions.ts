@@ -1,101 +1,192 @@
 /**
- * Hook for email suggestion workflow.
+ * Hook for email suggestion workflow with tabbed interface.
  *
- * Two-step flow:
- * 1. Click question → fetchContacts → Show contact list with AI-generated reasons
- * 2. Click contact → generateEmail → Show draft email + mailto: link
+ * Features:
+ * - Tab-based category navigation (Support, Renewals, Billing, Quotes)
+ * - Per-category contact caching
+ * - Background prefetch of remaining tabs after first loads
+ * - Cross-tab deduplication via handled contact tracking
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { endpoints } from "../config";
-import type { EmailQuestion, EmailContact, GeneratedEmail, EmailContactsResponse } from "../types";
+import type { EmailContact, GeneratedEmail, EmailContactsResponse } from "../types";
 
-type EmailView = "questions" | "contacts" | "draft";
+// Fixed category order
+const CATEGORIES = ["support", "renewals", "billing", "quotes"] as const;
+type Category = (typeof CATEGORIES)[number];
+
+type EmailView = "list" | "draft";
 
 interface UseEmailSuggestionsReturn {
-  // State
-  view: EmailView;
-  questions: EmailQuestion[];
-  selectedCategory: string | null;
-  selectedContactId: string | null;
+  // Tab state
+  categories: readonly string[];
+  selectedCategory: string;
+  loadedCategories: Set<string>;
+  loadingCategory: string | null;
+
+  // Contacts (filtered by handled)
   contacts: EmailContact[];
+  contactCounts: Record<string, number>;
+
+  // Handled tracking
+  handledContactIds: Set<string>;
+
+  // Email draft
+  view: EmailView;
   generatedEmail: GeneratedEmail | null;
-  loading: boolean;
   generating: boolean;
   generatingContactId: string | null;
-  error: string | null;
+
+  // Cache & refresh
   cachedSecondsAgo: number | null;
   refreshing: boolean;
 
+  // Error
+  error: string | null;
+
   // Actions
-  fetchQuestions: () => Promise<void>;
-  fetchContacts: (category: string) => Promise<void>;
-  generateEmail: (contactId: string, category: string) => Promise<void>;
+  selectCategory: (category: string) => void;
+  generateEmail: (contactId: string) => Promise<void>;
+  markAsHandled: (contactId: string) => void;
   regenerateEmail: () => Promise<void>;
+  goBackToList: () => void;
   refreshCache: () => Promise<void>;
-  goBack: () => void;
-  reset: () => void;
 }
 
 export function useEmailSuggestions(): UseEmailSuggestionsReturn {
-  const [view, setView] = useState<EmailView>("questions");
-  const [questions, setQuestions] = useState<EmailQuestion[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
-  const [contacts, setContacts] = useState<EmailContact[]>([]);
+  // Tab state
+  const [selectedCategory, setSelectedCategory] = useState<Category>(CATEGORIES[0]);
+  const [loadedCategories, setLoadedCategories] = useState<Set<string>>(new Set());
+  const [loadingCategory, setLoadingCategory] = useState<string | null>(null);
+
+  // Per-category contact storage
+  const [contactsByCategory, setContactsByCategory] = useState<Record<string, EmailContact[]>>({});
+
+  // Handled tracking (session-based, cross-tab dedup)
+  const [handledContactIds, setHandledContactIds] = useState<Set<string>>(new Set());
+
+  // Email draft state
+  const [view, setView] = useState<EmailView>("list");
   const [generatedEmail, setGeneratedEmail] = useState<GeneratedEmail | null>(null);
-  const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generatingContactId, setGeneratingContactId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+
+  // Cache & refresh
   const [cachedSecondsAgo, setCachedSecondsAgo] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchQuestions = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(endpoints.emailQuestions);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: EmailQuestion[] = await res.json();
-      setQuestions(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch questions");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Error
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchContacts = useCallback(async (category: string) => {
-    setLoading(true);
+  // Track if prefetch is in progress to avoid interrupting user clicks
+  const prefetchInProgressRef = useRef(false);
+
+  // Fetch contacts for a specific category
+  const fetchContacts = useCallback(async (category: string, options?: { background?: boolean }) => {
+    const isBackground = options?.background ?? false;
+
+    // Don't set loading state for background prefetch
+    if (!isBackground) {
+      setLoadingCategory(category);
+    }
     setError(null);
-    setSelectedCategory(category);
+
     try {
-      const res = await fetch(`${endpoints.emailContacts}?category=${encodeURIComponent(category)}`);
+      const res = await fetch(
+        `${endpoints.emailContacts}?category=${encodeURIComponent(category)}`
+      );
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.detail || `HTTP ${res.status}`);
       }
       const data: EmailContactsResponse = await res.json();
-      setContacts(data.contacts);
-      setCachedSecondsAgo(data.cachedSecondsAgo);
-      setView("contacts");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch contacts");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
-  const generateEmail = useCallback(async (contactId: string, category: string) => {
+      setContactsByCategory((prev) => ({
+        ...prev,
+        [category]: data.contacts,
+      }));
+      setLoadedCategories((prev) => new Set([...prev, category]));
+
+      // Only update cache age for the currently selected category
+      if (category === selectedCategory || !isBackground) {
+        setCachedSecondsAgo(data.cachedSecondsAgo);
+      }
+    } catch (err) {
+      if (!isBackground) {
+        setError(err instanceof Error ? err.message : "Failed to fetch contacts");
+      }
+      // For background fetches, silently fail (user can click tab to retry)
+    } finally {
+      if (!isBackground) {
+        setLoadingCategory(null);
+      }
+    }
+  }, [selectedCategory]);
+
+  // Background prefetch of remaining categories
+  const prefetchRemainingCategories = useCallback(async () => {
+    if (prefetchInProgressRef.current) return;
+    prefetchInProgressRef.current = true;
+
+    const remaining = CATEGORIES.filter((c) => !loadedCategories.has(c));
+
+    for (const category of remaining) {
+      // Stop prefetch if user is actively loading a tab
+      if (loadingCategory) break;
+
+      await fetchContacts(category, { background: true });
+
+      // Small delay between background fetches to avoid overwhelming the server
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    prefetchInProgressRef.current = false;
+  }, [loadedCategories, loadingCategory, fetchContacts]);
+
+  // Auto-load first category on mount
+  useEffect(() => {
+    if (loadedCategories.size === 0 && !loadingCategory) {
+      fetchContacts(CATEGORIES[0]);
+    }
+  }, [loadedCategories.size, loadingCategory, fetchContacts]);
+
+  // Start background prefetch after first category loads
+  useEffect(() => {
+    if (loadedCategories.size === 1 && !loadingCategory && !prefetchInProgressRef.current) {
+      prefetchRemainingCategories();
+    }
+  }, [loadedCategories.size, loadingCategory, prefetchRemainingCategories]);
+
+  // Select a category (tab click)
+  const selectCategory = useCallback((category: string) => {
+    if (!CATEGORIES.includes(category as Category)) return;
+    if (loadingCategory === category) return; // Already loading this one
+
+    setSelectedCategory(category as Category);
+    setError(null);
+
+    // If not loaded yet, fetch it
+    if (!loadedCategories.has(category)) {
+      fetchContacts(category);
+    } else {
+      // Update cache age from stored data (approximate)
+      setCachedSecondsAgo(cachedSecondsAgo);
+    }
+  }, [loadedCategories, loadingCategory, fetchContacts, cachedSecondsAgo]);
+
+  // Generate email for a contact
+  const generateEmail = useCallback(async (contactId: string) => {
     setGenerating(true);
     setGeneratingContactId(contactId);
     setSelectedContactId(contactId);
     setError(null);
+
     try {
       const res = await fetch(endpoints.emailGenerate, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contactId, category }),
+        body: JSON.stringify({ contactId, category: selectedCategory }),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -110,12 +201,20 @@ export function useEmailSuggestions(): UseEmailSuggestionsReturn {
       setGenerating(false);
       setGeneratingContactId(null);
     }
+  }, [selectedCategory]);
+
+  // Mark a contact as handled (called when user clicks "Open in Email")
+  const markAsHandled = useCallback((contactId: string) => {
+    setHandledContactIds((prev) => new Set([...prev, contactId]));
   }, []);
 
+  // Regenerate email for current contact
   const regenerateEmail = useCallback(async () => {
-    if (!selectedContactId || !selectedCategory) return;
+    if (!selectedContactId) return;
+
     setGenerating(true);
     setError(null);
+
     try {
       const res = await fetch(endpoints.emailGenerate, {
         method: "POST",
@@ -135,22 +234,43 @@ export function useEmailSuggestions(): UseEmailSuggestionsReturn {
     }
   }, [selectedContactId, selectedCategory]);
 
+  // Go back to list view
+  const goBackToList = useCallback(() => {
+    setGeneratedEmail(null);
+    setSelectedContactId(null);
+    setView("list");
+    setError(null);
+  }, []);
+
+  // Refresh cache (clears all categories, re-fetches current)
   const refreshCache = useCallback(async () => {
-    if (!selectedCategory) return;
     setRefreshing(true);
     setError(null);
+
     try {
-      // First refresh the cache
+      // Clear cache on backend
       await fetch(endpoints.emailRefresh, { method: "POST" });
-      // Then re-fetch contacts for current category
-      const res = await fetch(`${endpoints.emailContacts}?category=${encodeURIComponent(selectedCategory)}`);
+
+      // Clear local cache
+      setContactsByCategory({});
+      setLoadedCategories(new Set());
+
+      // Re-fetch current category
+      const res = await fetch(
+        `${endpoints.emailContacts}?category=${encodeURIComponent(selectedCategory)}`
+      );
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.detail || `HTTP ${res.status}`);
       }
       const data: EmailContactsResponse = await res.json();
-      setContacts(data.contacts);
+
+      setContactsByCategory({ [selectedCategory]: data.contacts });
+      setLoadedCategories(new Set([selectedCategory]));
       setCachedSecondsAgo(data.cachedSecondsAgo);
+
+      // Restart background prefetch
+      prefetchInProgressRef.current = false;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to refresh data");
     } finally {
@@ -158,46 +278,56 @@ export function useEmailSuggestions(): UseEmailSuggestionsReturn {
     }
   }, [selectedCategory]);
 
-  const goBack = useCallback(() => {
-    if (view === "draft") {
-      setGeneratedEmail(null);
-      setView("contacts");
-    } else if (view === "contacts") {
-      setContacts([]);
-      setSelectedCategory(null);
-      setView("questions");
-    }
-    setError(null);
-  }, [view]);
+  // Compute visible contacts (filtered by handled)
+  const currentCategoryContacts = contactsByCategory[selectedCategory] || [];
+  const visibleContacts = currentCategoryContacts.filter(
+    (c) => !handledContactIds.has(c.contactId)
+  );
 
-  const reset = useCallback(() => {
-    setView("questions");
-    setSelectedCategory(null);
-    setSelectedContactId(null);
-    setContacts([]);
-    setGeneratedEmail(null);
-    setError(null);
-  }, []);
+  // Compute counts for all loaded categories (filtered by handled)
+  const contactCounts: Record<string, number> = {};
+  for (const category of CATEGORIES) {
+    if (loadedCategories.has(category)) {
+      const categoryContacts = contactsByCategory[category] || [];
+      contactCounts[category] = categoryContacts.filter(
+        (c) => !handledContactIds.has(c.contactId)
+      ).length;
+    }
+  }
 
   return {
-    view,
-    questions,
+    // Tab state
+    categories: CATEGORIES,
     selectedCategory,
-    selectedContactId,
-    contacts,
+    loadedCategories,
+    loadingCategory,
+
+    // Contacts
+    contacts: visibleContacts,
+    contactCounts,
+
+    // Handled tracking
+    handledContactIds,
+
+    // Email draft
+    view,
     generatedEmail,
-    loading,
     generating,
     generatingContactId,
-    error,
+
+    // Cache & refresh
     cachedSecondsAgo,
     refreshing,
-    fetchQuestions,
-    fetchContacts,
+
+    // Error
+    error,
+
+    // Actions
+    selectCategory,
     generateEmail,
+    markAsHandled,
     regenerateEmail,
+    goBackToList,
     refreshCache,
-    goBack,
-    reset,
   };
 }

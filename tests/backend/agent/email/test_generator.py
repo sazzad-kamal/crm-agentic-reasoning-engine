@@ -128,9 +128,29 @@ class TestRelativeTime:
     """Test relative time conversion."""
 
     def test_relative_time_today(self) -> None:
-        """Verify today returns 'today'."""
+        """Verify today without time returns 'today'."""
         today = time.strftime("%Y-%m-%d")
         assert _relative_time(today) == "today"
+
+    def test_relative_time_today_with_time_am(self) -> None:
+        """Verify today with AM time shows actual time."""
+        today = time.strftime("%Y-%m-%d") + "T09:30:00"
+        assert _relative_time(today) == "today at 9:30 AM"
+
+    def test_relative_time_today_with_time_pm(self) -> None:
+        """Verify today with PM time shows actual time."""
+        today = time.strftime("%Y-%m-%d") + "T14:45:00"
+        assert _relative_time(today) == "today at 2:45 PM"
+
+    def test_relative_time_today_with_time_noon(self) -> None:
+        """Verify noon is shown correctly."""
+        today = time.strftime("%Y-%m-%d") + "T12:00:00"
+        assert _relative_time(today) == "today at 12:00 PM"
+
+    def test_relative_time_today_with_time_midnight(self) -> None:
+        """Verify midnight is shown correctly."""
+        today = time.strftime("%Y-%m-%d") + "T00:15:00"
+        assert _relative_time(today) == "today at 12:15 AM"
 
     def test_relative_time_yesterday(self) -> None:
         """Verify yesterday calculation."""

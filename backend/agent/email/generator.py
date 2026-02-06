@@ -96,6 +96,18 @@ def _relative_time(date_str: str) -> str:
         if days < 0:
             return "in the future"
         elif days == 0:
+            # Show actual time for today (fast-moving system)
+            if len(date_str) >= 16:  # Has time component like "2026-02-06T14:30"
+                try:
+                    time_part = date_str[11:16]  # "14:30"
+                    hour, minute = int(time_part[:2]), int(time_part[3:5])
+                    period = "AM" if hour < 12 else "PM"
+                    display_hour = hour if hour <= 12 else hour - 12
+                    if display_hour == 0:
+                        display_hour = 12
+                    return f"today at {display_hour}:{minute:02d} {period}"
+                except (ValueError, IndexError):
+                    return "today"
             return "today"
         elif days == 1:
             return "yesterday"
@@ -118,8 +130,20 @@ def _relative_time(date_str: str) -> str:
         return "unknown"
 
 
-# History types to exclude (closed opportunities - no follow-up needed)
-_EXCLUDED_HISTORY_TYPES = {"Opportunity Lost", "Opportunity Inactive"}
+# History types to exclude from LLM classification
+# - Closed opportunities: no follow-up needed
+# - Noise types: automated/system records that don't indicate communication
+_EXCLUDED_HISTORY_TYPES = {
+    # Closed opportunities
+    "Opportunity Lost",
+    "Opportunity Inactive",
+    # Noise types (system/automated, not real communication)
+    "Field Changed",
+    "Web Activity",
+    "Contact Updated",
+    "Contact Deleted",
+    "Contact Linked",
+}
 
 
 def _is_future_date(date_str: str | None) -> bool:
@@ -150,7 +174,7 @@ def _filter_history(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     Removes:
     - Records with future dates (data errors)
-    - Opportunity Lost/Inactive records (closed - no follow-up needed)
+    - Excluded types: closed opportunities and noise (Field Changed, Web Activity, etc.)
     """
     filtered = []
     for h in history:

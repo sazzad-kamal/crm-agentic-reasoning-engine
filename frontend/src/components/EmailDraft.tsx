@@ -39,9 +39,10 @@ interface EmailDraftProps {
   onBack: () => void;
   onReset: () => void;
   onRegenerate?: () => void;
+  onOpenInEmail?: () => void;
 }
 
-export function EmailDraft({ email, onBack, onReset, onRegenerate }: EmailDraftProps) {
+export function EmailDraft({ email, onBack, onReset, onRegenerate, onOpenInEmail }: EmailDraftProps) {
   // Convert line breaks to paragraphs for better formatting
   const bodyParagraphs = email.body.split(/\n\n+/).filter(Boolean);
 
@@ -110,6 +111,7 @@ export function EmailDraft({ email, onBack, onReset, onRegenerate }: EmailDraftP
           className="email-draft__send-btn"
           target="_blank"
           rel="noopener noreferrer"
+          onClick={onOpenInEmail}
         >
           <span className="email-draft__send-icon"><SendIcon /></span>
           <span className="email-draft__send-text">Open in Email Client</span>

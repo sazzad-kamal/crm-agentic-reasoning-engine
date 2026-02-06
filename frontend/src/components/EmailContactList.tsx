@@ -1,6 +1,6 @@
 /**
  * EmailContactList - List of contacts with avatars and AI-generated reasons.
- * Polished design with loading skeletons and better visual hierarchy.
+ * Displays contacts for the selected tab with loading skeletons.
  */
 import type { KeyboardEvent } from "react";
 import type { EmailContact } from "../types";
@@ -15,7 +15,6 @@ interface EmailContactListProps {
   cachedSecondsAgo: number | null;
   refreshing: boolean;
   onContactClick: (contactId: string) => void;
-  onBack: () => void;
   onRefresh: () => void;
 }
 
@@ -27,10 +26,6 @@ function formatCacheAge(seconds: number): string {
 }
 
 const CATEGORY_CONFIG: Record<string, { title: string; description: string }> = {
-  quotes: {
-    title: "Open Quotes",
-    description: "Contacts with pending quotes that need follow-up",
-  },
   support: {
     title: "Support Follow-up",
     description: "Customers who recently had support interactions",
@@ -39,70 +34,49 @@ const CATEGORY_CONFIG: Record<string, { title: string; description: string }> = 
     title: "Upcoming Renewals",
     description: "Contacts with renewals coming up soon",
   },
-  recent: {
-    title: "Recent Activity",
-    description: "Contacts you've engaged with recently",
+  billing: {
+    title: "Billing Inquiries",
+    description: "Contacts with billing questions or payment follow-ups",
   },
-  dormant: {
-    title: "Re-engage Dormant",
-    description: "Contacts who haven't heard from you in a while",
-  },
-  technical: {
-    title: "Technical Issues",
-    description: "Contacts with unresolved technical matters",
+  quotes: {
+    title: "Open Quotes",
+    description: "Contacts with pending quotes that need follow-up",
   },
 };
 
 function LoadingSkeleton() {
   return (
-    <div className="email-contact-list">
-      <div className="email-contact-list__header">
-        <div className="skeleton-text" style={{ width: 80, height: 20 }} />
-        <div>
-          <div className="skeleton-text" style={{ width: 180, height: 24, marginBottom: 8 }} />
-          <div className="skeleton-text" style={{ width: 280, height: 16 }} />
-        </div>
-      </div>
-      <div className="email-contact-list__items">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="email-contact-skeleton">
-            <div className="skeleton-circle" style={{ width: 48, height: 48 }} />
-            <div style={{ flex: 1 }}>
-              <div className="skeleton-text" style={{ width: "40%", height: 18, marginBottom: 8 }} />
-              <div className="skeleton-text" style={{ width: "70%", height: 14, marginBottom: 6 }} />
-              <div className="skeleton-text" style={{ width: "30%", height: 12 }} />
-            </div>
-          </div>
-        ))}
+    <div className="email-contact-list email-contact-list--loading">
+      <div className="email-contact-list__loading-state">
+        <div className="email-contact-list__loading-spinner" />
+        <p className="email-contact-list__loading-text">
+          Finding contacts who need follow-up...
+        </p>
       </div>
     </div>
   );
 }
 
-function EmptyState({ onBack }: { onBack: () => void }) {
+function EmptyState() {
   return (
     <div className="email-contact-list__empty">
       <div className="email-contact-list__empty-illustration">
         <svg viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-          {/* Empty inbox illustration */}
-          <rect x="50" y="45" width="100" height="70" rx="8" fill="#F1F5F9" stroke="#CBD5E1" strokeWidth="2"/>
-          <path d="M50 53L100 85L150 53" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"/>
-          <path d="M50 107L75 85" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"/>
-          <path d="M150 107L125 85" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"/>
+          {/* Checkmark circle */}
+          <circle cx="100" cy="70" r="40" fill="#F0FDF4" stroke="#86EFAC" strokeWidth="3"/>
+          <path d="M80 70L93 83L120 56" stroke="#22C55E" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
           {/* Decorative elements */}
-          <circle cx="160" cy="40" r="12" fill="#EEF2FF" stroke="#C7D2FE" strokeWidth="2"/>
-          <path d="M160 35V45M155 40H165" stroke="#A5B4FC" strokeWidth="2" strokeLinecap="round"/>
-          <circle cx="45" cy="35" r="8" fill="#FEF3C7" stroke="#FCD34D" strokeWidth="2"/>
+          <circle cx="155" cy="45" r="10" fill="#EEF2FF" stroke="#C7D2FE" strokeWidth="2"/>
+          <circle cx="50" cy="50" r="8" fill="#FEF3C7" stroke="#FCD34D" strokeWidth="2"/>
           {/* Sparkles */}
-          <path d="M170 70L171.5 74L175.5 75.5L171.5 77L170 81L168.5 77L164.5 75.5L168.5 74L170 70Z" fill="#94A3B8"/>
-          <path d="M35 60L36.5 64L40.5 65.5L36.5 67L35 71L33.5 67L29.5 65.5L33.5 64L35 60Z" fill="#CBD5E1"/>
+          <path d="M165 75L166.5 79L170.5 80.5L166.5 82L165 86L163.5 82L159.5 80.5L163.5 79L165 75Z" fill="#A5B4FC"/>
+          <path d="M40 80L41.5 84L45.5 85.5L41.5 87L40 91L38.5 87L34.5 85.5L38.5 84L40 80Z" fill="#FCD34D"/>
         </svg>
       </div>
-      <h3>No contacts found</h3>
-      <p>We couldn't find any contacts in this category right now.</p>
-      <button type="button" onClick={onBack} className="btn btn--primary">
-        Try another category
-      </button>
+      <h3 className="email-contact-list__empty-title">All caught up!</h3>
+      <p className="email-contact-list__empty-text">
+        No follow-ups needed in this category right now.
+      </p>
     </div>
   );
 }
@@ -116,7 +90,6 @@ export function EmailContactList({
   cachedSecondsAgo,
   refreshing,
   onContactClick,
-  onBack,
   onRefresh,
 }: EmailContactListProps) {
   const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, contactId: string) => {
@@ -137,15 +110,8 @@ export function EmailContactList({
 
   return (
     <div className="email-contact-list">
+      {/* Header with title and cache info */}
       <div className="email-contact-list__header">
-        <button
-          type="button"
-          className="email-contact-list__back"
-          onClick={onBack}
-          aria-label="Go back to categories"
-        >
-          ← Back
-        </button>
         <div className="email-contact-list__header-text">
           <h2 className="email-contact-list__title">{config.title}</h2>
           <p className="email-contact-list__description">{config.description}</p>
@@ -169,7 +135,7 @@ export function EmailContactList({
       </div>
 
       {contacts.length === 0 ? (
-        <EmptyState onBack={onBack} />
+        <EmptyState />
       ) : (
         <>
           <p className="email-contact-list__hint">

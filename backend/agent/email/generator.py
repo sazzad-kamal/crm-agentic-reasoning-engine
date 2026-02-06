@@ -21,8 +21,8 @@ from backend.core.llm import create_openai_chain
 
 logger = logging.getLogger(__name__)
 
-# LLM model for email generation (gpt-5 for speed/cost balance)
-_EMAIL_MODEL = "gpt-5"
+# LLM model for email generation (gpt-5.2 - gpt-5 has issues with JSON in prompts)
+_EMAIL_MODEL = "gpt-5.2"
 
 # Category definitions
 CATEGORY_DESCRIPTIONS = {
@@ -121,10 +121,10 @@ def _condense_history_for_llm(history: list[dict[str, Any]]) -> list[dict[str, A
         contact_id = contact.get("id") if isinstance(contact, dict) else contact
         contact_name = contact.get("displayName", "") if isinstance(contact, dict) else ""
 
-        # Get condensed details
-        details = strip_html(h.get("details", ""))[:500]
-        regarding = h.get("regarding", "")[:100]
-        date = str(h.get("startTime", ""))[:10]
+        # Get condensed details (use `or ""` to handle None values)
+        details = strip_html(h.get("details") or "")[:500]
+        regarding = (h.get("regarding") or "")[:100]
+        date = str(h.get("startTime") or "")[:10]
 
         if contact_id:
             condensed.append({
@@ -224,6 +224,11 @@ async def _classify_history_with_llm(history: list[dict[str, Any]], category: st
         })
 
         # Parse JSON response
+        logger.debug("LLM result type: %s, value: %s", type(result), result[:200] if result else "None")
+        if not result:
+            logger.warning("LLM returned empty response for category: %s", category)
+            return []
+
         # Handle potential markdown code blocks
         result_text = result.strip()
         if result_text.startswith("```"):

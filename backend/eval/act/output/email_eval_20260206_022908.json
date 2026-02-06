@@ -1,0 +1,364 @@
+{
+  "timestamp": "2026-02-06T02:20:59.543962",
+  "summary": {
+    "categories": {
+      "count": 3,
+      "avg_relevance": 4.0,
+      "avg_reason_quality": 4.0,
+      "avg_contact_selection": 3.3333333333333335,
+      "avg_actionability": 3.0,
+      "avg_total": 14.333333333333334,
+      "pass_count": 3
+    },
+    "emails": {
+      "count": 3,
+      "avg_personalization": 3.6666666666666665,
+      "avg_professionalism": 5.0,
+      "avg_clarity": 5.0,
+      "avg_call_to_action": 4.666666666666667,
+      "avg_total": 18.333333333333332,
+      "pass_count": 3,
+      "would_send_count": 3
+    }
+  },
+  "category_results": [
+    {
+      "category_id": "renewals",
+      "category_description": "Contacts with upcoming renewals, expiring subscriptions, or renewal discussions",
+      "contact_count": 7,
+      "contacts": [
+        {
+          "contactId": "ad0bfbd3-2a49-4a0e-aae0-46008c6a71da",
+          "name": "Kip Gregory",
+          "company": null,
+          "reason": "Renewal discussion noted for June and an Act! Advantage renewal quote/early trial outreach was sent, awaiting next steps/response.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "cded84df-c1d1-4891-8ef1-ccf0ecdc9a10",
+          "name": "Todd Taylor",
+          "company": null,
+          "reason": "Act subscription expires April 10 and a voicemail follow-up was left, so renewal confirmation is still needed.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "06e27a28-977c-4911-9019-3aae91a00cb8",
+          "name": "Shelly Winson",
+          "company": null,
+          "reason": "Orange Care renewal invoice #79371 is due March 3, 2026 and voicemail/email reminder was sent requesting confirmation to renew.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "51d62df4-eb05-4130-936a-157825769d4a",
+          "name": "Tracy Vroom",
+          "company": null,
+          "reason": "Act! annual subscription renewal invoice #79163 is due March 2, 2026 and a voicemail reminder was left to confirm renewal and avoid disruption.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "a8df9305-f1bc-4b3a-aa4d-1e6c0db4ec84",
+          "name": "Mercedes",
+          "company": null,
+          "reason": "Act subscription renewal is planned for April 26, 2026 (quote accepted/paid) and needs follow-up to ensure the renewal is processed on that date.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "da736c0e-a79b-4e62-b309-0e9ec551026b",
+          "name": "Mark Pierson",
+          "company": null,
+          "reason": "A pre-renewal 60-day follow-up call was attempted and he asked for an email/check-in due to being busy, so renewal readiness still needs confirmation.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "608866eb-4462-4a1a-bd47-b5a1ac96b6c8",
+          "name": "Dave Radcliffe",
+          "company": null,
+          "reason": "Was contacted specifically about his existing Act subscription and potential plan/feature changes (Act Advantage/Professional), indicating an active renewal conversation needing follow-up.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        }
+      ],
+      "scores": {
+        "relevance": 4,
+        "reason_quality": 4,
+        "contact_selection": 3,
+        "actionability": 3,
+        "relevance_reason": "All 7 contacts explicitly reference renewals, expiring subscriptions, renewal invoices, or renewal/pre-renewal outreach. A couple entries (e.g., plan/feature change conversation) could be more \u201cupsell during renewal\u201d than a true renewal trigger, but they still plausibly belong here.",
+        "reason_quality_reason": "Reasons are mostly specific (dates like Mar 2/3, Apr 10/26, invoice numbers, and the last outreach channel). However, some claims are a bit assumptive/unclear (e.g., \u201cneeds follow-up to ensure processed\u201d even though paid; \u201cactive renewal conversation\u201d without an actual renewal date; \u201crenewal discussion noted for June\u201d without a concrete deadline). Missing key context like product term, renewal amount, and whether auto-renew is enabled.",
+        "contact_selection_reason": "The March due invoices (Tracy Vroom, Shelly Winson) and April expiry (Todd Taylor) are strong priorities. Others are weaker priorities: Mercedes appears already accepted/paid (may not require sales follow-up beyond ops confirmation), Kip Gregory\u2019s June timing is relatively far out, and Dave Radcliffe/Mark Pierson lack a clear renewal date or confirmed renewal need, making them less clearly urgent than true upcoming expirations.",
+        "actionability_reason": "Ken can generally tell what to do (confirm renewal, respond to voicemail/email, prevent service disruption) and has due dates/invoice IDs for some. But the list doesn\u2019t consistently provide a concrete next step (e.g., \u2018send invoice link\u2019, \u2018confirm PO\u2019, \u2018renewal amount/term\u2019, \u2018auto-renew status\u2019, \u2018who handles billing\u2019) and several items are phrased as \u201cneeds follow-up\u201d without stating the exact blocker to close.",
+        "overall_assessment": "Good renewal-focused list with several high-signal, near-term renewals (especially the March invoices and April expiration). The main weaknesses are prioritization (includes some low-urgency/ambiguous items) and incomplete operational context (amount/term/auto-renew/billing contact), which reduces immediate execution clarity."
+      },
+      "total_score": 14
+    },
+    {
+      "category_id": "recent",
+      "category_description": "Contacts with recent interactions that may need follow-up",
+      "contact_count": 10,
+      "contacts": [
+        {
+          "contactId": "4792ac12-7c69-4b7d-ad5e-9b2db75131da",
+          "name": "Don Prentice",
+          "company": "Health insurance choices",
+          "reason": "Asked for specific PC/MS SQL RAM and speed recommendations for running Act! with a large database, indicating a pending purchasing/upgrade decision that needs an answer.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "45466a66-1fae-4bed-b32b-fe41bfe66fac",
+          "name": "Jim Maddox",
+          "company": "Jim Maddox Properties, LLC",
+          "reason": "Reported that Act! login requires a sync but syncing keeps freezing, so support needs to reconnect and confirm the issue is fully resolved.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "9afcf9a6-bf12-447f-b89f-2aea2eb8c2c2",
+          "name": "Don Landy",
+          "company": null,
+          "reason": "Support indicated they need to connect again to complete troubleshooting for the Act! issue and are waiting for availability confirmation.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "5bba207c-2fce-44c7-b9ff-51f998da6154",
+          "name": "Jeff Herold",
+          "company": null,
+          "reason": "Support could not reach him and requested a reply to reconnect and try the next troubleshooting step for the ongoing Act! issue.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "b03de34e-43a7-496c-a63b-96176aab0cbc",
+          "name": "Lindsay Fothergill",
+          "company": null,
+          "reason": "Issue was escalated with a promised update 'by tomorrow' and interim workaround instructions were given, so follow-up is needed with the escalation outcome.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "0a9ca082-8c58-469a-8828-cd6b5c7dcac4",
+          "name": "Carole T\u00e9trault",
+          "company": null,
+          "reason": "Reported cloud/web performance is slow and requested a quote to add desktop seats pending boss approval, so sales should follow up on approval and next steps for the quote.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "bea1cb6c-bf23-4994-865e-cff1e54d1478",
+          "name": "Terry Perkins",
+          "company": null,
+          "reason": "After accepting quote 18160KQC, asked where the 'realty' download link is, indicating a missing deliverable that needs to be sent/clarified.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "b969df00-22ea-4125-a2aa-c52d60d6d6d6",
+          "name": "Lisa Bass Thomas",
+          "company": null,
+          "reason": "They are considering Salesforce versus Act! and requested a call in a few weeks once the boss returns, so an outbound follow-up should be scheduled.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "4e071abd-f236-4327-8d58-9d339760a349",
+          "name": "Basia Dabrowski",
+          "company": null,
+          "reason": "A hosting quote (18166KQC) was issued and logged for follow-up, so the quote status should be checked and next steps confirmed.",
+          "lastContact": "2026-02-08",
+          "lastContactAgo": "in the future"
+        },
+        {
+          "contactId": "f9c7cc93-1e02-48a6-848e-ea789a64a540",
+          "name": "Shirley Visger",
+          "company": "PPACE",
+          "reason": "Requested billing and account contact changes (invoice recipients and removal of a previous contact) which require confirmation that the database/AR updates were completed.",
+          "lastContact": "2026-12-02",
+          "lastContactAgo": "in the future"
+        }
+      ],
+      "scores": {
+        "relevance": 3,
+        "reason_quality": 4,
+        "contact_selection": 3,
+        "actionability": 3,
+        "relevance_reason": "Most contacts show very recent activity (2/5) and an open loop that warrants follow-up (support troubleshooting, quotes, deliverables). However, at least two records have impossible/future last-contact dates (2/8 and 12/2) and one shows an incorrect relative time (\u201ctoday\u201d for 2/5 given current date 2/6), which undermines the \u201crecent interactions\u201d classification accuracy.",
+        "reason_quality_reason": "Reasons are generally specific and tied to a clear pending item (e.g., sync freezing, quote accepted but missing download link, waiting for availability to reconnect, escalation promised \u201cby tomorrow\u201d). They mostly explain why follow-up is needed. Minor gaps: some reasons don\u2019t cite what the last interaction actually was (call/email/chat) and a few are slightly generic (\u201cneed to connect again\u201d) without the exact next diagnostic step or dependency.",
+        "contact_selection_reason": "Prioritization is mixed: several are excellent \u2018hot\u2019 follow-ups (Terry Perkins missing deliverable after accepting quote; Carole T\u00e9trault quote pending approval; Don Prentice pending hardware guidance). But the inclusion of future-dated contacts is a clear selection error, and at least one (Lisa Bass Thomas) is a longer-horizon nurture (\u201cin a few weeks\u201d) that doesn\u2019t belong in a near-term \u2018recent follow-up needed\u2019 queue unless it\u2019s explicitly a scheduled task due soon.",
+        "actionability_reason": "Ken can infer next actions (reply with hardware specs, schedule reconnect, send download link, check quote status), so it\u2019s somewhat actionable. But it\u2019s not immediately operational because: (1) date inconsistencies make it unclear what\u2019s truly recent/overdue, (2) no explicit recommended next step/owner/due date per contact, and (3) mixed support vs sales follow-ups aren\u2019t separated, which affects who should act and how urgently.",
+        "overall_assessment": "Mostly the right *type* of contacts for a \u201crecent follow-up\u201d list (open issues and active deals), with strong, specific reasons. However, data quality issues (future last-contact dates and incorrect \u201clastContactAgo\u201d) and a bit of queue-mixing (near-term follow-ups vs longer-horizon nurture) reduce trust and make prioritization harder. Fix the timestamp logic/validation, filter out future-dated interactions, and add explicit next-action + due date (and optionally segment Support vs Sales) to make this list reliably actionable."
+      },
+      "total_score": 13
+    },
+    {
+      "category_id": "technical",
+      "category_description": "Contacts with technical issues (sync, database, server, install, upgrade) that need follow-up",
+      "contact_count": 10,
+      "contacts": [
+        {
+          "contactId": "93952f99-9231-4099-8b10-06822760e3a9",
+          "name": "Mark Salonius",
+          "company": "",
+          "reason": "Needs coordination to switch their team to a new syncing database and update Act4Outlook after the server syncing database was replaced.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "cd1eb404-a53d-4f46-8e29-b4aa82e314a6",
+          "name": "Joyce King",
+          "company": "Specialty Wealth & Financial",
+          "reason": "Reported inability to access the 2026 database and ongoing activity-sync issues requiring a replacement syncing database and confirmation all users are on the correct server database.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "45466a66-1fae-4bed-b32b-fe41bfe66fac",
+          "name": "Jim Maddox",
+          "company": "Jim Maddox Properties, LLC",
+          "reason": "Still experiencing sync freezing and being prompted to sync on login, despite prior session claiming the remote database sync issue was fixed.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "2bb2a7ef-c62f-4cc3-8a98-0b39d5bc59ae",
+          "name": "Keystroke Service",
+          "company": "",
+          "reason": "Keystroke Alerts service failures produced errors and support requested the user to restart the service and run the task manually, awaiting results to confirm resolution.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "8f0111b9-18b0-47bc-aab1-2010a2cb28e2",
+          "name": "Luc Grenier",
+          "company": "",
+          "reason": "Act4Mail activity-creation error is still under investigation and support requested Act! login credentials and updated log files to reproduce and confirm the root cause.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "1a663221-3668-47d6-b059-f49573b93162",
+          "name": "Michael Ryan",
+          "company": "",
+          "reason": "Requires a scheduled session for Antony to update local sync settings following an Act server upgrade to restore syncing.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "b46cfc6c-5b16-4f0d-b59e-474f395d8f3e",
+          "name": "Loretto Gauvin",
+          "company": "",
+          "reason": "After the master database/server upgrade, local workstation changes are still needed (2-minute update per PC) and users cannot sync until completed.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "0a9ca082-8c58-469a-8828-cd6b5c7dcac4",
+          "name": "Carole T\u00e9trault",
+          "company": "",
+          "reason": "All users are reporting severe slowness in the web version (data entry and reporting) and are considering moving back to desktop, requiring performance/architecture follow-up.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "ed80a674-40f2-41f8-8995-d56ea86683fe",
+          "name": "Gracey Lewis",
+          "company": "",
+          "reason": "Experiencing technical issues where the Outlook sidebar is very sluggish and newly entered contact data disappears in the desktop app.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        },
+        {
+          "contactId": "b03de34e-43a7-496c-a63b-96176aab0cbc",
+          "name": "Lindsay Fothergill",
+          "company": "",
+          "reason": "Reported an unresolved Act error/glitch tied to task visibility/filtering (workaround excludes a specific user) and the issue was escalated with follow-up promised.",
+          "lastContact": "2026-02-05",
+          "lastContactAgo": "today"
+        }
+      ],
+      "scores": {
+        "relevance": 5,
+        "reason_quality": 4,
+        "contact_selection": 4,
+        "actionability": 3,
+        "relevance_reason": "All 10 entries clearly describe technical problems (sync/database/server/upgrade/performance/errors/Outlook integration) that plausibly require follow-up. No obvious non-technical false positives in the list.",
+        "reason_quality_reason": "Reasons are mostly specific (what\u2019s broken + context like server DB replacement, Act4Outlook, web slowness, disappearing data, task filtering glitch). A few are slightly ambiguous on exact product/component and current state (e.g., \u201cerror/glitch\u201d without error text; \u201cservice failures\u201d without environment), but generally accurate and useful.",
+        "contact_selection_reason": "These are appropriate to prioritize for a technical follow-up category, and all are very recent. However, the list looks like an unprioritized dump of \u2018today\u2019s\u2019 technical touches\u2014there\u2019s no clear severity/impact ranking (e.g., \u2018cannot access DB\u2019 and \u2018cannot sync\u2019 should likely outrank \u2018sluggish sidebar\u2019), and one record (\u2018Keystroke Service\u2019) is a service/entity rather than a clear decision-maker contact, which may complicate follow-up ownership.",
+        "actionability_reason": "Ken can tell these need technical follow-up, but the next action isn\u2019t consistently explicit. Some entries include concrete asks (provide credentials/logs, restart service and report back, schedule session, do 2\u2011minute per-PC update), while others lack who is responsible, what exact next step is pending, and by when (e.g., web slowness/performance, Outlook sluggish/disappearing data, task filtering glitch escalation). Adding \u2018owner/next step/pending from customer/pending from support\u2019 would make this immediately executable.",
+        "overall_assessment": "Strong fit for the \u2018technical\u2019 category with generally solid, specific reasons. The main weakness is operational: limited prioritization and inconsistent \u2018next-step\u2019 clarity. To be truly sales-manager actionable, each item should indicate severity/impact, current status (awaiting customer vs. awaiting support), and the exact follow-up action + owner."
+      },
+      "total_score": 16
+    }
+  ],
+  "email_results": [
+    {
+      "contact_id": "ad0bfbd3-2a49-4a0e-aae0-46008c6a71da",
+      "contact_name": "Kip Gregory",
+      "company": null,
+      "category": "renewals",
+      "subject": "Checking in on Act! Advantage for your June renewal",
+      "body": "Hi Kip,\n\nI\u2019m following up on the note I sent on 2/5 with the Act! Advantage quote ahead of your June renewal. Since Advantage includes everything you have on desktop plus new features at the same price, I\u2019d love to get you access to test it before you decide. Can you confirm the best email to send the evaluation link, or share 2\u20133 times next week for a quick 10-minute walkthrough?",
+      "scores": {
+        "personalization": 3,
+        "professionalism": 5,
+        "clarity": 5,
+        "call_to_action": 5,
+        "personalization_reason": "Uses the contact\u2019s first name and references a prior note (2/5) and the June renewal with an Act! Advantage quote. However, it doesn\u2019t reference the company, current plan specifics, or any details from prior conversations beyond the date, so it\u2019s only moderately personalized.",
+        "professionalism_reason": "Tone is polite, confident, and appropriate for a renewal follow-up. No grammar issues or pushy language; the offer to test and do a brief walkthrough is customer-friendly.",
+        "clarity_reason": "Very easy to understand: reminds them of the quote, explains the value proposition in one sentence, and presents two clear options. Length is appropriate and readable.",
+        "call_to_action_reason": "Strong CTA with two concrete next steps: confirm best email for evaluation link or propose 2\u20133 times for a 10-minute walkthrough. Low-friction and specific.",
+        "would_send": true,
+        "improvement_suggestion": "Add a bit more specificity to increase credibility and personalization (e.g., confirm what they\u2019re on today\u2014Act! Desktop version/license count\u2014briefly name 1\u20132 relevant Advantage features). If company name is unknown, avoid implying it\u2019s on file; alternatively ask a quick confirmation question like \u201cAre you still using Act! on [#] seats?\u201d Also consider softening \u201cat the same price\u201d to \u201ctypically at the same price\u201d unless pricing is guaranteed for their account."
+      },
+      "total_score": 18
+    },
+    {
+      "contact_id": "4792ac12-7c69-4b7d-ad5e-9b2db75131da",
+      "contact_name": "Don Prentice",
+      "company": "Health insurance choices",
+      "category": "recent",
+      "subject": "Re: Computer RAM/speed requirements for ACT! + MS SQL",
+      "body": "Hi Don,\n\nThanks for your note about the best computer specs (speed and RAM) for running ACT! with MS SQL on Windows 11 Pro, with one license accessed from two computers and a database of ~2,700 clients (~36GB). In most cases 16GB can work, but 32GB is typically the safer recommendation for smoother performance, especially with SQL services running in the background.\n\nWould you like to share your current CPU model (or a link to the PC specs) and whether the database is hosted on one PC or a dedicated server so I can recommend the right configuration?",
+      "scores": {
+        "personalization": 4,
+        "professionalism": 5,
+        "clarity": 5,
+        "call_to_action": 4,
+        "personalization_reason": "References Don by name and accurately restates the specific question and environment (ACT! + MS SQL, Windows 11 Pro, two computers/one license, ~2,700 clients, 36GB DB). It does not reference Don\u2019s company or any prior interaction beyond the note, so it\u2019s not maximum personalization.",
+        "professionalism_reason": "Tone is professional, helpful, and appropriately technical. No slang or pushiness, and the language is polished with no obvious errors.",
+        "clarity_reason": "Clearly summarizes the situation, gives a straightforward recommendation (16GB vs 32GB) with rationale, and asks for two concrete pieces of info to proceed. Easy to scan and understand.",
+        "call_to_action_reason": "Asks for CPU model/spec link and hosting setup, which are actionable next steps. Could be slightly stronger by offering a quick call option or proposing a specific next step/timeframe.",
+        "would_send": true,
+        "improvement_suggestion": "Add a brief closing/signature and one more explicit CTA option (e.g., \u201cReply with the CPU model and hosting details, or if easier, we can do a 10-minute call\u2014what time works this week?\u201d). Optionally mention Don\u2019s company once to increase personalization."
+      },
+      "total_score": 18
+    },
+    {
+      "contact_id": "93952f99-9231-4099-8b10-06822760e3a9",
+      "contact_name": "Mark Salonius",
+      "company": "",
+      "category": "technical",
+      "subject": "Next step: switching your team to the new syncing database",
+      "body": "Hi Mark,\n\nFollowing up on my note from 2/5: I replaced the syncing database on the server, verified activities are syncing both ways (cloud \u2194 desktop), and set the new database to auto-sync hourly. The next step is to switch each of the four users to the new syncing database and update Act4Outlook to point to it (two quick changes on each workstation). Are you available tomorrow between 9\u201310am for me to connect and complete the switchover for everyone? If that window doesn\u2019t work, please share a couple of alternate times.",
+      "scores": {
+        "personalization": 4,
+        "professionalism": 5,
+        "clarity": 5,
+        "call_to_action": 5,
+        "personalization_reason": "Uses Mark\u2019s name and references a specific prior note/date (2/5) plus concrete actions taken (replaced syncing DB, verified two-way sync, auto-sync hourly) and the known detail of four users. Company context is missing/unknown, but otherwise it\u2019s tailored to the situation.",
+        "professionalism_reason": "Tone is professional, calm, and technically competent. No obvious grammar issues or awkward phrasing. It sets expectations and avoids blaming language.",
+        "clarity_reason": "Clear summary of what was done, what remains, and what will happen on each workstation (\u201ctwo quick changes\u201d). The request is straightforward and easy to follow.",
+        "call_to_action_reason": "Very clear next step: schedule a remote session, with a specific proposed time window and an explicit request for alternates if it doesn\u2019t work.",
+        "would_send": true,
+        "improvement_suggestion": "Add a brief closing/signature and clarify timezone. Optionally mention expected duration (e.g., 20\u201330 minutes) and any prep needed (all four users logged in/PCs available, admin rights, remote tool). Consider softening/clarifying \u201cswitching your team\u201d in the subject if Mark isn\u2019t the manager of the four users."
+      },
+      "total_score": 19
+    }
+  ]
+}

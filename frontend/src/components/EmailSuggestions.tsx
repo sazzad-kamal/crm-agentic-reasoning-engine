@@ -8,7 +8,6 @@
  */
 import { useEffect } from "react";
 import { useEmailSuggestions } from "../hooks/useEmailSuggestions";
-import { endpoints } from "../config";
 import { EmailQuestions } from "./EmailQuestions";
 import { EmailContactList } from "./EmailContactList";
 import { EmailDraft } from "./EmailDraft";
@@ -68,11 +67,9 @@ export function EmailSuggestions() {
     reset,
   } = useEmailSuggestions();
 
-  // Fetch questions on mount + fire-and-forget history prefetch
+  // Fetch questions on mount
   useEffect(() => {
     fetchQuestions();
-    // Warm up history cache in background - don't await, don't block
-    fetch(endpoints.emailWarmup, { method: "POST" }).catch(() => {});
   }, [fetchQuestions]);
 
   const handleQuestionClick = (categoryId: string) => {

@@ -203,7 +203,7 @@ async def _do_fetch_history() -> list[dict[str, Any]]:
     global _history_cache, _history_cache_time, _history_by_contact
 
     logger.info("Fetching history from Act! API...")
-    history: list[dict[str, Any]] = _get("/api/history", {"$top": 1000, "$orderby": "startTime desc"})
+    history: list[dict[str, Any]] = _get("/api/history", {"$top": 500, "$orderby": "startTime desc"})
     _history_cache = history
     _history_cache_time = time.time()
 

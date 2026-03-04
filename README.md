@@ -27,35 +27,6 @@ LLMs hallucinate. They make up data, invent statistics, and confidently cite sou
   <img src="docs/langgraph-architecture.svg" alt="LangGraph Multi-Agent Architecture" width="900">
 </p>
 
-### How It Works
-
-```mermaid
-flowchart TB
-    Q[User Question] --> S[Supervisor]
-
-    S -->|data_query| F[Fetch]
-    S -->|compare| C[Compare]
-    S -->|trend| T[Trend]
-    S -->|complex| P[Planner]
-    S -->|export| E[Export]
-    S -->|health| H[Health]
-    S -->|clarify/help| A
-
-    F --> A[Answer]
-    C --> A
-    T --> A
-    P --> A
-    E --> A
-    H --> A
-
-    A -->|needs_more_data| F
-    A --> AC[Action]
-    A --> FU[Followup]
-
-    AC --> END[Response]
-    FU --> END
-```
-
 ---
 
 ## What Makes This Production-Grade

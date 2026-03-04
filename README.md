@@ -2,16 +2,26 @@
 
 **Ask questions about your CRM in plain English. Get answers grounded in data.**
 
-A multi-agent AI system that routes queries to specialized agents, enforces output contracts, and never hallucinates.
-
 ![Tests](https://img.shields.io/badge/tests-1,149_passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.10+-blue)
 ![LangGraph](https://img.shields.io/badge/orchestration-LangGraph-purple)
 
+<p align="center">
+  <img src="docs/demo-screenshot.png" alt="CRM Chat Assistant Demo" width="800">
+</p>
+
 ---
 
-## How It Works
+## The Problem
+
+LLMs hallucinate. They make up data, invent statistics, and confidently cite sources that don't exist.
+
+**This system can't hallucinate.** Every claim links to actual data with evidence tags. If the data doesn't exist, it says so.
+
+---
+
+## Architecture
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
@@ -44,9 +54,6 @@ A multi-agent AI system that routes queries to specialized agents, enforces outp
                     ▼                           ▼
                ┌─────────┐                ┌──────────┐
                │ ACTION  │                │ FOLLOWUP │
-               │         │                │          │
-               │ "Next:  │                │ 3 smart  │
-               │ call X" │                │ questions│
                └─────────┘                └──────────┘
 ```
 
@@ -54,101 +61,82 @@ A multi-agent AI system that routes queries to specialized agents, enforces outp
 
 ## What Makes This Production-Grade
 
-### 1. Multi-Agent Orchestration
+### Multi-Agent Orchestration
 
-6 specialized agents, each optimized for its task:
+6 specialized agents. Each optimized for its task:
 
 | Query | Agent | What Happens |
 |-------|-------|--------------|
-| "Show Q1 deals" | Fetch | SQL generation → DuckDB |
-| "Q1 vs Q2 revenue" | Compare | Parallel queries → Delta analysis |
-| "Revenue trend" | Trend | Time-series → Growth calculation |
-| "Deals and compare regions" | **Planner** | Decompose → Route to multiple agents → Aggregate |
-| "Export to CSV" | Export | Query → File generation |
-| "Acme health score" | Health | Multi-factor scoring |
+| "Show Q1 deals" | **Fetch** | SQL generation → DuckDB |
+| "Q1 vs Q2 revenue" | **Compare** | Parallel queries → Delta analysis |
+| "Revenue trend" | **Trend** | Time-series → Growth metrics |
+| "Deals and compare regions" | **Planner** | Decompose → Fan-out → Aggregate |
+| "Export to CSV" | **Export** | Query → File generation |
+| "Acme health score" | **Health** | Multi-factor scoring |
 
-**Planner handles complex queries** by decomposing them and routing sub-queries to the right agents:
+**Planner** handles complex queries by decomposing and routing to multiple agents:
 
 ```
-"Show all deals and compare Q1 vs Q2"
-              │
-              ▼
-          PLANNER
+"Show deals and compare Q1 vs Q2"
               │
     ┌─────────┴─────────┐
     ▼                   ▼
   FETCH              COMPARE
-"Show deals"        "Q1 vs Q2"
     │                   │
     └─────────┬─────────┘
               ▼
           AGGREGATE → ANSWER
 ```
 
-### 2. Heuristics-First Classification
+### Heuristics-First Classification
 
-**90% of queries classified without LLM** — pattern matching handles obvious cases:
+**90% of queries classified without LLM** — fast and cheap:
 
 ```
-"export deals"     →  EXPORT   (keyword match)
-"Q1 vs Q2"         →  COMPARE  (keyword match)
-"trend over time"  →  TREND    (keyword match)
+"export deals"     →  EXPORT   (keyword)
+"Q1 vs Q2"         →  COMPARE  (keyword)
 "yes"              →  CLARIFY  (too short)
-"hmm not sure"     →  LLM      (ambiguous → GPT-4o-mini)
+"hmm not sure"     →  LLM      (ambiguous)
 ```
 
-### 3. Contract-Enforced Outputs
+### Contract-Enforced Outputs
 
-Every LLM output goes through **Validate → Repair → Fallback**:
+Every LLM output: **Validate → Repair → Fallback**
 
 ```
-LLM Output → Validate → [invalid] → Repair (re-prompt) → [still bad] → Fallback
+LLM Output → Validate → [fail] → Repair → [fail] → Fallback
                 ↓
-            [valid] → Return
+            [pass] → Return
 ```
-
-| Output | Contract | Fallback |
-|--------|----------|----------|
-| Answer | Must have `[E1]` evidence tags | "I don't have that data" |
-| Action | Numbered list, ≤28 words each | Empty list |
-| Followup | Exactly 3 questions, ≤10 words | Static suggestions |
 
 **The system never crashes on bad LLM output.**
 
-### 4. Evidence-Grounded Responses
+### Evidence-Grounded Responses
 
 Every claim cites its source:
 
 ```
-Answer: The deal is in Negotiation [E1] valued at $50,000 [E2].
+The deal is in Negotiation [E1] valued at $50,000 [E2].
 
 Evidence:
 - E1: opportunities.stage = "Negotiation"
 - E2: opportunities.value = 50000
 ```
 
-Optional **grounding verifier** catches hallucinations before they ship.
-
-### 5. Data Refinement Loops
+### Data Refinement Loops
 
 Answer can request more data (max 2 iterations):
 
 ```
-Fetch → Answer: "I have deals but need contacts"
-                   │
-                   └─→ needs_more_data = true
-                          │
-                          ▼
-                   Fetch (refined) → Answer: "Here's the complete picture..."
+Fetch → Answer: "Need more context"
+           └─→ Fetch (refined) → Answer: "Complete picture..."
 ```
 
-### 6. SQL Safety Guard
+### SQL Safety Guard
 
-All LLM-generated SQL validated via `sqlglot`:
-
-- **Blocked**: `INSERT`, `UPDATE`, `DELETE`, `DROP`, `CREATE`
-- **Auto-added**: `LIMIT 1000` (prevent memory exhaustion)
-- **Blocked**: `read_csv()` (no file access)
+All SQL validated via `sqlglot`:
+- **Blocked**: INSERT, UPDATE, DELETE, DROP
+- **Auto-added**: LIMIT 1000
 
 ---
 
@@ -156,13 +144,12 @@ All LLM-generated SQL validated via `sqlglot`:
 
 | Layer | Choice | Why |
 |-------|--------|-----|
-| **Orchestration** | LangGraph | Stateful multi-agent workflows |
-| **SQL Generation** | Claude | Better structured output than GPT |
+| **Orchestration** | LangGraph | Stateful workflows, checkpointing |
+| **SQL Gen** | Claude | Better structured output |
 | **Synthesis** | GPT-4 | Natural language strength |
-| **Database** | DuckDB | Fast SQL over CSV |
-| **Backend** | FastAPI + Pydantic v2 | Type-safe, async |
-| **Frontend** | React 18 + TypeScript | Modern, type-safe |
-| **Streaming** | SSE | Real-time token delivery |
+| **Database** | DuckDB | Fast analytical queries |
+| **Backend** | FastAPI | Async, type-safe |
+| **Frontend** | React + TypeScript | Modern, maintainable |
 
 ---
 
@@ -170,10 +157,12 @@ All LLM-generated SQL validated via `sqlglot`:
 
 | Metric | Value |
 |--------|-------|
-| **Tests** | 1,149 (420 backend + 562 frontend + 167 E2E) |
-| **Faithfulness SLO** | ≥ 0.9 (RAGAS) |
-| **p50 Latency** | ≤ 3s |
-| **Eval Framework** | RAGAS with regression gates |
+| **Total Tests** | **1,149** |
+| Backend (pytest) | 420 |
+| Frontend (Vitest) | 562 |
+| E2E (Playwright) | 167 |
+| **Faithfulness** | ≥ 0.9 (RAGAS) |
+| **p50 Latency** | < 3s |
 
 ---
 
@@ -201,25 +190,14 @@ POST /api/chat/stream
 {"question": "What deals closed this quarter?"}
 ```
 
-**SSE Events**: `fetch_start` → `answer_chunk` (streaming) → `action` → `followup` → `done`
+SSE Events: `fetch_start` → `answer_chunk` → `action` → `followup` → `done`
 
 ---
 
-## Project Structure
+## Deep Dive
 
-```
-backend/
-├── agent/
-│   ├── graph.py           # LangGraph workflow
-│   ├── supervisor/        # Intent classification (heuristics + LLM)
-│   ├── fetch/             # SQL planning (Claude) + execution (DuckDB)
-│   ├── compare/           # A vs B analysis
-│   ├── trend/             # Time-series patterns
-│   ├── planner/           # Multi-agent orchestration
-│   ├── answer/            # Response synthesis with evidence
-│   └── validate/          # Contract enforcement (repair chain)
-└── eval/                  # RAGAS evaluation framework
-```
+- [Full Architecture Docs](docs/ARCHITECTURE.md)
+- [LangGraph Diagram](docs/LANGGRAPH_DIAGRAM.md)
 
 ---
 

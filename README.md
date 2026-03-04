@@ -189,7 +189,8 @@ flowchart LR
 
 - Python 3.10+
 - Node.js 18+
-- OpenAI API key
+- OpenAI API key (answer synthesis)
+- Anthropic API key (SQL generation)
 
 ### Setup
 

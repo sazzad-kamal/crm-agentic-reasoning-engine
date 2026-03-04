@@ -6,6 +6,11 @@
 ![Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.10+-blue)
 ![LangGraph](https://img.shields.io/badge/orchestration-LangGraph-purple)
+![Live](https://img.shields.io/badge/demo-live-success)
+
+<h3 align="center">
+  <a href="https://acme-crm-ai-companion-production.up.railway.app/">Try Live Demo</a>
+</h3>
 
 <p align="center">
   <img src="docs/demo-screenshot.png" alt="CRM Chat Assistant Demo" width="800">

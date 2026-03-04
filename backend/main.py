@@ -21,10 +21,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
-from backend.act_fetch import ACT_API_DB, ACT_API_USER, DEMO_MODE
 from backend.api.chat import router as chat_router
 from backend.api.data import router as data_router
-from backend.api.email import router as email_router
 
 # Configuration
 APP_NAME = "Acme CRM AI Companion API"
@@ -45,10 +43,9 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     auth_status = "enabled" if AUTH_USER and AUTH_PASS else "disabled (no AUTH_USER/AUTH_PASS)"
-    demo_status = f"enabled (db={ACT_API_DB})" if DEMO_MODE else "disabled"
     # Print to stdout for Railway logs
-    print(f"[main] Starting {APP_NAME} - auth {auth_status}, demo mode {demo_status}", flush=True)
-    logger.info(f"Starting {APP_NAME} — auth {auth_status}, demo mode {demo_status}")
+    print(f"[main] Starting {APP_NAME} - auth {auth_status}", flush=True)
+    logger.info(f"Starting {APP_NAME} — auth {auth_status}")
     yield
     logger.info("Shutting down...")
 
@@ -133,18 +130,8 @@ def create_app() -> FastAPI:
     async def health() -> dict:
         return {"status": "ok"}
 
-    @router.get("/info", tags=["info"])
-    async def get_info() -> dict:
-        """Get app mode info for frontend."""
-        return {
-            "mode": "act" if DEMO_MODE else "csv",
-            "database": ACT_API_DB if DEMO_MODE else None,
-            "username": ACT_API_USER if DEMO_MODE else None,
-        }
-
     router.include_router(chat_router, tags=["chat"])
     router.include_router(data_router, tags=["data"])
-    router.include_router(email_router, tags=["email"])
     app.include_router(router)
 
     # Serve frontend static files in production (built into frontend/dist/)

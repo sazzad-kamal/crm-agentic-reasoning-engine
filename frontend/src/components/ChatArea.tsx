@@ -8,8 +8,6 @@ interface ChatAreaProps {
   messages: ChatMessage[];
   onSuggestionClick: (prompt: string) => void;
   onFollowUpClick: (question: string) => void;
-  /** App mode: "csv" (default) or "act" (demo mode) */
-  mode?: "csv" | "act";
   /** Ref for scroll management (React 19 - ref as prop) */
   ref?: Ref<HTMLDivElement>;
 }
@@ -22,7 +20,6 @@ export function ChatArea({
   messages,
   onSuggestionClick,
   onFollowUpClick,
-  mode = "csv",
   ref,
 }: ChatAreaProps) {
   const isEmpty = messages.length === 0;
@@ -36,7 +33,7 @@ export function ChatArea({
       aria-label="Chat messages"
     >
       {isEmpty ? (
-        <EmptyState onSuggestionClick={onSuggestionClick} mode={mode} />
+        <EmptyState onSuggestionClick={onSuggestionClick} />
       ) : (
         <div className="message-list" role="list">
           {messages.map((msg, index) => {
@@ -57,7 +54,6 @@ export function ChatArea({
 
 interface EmptyStateProps {
   onSuggestionClick: (prompt: string) => void;
-  mode: "csv" | "act";
 }
 
 /**
@@ -65,7 +61,7 @@ interface EmptyStateProps {
  * Uses useId for unique, accessible label IDs.
  * Fetches dynamic starter questions from the question tree.
  */
-function EmptyState({ onSuggestionClick, mode }: EmptyStateProps) {
+function EmptyState({ onSuggestionClick }: EmptyStateProps) {
   const suggestionsLabelId = useId();
   const [starterQuestions, setStarterQuestions] = useState<string[]>([...EXAMPLE_PROMPTS]);
   const [isLoading, setIsLoading] = useState(true);
@@ -101,12 +97,12 @@ function EmptyState({ onSuggestionClick, mode }: EmptyStateProps) {
           <circle cx="45" cy="70" r="6" fill="#A5B4FC"/>
           <rect x="60" y="62" width="45" height="6" rx="3" fill="#C7D2FE"/>
           <rect x="60" y="74" width="35" height="6" rx="3" fill="#C7D2FE"/>
-          
+
           <rect x="80" y="80" width="100" height="60" rx="12" fill="#F0FDF4" stroke="#86EFAC" strokeWidth="2"/>
           <circle cx="105" cy="110" r="6" fill="#10B981"/>
           <rect x="120" y="102" width="45" height="6" rx="3" fill="#86EFAC"/>
           <rect x="120" y="114" width="35" height="6" rx="3" fill="#86EFAC"/>
-          
+
           {/* Sparkles */}
           <path d="M160 30L162 35L167 37L162 39L160 44L158 39L153 37L158 35L160 30Z" fill="#FBBF24"/>
           <path d="M40 20L41.5 24L45.5 25.5L41.5 27L40 31L38.5 27L34.5 25.5L38.5 24L40 20Z" fill="#6366F1"/>
@@ -117,11 +113,11 @@ function EmptyState({ onSuggestionClick, mode }: EmptyStateProps) {
       <h2 className="empty-state__heading">Welcome to Acme AI Companion</h2>
 
       <p className="empty-state__description">
-        Click a question to explore your Act! CRM data
+        Click a question to explore your CRM data
       </p>
 
       <div className="empty-state__title" id={suggestionsLabelId}>
-        {mode === "act" ? "Select a question:" : "Try one of these to get started:"}
+        Try one of these to get started:
       </div>
 
       <div

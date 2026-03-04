@@ -6,7 +6,6 @@ import logging
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from backend.act_fetch import QUESTION_STEPS
 from backend.agent.followup.tree.loader import get_starters
 from backend.agent.graph import (
     ACTION_NODE,
@@ -56,10 +55,6 @@ async def stream_agent(question: str, session_id: str | None = None) -> AsyncGen
     in_action_node = False
     in_fetch_node = False
 
-    # Check if this question has known steps for progress tracking
-    q = question.strip()
-    expected_steps = QUESTION_STEPS.get(q, [])
-
     # Create progress queue for real-time updates from fetch node
     progress_queue = create_progress_queue()
 
@@ -89,11 +84,6 @@ async def stream_agent(question: str, session_id: str | None = None) -> AsyncGen
             # Track fetch node state for queue polling
             if event_type == LangGraphEvent.CHAIN_START and name == FETCH_NODE:
                 in_fetch_node = True
-                if expected_steps:
-                    yield _format_sse(StreamEvent.FETCH_START, {
-                        "question": q,
-                        "steps": expected_steps,
-                    })
 
             if event_type == LangGraphEvent.CHAIN_START and name == ANSWER_NODE:
                 in_answer_node = True

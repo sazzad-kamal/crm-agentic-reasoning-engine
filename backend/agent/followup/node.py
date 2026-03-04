@@ -2,7 +2,6 @@
 
 import logging
 
-from backend.act_fetch import DEMO_FOLLOWUPS, DEMO_MODE, DEMO_STARTERS
 from backend.agent.fetch.sql.connection import get_connection
 from backend.agent.followup.suggester import generate_follow_up_suggestions
 from backend.agent.state import AgentState, format_conversation_for_prompt
@@ -13,13 +12,6 @@ logger = logging.getLogger(__name__)
 def followup_node(state: AgentState) -> AgentState:
     """Generate follow-up suggestions based on current state."""
     logger.info("[Followup] Generating suggestions...")
-
-    # Demo mode: return contextual follow-ups based on current question
-    if DEMO_MODE:
-        question = state.get("question", "")
-        followups = DEMO_FOLLOWUPS.get(question, list(DEMO_STARTERS))
-        logger.info(f"[Followup] Demo mode - returning {len(followups)} contextual follow-ups for '{question}'")
-        return {"follow_up_suggestions": followups}
 
     try:
         conn = get_connection()

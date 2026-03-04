@@ -47,7 +47,7 @@ describe("ChatArea", () => {
 
     expect(
       screen.getByText(
-        /Click a question to explore your Act! CRM data/
+        /Click a question to explore your CRM data/
       )
     ).toBeInTheDocument();
   });

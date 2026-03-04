@@ -1,15 +1,11 @@
 """Action suggestion LLM chain functions."""
 
 import logging
-import os
 from typing import Any
 
 from backend.core.llm import create_openai_chain
 
 logger = logging.getLogger(__name__)
-
-# Check for demo mode
-_DEMO_MODE = os.getenv("ACME_DEMO_MODE", "").lower() in ("true", "1")
 
 _SYSTEM_PROMPT_BASE = """You are a CRM assistant. Given a QUESTION and an ANSWER, suggest concrete next actions based ONLY on the ANSWER.
 
@@ -68,38 +64,6 @@ WHEN TO OUTPUT NONE (must output NONE):
 - The ANSWER is "unknown," "not provided," "N/A," or otherwise lacks actionable specifics.
 - Any plausible action would require inventing missing owners, contacts, dates/timeframes, or other details not present in the ANSWER."""
 
-# Simplified action prompt for demo mode
-_ACT_DEMO_ACTION_PROMPT = """You suggest next actions for a sales manager based on CRM data.
-
-RULES:
-1. Base actions ONLY on facts in the ANSWER - never invent names, dates, or details
-2. Suggest 1-3 concrete, specific actions
-3. Each action should reference a specific deal, contact, or company from the ANSWER
-4. Actions should be immediately doable (call X, email Y, review Z)
-5. If the ANSWER has no actionable information, output: NONE
-
-FORMAT:
-1. You: [action referencing specific entity from answer]
-2. You: [action referencing specific entity from answer]
-
-Example good actions:
-- "You: Schedule follow-up call with John Smith about the Acme deal"
-- "You: Review stuck deals (ABC Corp, XYZ Inc) and update stage or close"
-- "You: Send proposal to Jane Doe for the $50K opportunity"
-
-Example bad actions (too vague):
-- "You: Follow up on deals"
-- "You: Contact stakeholders"
-- "You: Review the pipeline"
-"""
-
-
-def _get_system_prompt() -> str:
-    """Get system prompt - simplified for demo mode."""
-    if _DEMO_MODE:
-        return _ACT_DEMO_ACTION_PROMPT
-    return _SYSTEM_PROMPT_BASE
-
 _HUMAN_PROMPT = """Question: {question}
 
 Answer: {answer}"""
@@ -108,30 +72,25 @@ _NONE_MARKER = "NONE"
 
 
 def _get_action_chain() -> Any:
-    """Get action chain with optional Act! context."""
+    """Get action chain."""
     chain = create_openai_chain(
-        system_prompt=_get_system_prompt(),
+        system_prompt=_SYSTEM_PROMPT_BASE,
         human_prompt=_HUMAN_PROMPT,
         max_tokens=500,
         streaming=True,
     )
-    logger.debug("Created action chain (demo_mode=%s)", _DEMO_MODE)
     return chain
 
 
-def call_action_chain(question: str, answer: str, guidance: str = "") -> str | None:
+def call_action_chain(question: str, answer: str) -> str | None:
     """Suggest an action. Returns action string or None.
 
     Args:
         question: The user's question
         answer: The answer that was generated
-        guidance: Optional guidance for what kind of action to suggest
     """
-    # If guidance provided, append it to the question
-    question_with_guidance = f"{question}\n\n[Action guidance: {guidance}]" if guidance else question
-
     result: str = _get_action_chain().invoke({
-        "question": question_with_guidance,
+        "question": question,
         "answer": answer,
     })
     action = result.strip()

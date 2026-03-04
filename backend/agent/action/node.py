@@ -2,7 +2,6 @@
 
 import logging
 
-from backend.act_fetch import DEMO_MODE, DEMO_PROMPTS
 from backend.agent.action.suggester import call_action_chain
 from backend.agent.state import AgentState
 
@@ -16,19 +15,10 @@ def action_node(state: AgentState) -> AgentState:
 
     logger.info("[Action] Evaluating action suggestion...")
 
-    # Get question-specific guidance for demo mode
-    guidance = ""
-    if DEMO_MODE:
-        question = state["question"]
-        if question in DEMO_PROMPTS:
-            guidance = DEMO_PROMPTS[question].get("action", "")
-            logger.info(f"[Action] Using demo guidance for: {question}")
-
     try:
         action = call_action_chain(
             question=state["question"],
             answer=state["answer"],
-            guidance=guidance,
         )
 
         if action:

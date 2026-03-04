@@ -4,7 +4,6 @@ import logging
 
 from langchain_core.messages import AIMessage, HumanMessage
 
-from backend.act_fetch import DEMO_MODE, DEMO_PROMPTS
 from backend.agent.answer.answerer import call_answer_chain
 from backend.agent.state import AgentState, format_conversation_for_prompt
 
@@ -15,20 +14,11 @@ def answer_node(state: AgentState) -> AgentState:
     """Synthesize answer from SQL results."""
     logger.info("[Answer] Synthesizing response...")
 
-    # Get question-specific guidance for demo mode
-    guidance = ""
-    if DEMO_MODE:
-        question = state["question"]
-        if question in DEMO_PROMPTS:
-            guidance = DEMO_PROMPTS[question].get("answer", "")
-            logger.info(f"[Answer] Using demo guidance for: {question}")
-
     try:
         raw_answer = call_answer_chain(
             question=state["question"],
             sql_results=state.get("sql_results", {}),
             conversation_history=format_conversation_for_prompt(state.get("messages", [])),
-            guidance=guidance,
         )
 
         # Validate answer

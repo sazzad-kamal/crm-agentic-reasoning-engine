@@ -8,19 +8,17 @@ import {
   ErrorBoundary,
   SkipLink,
   DataExplorer,
-  EmailSuggestions,
 } from "./components";
-import { endpoints } from "./config";
 import "./styles/index.css";
 
 /**
  * Acme CRM AI Companion - Main Application
  *
- * AI-powered email follow-up assistant for Act! CRM.
+ * AI-powered insights for your CRM data.
  * Features:
- * - Smart contact recommendations based on CRM data
- * - AI-generated personalized email drafts
- * - One-click email sending via mailto:
+ * - Natural language queries against CRM data
+ * - AI-generated answers with evidence
+ * - Follow-up suggestions
  * - Full keyboard accessibility
  */
 export default function App() {
@@ -30,9 +28,6 @@ export default function App() {
   const inputRef = useRef<HTMLInputElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
-
-  // Demo mode state
-  const [appInfo, setAppInfo] = useState<{ mode: "csv" | "act" } | null>(null);
 
   // Memoized error handler to prevent hook re-initialization
   const chatOptions = useMemo(
@@ -45,9 +40,6 @@ export default function App() {
   // Chat hook with streaming
   const { messages, isLoading, error, sendMessage, clearError } = useChatStream(chatOptions);
 
-  // Is demo mode active?
-  const isDemoMode = appInfo?.mode === "act";
-
   // Scroll to bottom when messages change
   useEffect(() => {
     if (chatAreaRef.current) {
@@ -55,20 +47,12 @@ export default function App() {
     }
   }, [messages]);
 
-  // Focus input after sending a message (only in non-demo mode)
+  // Focus input after sending a message
   useEffect(() => {
-    if (!isLoading && inputRef.current && !isDemoMode) {
+    if (!isLoading && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [isLoading, isDemoMode]);
-
-  // Fetch app info on mount
-  useEffect(() => {
-    fetch(endpoints.info)
-      .then((r) => r.json())
-      .then((data) => setAppInfo({ mode: data.mode }))
-      .catch(() => setAppInfo({ mode: "csv" }));
-  }, []);
+  }, [isLoading]);
 
   // Close drawer handler (stable reference for focus trap)
   const closeDrawer = useCallback(() => {
@@ -133,7 +117,7 @@ export default function App() {
         : appName;
 
     document.title = pageTitle;
-  }, [isLoading, messages.length, isDemoMode]);
+  }, [isLoading, messages.length]);
 
   return (
     <ErrorBoundary>
@@ -158,57 +142,41 @@ export default function App() {
             </div>
             <div className="header__text">
               <h1 className="header__title">Acme AI Companion</h1>
-              <p className="header__subtitle">
-                {isDemoMode
-                  ? "AI-powered email follow-ups for Act! CRM"
-                  : "AI-powered insights for your Act! CRM"}
-              </p>
+              <p className="header__subtitle">AI-powered insights for your CRM</p>
             </div>
 
-            {/* Browse Data button - hidden in demo mode */}
-            {!isDemoMode && (
-              <button
-                className="header__data-btn"
-                onClick={() => setIsDrawerOpen(true)}
-                aria-label="Browse CRM data"
-                title="Browse the data the AI has access to"
-              >
-                <span className="header__data-btn-icon">📊</span>
-                <span className="header__data-btn-text">Browse Data</span>
-              </button>
-            )}
+            <button
+              className="header__data-btn"
+              onClick={() => setIsDrawerOpen(true)}
+              aria-label="Browse CRM data"
+              title="Browse the data the AI has access to"
+            >
+              <span className="header__data-btn-icon">📊</span>
+              <span className="header__data-btn-text">Browse Data</span>
+            </button>
           </header>
 
-          {/* Demo Mode: Show Email Suggestions directly */}
-          {isDemoMode && <EmailSuggestions />}
+          <ChatArea
+            ref={chatAreaRef}
+            messages={messages}
+            onSuggestionClick={handleSuggestionClick}
+            onFollowUpClick={handleFollowUpClick}
+          />
 
-          {/* Non-Demo Mode: Show Chat Area with input */}
-          {!isDemoMode && (
-            <>
-              <ChatArea
-                ref={chatAreaRef}
-                messages={messages}
-                onSuggestionClick={handleSuggestionClick}
-                onFollowUpClick={handleFollowUpClick}
-                mode={appInfo?.mode}
-              />
+          {/* Error Banner */}
+          {error && <ErrorBanner message={error} onDismiss={clearError} />}
 
-              {/* Error Banner */}
-              {error && <ErrorBanner message={error} onDismiss={clearError} />}
-
-              <InputBar
-                ref={inputRef}
-                value={currentQuestion}
-                onChange={handleInputChange}
-                onSubmit={handleSubmit}
-                isLoading={isLoading}
-              />
-            </>
-          )}
+          <InputBar
+            ref={inputRef}
+            value={currentQuestion}
+            onChange={handleInputChange}
+            onSubmit={handleSubmit}
+            isLoading={isLoading}
+          />
         </div>
 
-        {/* Data Drawer Overlay - only in non-demo mode */}
-        {!isDemoMode && isDrawerOpen && (
+        {/* Data Drawer Overlay */}
+        {isDrawerOpen && (
           <div
             className="drawer-overlay"
             onClick={closeDrawer}
@@ -216,32 +184,30 @@ export default function App() {
           />
         )}
 
-        {/* Data Drawer - only in non-demo mode */}
-        {!isDemoMode && (
-          <aside
-            ref={drawerRef}
-            className={`drawer ${isDrawerOpen ? "drawer--open" : ""}`}
-            role="dialog"
-            aria-modal="true"
-            aria-label="CRM Data Browser"
-            tabIndex={-1}
-          >
-            <div className="drawer__header">
-              <h2 className="drawer__title">CRM Data</h2>
-              <button
-                ref={drawerCloseRef}
-                className="drawer__close"
-                onClick={closeDrawer}
-                aria-label="Close data browser"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="drawer__content">
-              <DataExplorer onAskAbout={handleAskAbout} />
-            </div>
-          </aside>
-        )}
+        {/* Data Drawer */}
+        <aside
+          ref={drawerRef}
+          className={`drawer ${isDrawerOpen ? "drawer--open" : ""}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="CRM Data Browser"
+          tabIndex={-1}
+        >
+          <div className="drawer__header">
+            <h2 className="drawer__title">CRM Data</h2>
+            <button
+              ref={drawerCloseRef}
+              className="drawer__close"
+              onClick={closeDrawer}
+              aria-label="Close data browser"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="drawer__content">
+            <DataExplorer onAskAbout={handleAskAbout} />
+          </div>
+        </aside>
       </div>
     </ErrorBoundary>
   );

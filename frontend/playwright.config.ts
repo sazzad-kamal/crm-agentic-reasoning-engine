@@ -8,8 +8,6 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
-  /* Skip demo-mode tests in default run (they require ACME_DEMO_MODE=true) */
-  testIgnore: ['**/demo-mode.spec.ts'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -48,7 +46,7 @@ export default defineConfig({
       timeout: 120000,
     },
     {
-      command: 'cd .. && set "PYTHONPATH=." && set "MOCK_LLM=1" && set "ACME_RATE_LIMIT_ENABLED=false" && set "ACME_DEMO_MODE=false" && python -m uvicorn backend.main:app --port 8000',
+      command: 'cd .. && set "PYTHONPATH=." && set "MOCK_LLM=1" && set "ACME_RATE_LIMIT_ENABLED=false" && python -m uvicorn backend.main:app --port 8000',
       url: 'http://localhost:8000/api/health',
       reuseExistingServer: true,
       timeout: 120000,

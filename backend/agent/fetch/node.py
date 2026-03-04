@@ -3,11 +3,9 @@
 import logging
 from typing import Any, cast
 
-from backend.act_fetch import DEMO_MODE, act_fetch
 from backend.agent.fetch.planner import SQLPlan, get_sql_plan
 from backend.agent.fetch.sql.connection import get_connection
 from backend.agent.fetch.sql.executor import execute_sql
-from backend.agent.progress_queue import emit_progress
 from backend.agent.state import AgentState, format_conversation_for_prompt
 
 logger = logging.getLogger(__name__)
@@ -51,27 +49,6 @@ def _execute_sql_with_retry(
 def fetch_node(state: AgentState) -> AgentState:
     """Unified fetch node that plans SQL and executes queries."""
     question = state["question"]
-
-    # Demo mode: fetch from Act! API instead of SQL
-    if DEMO_MODE:
-        logger.info(f"[Fetch] Demo mode - calling Act! API for: {question[:50]}...")
-
-        # Use shared progress queue for real-time streaming
-        # emit_progress is called directly by act_fetch via the callback
-        act_result = act_fetch(question, on_progress=emit_progress)
-        if act_result.get("error"):
-            return cast(AgentState, {
-                "sql_results": {},
-                "error": act_result["error"],
-            })
-        sql_results = act_result["data"]
-        # Include cache timestamp if data came from cache
-        if act_result.get("_cached_at"):
-            sql_results["_cached_at"] = act_result["_cached_at"]
-        return cast(AgentState, {
-            "sql_results": sql_results,
-        })
-
     history = format_conversation_for_prompt(state.get("messages", []))
     logger.info(f"[Fetch] Processing: {question[:50]}...")
 

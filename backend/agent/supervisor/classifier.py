@@ -17,6 +17,7 @@ class Intent(str, Enum):
     COMPLEX = "complex"        # Multi-part queries needing planning
     EXPORT = "export"          # Export data to CSV/PDF
     HEALTH = "health"          # Account health score calculation
+    DOCS = "docs"              # Documentation/how-to questions (RAG)
     CLARIFY = "clarify"        # Question is unclear, ask for clarification
     HELP = "help"              # General help, no data needed
 
@@ -25,28 +26,31 @@ _CLASSIFIER_PROMPT = """You are an intent classifier for a CRM data assistant.
 
 Classify the user's question into exactly ONE of these categories:
 
-1. COMPARE - User wants to compare two things (e.g., time periods, accounts, products)
+1. DOCS - User asks HOW TO do something in Act! CRM, or wants product documentation
+   Examples: "How do I import contacts?", "What's the keyboard shortcut for...", "How to create a group?"
+
+2. COMPARE - User wants to compare two things (e.g., time periods, accounts, products)
    Examples: "Compare Q1 vs Q2 revenue", "How does Acme compare to TechCorp?", "Sales this year vs last year"
 
-2. TREND - User wants time-series analysis or trend information
+3. TREND - User wants time-series analysis or trend information
    Examples: "Show revenue trend over time", "Monthly growth rate", "How has pipeline changed?"
 
-3. COMPLEX - User asks a multi-part question requiring multiple data queries
+4. COMPLEX - User asks a multi-part question requiring multiple data queries
    Examples: "Show deals and compare Q1 vs Q2", "List companies and their health scores", "Revenue by region and trends"
 
-4. EXPORT - User wants to export or download data
+5. EXPORT - User wants to export or download data
    Examples: "Export deals to CSV", "Download report", "Generate PDF of contacts"
 
-5. HEALTH - User wants account/company health score or analysis
+6. HEALTH - User wants account/company health score or analysis
    Examples: "What's Acme's health score?", "Show account health", "Which accounts need attention?"
 
-6. DATA_QUERY - User wants specific data from the CRM database (simple query)
+7. DATA_QUERY - User wants specific data from the CRM database (simple query)
    Examples: "Show me Q1 revenue", "List all contacts at Acme", "What deals close this month?"
 
-7. CLARIFY - Question is too vague or ambiguous to answer
+8. CLARIFY - Question is too vague or ambiguous to answer
    Examples: "the thing", "show me", "what about it?", "yes", "that one"
 
-8. HELP - User wants help using the system or asks general questions (no data needed)
+9. HELP - User wants help using the system or asks general questions (no data needed)
    Examples: "what can you do?", "help", "how does this work?", "hello"
 
 Conversation history:
@@ -54,7 +58,7 @@ Conversation history:
 
 User question: {question}
 
-Respond with ONLY one word: COMPARE, TREND, COMPLEX, EXPORT, HEALTH, DATA_QUERY, CLARIFY, or HELP"""
+Respond with ONLY one word: DOCS, COMPARE, TREND, COMPLEX, EXPORT, HEALTH, DATA_QUERY, CLARIFY, or HELP"""
 
 
 def classify_intent(question: str, conversation_history: str = "") -> Intent:
@@ -75,15 +79,46 @@ def classify_intent(question: str, conversation_history: str = "") -> Intent:
         logger.info(f"[Supervisor] Quick classify '{question}' -> CLARIFY (too short)")
         return Intent.CLARIFY
 
-    # Help phrases that should take priority over data indicators
-    # (check these FIRST to avoid "what can you do" matching "what")
+    # Help phrases - system capabilities (check FIRST before DOCS)
     help_phrases_priority = {
-        "what can you do", "how do i", "how does this", "how does it work",
-        "what are you", "who are you",
+        "what can you do", "how does this work", "how does it work",
+        "what are you", "who are you", "how do i use this",
     }
     if any(phrase in q_lower for phrase in help_phrases_priority):
         logger.info(f"[Supervisor] Quick classify '{question}' -> HELP (priority phrase)")
         return Intent.HELP
+
+    # Documentation/how-to questions (RAG) - for Act! CRM product help
+    # Must have: (Act! keyword) OR (docs_phrase + product_action)
+    act_keywords = {"act!", "act crm", "act software", "in act"}
+    docs_phrases = {
+        "how do i", "how to", "how can i", "where is the", "where do i find",
+        "tutorial", "guide me", "documentation", "help with",
+    }
+    product_actions = {
+        "import contacts", "export contacts", "create a group", "create group",
+        "keyboard shortcut", "shortcut key", "mail merge", "marketing automation",
+        "activity series", "set up", "configure",
+    }
+
+    has_act_keyword = any(kw in q_lower for kw in act_keywords)
+    has_docs_phrase = any(phrase in q_lower for phrase in docs_phrases)
+    has_product_action = any(action in q_lower for action in product_actions)
+
+    # Route to DOCS if: (Act! keyword) OR (docs phrase + product action)
+    # Simple feature names alone (like "opportunity") go to DATA_QUERY not DOCS
+    if has_act_keyword or (has_docs_phrase and has_product_action):
+        # Additional check: not asking about system capabilities
+        if not any(phrase in q_lower for phrase in {"this work", "use this", "can you do"}):
+            logger.info(f"[Supervisor] Quick classify '{question}' -> DOCS")
+            return Intent.DOCS
+
+    # Also route to DOCS for standalone docs phrases when not asking about data
+    if has_docs_phrase:
+        data_words = {"revenue", "deals", "pipeline", "sales", "contacts at", "companies", "total", "count", "stages"}
+        if not any(word in q_lower for word in data_words):
+            logger.info(f"[Supervisor] Quick classify '{question}' -> DOCS")
+            return Intent.DOCS
 
     # Export indicators (check early - "export deals" should be EXPORT, not DATA_QUERY)
     export_indicators = {"export", "download", "csv", "pdf", "spreadsheet", "generate report"}
@@ -160,7 +195,9 @@ def classify_intent(question: str, conversation_history: str = "") -> Intent:
         result = response.content.strip().upper()
 
         # Parse response
-        if "COMPARE" in result:
+        if "DOCS" in result:
+            intent = Intent.DOCS
+        elif "COMPARE" in result:
             intent = Intent.COMPARE
         elif "TREND" in result:
             intent = Intent.TREND

@@ -6,10 +6,11 @@ This document describes the system architecture of the Acme CRM AI Companion.
 
 The system is a conversational AI assistant that answers natural language questions about CRM data. It uses a **multi-agent LangGraph pipeline** with:
 
-- **Supervisor routing**: Classifies intent and routes to 8 different specialized handlers
+- **Supervisor routing**: Classifies intent and routes to 9 different specialized handlers
 - **Data refinement loops**: Answer node can request additional data fetches
-- **5 Specialized Data Agents**: Fetch, Compare, Trend, Planner, Export, Health
+- **7 Specialized Agents**: Fetch, Compare, Trend, Planner, Export, Health, RAG
 - **Response Agents**: Answer, Action, and Followup for generating responses
+- **Hybrid grounding**: SQL for data queries, LlamaIndex for documentation
 
 ## System Diagram
 
@@ -42,6 +43,7 @@ flowchart TB
                 PlannerNode["Planner<br/>(Multi-step)"]
                 ExportNode["Export<br/>(CSV/PDF)"]
                 HealthNode["Health<br/>(Account Score)"]
+                RAGNode["RAG<br/>(Documentation)"]
             end
 
             subgraph ResponseAgents["Response Agents"]
@@ -97,6 +99,7 @@ stateDiagram-v2
     Supervisor --> Planner: complex
     Supervisor --> Export: export
     Supervisor --> Health: health
+    Supervisor --> RAG: docs
     Supervisor --> Answer: clarify/help
 
     Fetch --> Answer
@@ -105,6 +108,7 @@ stateDiagram-v2
     Planner --> Answer
     Export --> Answer
     Health --> Answer
+    RAG --> Answer
 
     Answer --> Fetch: needs_more_data
     Answer --> ActionFollowup: has_data
@@ -132,6 +136,7 @@ The Supervisor node classifies user intent and routes to specialized agents:
 | `complex` | Multi-part queries | Planner → Answer | "Show deals and compare trends" |
 | `export` | Download/export data | Export → Answer | "Export contacts to CSV" |
 | `health` | Account health score | Health → Answer | "Acme's health score" |
+| `docs` | Product documentation | RAG → Answer | "How do I import contacts?" |
 | `clarify` | Question is vague | Answer (asks for clarification) | "yes" |
 | `help` | User wants help | Answer (describes capabilities) | "what can you do?" |
 
@@ -292,6 +297,36 @@ Question → Claude (SQL Planning) → SQL Query → DuckDB → Results
 }
 ```
 
+#### 1.6 RAG Agent (`backend/agent/rag/`)
+
+**Purpose**: Answer "how-to" questions using Act! CRM documentation.
+
+**Technology**: LlamaIndex with OpenAI embeddings
+
+**Components**:
+- `indexer.py`: Loads PDF documents and creates vector index
+- `retriever.py`: Semantic search over documentation
+- `node.py`: LangGraph node that returns grounded answers
+
+**Capabilities**:
+- Semantic search over Act! CRM documentation PDFs
+- Retrieves relevant document chunks
+- Synthesizes answers grounded in source material
+- Returns source citations for transparency
+
+**Why RAG?**: Users often need help with CRM features, not just data queries. RAG provides grounded answers from official documentation instead of hallucinated responses.
+
+**Output**:
+```python
+{
+    "rag_answer": "To import contacts, go to File > Import...",
+    "rag_sources": [
+        {"id": "D1", "source": "quick-start.pdf", "excerpt": "..."},
+    ],
+    "rag_confidence": 0.85
+}
+```
+
 #### 2. Answer Node (`backend/agent/answer/`)
 
 **Purpose**: Synthesize a human-readable answer from the data.
@@ -300,6 +335,7 @@ Question → Claude (SQL Planning) → SQL Query → DuckDB → Results
 - Evidence tagging: Claims are linked to data via `[E1]`, `[E2]` markers
 - Strict grounding: Only facts from retrieved data are allowed
 - Structured output: Answer / Evidence / Data not available sections
+- **Contract validation**: validate → repair → fallback pipeline
 
 **Prompt Contract**:
 ```
@@ -308,6 +344,42 @@ You MUST:
 - Tag each claim with evidence markers [E1], [E2]...
 - List evidence sources at the end
 - Say "I don't have that information" if data is missing
+```
+
+**Contract Enforcement** (`backend/agent/validate/`):
+
+Every response goes through a contract validation pipeline:
+
+```mermaid
+flowchart LR
+    LLM["LLM Output"] --> V{"Validate"}
+    V -->|"Valid"| OUT["Return"]
+    V -->|"Invalid"| R["Repair Chain"]
+    R --> V2{"Re-validate"}
+    V2 -->|"Valid"| OUT
+    V2 -->|"Still Invalid"| F["Fallback"]
+    F --> OUT
+```
+
+| Validator | Checks | Repair Strategy |
+|-----------|--------|-----------------|
+| Answer | Evidence tags, sections | Re-prompt with format instructions |
+| Action | Numbered list, word count, owner prefix | Re-prompt with examples |
+| Followup | Exactly 3 questions, max 10 words | Re-prompt with constraints |
+
+**Grounding Verifier** (`backend/agent/validate/grounding.py`):
+
+Optional critic stage that verifies claims are supported by CRM data:
+
+```python
+# Enable via flag
+ENABLE_GROUNDING_VERIFICATION = True
+
+# Verification process
+1. Extract all factual claims from answer
+2. For each claim, check if data supports it
+3. Flag ungrounded or hallucinated claims
+4. Log warnings (non-blocking)
 ```
 
 #### 3. Action Node (`backend/agent/action/`)
@@ -443,25 +515,68 @@ eventSource.onmessage = (event) => {
 
 ## Evaluation Framework
 
-The system includes a RAGAS-based evaluation framework:
+The system includes a comprehensive evaluation framework with:
+- **RAGAS metrics** for answer quality
+- **Versioned eval cases** with checksums for reproducibility
+- **Latency tracking** per question with percentile SLOs
+- **Regression gate** for CI/CD integration
 
 ### Metrics
 
-| Metric | Description | Target |
-|--------|-------------|--------|
-| Faithfulness | Claims grounded in retrieved data | > 0.9 |
-| Answer Relevancy | Answer addresses the question | > 0.85 |
-| Correctness | Factually accurate answer | > 0.85 |
+| Metric | Description | SLO |
+|--------|-------------|-----|
+| Pass Rate | Questions that meet all quality thresholds | ≥ 95% |
+| Faithfulness | Claims grounded in retrieved data | ≥ 0.9 |
+| Answer Relevancy | Answer addresses the question | ≥ 0.85 |
+| Answer Correctness | Factually accurate answer | ≥ 0.85 |
+| p50 Latency | Median response time | ≤ 3000ms |
+| p95 Latency | 95th percentile response time | ≤ 8000ms |
+
+### Eval Cases Versioning
+
+```python
+# backend/eval/shared/version.py
+EVAL_CASES_VERSION = "1.0.0"  # Semantic version
+
+# Each run records:
+# - Version number
+# - SHA256 checksum of questions.yaml
+# - Stats (total questions, difficulty breakdown)
+```
 
 ### Running Evaluations
 
 ```bash
+# Full conversation evaluation
+python -m backend.eval.integration [--limit N] [--output results.json]
+
+# Regression gate (fails if SLOs not met)
+python -m backend.eval.integration.gate [--baseline baseline.json]
+
 # Answer quality evaluation
 python -m backend.eval.answer
 
 # Followup quality evaluation
 python -m backend.eval.followup
 ```
+
+### Regression Gate
+
+The gate command (`python -m backend.eval.integration.gate`) provides CI/CD integration:
+
+```bash
+# Run with baseline comparison
+python -m backend.eval.integration.gate --baseline baseline.json
+
+# Exit codes:
+# 0 = All SLOs passed
+# 1 = SLO failures or regressions detected
+```
+
+Regression thresholds:
+- Pass rate: Allow 2% drop from baseline
+- Quality metrics: Allow 5% drop from baseline
+- Latency: Allow 20% increase from baseline
 
 ## Security Considerations
 

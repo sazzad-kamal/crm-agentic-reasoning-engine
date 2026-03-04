@@ -16,6 +16,7 @@ class TestIntentEnum:
         assert Intent.COMPLEX.value == "complex"
         assert Intent.EXPORT.value == "export"
         assert Intent.HEALTH.value == "health"
+        assert Intent.DOCS.value == "docs"
         assert Intent.CLARIFY.value == "clarify"
         assert Intent.HELP.value == "help"
 
@@ -58,6 +59,23 @@ class TestClassifyIntentHeuristics:
         """How-to questions should classify as HELP."""
         assert classify_intent("how do i use this") == Intent.HELP
         assert classify_intent("how does this work") == Intent.HELP
+
+    # --- DOCS: Documentation/how-to questions about Act! CRM ---
+
+    def test_act_keyword_classified_as_docs(self):
+        """Questions with Act! keyword should classify as DOCS."""
+        assert classify_intent("How do I use Act! CRM?") == Intent.DOCS
+        assert classify_intent("What features does Act! have?") == Intent.DOCS
+
+    def test_how_to_with_product_action_classified_as_docs(self):
+        """How-to questions with product actions should classify as DOCS."""
+        assert classify_intent("How do I import contacts?") == Intent.DOCS
+        assert classify_intent("How to create a group?") == Intent.DOCS
+
+    def test_standalone_feature_not_docs(self):
+        """Standalone feature names (without how-to) should NOT be DOCS."""
+        # "opportunity stages" is a data query, not docs
+        assert classify_intent("opportunity stages") == Intent.DATA_QUERY
 
     # --- DATA_QUERY: Data-seeking inputs ---
 

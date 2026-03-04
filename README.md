@@ -2,7 +2,7 @@
 
 **Ask questions about your CRM in plain English. Get answers grounded in data.**
 
-![Tests](https://img.shields.io/badge/tests-1,149_passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1,339_passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.10+-blue)
 ![LangGraph](https://img.shields.io/badge/orchestration-LangGraph-purple)
@@ -38,7 +38,7 @@ LLMs hallucinate. They make up data, invent statistics, and confidently cite sou
 
 ### 1. Multi-Agent Orchestration
 
-6 specialized agents, each optimized for its query type:
+7 specialized agents, each optimized for its query type:
 
 | Query | Agent | What Happens |
 |-------|-------|--------------|
@@ -48,6 +48,7 @@ LLMs hallucinate. They make up data, invent statistics, and confidently cite sou
 | "Deals and compare regions" | **Planner** | Decompose → Fan-out → Aggregate |
 | "Export to CSV" | **Export** | Query → File generation |
 | "Acme health score" | **Health** | Multi-factor scoring |
+| "How do I import contacts?" | **RAG** | LlamaIndex → Semantic search → Docs |
 
 ### 2. Planner: Multi-Agent Fan-Out
 
@@ -122,6 +123,27 @@ All SQL validated via `sqlglot`:
 - **Blocked**: INSERT, UPDATE, DELETE, DROP
 - **Auto-added**: LIMIT 1000
 
+### 8. Hybrid Knowledge: Data + Documentation (RAG)
+
+Two types of grounding in one system:
+
+| Question Type | Source | Technology |
+|---------------|--------|------------|
+| "What deals closed Q1?" | **CRM Data** | SQL → DuckDB |
+| "How do I import contacts?" | **Product Docs** | LlamaIndex → Vector Search |
+
+```mermaid
+flowchart LR
+    Q[Question] --> S[Supervisor]
+    S -->|Data Query| SQL[SQL Agent]
+    S -->|How-To| RAG[RAG Agent]
+    SQL --> DB[(DuckDB)]
+    RAG --> VS[(Vector Store)]
+    VS --> PDF[Act! PDFs]
+```
+
+**Why this matters**: Users get answers from CRM data AND product documentation — both grounded, never hallucinated.
+
 ---
 
 ## Tech Stack
@@ -131,6 +153,7 @@ All SQL validated via `sqlglot`:
 | **Orchestration** | LangGraph | Stateful workflows, checkpointing |
 | **SQL Gen** | Claude | Better structured output |
 | **Synthesis** | GPT-4 | Natural language strength |
+| **RAG** | LlamaIndex | Production-grade retrieval |
 | **Database** | DuckDB | Fast analytical queries |
 | **Backend** | FastAPI | Async, type-safe |
 | **Frontend** | React + TypeScript | Modern, maintainable |
@@ -141,8 +164,8 @@ All SQL validated via `sqlglot`:
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | **1,149** |
-| Backend (pytest) | 420 |
+| **Total Tests** | **1,339** |
+| Backend (pytest) | 610 |
 | Frontend (Vitest) | 562 |
 | E2E (Playwright) | 167 |
 | **Faithfulness** | ≥ 0.9 (RAGAS) |

@@ -183,16 +183,12 @@ def answer_node(state: AgentState) -> AgentState:
             logger.warning("[Answer] LLM returned empty answer, using fallback")
             raw_answer = "I apologize, but I wasn't able to generate a complete response. Please try rephrasing your question."
 
-        # Apply contract validation: validate → repair → fallback
-        validator = _get_answer_validator()
-        contract_result = validator.enforce(raw_answer)
-
-        if contract_result.was_repaired:
-            logger.info(f"[Answer] Contract: repaired {len(contract_result.errors)} errors")
-        elif contract_result.used_fallback:
-            logger.warning(f"[Answer] Contract: used fallback after errors: {contract_result.errors}")
-
-        answer = contract_result.output
+        # Skip contract validation for now - causes GIL crash in thread pool
+        # TODO: Re-enable with async LLM calls
+        # validator = _get_answer_validator()
+        # contract_result = validator.enforce(raw_answer)
+        answer = raw_answer
+        logger.info("[Answer] Skipping contract validation (GIL fix pending)")
 
         # Grounding verification (critic stage) - verify claims against data
         # This is expensive so disabled by default, enable via flag

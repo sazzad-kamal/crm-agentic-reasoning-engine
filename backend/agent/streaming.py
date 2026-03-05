@@ -1,6 +1,5 @@
 """SSE streaming adapter for LangGraph agent execution."""
 
-import asyncio
 import json
 import logging
 from collections.abc import AsyncGenerator
@@ -35,47 +34,58 @@ def _format_sse(event: str, data: dict[str, Any]) -> str:
 async def stream_agent(question: str, session_id: str | None = None) -> AsyncGenerator[str, None]:  # pragma: no cover
     """Stream agent execution as SSE events.
 
-    Uses ainvoke for reliability - astream_events has threading issues on Railway.
+    Uses astream for node-level updates (more reliable than astream_events on Railway).
     """
     config = build_thread_config(session_id)
     state: AgentState = {"question": question}
 
     print(f"[Stream] Starting graph for: {question[:50]}...", flush=True)
 
+    final_state: dict[str, Any] = {}
+
     try:
-        # Use ainvoke instead of astream_events for reliability
-        # astream_events has GIL/threading issues on Railway
-        result = await asyncio.to_thread(
-            lambda: agent_graph.invoke(state, config=config)
-        )
+        # Use astream - yields state updates at each node boundary
+        async for chunk in agent_graph.astream(state, config=config, stream_mode="updates"):
+            print(f"[Stream] Node update: {list(chunk.keys())}", flush=True)
 
-        print(f"[Stream] Graph completed", flush=True)
+            for node_name, node_output in chunk.items():
+                if node_name == "fetch":
+                    sql_results = node_output.get("sql_results", {})
+                    final_state["sql_results"] = sql_results
+                    yield _format_sse(StreamEvent.DATA_READY, {"sql_results": sql_results})
 
-        # Extract results
-        sql_results = result.get("sql_results", {})
-        answer = result.get("answer", "")
-        follow_ups = result.get("follow_up_suggestions", [])
-        action = result.get("suggested_action")
+                    # If no data, emit early action/followup
+                    if not sql_results.get("data"):
+                        yield _format_sse(StreamEvent.ACTION_READY, {"suggested_action": None})
+                        yield _format_sse(StreamEvent.FOLLOWUP_READY, {
+                            "follow_up_suggestions": get_starters(),
+                        })
 
-        # Emit data ready event
-        yield _format_sse(StreamEvent.DATA_READY, {"sql_results": sql_results})
+                elif node_name == "answer":
+                    answer = node_output.get("answer", "")
+                    final_state["answer"] = answer
+                    # Stream the answer as chunks (simulate streaming)
+                    # For now, send as single chunk since we don't have true token streaming
+                    yield _format_sse(StreamEvent.ANSWER_CHUNK, {"chunk": answer})
 
-        # If no data, use starters for follow-ups
-        if not sql_results.get("data") and not follow_ups:
-            follow_ups = get_starters()
+                elif node_name == "action":
+                    action = node_output.get("suggested_action")
+                    final_state["suggested_action"] = action
+                    yield _format_sse(StreamEvent.ACTION_READY, {"suggested_action": action})
 
-        # Emit action ready
-        yield _format_sse(StreamEvent.ACTION_READY, {"suggested_action": action})
+                elif node_name == "followup":
+                    followups = node_output.get("follow_up_suggestions", [])
+                    final_state["follow_up_suggestions"] = followups
+                    yield _format_sse(StreamEvent.FOLLOWUP_READY, {"follow_up_suggestions": followups})
 
-        # Emit followup ready
-        yield _format_sse(StreamEvent.FOLLOWUP_READY, {"follow_up_suggestions": follow_ups})
+        print("[Stream] Graph completed", flush=True)
 
-        # Emit done with full result
+        # Emit done event with final state
         yield _format_sse(StreamEvent.DONE, {
-            "answer": answer,
-            "follow_up_suggestions": follow_ups,
-            "suggested_action": action,
-            "sql_results": sql_results,
+            "answer": final_state.get("answer", ""),
+            "follow_up_suggestions": final_state.get("follow_up_suggestions", get_starters()),
+            "suggested_action": final_state.get("suggested_action"),
+            "sql_results": final_state.get("sql_results", {}),
         })
 
     except Exception as ex:

@@ -71,6 +71,7 @@ async def stream_agent(question: str, session_id: str | None = None) -> AsyncGen
                 e = await asyncio.wait_for(event_iter.__anext__(), timeout=timeout)
             except TimeoutError:
                 # Timeout - check progress queue and continue waiting
+                print(f"[Stream] Timeout waiting for event, in_fetch_node={in_fetch_node}", flush=True)
                 if in_fetch_node:
                     progress_events = await drain_progress_queue(progress_queue)
                     for progress in progress_events:
@@ -80,6 +81,10 @@ async def stream_agent(question: str, session_id: str | None = None) -> AsyncGen
                 break
 
             event_type, name = e.get("event"), e.get("name", "")
+
+            # Debug: log all node events
+            if event_type in (LangGraphEvent.CHAIN_START, LangGraphEvent.GRAPH_END):
+                print(f"[Stream] Event: {event_type} name={name}", flush=True)
 
             # Track fetch node state for queue polling
             if event_type == LangGraphEvent.CHAIN_START and name == FETCH_NODE:

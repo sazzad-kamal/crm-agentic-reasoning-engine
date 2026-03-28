@@ -17,8 +17,13 @@ class TestIntentEnum:
         assert Intent.EXPORT.value == "export"
         assert Intent.HEALTH.value == "health"
         assert Intent.DOCS.value == "docs"
+        assert Intent.GRAPH.value == "graph"
         assert Intent.CLARIFY.value == "clarify"
         assert Intent.HELP.value == "help"
+
+    def test_intent_count(self):
+        """Should have exactly 10 intent types."""
+        assert len(Intent) == 10
 
 
 class TestClassifyIntentHeuristics:
@@ -183,6 +188,20 @@ class TestClassifyIntentHeuristics:
         """Multi-part queries with 'and' should classify as COMPLEX."""
         assert classify_intent("Show deals and compare Q1 vs Q2") == Intent.COMPLEX
         assert classify_intent("List companies and show their trends") == Intent.COMPLEX
+
+    # --- GRAPH: Multi-hop relationship queries ---
+
+    def test_relationship_keyword_classified_as_graph(self):
+        """Relationship keywords should classify as GRAPH."""
+        assert classify_intent("Which contacts are connected to at-risk companies?") == Intent.GRAPH
+
+    def test_multihop_entities_classified_as_graph(self):
+        """Questions mentioning 2+ entity types with relationship language -> GRAPH."""
+        assert classify_intent("Show contacts at companies with open deals") == Intent.GRAPH
+
+    def test_relationship_chain_classified_as_graph(self):
+        """Chain/path questions should classify as GRAPH."""
+        assert classify_intent("Show the relationship chain for Acme Manufacturing") == Intent.GRAPH
 
 
 class TestClassifyIntentWithHistory:

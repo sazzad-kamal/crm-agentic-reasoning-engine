@@ -14,6 +14,7 @@ load_dotenv()
 from backend.agent.fetch.sql.connection import get_connection
 from backend.eval.answer.shared import generate_answer, load_questions
 from backend.eval.answer.text.models import SLO_TEXT_PASS_RATE, TextCaseResult, TextEvalResults
+from backend.eval.answer.text.judge import judge_answer_text
 from backend.eval.answer.text.ragas import RAGAS_METRICS_COUNT, evaluate_single
 
 logger = logging.getLogger(__name__)
@@ -68,6 +69,24 @@ def run_text_eval(limit: int | None = None) -> TextEvalResults:
                     errors=[f"RAGAS failed: {e}"],
                 )
 
+        # Run 5-dimension LLM judge (alongside RAGAS)
+        if not case.errors and sql_results:
+            try:
+                judge_passed, gr, co, cl, ac, act, explanation = judge_answer_text(
+                    question=q.text,
+                    answer=answer,
+                    context=json.dumps(sql_results, default=str),
+                )
+                case.judge_grounding = gr
+                case.judge_completeness = co
+                case.judge_clarity = cl
+                case.judge_accuracy = ac
+                case.judge_actionability = act
+                case.judge_passed = judge_passed
+                case.judge_explanation = explanation
+            except Exception as e:
+                logger.warning(f"Judge evaluation failed: {e}")
+
         results.cases.append(case)
         status = "PASS" if case.passed else "FAIL"
         print(f"  [{idx}/{total}] {status} {q.text[:50]}")
@@ -90,6 +109,19 @@ def print_summary(results: TextEvalResults) -> None:
         f"RAGAS Reliability: {ragas_success}/{results.ragas_metrics_total} "
         f"({results.ragas_success_rate * 100:.1f}%)"
     )
+
+    # 5-dimension judge results
+    if results.judge_pass_count > 0 or results.avg_judge_grounding > 0:
+        judged = [c for c in results.cases if c.judge_grounding > 0 or c.judge_passed]
+        print(f"\nJudge Quality (5-Dimension LLM Judge)")
+        print(f"Pass Rate: {results.judge_pass_count}/{len(judged)}")
+        print(
+            f"Avg: grounding={results.avg_judge_grounding:.2f} "
+            f"completeness={results.avg_judge_completeness:.2f} "
+            f"clarity={results.avg_judge_clarity:.2f} "
+            f"accuracy={results.avg_judge_accuracy:.2f} "
+            f"actionability={results.avg_judge_actionability:.2f}"
+        )
 
     # Error cases
     error_cases = [c for c in results.cases if c.errors]

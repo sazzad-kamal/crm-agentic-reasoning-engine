@@ -21,6 +21,7 @@ pydantic-settings>=2.0.0
 # Database & Data Processing
 # -----------------------------------------------------------------------------
 duckdb>=0.9.0
+neo4j>=5.0.0
 pandas>=2.0.0
 networkx>=3.0.0
 pytz>=2024.1

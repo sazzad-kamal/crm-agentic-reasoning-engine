@@ -1,0 +1,69 @@
+# Neo4j Graph Schema for CRM Knowledge Graph
+# Mirrors the relational schema in fetch/sql/schema.yaml as a property graph.
+
+nodes:
+  Company:
+    properties:
+      - company_id
+      - name
+      - domain
+      - status
+      - plan
+      - account_owner
+      - industry
+      - segment
+      - region
+      - renewal_date
+      - health_status
+      - notes
+  Contact:
+    properties:
+      - contact_id
+      - first_name
+      - last_name
+      - email
+      - phone
+      - job_title
+      - role
+      - lifecycle_stage
+      - notes
+  Opportunity:
+    properties:
+      - opportunity_id
+      - name
+      - stage
+      - type
+      - amount
+      - currency
+      - probability
+      - source
+      - owner
+      - expected_close_date
+      - notes
+  Activity:
+    properties:
+      - activity_id
+      - type
+      - subject
+      - notes
+      - due_date
+      - owner
+      - priority
+      - status
+
+relationships:
+  - type: HAS_CONTACT
+    from: Company
+    to: Contact
+  - type: HAS_OPPORTUNITY
+    from: Company
+    to: Opportunity
+  - type: OWNS_OPPORTUNITY
+    from: Contact
+    to: Opportunity
+  - type: HAS_ACTIVITY
+    from: Company
+    to: Activity
+  - type: PARTICIPATED_IN
+    from: Contact
+    to: Activity

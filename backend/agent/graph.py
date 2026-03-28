@@ -9,6 +9,7 @@ Architecture:
         ├── export → Export → Answer → [Action, Followup]
         ├── health → Health → Answer → [Action, Followup]
         ├── docs → RAG → Answer → [Action, Followup]  # LlamaIndex documentation search
+        ├── graph → Graph → Answer → [Action, Followup]  # Neo4j multi-hop queries
         ├── clarify → Answer (asks for clarification)
         └── help → Answer (responds without SQL)
 
@@ -28,6 +29,7 @@ from backend.agent.compare.node import compare_node
 from backend.agent.export.node import export_node
 from backend.agent.fetch import fetch_node
 from backend.agent.followup.node import followup_node
+from backend.agent.graph_rag.node import graph_node
 from backend.agent.health.node import health_node
 from backend.agent.planner.node import planner_node
 from backend.agent.rag.node import rag_node
@@ -53,6 +55,7 @@ PLANNER_NODE = "planner"
 EXPORT_NODE = "export"
 HEALTH_NODE = "health"
 RAG_NODE = "rag"
+GRAPH_RAG_NODE = "graph"
 ANSWER_NODE = "answer"
 ACTION_NODE = "action"
 FOLLOWUP_NODE = "followup"
@@ -65,7 +68,7 @@ def build_thread_config(session_id: str | None) -> RunnableConfig:
 
 def _route_after_supervisor(
     state: AgentState,
-) -> Literal["fetch", "compare", "trend", "planner", "export", "health", "rag", "answer"]:
+) -> Literal["fetch", "compare", "trend", "planner", "export", "health", "rag", "graph", "answer"]:
     """Route based on intent to the appropriate specialized agent."""
     intent = state.get("intent", "data_query")
 
@@ -78,6 +81,7 @@ def _route_after_supervisor(
         "export": EXPORT_NODE,
         "health": HEALTH_NODE,
         "docs": RAG_NODE,
+        "graph": GRAPH_RAG_NODE,
     }
 
     if intent in intent_to_node:
@@ -115,7 +119,8 @@ def _route_after_answer(state: AgentState) -> list[str] | str:
         sql_results.get("aggregated") or
         sql_results.get("export") or
         sql_results.get("health_analysis") or
-        sql_results.get("rag_answer")  # RAG documentation results
+        sql_results.get("rag_answer") or  # RAG documentation results
+        sql_results.get("graph_data")  # Neo4j graph results
     )
 
     if has_data:
@@ -139,6 +144,7 @@ def _build_graph() -> Any:
     graph.add_node(EXPORT_NODE, export_node)
     graph.add_node(HEALTH_NODE, health_node)
     graph.add_node(RAG_NODE, rag_node)
+    graph.add_node(GRAPH_RAG_NODE, graph_node)
 
     # Add nodes - Response generation
     graph.add_node(ANSWER_NODE, answer_node)
@@ -162,6 +168,7 @@ def _build_graph() -> Any:
     graph.add_edge(EXPORT_NODE, ANSWER_NODE)
     graph.add_edge(HEALTH_NODE, ANSWER_NODE)
     graph.add_edge(RAG_NODE, ANSWER_NODE)
+    graph.add_edge(GRAPH_RAG_NODE, ANSWER_NODE)
 
     # Answer routes: loop back to Fetch OR continue to Action/Followup OR END
     graph.add_conditional_edges(
@@ -191,6 +198,7 @@ __all__ = [
     "EXPORT_NODE",
     "HEALTH_NODE",
     "RAG_NODE",
+    "GRAPH_RAG_NODE",
     "ANSWER_NODE",
     "ACTION_NODE",
     "FOLLOWUP_NODE",

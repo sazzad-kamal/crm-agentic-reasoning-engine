@@ -12,6 +12,14 @@ SLO_TEXT_ANSWER_RELEVANCY = 0.85  # Must address the question asked
 SLO_TEXT_FAITHFULNESS = 0.85  # Must be grounded in retrieved data
 SLO_TEXT_PASS_RATE = 0.80
 
+# SLO thresholds for 5-dimension LLM judge
+SLO_JUDGE_GROUNDING = 0.70
+SLO_JUDGE_COMPLETENESS = 0.70
+SLO_JUDGE_CLARITY = 0.70
+SLO_JUDGE_ACCURACY = 0.80
+SLO_JUDGE_ACTIONABILITY = 0.60
+SLO_JUDGE_PASS_RATE = 0.80
+
 
 class TextCaseResult(BaseModel):
     """Result for a single text evaluation case."""
@@ -25,6 +33,14 @@ class TextCaseResult(BaseModel):
     # RAGAS reliability tracking
     ragas_metrics_total: int = 0
     ragas_metrics_failed: int = 0
+    # 5-dimension LLM judge scores
+    judge_grounding: float = 0.0
+    judge_completeness: float = 0.0
+    judge_clarity: float = 0.0
+    judge_accuracy: float = 0.0
+    judge_actionability: float = 0.0
+    judge_passed: bool = False
+    judge_explanation: str = ""
 
     @property
     def passed(self) -> bool:
@@ -47,6 +63,13 @@ class TextEvalResults(BaseEvalResults):
     # RAGAS reliability tracking
     ragas_metrics_total: int = 0
     ragas_metrics_failed: int = 0
+    # 5-dimension LLM judge aggregates
+    avg_judge_grounding: float = 0.0
+    avg_judge_completeness: float = 0.0
+    avg_judge_clarity: float = 0.0
+    avg_judge_accuracy: float = 0.0
+    avg_judge_actionability: float = 0.0
+    judge_pass_count: int = 0
 
     @property
     def ragas_success_rate(self) -> float:
@@ -66,6 +89,16 @@ class TextEvalResults(BaseEvalResults):
         self.avg_faithfulness = sum(c.faithfulness_score for c in self.cases) / n
         self.ragas_metrics_total = sum(c.ragas_metrics_total for c in self.cases)
         self.ragas_metrics_failed = sum(c.ragas_metrics_failed for c in self.cases)
+        # Judge aggregates
+        judged = [c for c in self.cases if c.judge_grounding > 0 or c.judge_passed]
+        if judged:
+            nj = len(judged)
+            self.avg_judge_grounding = sum(c.judge_grounding for c in judged) / nj
+            self.avg_judge_completeness = sum(c.judge_completeness for c in judged) / nj
+            self.avg_judge_clarity = sum(c.judge_clarity for c in judged) / nj
+            self.avg_judge_accuracy = sum(c.judge_accuracy for c in judged) / nj
+            self.avg_judge_actionability = sum(c.judge_actionability for c in judged) / nj
+            self.judge_pass_count = sum(1 for c in judged if c.judge_passed)
 
 
 __all__ = [
@@ -75,4 +108,10 @@ __all__ = [
     "SLO_TEXT_ANSWER_RELEVANCY",
     "SLO_TEXT_FAITHFULNESS",
     "SLO_TEXT_PASS_RATE",
+    "SLO_JUDGE_GROUNDING",
+    "SLO_JUDGE_COMPLETENESS",
+    "SLO_JUDGE_CLARITY",
+    "SLO_JUDGE_ACCURACY",
+    "SLO_JUDGE_ACTIONABILITY",
+    "SLO_JUDGE_PASS_RATE",
 ]

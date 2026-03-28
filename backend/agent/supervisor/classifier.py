@@ -18,6 +18,7 @@ class Intent(str, Enum):
     EXPORT = "export"          # Export data to CSV/PDF
     HEALTH = "health"          # Account health score calculation
     DOCS = "docs"              # Documentation/how-to questions (RAG)
+    GRAPH = "graph"            # Multi-hop relationship queries (Neo4j)
     CLARIFY = "clarify"        # Question is unclear, ask for clarification
     HELP = "help"              # General help, no data needed
 
@@ -47,10 +48,13 @@ Classify the user's question into exactly ONE of these categories:
 7. DATA_QUERY - User wants specific data from the CRM database (simple query)
    Examples: "Show me Q1 revenue", "List all contacts at Acme", "What deals close this month?"
 
-8. CLARIFY - Question is too vague or ambiguous to answer
+8. GRAPH - User asks about multi-hop relationships between entities (contacts, companies, deals)
+   Examples: "Which contacts at at-risk companies have deals closing?", "Show the relationship chain for Acme", "Who is connected to companies with open renewals?"
+
+9. CLARIFY - Question is too vague or ambiguous to answer
    Examples: "the thing", "show me", "what about it?", "yes", "that one"
 
-9. HELP - User wants help using the system or asks general questions (no data needed)
+10. HELP - User wants help using the system or asks general questions (no data needed)
    Examples: "what can you do?", "help", "how does this work?", "hello"
 
 Conversation history:
@@ -58,7 +62,7 @@ Conversation history:
 
 User question: {question}
 
-Respond with ONLY one word: DOCS, COMPARE, TREND, COMPLEX, EXPORT, HEALTH, DATA_QUERY, CLARIFY, or HELP"""
+Respond with ONLY one word: DOCS, COMPARE, TREND, COMPLEX, EXPORT, HEALTH, DATA_QUERY, GRAPH, CLARIFY, or HELP"""
 
 
 def classify_intent(question: str, conversation_history: str = "") -> Intent:
@@ -167,6 +171,23 @@ def classify_intent(question: str, conversation_history: str = "") -> Intent:
         logger.info(f"[Supervisor] Quick classify '{question}' -> HEALTH")
         return Intent.HEALTH
 
+    # Graph relationship indicators (multi-hop entity queries)
+    graph_indicators = {
+        "connected to", "related to", "relationship between", "linked to",
+        "path between", "network of", "chain for",
+        "contacts at companies", "who works with",
+        "deals associated with",
+    }
+    # Multi-hop: mentions 2+ entity types with relationship language
+    entity_types = {"contacts", "companies", "deals", "opportunities", "activities"}
+    entity_count = sum(1 for e in entity_types if e in q_lower)
+    has_graph_indicator = any(indicator in q_lower for indicator in graph_indicators)
+    if has_graph_indicator or (entity_count >= 2 and any(
+        w in q_lower for w in {"at", "with", "whose", "where", "that have"}
+    )):
+        logger.info(f"[Supervisor] Quick classify '{question}' -> GRAPH")
+        return Intent.GRAPH
+
     # Data query indicators (general catch-all for CRM data queries)
     data_indicators = {
         "show", "list", "find", "get", "what", "who", "how many", "how much",
@@ -207,6 +228,8 @@ def classify_intent(question: str, conversation_history: str = "") -> Intent:
             intent = Intent.EXPORT
         elif "HEALTH" in result:
             intent = Intent.HEALTH
+        elif "GRAPH" in result:
+            intent = Intent.GRAPH
         elif "DATA_QUERY" in result:
             intent = Intent.DATA_QUERY
         elif "CLARIFY" in result:

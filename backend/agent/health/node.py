@@ -7,21 +7,19 @@ from typing import Any, cast
 
 from backend.agent.fetch.planner import get_sql_plan
 from backend.agent.fetch.sql.connection import get_connection
-from backend.agent.fetch.sql.executor import execute_sql
-from backend.agent.fetch.sql.guard import validate_sql
+from backend.agent.fetch.sql.executor import safe_execute
 from backend.agent.state import AgentState, format_conversation_for_prompt
 
 logger = logging.getLogger(__name__)
 
 
-# Health score weights (configurable)
 HEALTH_WEIGHTS = {
-    "deal_value": 0.25,       # Total value of deals
-    "deal_count": 0.15,       # Number of deals
-    "win_rate": 0.20,         # Percentage of won deals
-    "activity_recency": 0.15, # Recent activity
-    "pipeline_coverage": 0.15,# Active pipeline vs historical
-    "renewal_status": 0.10,   # Upcoming renewals
+    "deal_value": 0.25,
+    "deal_count": 0.15,
+    "win_rate": 0.20,
+    "activity_recency": 0.15,
+    "pipeline_coverage": 0.15,
+    "renewal_status": 0.10,
 }
 
 
@@ -235,6 +233,19 @@ def _get_health_insights(
     return insights
 
 
+def _safe_fetch(query: str, history: str, prefix: str) -> list[dict[str, Any]]:
+    """Plan SQL, validate, and execute — returns rows or empty list on failure."""
+    try:
+        plan = get_sql_plan(question=query, conversation_history=history)
+        if plan.sql:
+            rows, _ = safe_execute(plan.sql, get_connection())
+            return rows
+        return []
+    except Exception as e:
+        logger.error(f"{prefix} fetch failed: {e}")
+        return []
+
+
 def health_node(state: AgentState) -> AgentState:
     """Health Score node that calculates account health metrics."""
     question = state["question"]
@@ -259,38 +270,11 @@ def health_node(state: AgentState) -> AgentState:
     # Step 2: Fetch deal data
     deal_query = f"Get all deals {account_filter} with status, amount, and dates"
 
-    try:
-        deal_plan = get_sql_plan(question=deal_query, conversation_history=history)
-        if deal_plan.sql:
-            guard_result = validate_sql(deal_plan.sql)
-            if guard_result.is_safe:
-                conn = get_connection()
-                deal_data, _ = execute_sql(guard_result.sql, conn)
-            else:
-                deal_data = []
-        else:
-            deal_data = []
-    except Exception as e:
-        logger.error(f"[Health] Deal fetch failed: {e}")
-        deal_data = []
+    deal_data = _safe_fetch(deal_query, history, "[Health] Deal")
 
     # Step 3: Fetch activity data
     activity_query = f"Get recent activities {account_filter} with dates"
-
-    try:
-        activity_plan = get_sql_plan(question=activity_query, conversation_history=history)
-        if activity_plan.sql:
-            guard_result = validate_sql(activity_plan.sql)
-            if guard_result.is_safe:
-                conn = get_connection()
-                activity_data, _ = execute_sql(guard_result.sql, conn)
-            else:
-                activity_data = []
-        else:
-            activity_data = []
-    except Exception as e:
-        logger.error(f"[Health] Activity fetch failed: {e}")
-        activity_data = []
+    activity_data = _safe_fetch(activity_query, history, "[Health] Activity")
 
     # Step 4: Calculate metrics
     deal_metrics = _calculate_deal_score(deal_data)

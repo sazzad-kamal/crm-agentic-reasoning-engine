@@ -7,20 +7,8 @@ from langchain_core.messages import AIMessage, HumanMessage
 
 from backend.agent.answer.answerer import call_answer_chain
 from backend.agent.state import AgentState, format_conversation_for_prompt
-from backend.agent.validate.contract import create_answer_validator
 
 logger = logging.getLogger(__name__)
-
-# Lazy-initialized contract validator
-_answer_validator = None
-
-
-def _get_answer_validator():
-    """Get or create the answer validator (lazy init to avoid circular imports)."""
-    global _answer_validator
-    if _answer_validator is None:
-        _answer_validator = create_answer_validator()
-    return _answer_validator
 
 # Max iterations for Fetch→Answer loop
 MAX_LOOP_COUNT = 2
@@ -179,10 +167,6 @@ def answer_node(state: AgentState) -> AgentState:
             logger.warning("[Answer] LLM returned empty answer, using fallback")
             raw_answer = "I apologize, but I wasn't able to generate a complete response. Please try rephrasing your question."
 
-        # Skip contract validation for now - causes GIL crash in thread pool
-        # TODO: Re-enable with async LLM calls
-        # validator = _get_answer_validator()
-        # contract_result = validator.enforce(raw_answer)
         answer = raw_answer
 
         # Check if we need more data

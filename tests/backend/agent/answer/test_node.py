@@ -5,16 +5,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
-def _mock_validator_enforce(output):
-    """Helper to create a mock ContractResult that returns the output as-is."""
-    mock_result = MagicMock()
-    mock_result.output = output
-    mock_result.was_repaired = False
-    mock_result.used_fallback = False
-    mock_result.errors = []
-    return mock_result
-
-
 class TestAnswerNodeIntents:
     """Tests for answer node intent handling."""
 
@@ -40,19 +30,13 @@ class TestAnswerNodeIntents:
         assert "crm" in result["answer"].lower() or "data" in result["answer"].lower()
         assert result["needs_more_data"] is False
 
-    @patch("backend.agent.answer.node._get_answer_validator")
     @patch("backend.agent.answer.node.call_answer_chain")
-    def test_data_query_intent_calls_answer_chain(self, mock_chain, mock_get_validator):
+    def test_data_query_intent_calls_answer_chain(self, mock_chain):
         """Data query intent should call the answer chain."""
         from backend.agent.answer.node import answer_node
 
         answer_text = "The revenue is $100k [E1].\n\nEvidence:\n- E1: revenue=100000"
         mock_chain.return_value = answer_text
-
-        # Mock validator to return output as-is
-        mock_validator = MagicMock()
-        mock_validator.enforce.side_effect = lambda x: _mock_validator_enforce(x)
-        mock_get_validator.return_value = mock_validator
 
         state = {
             "question": "what is the revenue",
@@ -69,19 +53,12 @@ class TestAnswerNodeIntents:
 class TestAnswerNodeLoopDetection:
     """Tests for needs_more_data detection."""
 
-    @patch("backend.agent.answer.node._get_answer_validator")
     @patch("backend.agent.answer.node.call_answer_chain")
-    def test_detects_data_not_available(self, mock_chain, mock_get_validator):
+    def test_detects_data_not_available(self, mock_chain):
         """Answer with 'data not available' should trigger needs_more_data."""
         from backend.agent.answer.node import answer_node
 
-        answer_text = "Answer: Data not available for company names.\n\nEvidence:\n- E1: N/A"
-        mock_chain.return_value = answer_text
-
-        # Mock validator to return output as-is
-        mock_validator = MagicMock()
-        mock_validator.enforce.side_effect = lambda x: _mock_validator_enforce(x)
-        mock_get_validator.return_value = mock_validator
+        mock_chain.return_value = "Answer: Data not available for company names.\n\nEvidence:\n- E1: N/A"
 
         state = {
             "question": "show company names",
@@ -90,22 +67,14 @@ class TestAnswerNodeLoopDetection:
             "sql_results": {"data": [{"id": 1}]},
         }
         result = answer_node(state)
-
         assert result["needs_more_data"] is True
 
-    @patch("backend.agent.answer.node._get_answer_validator")
     @patch("backend.agent.answer.node.call_answer_chain")
-    def test_detects_no_data_found(self, mock_chain, mock_get_validator):
+    def test_detects_no_data_found(self, mock_chain):
         """Answer with 'no data found' should trigger needs_more_data."""
         from backend.agent.answer.node import answer_node
 
-        answer_text = "No data found for this query."
-        mock_chain.return_value = answer_text
-
-        # Mock validator to return output as-is
-        mock_validator = MagicMock()
-        mock_validator.enforce.side_effect = lambda x: _mock_validator_enforce(x)
-        mock_get_validator.return_value = mock_validator
+        mock_chain.return_value = "No data found for this query."
 
         state = {
             "question": "show contacts",
@@ -114,44 +83,30 @@ class TestAnswerNodeLoopDetection:
             "sql_results": {},
         }
         result = answer_node(state)
-
         assert result["needs_more_data"] is True
 
-    @patch("backend.agent.answer.node._get_answer_validator")
     @patch("backend.agent.answer.node.call_answer_chain")
-    def test_respects_max_loop_count(self, mock_chain, mock_get_validator):
+    def test_respects_max_loop_count(self, mock_chain):
         """Should not request more data after max loops."""
         from backend.agent.answer.node import answer_node, MAX_LOOP_COUNT
 
         mock_chain.return_value = "Data not available."
 
-        # Mock validator to return output as-is
-        mock_validator = MagicMock()
-        mock_validator.enforce.side_effect = lambda x: _mock_validator_enforce(x)
-        mock_get_validator.return_value = mock_validator
-
         state = {
             "question": "show data",
             "intent": "data_query",
-            "loop_count": MAX_LOOP_COUNT,  # Already at max
+            "loop_count": MAX_LOOP_COUNT,
             "sql_results": {},
         }
         result = answer_node(state)
-
         assert result["needs_more_data"] is False
 
-    @patch("backend.agent.answer.node._get_answer_validator")
     @patch("backend.agent.answer.node.call_answer_chain")
-    def test_increments_loop_count(self, mock_chain, mock_get_validator):
+    def test_increments_loop_count(self, mock_chain):
         """Loop count should be incremented after each answer."""
         from backend.agent.answer.node import answer_node
 
         mock_chain.return_value = "Here is the answer [E1]."
-
-        # Mock validator to return output as-is
-        mock_validator = MagicMock()
-        mock_validator.enforce.side_effect = lambda x: _mock_validator_enforce(x)
-        mock_get_validator.return_value = mock_validator
 
         state = {
             "question": "show data",
@@ -160,21 +115,14 @@ class TestAnswerNodeLoopDetection:
             "sql_results": {"data": [{"id": 1}]},
         }
         result = answer_node(state)
-
         assert result["loop_count"] == 1
 
-    @patch("backend.agent.answer.node._get_answer_validator")
     @patch("backend.agent.answer.node.call_answer_chain")
-    def test_unfetchable_data_does_not_trigger_loop(self, mock_chain, mock_get_validator):
+    def test_unfetchable_data_does_not_trigger_loop(self, mock_chain):
         """'Question not answerable' should not trigger a loop."""
         from backend.agent.answer.node import answer_node
 
         mock_chain.return_value = "Data not available (question not answerable from provided CRM DATA)."
-
-        # Mock validator to return output as-is
-        mock_validator = MagicMock()
-        mock_validator.enforce.side_effect = lambda x: _mock_validator_enforce(x)
-        mock_get_validator.return_value = mock_validator
 
         state = {
             "question": "what is the meaning of life",
@@ -183,21 +131,14 @@ class TestAnswerNodeLoopDetection:
             "sql_results": {},
         }
         result = answer_node(state)
-
         assert result["needs_more_data"] is False
 
-    @patch("backend.agent.answer.node._get_answer_validator")
     @patch("backend.agent.answer.node.call_answer_chain")
-    def test_complete_answer_does_not_trigger_loop(self, mock_chain, mock_get_validator):
+    def test_complete_answer_does_not_trigger_loop(self, mock_chain):
         """Complete answers should not trigger needs_more_data."""
         from backend.agent.answer.node import answer_node
 
         mock_chain.return_value = "The total revenue is $500,000 [E1].\n\nEvidence:\n- E1: SUM(revenue)=500000"
-
-        # Mock validator to return output as-is
-        mock_validator = MagicMock()
-        mock_validator.enforce.side_effect = lambda x: _mock_validator_enforce(x)
-        mock_get_validator.return_value = mock_validator
 
         state = {
             "question": "total revenue",
@@ -206,7 +147,6 @@ class TestAnswerNodeLoopDetection:
             "sql_results": {"data": [{"total": 500000}]},
         }
         result = answer_node(state)
-
         assert result["needs_more_data"] is False
 
 
@@ -223,18 +163,12 @@ class TestAnswerNodeMessages:
         assert "messages" in result
         assert len(result["messages"]) == 2
 
-    @patch("backend.agent.answer.node._get_answer_validator")
     @patch("backend.agent.answer.node.call_answer_chain")
-    def test_adds_messages_for_data_query(self, mock_chain, mock_get_validator):
+    def test_adds_messages_for_data_query(self, mock_chain):
         """Data query should add human and AI messages."""
         from backend.agent.answer.node import answer_node
 
         mock_chain.return_value = "Answer here."
-
-        # Mock validator to return output as-is
-        mock_validator = MagicMock()
-        mock_validator.enforce.side_effect = lambda x: _mock_validator_enforce(x)
-        mock_get_validator.return_value = mock_validator
 
         state = {
             "question": "show data",

@@ -46,7 +46,7 @@ class TestFetchNode:
 
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
-             patch("backend.agent.fetch.node.execute_sql") as mock_exec:
+             patch("backend.agent.fetch.node.safe_execute") as mock_exec:
 
             mock_exec.return_value = (
                 [{"opportunity_id": "opp_1", "value": 1000}],
@@ -78,7 +78,7 @@ class TestFetchNode:
 
         with patch("backend.agent.fetch.node.get_sql_plan", side_effect=mock_get_sql_plan), \
              patch("backend.agent.fetch.node.get_connection"), \
-             patch("backend.agent.fetch.node.execute_sql", side_effect=mock_execute):
+             patch("backend.agent.fetch.node.safe_execute", side_effect=mock_execute):
 
             result = fetch_node(state)
 
@@ -114,7 +114,7 @@ class TestFetchNode:
         mock_plan = SQLPlan(sql="")
 
         with patch("backend.agent.fetch.node.get_sql_plan", return_value=mock_plan), \
-             patch("backend.agent.fetch.node.execute_sql") as mock_exec:
+             patch("backend.agent.fetch.node.safe_execute") as mock_exec:
 
             result = fetch_node(state)
 

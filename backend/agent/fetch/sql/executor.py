@@ -5,6 +5,8 @@ from typing import Any
 
 import duckdb
 
+from backend.agent.fetch.sql.guard import validate_sql
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,4 +26,12 @@ def execute_sql(
         return [], str(e)
 
 
-__all__ = ["execute_sql"]
+def safe_execute(sql: str, conn: duckdb.DuckDBPyConnection) -> tuple[list[dict[str, Any]], str | None]:
+    """Validate SQL for safety, then execute. Returns (rows, error_msg)."""
+    guard_result = validate_sql(sql)
+    if not guard_result.is_safe:
+        return [], f"Query blocked: {guard_result.error}"
+    return execute_sql(guard_result.sql, conn)
+
+
+__all__ = ["execute_sql", "safe_execute"]

@@ -32,18 +32,12 @@ def _mock_validator_enforce(output):
 class TestAnswerNode:
     """Tests for answer_node function."""
 
-    @patch('backend.agent.answer.node._get_answer_validator')
     @patch('backend.agent.answer.node.call_answer_chain')
-    def test_answer_node_synthesizes_response(self, mock_chain, mock_get_validator):
+    def test_answer_node_synthesizes_response(self, mock_chain):
         """Synthesizes response from state data."""
         from backend.agent.answer.node import answer_node
 
         mock_chain.return_value = "This is the answer."
-
-        # Mock validator to return output as-is
-        mock_validator = MagicMock()
-        mock_validator.enforce.side_effect = lambda x: _mock_validator_enforce(x)
-        mock_get_validator.return_value = mock_validator
 
         state = {
             "question": "What's happening with Acme?",
@@ -56,18 +50,12 @@ class TestAnswerNode:
         assert result["answer"] == "This is the answer."
         mock_chain.assert_called_once()
 
-    @patch('backend.agent.answer.node._get_answer_validator')
     @patch('backend.agent.answer.node.call_answer_chain')
-    def test_answer_node_updates_messages(self, mock_chain, mock_get_validator):
+    def test_answer_node_updates_messages(self, mock_chain):
         """Updates messages with user question and assistant answer."""
         from backend.agent.answer.node import answer_node
 
         mock_chain.return_value = "Response text."
-
-        # Mock validator to return output as-is
-        mock_validator = MagicMock()
-        mock_validator.enforce.side_effect = lambda x: _mock_validator_enforce(x)
-        mock_get_validator.return_value = mock_validator
 
         state = {
             "question": "Tell me about Acme",

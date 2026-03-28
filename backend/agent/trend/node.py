@@ -6,8 +6,7 @@ from typing import Any, cast
 
 from backend.agent.fetch.planner import get_sql_plan
 from backend.agent.fetch.sql.connection import get_connection
-from backend.agent.fetch.sql.executor import execute_sql
-from backend.agent.fetch.sql.guard import validate_sql
+from backend.agent.fetch.sql.executor import safe_execute
 from backend.agent.state import AgentState, format_conversation_for_prompt
 
 logger = logging.getLogger(__name__)
@@ -164,19 +163,11 @@ def trend_node(state: AgentState) -> AgentState:
         result["error"] = "Could not generate trend analysis query"
         return cast(AgentState, result)
 
-    guard_result = validate_sql(sql_plan.sql)
-    if not guard_result.is_safe:
-        result["error"] = f"Query blocked: {guard_result.error}"
-        return cast(AgentState, result)
-
     try:
-        conn = get_connection()
-        rows, error = execute_sql(guard_result.sql, conn)
-
+        rows, error = safe_execute(sql_plan.sql, get_connection())
         if error:
             result["error"] = f"SQL execution failed: {error}"
             return cast(AgentState, result)
-
     except Exception as e:
         logger.error(f"[Trend] SQL execution failed: {e}")
         result["error"] = str(e)

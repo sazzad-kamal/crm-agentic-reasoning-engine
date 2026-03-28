@@ -6,8 +6,7 @@ from typing import Any, cast
 
 from backend.agent.fetch.planner import get_sql_plan
 from backend.agent.fetch.sql.connection import get_connection
-from backend.agent.fetch.sql.executor import execute_sql
-from backend.agent.fetch.sql.guard import validate_sql
+from backend.agent.fetch.sql.executor import safe_execute
 from backend.agent.state import AgentState, format_conversation_for_prompt
 
 logger = logging.getLogger(__name__)
@@ -76,15 +75,8 @@ def _execute_comparison_sql(sql: str) -> tuple[list[dict[str, Any]], str | None]
     """Validate and execute comparison SQL."""
     if not sql:
         return [], None
-
-    guard_result = validate_sql(sql)
-    if not guard_result.is_safe:
-        logger.warning(f"[Compare] SQL blocked: {guard_result.error}")
-        return [], guard_result.error
-
     try:
-        conn = get_connection()
-        return execute_sql(guard_result.sql, conn)
+        return safe_execute(sql, get_connection())
     except Exception as e:
         logger.error(f"[Compare] SQL execution failed: {e}")
         return [], str(e)

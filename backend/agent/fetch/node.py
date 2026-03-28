@@ -5,20 +5,10 @@ from typing import Any, cast
 
 from backend.agent.fetch.planner import SQLPlan, get_sql_plan
 from backend.agent.fetch.sql.connection import get_connection
-from backend.agent.fetch.sql.executor import execute_sql
-from backend.agent.fetch.sql.guard import validate_sql
+from backend.agent.fetch.sql.executor import safe_execute
 from backend.agent.state import AgentState, format_conversation_for_prompt
 
 logger = logging.getLogger(__name__)
-
-
-def _validate_and_execute(sql: str, conn: Any) -> tuple[list[dict[str, Any]], str | None]:
-    """Validate SQL for safety, then execute."""
-    guard_result = validate_sql(sql)
-    if not guard_result.is_safe:
-        logger.warning(f"[Fetch] SQL blocked by guard: {guard_result.error}")
-        return [], f"Query blocked: {guard_result.error}"
-    return execute_sql(guard_result.sql, conn)
 
 
 def _execute_sql_with_retry(
@@ -33,7 +23,7 @@ def _execute_sql_with_retry(
 
     try:
         conn = get_connection()
-        rows, error = _validate_and_execute(sql_plan.sql, conn)
+        rows, error = safe_execute(sql_plan.sql, conn)
 
         # Retry with error feedback if query failed
         if error:
@@ -44,7 +34,7 @@ def _execute_sql_with_retry(
                 previous_error=error,
             )
             if retry_plan.sql:
-                rows, error = _validate_and_execute(retry_plan.sql, conn)
+                rows, error = safe_execute(retry_plan.sql, conn)
             if not error:
                 logger.info("[Fetch] Retry succeeded")
 

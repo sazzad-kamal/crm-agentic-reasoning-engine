@@ -151,9 +151,17 @@ flowchart LR
 
 All generated SQL is validated via `sqlglot` before execution:
 
-- **Blocked**: `INSERT`, `UPDATE`, `DELETE`, `DROP`, `TRUNCATE`
-- **Auto-injected**: `LIMIT 1000` (prevents runaway queries)
-- **Parameterized**: No string interpolation (prevents SQL injection)
+```mermaid
+flowchart LR
+    LLM["LLM generates SQL"] --> PARSE["sqlglot<br/>parse AST"]
+    PARSE -->|parse error| BLOCK["Block"]
+    PARSE --> CHK{"Forbidden?<br/>INSERT/DELETE<br/>DROP/UPDATE"}
+    CHK -->|yes| BLOCK
+    CHK -->|no| FN{"Dangerous<br/>functions?"}
+    FN -->|yes| BLOCK
+    FN -->|no| LIM["Inject<br/>LIMIT 1000"]
+    LIM --> EXEC["Execute<br/>against DuckDB"]
+```
 
 ### 7. Hybrid Knowledge: CRM Data + Documentation + Knowledge Graph
 

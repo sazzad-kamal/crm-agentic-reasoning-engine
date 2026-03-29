@@ -503,9 +503,12 @@ class AgentState(TypedDict):
 | Task | Provider | Model | Reason |
 |------|----------|-------|--------|
 | SQL Planning | Anthropic | Claude | Better structured output, fewer hallucinations |
+| Cypher Planning | Anthropic | Claude | Same structured output advantage for graph queries |
 | Answer Synthesis | OpenAI | GPT | Good at natural language synthesis |
 | Action Suggestions | OpenAI | GPT | Creative suggestions |
 | Followup Generation | OpenAI | GPT | Question generation |
+| 5-Dim Answer Judge | OpenAI | GPT | Structured scoring across 5 dimensions |
+| Intent Classification (fallback) | OpenAI | GPT-4o-mini | Fast, cheap fallback for ambiguous queries |
 
 ### Fallback Behavior
 
@@ -631,8 +634,22 @@ read_csv (prevents file access)
 - Logs blocked queries for monitoring
 ```
 
+### Cypher Safety Guard (`backend/agent/graph_rag/guard.py`)
+
+All Cypher queries pass through a read-only guard before execution:
+
+```python
+# Blocked operations
+CREATE, DELETE, DETACH, SET, REMOVE, MERGE, DROP, CALL, FOREACH
+
+# Safety measures
+- Auto-adds LIMIT 1000 to prevent unbounded traversals
+- Keyword-based validation (no AST parser available for Cypher)
+```
+
 ### Current State
 - **SQL Guard**: All LLM-generated SQL is validated before execution
+- **Cypher Guard**: All LLM-generated Cypher is validated for read-only access
 - **Input validation**: Pydantic models for request/response
 - **CORS**: Restricted to allowed frontend origins
 - **Evidence grounding**: Answers must cite data sources

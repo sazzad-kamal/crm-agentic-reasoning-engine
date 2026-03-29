@@ -205,6 +205,7 @@
 | EXPORT | Supervisor → Export → Answer → [Action, Followup] | File generation |
 | HEALTH | Supervisor → Health → Answer → [Action, Followup] | Account scoring |
 | DOCS | Supervisor → RAG → Answer → [Action, Followup] | Documentation |
+| GRAPH | Supervisor → Graph → Answer → [Action, Followup] | Multi-hop relationships |
 | CLARIFY | Supervisor → Answer (asks for clarification) | Vague query |
 | HELP | Supervisor → Answer (no SQL needed) | General help |
 

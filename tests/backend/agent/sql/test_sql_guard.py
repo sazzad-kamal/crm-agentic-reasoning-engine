@@ -2,7 +2,7 @@
 
 import pytest
 
-from backend.agent.fetch.sql.guard import (
+from backend.agent.sql.guard import (
     MAX_ROWS,
     SQLGuardResult,
     validate_sql,

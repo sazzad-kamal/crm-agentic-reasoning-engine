@@ -13,9 +13,9 @@ if TYPE_CHECKING:
 
 load_dotenv()
 
-from backend.agent.fetch.planner import get_sql_plan
-from backend.agent.fetch.sql.connection import get_connection
-from backend.agent.fetch.sql.executor import execute_sql
+from backend.agent.sql.planner import get_sql_plan
+from backend.agent.sql.connection import get_connection
+from backend.agent.sql.executor import execute_sql
 from backend.agent.followup.suggester import generate_follow_up_suggestions
 from backend.eval.answer.shared.loader import generate_answer, load_questions
 from backend.eval.followup.judge import judge_followup_suggestions

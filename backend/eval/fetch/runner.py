@@ -16,9 +16,9 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parents[3] / ".env")
 
-from backend.agent.fetch.planner import get_sql_plan
-from backend.agent.fetch.sql.connection import get_connection
-from backend.agent.fetch.sql.executor import execute_sql
+from backend.agent.sql.planner import get_sql_plan
+from backend.agent.sql.connection import get_connection
+from backend.agent.sql.executor import execute_sql
 from backend.eval.fetch.models import SLO_FETCH_PASS_RATE, CaseResult, EvalResults, Question
 from backend.eval.fetch.sql_judge import ErrorType, JudgeError, judge_sql_equivalence
 

@@ -5,7 +5,7 @@ from typing import Any
 
 import duckdb
 
-from backend.agent.fetch.sql.guard import validate_sql
+from backend.agent.sql.guard import validate_sql
 
 logger = logging.getLogger(__name__)
 

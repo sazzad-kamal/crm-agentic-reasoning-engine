@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from backend.agent.fetch.sql.connection import get_connection
+from backend.agent.sql.connection import get_connection
 from backend.eval.answer.shared import generate_answer, load_questions
 from backend.eval.answer.text.models import SLO_TEXT_PASS_RATE, TextCaseResult, TextEvalResults
 from backend.eval.answer.text.judge import judge_answer_text

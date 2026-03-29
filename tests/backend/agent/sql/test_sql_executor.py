@@ -3,7 +3,7 @@
 import duckdb
 import pytest
 
-from backend.agent.fetch.sql.executor import execute_sql
+from backend.agent.sql.executor import execute_sql
 
 
 @pytest.fixture
@@ -105,7 +105,7 @@ class TestExecuteSqlWithRealData:
     @pytest.fixture
     def real_connection(self):
         """Get connection to real CRM data."""
-        from backend.agent.fetch.sql.connection import get_connection
+        from backend.agent.sql.connection import get_connection
         return get_connection()
 
     def test_filter_contacts_by_role(self, real_connection):

@@ -61,7 +61,7 @@ def db_connection():
     This fixture provides access to the in-memory CRM data for testing
     data-related functionality.
     """
-    from backend.agent.fetch.sql.connection import get_connection
+    from backend.agent.sql.connection import get_connection
     return get_connection()
 
 
@@ -152,7 +152,7 @@ def mock_llm(request):
     if request.node.get_closest_marker("no_mock_llm"):
         yield
         return
-    from backend.agent.fetch.planner import SQLPlan
+    from backend.agent.sql.planner import SQLPlan
 
     def mock_call_answer_chain(*args, **kwargs) -> str:
         question = kwargs.get("question", args[0] if args else "")
@@ -202,7 +202,7 @@ def mock_llm(request):
 
     with patch("backend.agent.answer.answerer.call_answer_chain", mock_call_answer_chain), \
          patch("backend.agent.followup.suggester.generate_follow_up_suggestions", mock_generate_follow_up_suggestions), \
-         patch("backend.agent.fetch.planner.get_sql_plan", mock_get_sql_plan):
+         patch("backend.agent.sql.planner.get_sql_plan", mock_get_sql_plan):
         yield
 
 

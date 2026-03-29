@@ -3,9 +3,9 @@
 import logging
 from typing import Any, cast
 
-from backend.agent.fetch.planner import SQLPlan, get_sql_plan
-from backend.agent.fetch.sql.connection import get_connection
-from backend.agent.fetch.sql.executor import safe_execute
+from backend.agent.sql.planner import SQLPlan, get_sql_plan
+from backend.agent.sql.connection import get_connection
+from backend.agent.sql.executor import safe_execute
 from backend.agent.state import AgentState, format_conversation_for_prompt
 
 logger = logging.getLogger(__name__)

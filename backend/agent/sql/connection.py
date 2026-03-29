@@ -10,11 +10,11 @@ from pathlib import Path
 
 import duckdb
 
-from backend.agent.fetch.sql.schema import get_all_table_columns, get_table_names
+from backend.agent.sql.schema import get_all_table_columns, get_table_names
 
 logger = logging.getLogger(__name__)
 
-_CSV_PATH = Path(__file__).parent.parent.parent.parent / "data" / "csv"
+_CSV_PATH = Path(__file__).parent.parent.parent / "data" / "csv"
 
 
 def _load_csvs(conn: duckdb.DuckDBPyConnection) -> None:

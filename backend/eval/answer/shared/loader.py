@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 from backend.agent.action.suggester import call_action_chain
 from backend.agent.answer.answerer import call_answer_chain
-from backend.agent.fetch.sql.executor import execute_sql
+from backend.agent.sql.executor import execute_sql
 from backend.eval.answer.shared.models import Question
 
 QUESTIONS_PATH = Path(__file__).parent.parent.parent / "shared" / "questions.yaml"

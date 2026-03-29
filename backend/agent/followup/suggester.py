@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
-from backend.agent.fetch.sql.schema import get_schema_sql
+from backend.agent.sql.schema import get_schema_sql
 from backend.agent.followup.entity_context import get_entity_context
 from backend.core.llm import SHORT_RESPONSE_MAX_TOKENS, create_openai_chain
 

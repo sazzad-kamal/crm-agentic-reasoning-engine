@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from backend.agent.fetch.sql.schema import get_schema_sql
+from backend.agent.sql.schema import get_schema_sql
 from backend.core.llm import create_anthropic_chain
 
 logger = logging.getLogger(__name__)

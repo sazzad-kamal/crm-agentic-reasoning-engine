@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from backend.agent.fetch.sql.connection import get_connection
+from backend.agent.sql.connection import get_connection
 from backend.eval.answer.action.judge import judge_suggested_action
 from backend.eval.answer.action.models import (
     SLO_ACTION_PASS_RATE,

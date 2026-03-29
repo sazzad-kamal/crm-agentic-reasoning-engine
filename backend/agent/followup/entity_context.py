@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     import duckdb
 
-from backend.agent.fetch.sql.executor import execute_sql
+from backend.agent.sql.executor import execute_sql
 
 logger = logging.getLogger(__name__)
 

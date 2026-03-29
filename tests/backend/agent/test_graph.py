@@ -231,10 +231,10 @@ class TestGraphIntegration:
     @pytest.mark.integration
     @patch("backend.agent.action.suggester.call_action_chain")
     @patch("backend.agent.answer.answerer.call_answer_chain")
-    @patch("backend.agent.fetch.planner.get_sql_plan")
+    @patch("backend.agent.sql.planner.get_sql_plan")
     def test_graph_execution(self, mock_planner, mock_answer_chain, mock_action_chain):
         """Test graph execution with company query."""
-        from backend.agent.fetch.planner import SQLPlan
+        from backend.agent.sql.planner import SQLPlan
 
         mock_planner.return_value = SQLPlan(
             sql="SELECT * FROM companies WHERE name ILIKE '%acme%'",

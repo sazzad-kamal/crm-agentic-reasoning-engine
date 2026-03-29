@@ -38,7 +38,7 @@ class TestFetchNode:
     def test_successful_sql_execution(self):
         """Successful SQL execution populates results."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.fetch.planner import SQLPlan
+        from backend.agent.sql.planner import SQLPlan
         from backend.agent.state import AgentState
 
         state: AgentState = {"question": "What deals are in the pipeline?"}
@@ -61,7 +61,7 @@ class TestFetchNode:
     def test_sql_execution_with_retry(self):
         """SQL execution retries on failure."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.fetch.planner import SQLPlan
+        from backend.agent.sql.planner import SQLPlan
         from backend.agent.state import AgentState
 
         state: AgentState = {"question": "test"}
@@ -88,7 +88,7 @@ class TestFetchNode:
     def test_sql_execution_failure(self):
         """SQL execution exception is handled."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.fetch.planner import SQLPlan
+        from backend.agent.sql.planner import SQLPlan
         from backend.agent.state import AgentState
 
         state: AgentState = {"question": "test"}
@@ -107,7 +107,7 @@ class TestFetchNode:
     def test_empty_sql_skips_execution(self):
         """Empty SQL skips execution step."""
         from backend.agent.fetch.node import fetch_node
-        from backend.agent.fetch.planner import SQLPlan
+        from backend.agent.sql.planner import SQLPlan
         from backend.agent.state import AgentState
 
         state: AgentState = {"question": "hello"}
@@ -243,12 +243,12 @@ class TestGetSqlPlan:
     @pytest.mark.no_mock_llm
     def test_get_sql_plan_returns_sql_plan(self):
         """get_sql_plan creates chain and returns SQLPlan."""
-        from backend.agent.fetch.planner import SQLPlan, get_sql_plan
+        from backend.agent.sql.planner import SQLPlan, get_sql_plan
 
         mock_result = SQLPlan(sql="SELECT * FROM companies")
         mock_chain = self._mock_chain(mock_result)
 
-        with patch("backend.agent.fetch.planner.create_anthropic_chain", return_value=mock_chain):
+        with patch("backend.agent.sql.planner.create_anthropic_chain", return_value=mock_chain):
             result = get_sql_plan("What companies do we have?")
 
             assert result.sql == "SELECT * FROM companies"
@@ -256,12 +256,12 @@ class TestGetSqlPlan:
     @pytest.mark.no_mock_llm
     def test_get_sql_plan_passes_system_prompt(self):
         """get_sql_plan passes system prompt with schema to create_anthropic_chain."""
-        from backend.agent.fetch.planner import SQLPlan, get_sql_plan
+        from backend.agent.sql.planner import SQLPlan, get_sql_plan
 
         mock_result = SQLPlan(sql="SELECT 1")
         mock_chain = self._mock_chain(mock_result)
 
-        with patch("backend.agent.fetch.planner.create_anthropic_chain", return_value=mock_chain) as mock_create:
+        with patch("backend.agent.sql.planner.create_anthropic_chain", return_value=mock_chain) as mock_create:
             get_sql_plan("Test question")
 
             # Verify create_anthropic_chain was called with system prompt containing schema
@@ -273,12 +273,12 @@ class TestGetSqlPlan:
     @pytest.mark.no_mock_llm
     def test_get_sql_plan_with_conversation_history(self):
         """get_sql_plan includes conversation history in prompt."""
-        from backend.agent.fetch.planner import SQLPlan, get_sql_plan
+        from backend.agent.sql.planner import SQLPlan, get_sql_plan
 
         mock_result = SQLPlan(sql="SELECT 1")
         mock_chain = self._mock_chain(mock_result)
 
-        with patch("backend.agent.fetch.planner.create_anthropic_chain", return_value=mock_chain):
+        with patch("backend.agent.sql.planner.create_anthropic_chain", return_value=mock_chain):
             get_sql_plan("Test question", conversation_history="Previous Q&A")
 
             # Check that invoke was called with conversation history
@@ -289,12 +289,12 @@ class TestGetSqlPlan:
     @pytest.mark.no_mock_llm
     def test_get_sql_plan_with_previous_error(self):
         """get_sql_plan includes previous error in prompt."""
-        from backend.agent.fetch.planner import SQLPlan, get_sql_plan
+        from backend.agent.sql.planner import SQLPlan, get_sql_plan
 
         mock_result = SQLPlan(sql="SELECT 1")
         mock_chain = self._mock_chain(mock_result)
 
-        with patch("backend.agent.fetch.planner.create_anthropic_chain", return_value=mock_chain):
+        with patch("backend.agent.sql.planner.create_anthropic_chain", return_value=mock_chain):
             get_sql_plan("Test question", previous_error="Syntax error at line 1")
 
             # Check that invoke was called with error context
@@ -402,7 +402,7 @@ class TestExecuteSql:
 
     def test_sql_execution_generic_exception(self):
         """Test generic exception handling during SQL execution."""
-        from backend.agent.fetch.sql.executor import execute_sql
+        from backend.agent.sql.executor import execute_sql
 
         mock_conn = MagicMock()
         mock_conn.execute.side_effect = RuntimeError("Database error")
@@ -484,7 +484,7 @@ class TestConnectionMissingCsv:
 
     def test_load_csvs_missing_file(self, monkeypatch, tmp_path):
         """Test _load_csvs logs warning for missing CSV."""
-        from backend.agent.fetch.sql import connection
+        from backend.agent.sql import connection
 
         # Create a mock schema with a table that doesn't exist
         mock_schema = {"nonexistent_table": ["col1", "col2"]}

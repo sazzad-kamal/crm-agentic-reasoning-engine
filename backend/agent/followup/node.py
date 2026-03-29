@@ -2,7 +2,7 @@
 
 import logging
 
-from backend.agent.fetch.sql.connection import get_connection
+from backend.agent.sql.connection import get_connection
 from backend.agent.followup.suggester import generate_follow_up_suggestions
 from backend.agent.state import AgentState, format_conversation_for_prompt
 from backend.agent.validate.contract import create_followup_validator

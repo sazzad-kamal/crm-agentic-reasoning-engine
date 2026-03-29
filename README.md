@@ -8,6 +8,7 @@
 [![Python](https://img.shields.io/badge/python-3.10+-blue)](https://www.python.org/)
 [![LangGraph](https://img.shields.io/badge/orchestration-LangGraph-purple)](https://github.com/langchain-ai/langgraph)
 [![LlamaIndex](https://img.shields.io/badge/RAG-LlamaIndex-orange)](https://www.llamaindex.ai/)
+[![Neo4j](https://img.shields.io/badge/GraphRAG-Neo4j-green)](https://neo4j.com/)
 [![Live Demo](https://img.shields.io/badge/demo-live-success)](https://acme-crm-ai-companion-production.up.railway.app/)
 
 <p align="center">
@@ -97,7 +98,9 @@ flowchart LR
 | "export", "csv", "download" | EXPORT | No |
 | "vs", "compare", "difference" | COMPARE | No |
 | "trend", "over time", "growth" | TREND | No |
+| "how do I", "how to" + Act! keyword | DOCS | No |
 | "connected to", "relationship" | GRAPH | No |
+| "health score", "at risk" | HEALTH | No |
 | Short or vague query | CLARIFY | No |
 | Ambiguous intent | fallback | Yes |
 

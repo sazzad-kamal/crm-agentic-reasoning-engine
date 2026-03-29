@@ -176,6 +176,21 @@ flowchart LR
     GR --> N4[(Neo4j)]
 ```
 
+### 8-10. Evaluation Pipeline
+
+```mermaid
+flowchart LR
+    Q[("20 Grounded<br/>Questions")] --> R6["6 RAG Configs"]
+    R6 --> RAGAS["RAGAS<br/>faithfulness<br/>relevancy<br/>correctness"]
+    R6 --> JUDGE["5-Dim Judge<br/>grounding<br/>completeness<br/>clarity<br/>accuracy<br/>actionability"]
+    RAGAS --> COMP["Composite Score<br/>→ Winner"]
+    JUDGE --> SLO{"SLO Gate"}
+    RAGAS --> SLO
+    SLO -->|pass| JSON["JSON Baseline"]
+    SLO -->|fail| CI["CI Blocks Merge"]
+    JSON --> REG["Regression<br/>Detection"]
+```
+
 ### 8. RAG Retrieval Strategy Comparison
 
 Automated pipeline comparing **6 retrieval configurations** across 20 grounded questions using RAGAS metrics:

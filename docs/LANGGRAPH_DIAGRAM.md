@@ -22,6 +22,7 @@ flowchart TB
         EXPORT["Export<br/>━━━━━━━━━━<br/>CSV/PDF/JSON<br/>'Export to CSV'"]
         HEALTH["Health<br/>━━━━━━━━━━<br/>Account scoring<br/>'Acme health score'"]
         RAG["RAG<br/>━━━━━━━━━━<br/>Doc search (LlamaIndex)<br/>'How do I import contacts?'"]
+        GRAPH["Graph<br/>━━━━━━━━━━<br/>Neo4j multi-hop<br/>'Who works with at-risk companies?'"]
     end
 
     subgraph ResponseGen["Response Generation"]
@@ -44,6 +45,7 @@ flowchart TB
     CL -->|"export"| EXPORT
     CL -->|"health"| HEALTH
     CL -->|"docs"| RAG
+    CL -->|"graph"| GRAPH
     CL -->|"clarify"| CLARIFY
     CL -->|"help"| HELP
 
@@ -54,6 +56,7 @@ flowchart TB
     EXPORT --> ANSWER
     HEALTH --> ANSWER
     RAG --> ANSWER
+    GRAPH --> ANSWER
 
     ANSWER -->|"has_data"| ACTION
     ANSWER -->|"has_data"| FOLLOWUP

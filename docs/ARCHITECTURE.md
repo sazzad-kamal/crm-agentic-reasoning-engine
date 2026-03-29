@@ -6,11 +6,11 @@ This document describes the system architecture of the CRM Agentic Reasoning Eng
 
 The system is a multi-agent reasoning engine that answers natural language questions about CRM data. It uses a **LangGraph pipeline with specialized agents** for:
 
-- **Supervisor routing**: Classifies intent and routes to 9 different specialized handlers
+- **Supervisor routing**: Classifies intent (10 types) and routes to specialized handlers
 - **Data refinement loops**: Answer node can request additional data fetches
-- **7 Specialized Agents**: Fetch, Compare, Trend, Planner, Export, Health, RAG
+- **8 Specialized Agents**: Fetch, Compare, Trend, Planner, Export, Health, RAG, Graph
 - **Response Agents**: Answer, Action, and Followup for generating responses
-- **Hybrid grounding**: SQL for data queries, LlamaIndex for documentation
+- **Hybrid grounding**: SQL → DuckDB for data, LlamaIndex for documentation, Neo4j for relationships
 
 ## System Diagram
 
@@ -44,6 +44,7 @@ flowchart TB
                 ExportNode["Export<br/>(CSV/PDF)"]
                 HealthNode["Health<br/>(Account Score)"]
                 RAGNode["RAG<br/>(Documentation)"]
+                GraphNode["Graph<br/>(Neo4j)"]
             end
 
             subgraph ResponseAgents["Response Agents"]
@@ -56,6 +57,8 @@ flowchart TB
         subgraph Data["Data Layer"]
             DuckDB["DuckDB"]
             CSV["CSV Files"]
+            Neo4j["Neo4j"]
+            VectorStore["LlamaIndex Vector Store"]
         end
     end
 

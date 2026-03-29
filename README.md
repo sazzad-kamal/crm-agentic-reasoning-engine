@@ -2,7 +2,7 @@
 
 **Multi-agent system that reasons over CRM data with grounded, evidence-backed answers.**
 
-[![CI](https://github.com/sazzad-kamal/crm-agentic-reasoning-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/sazzad-kamal/crm-agentic-reasoning-engine/actions/workflows/ci.yml)
+[![CI](https://github.com/sazzad-kamal/crm-agentic-reasoning-engine/actions/workflows/backend.yml/badge.svg)](https://github.com/sazzad-kamal/crm-agentic-reasoning-engine/actions/workflows/backend.yml)
 [![Tests](https://img.shields.io/badge/tests-691_passing-brightgreen)](#quality)
 [![Coverage](https://img.shields.io/badge/coverage-83%25-brightgreen)](#quality)
 [![Python](https://img.shields.io/badge/python-3.10+-blue)](https://www.python.org/)
@@ -24,17 +24,38 @@
 
 ## The Problem
 
-LLMs hallucinate. They fabricate data, invent statistics, and confidently cite sources that don't exist.
+CRM teams need answers from three sources: structured data (deals, contacts), product documentation, and entity relationships. LLMs hallucinate across all three — fabricating numbers, inventing features, and confidently describing relationships that don't exist.
 
-**This system is designed to eliminate hallucination.** Every claim links to actual CRM data with evidence tags. If the data doesn't exist, it tells you — it doesn't make something up.
+**This system grounds every answer in real data.** SQL queries hit DuckDB, documentation search hits LlamaIndex, relationship queries hit Neo4j. Every claim cites its source with evidence tags. Quality is measured with RAGAS metrics and enforced via SLOs in CI.
 
 ---
 
 ## Architecture
 
-<p align="center">
-  <img src="docs/langgraph-architecture.svg" alt="LangGraph Multi-Agent Architecture" width="900" />
-</p>
+```mermaid
+flowchart TB
+    Q["User Question"] --> SUP["Supervisor<br/>(Intent Classifier)"]
+
+    SUP -->|data_query| FETCH["Fetch"]
+    SUP -->|compare| COMPARE["Compare"]
+    SUP -->|trend| TREND["Trend"]
+    SUP -->|complex| PLANNER["Planner"]
+    SUP -->|export| EXPORT["Export"]
+    SUP -->|health| HEALTH["Health"]
+    SUP -->|docs| RAG["RAG"]
+    SUP -->|graph| GRAPH["Graph"]
+    SUP -->|clarify/help| ANS
+
+    FETCH & COMPARE & TREND & PLANNER & EXPORT & HEALTH & RAG & GRAPH --> ANS["Answer"]
+
+    ANS -->|needs_more_data| FETCH
+    ANS -->|has_data| ACT["Action"] & FU["Followup"]
+    ACT & FU --> END["END"]
+
+    FETCH -.->|SQL| DB[(DuckDB)]
+    RAG -.->|vector| VS[(LlamaIndex)]
+    GRAPH -.->|Cypher| N4[(Neo4j)]
+```
 
 **10 intent types** routed by a supervisor to **8 specialized agents**, orchestrated by LangGraph:
 
@@ -238,7 +259,7 @@ python -m backend.eval.integration.gate --limit 5
 - Node.js 18+
 - OpenAI API key (answer synthesis)
 - Anthropic API key (SQL generation)
-- Neo4j (optional — `docker compose up neo4j`)
+- Neo4j (optional — for graph relationship queries)
 
 ### Setup
 
@@ -246,6 +267,9 @@ python -m backend.eval.integration.gate --limit 5
 # Clone
 git clone https://github.com/sazzad-kamal/crm-agentic-reasoning-engine.git
 cd crm-agentic-reasoning-engine
+
+# Neo4j (optional — skip if you don't need graph queries)
+docker compose up neo4j -d
 
 # Backend
 python -m venv .venv
@@ -271,6 +295,13 @@ POST /api/chat/stream
 Content-Type: application/json
 
 {"question": "What deals closed this quarter?"}
+```
+
+```http
+GET /api/data/companies      # CRM data explorer
+GET /api/data/opportunities
+GET /api/data/contacts
+GET /api/data/activities
 ```
 
 API docs: [http://localhost:8000/docs](http://localhost:8000/docs)

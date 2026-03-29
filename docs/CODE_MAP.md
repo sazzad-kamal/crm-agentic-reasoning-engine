@@ -27,6 +27,7 @@ Quick reference for navigating the codebase. Find any file in seconds.
 | **Export** | [backend/agent/export/node.py](../backend/agent/export/node.py) | EXPORT | CSV/PDF generation |
 | **Health** | [backend/agent/health/node.py](../backend/agent/health/node.py) | HEALTH | Account health scoring |
 | **RAG** | [backend/agent/rag/node.py](../backend/agent/rag/node.py) | DOCS | Documentation search |
+| **Graph** | [backend/agent/graph_rag/node.py](../backend/agent/graph_rag/node.py) | GRAPH | Neo4j multi-hop queries |
 | **Answer** | [backend/agent/answer/node.py](../backend/agent/answer/node.py) | all | Response synthesis |
 | **Action** | [backend/agent/action/node.py](../backend/agent/action/node.py) | all | CRM action suggestions |
 | **Followup** | [backend/agent/followup/node.py](../backend/agent/followup/node.py) | all | Follow-up questions |
@@ -44,12 +45,12 @@ Quick reference for navigating the codebase. Find any file in seconds.
 
 | Component | File | Line | Description |
 |-----------|------|------|-------------|
-| Forbidden statements | [backend/agent/fetch/sql/guard.py](../backend/agent/fetch/sql/guard.py#L16) | 16-24 | INSERT, UPDATE, DELETE, DROP |
-| Forbidden functions | [backend/agent/fetch/sql/guard.py](../backend/agent/fetch/sql/guard.py#L27) | 27-36 | copy, export, attach, etc. |
-| MAX_ROWS limit | [backend/agent/fetch/sql/guard.py](../backend/agent/fetch/sql/guard.py#L45) | 45 | 1000 row limit |
-| Guard result | [backend/agent/fetch/sql/guard.py](../backend/agent/fetch/sql/guard.py#L48) | 48+ | Validation result model |
-| SQL executor | [backend/agent/fetch/sql/executor.py](../backend/agent/fetch/sql/executor.py) | — | Execute validated SQL |
-| DuckDB connection | [backend/agent/fetch/sql/connection.py](../backend/agent/fetch/sql/connection.py) | — | Database connection pool |
+| Forbidden statements | [backend/agent/sql/guard.py](../backend/agent/sql/guard.py#L16) | 16-24 | INSERT, UPDATE, DELETE, DROP |
+| Forbidden functions | [backend/agent/sql/guard.py](../backend/agent/sql/guard.py#L27) | 27-36 | copy, export, attach, etc. |
+| MAX_ROWS limit | [backend/agent/sql/guard.py](../backend/agent/sql/guard.py#L45) | 45 | 1000 row limit |
+| Guard result | [backend/agent/sql/guard.py](../backend/agent/sql/guard.py#L48) | 48+ | Validation result model |
+| SQL executor | [backend/agent/sql/executor.py](../backend/agent/sql/executor.py) | — | Execute validated SQL |
+| DuckDB connection | [backend/agent/sql/connection.py](../backend/agent/sql/connection.py) | — | Database connection pool |
 
 ## Contract Validation
 
@@ -162,7 +163,7 @@ python -m backend.eval.integration
 | LangGraph definition | [backend/agent/graph.py](../backend/agent/graph.py) |
 | Agent state | [backend/agent/state.py](../backend/agent/state.py) |
 | Intent classifier | [backend/agent/supervisor/classifier.py](../backend/agent/supervisor/classifier.py) |
-| SQL guard | [backend/agent/fetch/sql/guard.py](../backend/agent/fetch/sql/guard.py) |
+| SQL guard | [backend/agent/sql/guard.py](../backend/agent/sql/guard.py) |
 | Contract validator | [backend/agent/validate/contract.py](../backend/agent/validate/contract.py) |
 | RAG retriever | [backend/agent/rag/retriever.py](../backend/agent/rag/retriever.py) |
 | SSE streaming | [backend/agent/streaming.py](../backend/agent/streaming.py) |

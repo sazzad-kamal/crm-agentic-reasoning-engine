@@ -29,6 +29,7 @@
 │  • "vs", "compare" → COMPARE                                                │
 │  • "trend", "over time" → TREND                                             │
 │  • "how do I", "how to" → DOCS                                              │
+│  • "connected to", "relationship" → GRAPH                                   │
 │  • Short/vague → CLARIFY                                                    │
 │                                                                             │
 │  LLM Fallback (ambiguous queries):                                          │

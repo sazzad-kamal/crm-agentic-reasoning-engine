@@ -3,8 +3,8 @@
 **Multi-agent system that reasons over CRM data with grounded, evidence-backed answers.**
 
 [![CI](https://github.com/sazzad-kamal/crm-agentic-reasoning-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/sazzad-kamal/crm-agentic-reasoning-engine/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-1,339_passing-brightgreen)](#quality)
-[![Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)](#quality)
+[![Tests](https://img.shields.io/badge/tests-691_passing-brightgreen)](#quality)
+[![Coverage](https://img.shields.io/badge/coverage-83%25-brightgreen)](#quality)
 [![Python](https://img.shields.io/badge/python-3.10+-blue)](https://www.python.org/)
 [![LangGraph](https://img.shields.io/badge/orchestration-LangGraph-purple)](https://github.com/langchain-ai/langgraph)
 [![LlamaIndex](https://img.shields.io/badge/RAG-LlamaIndex-orange)](https://www.llamaindex.ai/)
@@ -36,7 +36,7 @@ LLMs hallucinate. They fabricate data, invent statistics, and confidently cite s
   <img src="docs/langgraph-architecture.svg" alt="LangGraph Multi-Agent Architecture" width="900" />
 </p>
 
-**7 specialized agents** orchestrated by LangGraph, each optimized for its query type:
+**10 intent types** routed by a supervisor to **8 specialized agents**, orchestrated by LangGraph:
 
 | Query | Agent | What Happens |
 |-------|-------|--------------|
@@ -47,6 +47,7 @@ LLMs hallucinate. They fabricate data, invent statistics, and confidently cite s
 | "Export to CSV" | **Export** | Query → File generation |
 | "Acme health score" | **Health** | Multi-factor scoring |
 | "How do I import contacts?" | **RAG** | LlamaIndex → Semantic search → Docs |
+| "Who works with at-risk companies?" | **Graph** | Cypher → Neo4j → Multi-hop traversal |
 
 ---
 
@@ -75,6 +76,7 @@ flowchart LR
 | "export", "csv", "download" | EXPORT | No |
 | "vs", "compare", "difference" | COMPARE | No |
 | "trend", "over time", "growth" | TREND | No |
+| "connected to", "relationship" | GRAPH | No |
 | Short or vague query | CLARIFY | No |
 | Ambiguous intent | fallback | Yes |
 
@@ -121,8 +123,6 @@ flowchart LR
     A2 --> OUT[Response]
 ```
 
-This handles follow-up questions like "What about their contact info?" without a new conversation turn.
-
 ### 6. SQL Safety Guard
 
 All generated SQL is validated via `sqlglot` before execution:
@@ -131,26 +131,74 @@ All generated SQL is validated via `sqlglot` before execution:
 - **Auto-injected**: `LIMIT 1000` (prevents runaway queries)
 - **Parameterized**: No string interpolation (prevents SQL injection)
 
-### 7. Hybrid Knowledge: CRM Data + Documentation
+### 7. Hybrid Knowledge: CRM Data + Documentation + Knowledge Graph
 
-Two grounding sources in one system:
+Three grounding sources in one system:
 
 | Question Type | Source | Technology |
 |---------------|--------|------------|
 | "What deals closed Q1?" | **CRM Data** | SQL → DuckDB |
 | "How do I import contacts?" | **Product Docs** | LlamaIndex → Vector Search |
+| "Who at at-risk companies has deals closing?" | **Knowledge Graph** | Cypher → Neo4j |
 
 ```mermaid
 flowchart LR
     Q[Question] --> S[Supervisor]
     S -->|Data Query| SQL[SQL Agent]
     S -->|How-To| RAG[RAG Agent]
+    S -->|Relationships| GR[Graph Agent]
     SQL --> DB[(DuckDB)]
     RAG --> VS[(Vector Store)]
-    VS --> PDF[Product PDFs]
+    GR --> N4[(Neo4j)]
 ```
 
-**Why this matters**: Users ask questions about their data AND about how to use the product — both are grounded, never hallucinated.
+### 8. RAG Retrieval Strategy Comparison
+
+Automated pipeline comparing **6 retrieval configurations** across 20 grounded questions using RAGAS metrics:
+
+| Config | Retriever | Top-K | Reranker |
+|--------|-----------|-------|----------|
+| vector_top5 | Vector | 5 | None |
+| vector_top10 | Vector | 10 | None |
+| bm25_top5 | BM25 | 5 | None |
+| hybrid_top5 | Vector + BM25 (RRF) | 5 | None |
+| vector_top10_rerank5 | Vector | 10 | SentenceTransformer |
+| hybrid_top10_rerank5 | Vector + BM25 | 10 | SentenceTransformer |
+
+Winner selected by composite score: `0.4 * relevancy + 0.4 * faithfulness + 0.2 * correctness`
+
+```bash
+python -m backend.eval.rag_comparison --limit 5
+```
+
+### 9. 5-Dimension Answer Quality Judge
+
+LLM-as-Judge scores every answer on 5 CRM-specific dimensions:
+
+| Dimension | What It Measures |
+|-----------|-----------------|
+| **Grounding** | Every claim has evidence tags, no fabrication |
+| **Completeness** | All parts of the question addressed |
+| **Clarity** | Well-structured, easy to scan |
+| **Accuracy** | Numbers/names match CRM data |
+| **Actionability** | Practical next steps suggested |
+
+### 10. Quality Gates & SLOs
+
+CI-enforced quality thresholds with regression tracking:
+
+| SLO | Threshold | Enforcement |
+|-----|-----------|-------------|
+| Faithfulness | >= 0.9 | RAGAS evaluation |
+| Answer Relevancy | >= 0.85 | RAGAS evaluation |
+| p50 Latency | < 3s | Integration eval |
+| Pass Rate | >= 80% | CI quality gate |
+
+JSON baseline export enables regression detection across retrieval config changes.
+
+```bash
+python -m backend.eval.integration.gate --limit 5
+```
 
 ---
 
@@ -162,24 +210,23 @@ flowchart LR
 | **SQL Generation** | Claude 3.5 | Superior structured output, fewer syntax errors |
 | **Answer Synthesis** | GPT-4 | Natural language fluency, better citations |
 | **RAG Pipeline** | LlamaIndex | Production-grade retrieval, hybrid search |
+| **Graph DB** | Neo4j | Multi-hop entity traversal, Cypher queries |
 | **Analytics DB** | DuckDB | Columnar storage, fast aggregations, zero config |
+| **Evaluation** | RAGAS | Faithfulness, relevancy, correctness metrics |
 | **Backend** | FastAPI | Async, OpenAPI docs, Pydantic validation |
-| **Frontend** | React + TypeScript | Type-safe, component-driven, maintainable |
+| **Frontend** | React + TypeScript | Type-safe, component-driven |
 | **Streaming** | Server-Sent Events | Real-time updates, simple reconnection |
 
 ---
 
 ## Quality
 
-| Metric | Value | Details |
-|--------|-------|---------|
-| **Total Tests** | **1,339** | [View CI →](https://github.com/sazzad-kamal/crm-agentic-reasoning-engine/actions) |
-| Backend (pytest) | 610 | Unit + integration |
-| Frontend (Vitest) | 562 | Components + hooks |
-| E2E (Playwright) | 167 | Full user flows |
-| **Code Coverage** | **95%** | Backend + Frontend combined |
-| **Faithfulness** | ≥ 0.9 | [RAGAS](https://docs.ragas.io/) evaluation |
-| **p50 Latency** | < 3s | Measured on production |
+| Metric | Value |
+|--------|-------|
+| **Backend Tests** | 691 passing (pytest) |
+| **Code Coverage** | 83% |
+| **Faithfulness SLO** | >= 0.9 (RAGAS) |
+| **p50 Latency SLO** | < 3s |
 
 ---
 
@@ -191,6 +238,7 @@ flowchart LR
 - Node.js 18+
 - OpenAI API key (answer synthesis)
 - Anthropic API key (SQL generation)
+- Neo4j (optional — `docker compose up neo4j`)
 
 ### Setup
 
@@ -205,7 +253,7 @@ source .venv/bin/activate      # Linux/macOS
 # .venv\Scripts\activate       # Windows
 
 pip install -r requirements.txt
-cp .env.example .env           # Add your OPENAI_API_KEY
+cp .env.example .env           # Add your API keys
 uvicorn backend.main:app --reload
 
 # Frontend (new terminal)
@@ -216,19 +264,7 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173)
 
-### Mock Mode (No API Key)
-
-```bash
-export MOCK_LLM=1              # Linux/macOS
-# set MOCK_LLM=1               # Windows
-uvicorn backend.main:app --reload
-```
-
----
-
-## API
-
-### Chat Endpoint
+### API
 
 ```http
 POST /api/chat/stream
@@ -237,40 +273,38 @@ Content-Type: application/json
 {"question": "What deals closed this quarter?"}
 ```
 
-### SSE Event Stream
-
-| Event | Description |
-|-------|-------------|
-| `fetch_start` | Query execution began |
-| `answer_chunk` | Streamed answer token |
-| `evidence` | Citation data |
-| `action` | Suggested CRM action |
-| `followup` | Follow-up question suggestions |
-| `done` | Stream complete |
-
-### API Documentation
-
-- Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
-- ReDoc: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+API docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
 ## Project Structure
 
 ```
-├── backend/
-│   ├── agent/           # LangGraph agents (fetch, compare, trend, etc.)
-│   ├── api/             # FastAPI routes
-│   ├── rag/             # LlamaIndex pipeline
-│   └── main.py          # Application entry
-├── frontend/
-│   ├── src/
-│   │   ├── components/  # React components
-│   │   ├── hooks/       # Custom hooks (streaming, data)
-│   │   └── styles/      # CSS
-│   └── e2e/             # Playwright tests
-├── docs/                # Architecture diagrams
-└── tests/               # Backend tests
+backend/
+├── agent/
+│   ├── sql/             # Shared SQL infrastructure (connection, planner, guard, executor)
+│   ├── fetch/           # SQL data queries
+│   ├── compare/         # A vs B comparisons
+│   ├── trend/           # Time-series analysis
+│   ├── health/          # Account health scoring
+│   ├── export/          # CSV/PDF generation
+│   ├── planner/         # Complex query decomposition
+│   ├── rag/             # LlamaIndex documentation search
+│   ├── graph_rag/       # Neo4j multi-hop graph queries
+│   ├── supervisor/      # Intent classification + routing
+│   ├── validate/        # Contract enforcement (validate → repair → fallback)
+│   ├── answer/          # Evidence-grounded answer synthesis
+│   ├── action/          # Suggested next actions
+│   ├── followup/        # Follow-up question generation
+│   └── graph.py         # LangGraph orchestration (wires all nodes)
+├── eval/
+│   ├── answer/          # RAGAS metrics + 5-dimension LLM judge
+│   ├── rag_comparison/  # 6-strategy retrieval comparison pipeline
+│   ├── integration/     # End-to-end conversation eval + quality gates
+│   ├── fetch/           # SQL generation accuracy eval
+│   └── followup/        # Follow-up quality eval
+├── api/                 # FastAPI routes (chat, data)
+└── core/                # Shared LLM config
 ```
 
 ---
@@ -281,49 +315,9 @@ Content-Type: application/json
 - [Code Map](docs/CODE_MAP.md) — File-by-file reference with line numbers
 - [Data Flow](docs/data-flow.md) — Request lifecycle with ASCII diagrams
 - [LangGraph Diagram](docs/LANGGRAPH_DIAGRAM.md) — Visual graph of agent orchestration
-- [API Reference](http://localhost:8000/docs) — OpenAPI documentation (Swagger UI)
-
----
-
-## Development
-
-```bash
-# Run backend tests
-pytest tests/ -v
-
-# Run frontend tests
-cd frontend && npm test
-
-# Run E2E tests
-cd frontend && npm run test:e2e
-
-# Lint & type check
-ruff check backend/
-mypy backend/
-cd frontend && npm run lint && npx tsc --noEmit
-```
-
----
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## License
-
-MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
 <p align="center">
-  <strong>Built by <a href="https://github.com/sazzad-kamal">Sazzad Kamal</a></strong><br/>
-  <em>AI Engineer • Full-Stack Developer</em>
+  <strong>Built by <a href="https://github.com/sazzad-kamal">Sazzad Kamal</a></strong>
 </p>

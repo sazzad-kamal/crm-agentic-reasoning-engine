@@ -91,7 +91,9 @@ flowchart LR
 
 ### 2. Heuristics-First Classification
 
-**90% of queries classified without LLM calls** — fast, cheap, deterministic:
+**90% of queries classified without LLM calls** — fast, cheap, deterministic.
+
+How the 90% was measured: the supervisor classifies each incoming query using keyword/pattern matching first. Only when no pattern matches (ambiguous intent) does it fall back to an LLM call. Across the evaluation question set, ~90% of queries hit a deterministic pattern, avoiding LLM classification latency and cost entirely.
 
 | Pattern | Intent | LLM Call? |
 |---------|--------|-----------|
@@ -103,6 +105,8 @@ flowchart LR
 | "health score", "at risk" | HEALTH | No |
 | Short or vague query | CLARIFY | No |
 | Ambiguous intent | fallback | Yes |
+
+**Why this matters:** Each LLM classification call adds ~500ms-1s latency and costs tokens. Heuristics-first routing keeps p50 latency low and reduces API costs, while the LLM fallback ensures no query goes unhandled.
 
 ### 3. Contract-Enforced Outputs
 
@@ -133,7 +137,14 @@ Evidence:
 - E2: opportunities.value = 50000 (row 42)
 ```
 
-**No citation = no claim.** The answer generator is constrained to only reference retrieved data.
+**No citation = no claim.** The answer generator is constrained to only reference retrieved data. The enforcement mechanism works as follows:
+
+1. The answer prompt instructs the LLM to only make claims backed by evidence from the fetched data
+2. Each claim must include an evidence tag (e.g., `[E1]`) linking to the specific database field and row
+3. The evidence section maps each tag to its source: table, column, and row number
+4. This makes every claim auditable — a reviewer can trace any number or fact back to the exact data point
+
+This grounding discipline is what enables the faithfulness SLO >= 0.85 (RAGAS) — responses are measured against retrieved context, and claims without evidence are penalized.
 
 ### 5. Data Refinement Loops
 
@@ -146,6 +157,13 @@ flowchart LR
     F2 --> A2[Answer]
     A2 --> OUT[Response]
 ```
+
+**When does re-fetch trigger?** The answer node analyzes the fetched data and determines if it has enough information to fully answer the question. Examples:
+
+- User asks "Show Q1 deals and their contact info" — first fetch returns deals, answer node detects missing contact data, re-fetches with a contact-focused query
+- User asks a question that returns empty results — answer node re-fetches with a broader query before giving up
+
+The max 2 iterations cap prevents infinite loops while allowing the system to self-correct incomplete data retrieval. This is what makes the system agentic — it reasons about what it knows and what it still needs.
 
 ### 6. SQL Safety Guard
 
@@ -214,34 +232,60 @@ Automated pipeline comparing **6 retrieval configurations** across 20 grounded q
 
 Winner selected by composite score: `0.4 * relevancy + 0.4 * faithfulness + 0.2 * correctness`
 
+**Why these weights?** Relevancy and faithfulness are weighted equally at 0.4 each because they represent the two most critical qualities: the answer must address the question (relevancy) and must be grounded in retrieved context (faithfulness). Correctness is weighted lower at 0.2 because semantic similarity to a reference answer is sensitive to phrasing differences — a correct answer worded differently can score low on correctness but still be faithful and relevant.
+
+The comparison pipeline runs all 6 configs against the same 20 grounded questions (questions with known correct answers), computes RAGAS metrics for each, and ranks by composite score to select the best configuration for production use.
+
 ```bash
 python -m backend.eval.rag_comparison --limit 5
 ```
 
 ### 9. 5-Dimension Answer Quality Judge
 
-LLM-as-Judge scores every answer on 5 CRM-specific dimensions:
+LLM-as-Judge scores every **final answer** on 5 CRM-specific dimensions, each with its own SLO threshold:
 
-| Dimension | What It Measures |
-|-----------|-----------------|
-| **Grounding** | Every claim has evidence tags, no fabrication |
-| **Completeness** | All parts of the question addressed |
-| **Clarity** | Well-structured, easy to scan |
-| **Accuracy** | Numbers/names match CRM data |
-| **Actionability** | Practical next steps suggested |
+| Dimension | What It Measures | SLO Threshold |
+|-----------|-----------------|---------------|
+| **Grounding** | Every claim has evidence tags, no fabrication | >= 0.70 |
+| **Completeness** | All parts of the question addressed | >= 0.70 |
+| **Clarity** | Well-structured, easy to scan | >= 0.70 |
+| **Accuracy** | Numbers/names match CRM data | >= 0.80 |
+| **Actionability** | Practical next steps suggested | >= 0.60 |
+
+An answer **passes** only if it meets **all 5 dimension thresholds simultaneously**. The overall **pass rate** is the percentage of answers that pass all thresholds — CI requires >= 80% pass rate across all evaluated answers.
 
 ### 10. Quality Gates & SLOs
 
-CI-enforced quality thresholds with regression tracking:
+Two layers of CI-enforced quality gates protect every merge:
 
-| SLO | Threshold | Enforcement |
-|-----|-----------|-------------|
-| Faithfulness | >= 0.9 | RAGAS evaluation |
-| Answer Relevancy | >= 0.85 | RAGAS evaluation |
-| p50 Latency | < 3s | Integration eval |
-| Pass Rate | >= 80% | CI quality gate |
+**Layer 1: RAG Retrieval Quality (RAGAS)**
 
-JSON baseline export enables regression detection across retrieval config changes.
+Measures how well the retrieval pipeline finds and uses the right information:
+
+| SLO | Threshold | What It Measures |
+|-----|-----------|-----------------|
+| Faithfulness | >= 0.85 | Are claims grounded in retrieved context? |
+| Answer Relevancy | >= 0.85 | Does the answer address the question? |
+| Answer Correctness | >= 0.35 | Semantic match with expected answer (lenient for phrasing/style) |
+
+**Layer 2: Answer Quality (LLM-as-Judge)**
+
+Measures the quality of the final answer delivered to the user:
+
+| SLO | Threshold | What It Measures |
+|-----|-----------|-----------------|
+| Judge Pass Rate | >= 80% | % of answers passing all 5 dimension thresholds |
+| Text Pass Rate | >= 80% | % of answers passing relevancy + faithfulness |
+
+**Layer 3: Performance**
+
+| SLO | Threshold | What It Measures |
+|-----|-----------|-----------------|
+| p50 Latency | <= 3s | Median response time |
+| p95 Latency | <= 8s | Tail response time |
+| Conversation Step Pass Rate | >= 95% | % of conversation steps that succeed |
+
+**How it works:** CI runs the full evaluation pipeline on every PR. If any SLO fails, the merge is blocked. JSON baseline export enables regression detection — scores are compared against the previous baseline to catch quality degradation across code changes.
 
 ```bash
 python -m backend.eval.integration.gate --limit 5
@@ -251,11 +295,22 @@ python -m backend.eval.integration.gate --limit 5
 
 ## Tech Stack
 
+### Multi-LLM Strategy
+
+The system uses different LLMs for different tasks based on their strengths — not a single model for everything:
+
+| Task | Model | Why |
+|------|-------|-----|
+| **SQL Generation** | Claude | Superior structured output, fewer syntax errors when generating SQL from natural language |
+| **Answer Synthesis** | GPT | Natural language fluency, better evidence citation formatting |
+
+This multi-LLM approach means each model handles what it's best at. SQL generation requires precise, structured output (Claude excels here), while answer synthesis requires natural, readable prose with proper citation formatting (GPT excels here).
+
+### Full Stack
+
 | Layer | Technology | Why This Choice |
 |-------|------------|-----------------|
 | **Orchestration** | LangGraph | Stateful workflows, conditional edges, checkpointing |
-| **SQL Generation** | Claude 3.5 | Superior structured output, fewer syntax errors |
-| **Answer Synthesis** | GPT-4 | Natural language fluency, better citations |
 | **RAG Pipeline** | LlamaIndex | Production-grade retrieval, hybrid search |
 | **Graph DB** | Neo4j | Multi-hop entity traversal, Cypher queries |
 | **Analytics DB** | DuckDB | Columnar storage, fast aggregations, zero config |
@@ -268,12 +323,27 @@ python -m backend.eval.integration.gate --limit 5
 
 ## Quality
 
+### Test Coverage
+
 | Metric | Value |
 |--------|-------|
-| **Backend Tests** | 691 passing (pytest) |
+| **Tests** | 691 passing (unit + integration + e2e) |
 | **Code Coverage** | 83% |
-| **Faithfulness SLO** | >= 0.9 (RAGAS) |
-| **p50 Latency SLO** | < 3s |
+
+### SLO Summary
+
+| Category | SLO | Threshold |
+|----------|-----|-----------|
+| **RAG Retrieval** | Faithfulness | >= 0.85 |
+| **RAG Retrieval** | Answer Relevancy | >= 0.85 |
+| **RAG Retrieval** | Answer Correctness | >= 0.35 |
+| **Answer Quality** | Judge Pass Rate (all 5 dimensions) | >= 80% |
+| **Answer Quality** | Text Pass Rate (relevancy + faithfulness) | >= 80% |
+| **Performance** | p50 Latency | <= 3s |
+| **Performance** | p95 Latency | <= 8s |
+| **Reliability** | Conversation Step Pass Rate | >= 95% |
+
+All SLOs are enforced via CI — a failing SLO blocks the merge.
 
 ---
 

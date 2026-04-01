@@ -1,0 +1,72 @@
+{
+  "configs": [
+    {
+      "config_name": "vector_top5",
+      "num_questions": 3,
+      "avg_correctness": 0.5375,
+      "avg_relevancy": 0.9958,
+      "avg_faithfulness": 0.9425,
+      "avg_composite": 0.8829,
+      "avg_latency_seconds": 4.2,
+      "p90_latency_seconds": 5.01,
+      "nan_count": 0
+    },
+    {
+      "config_name": "vector_top10",
+      "num_questions": 3,
+      "avg_correctness": 0.5487,
+      "avg_relevancy": 0.9958,
+      "avg_faithfulness": 0.8815,
+      "avg_composite": 0.8607,
+      "avg_latency_seconds": 3.78,
+      "p90_latency_seconds": 3.83,
+      "nan_count": 0
+    },
+    {
+      "config_name": "bm25_top5",
+      "num_questions": 3,
+      "avg_correctness": 0.3247,
+      "avg_relevancy": 0.6643,
+      "avg_faithfulness": 0.4444,
+      "avg_composite": 0.5085,
+      "avg_latency_seconds": 2.48,
+      "p90_latency_seconds": 4.54,
+      "nan_count": 0
+    },
+    {
+      "config_name": "hybrid_top5",
+      "num_questions": 3,
+      "avg_correctness": 0.5239,
+      "avg_relevancy": 0.9948,
+      "avg_faithfulness": 0.9365,
+      "avg_composite": 0.8773,
+      "avg_latency_seconds": 4.08,
+      "p90_latency_seconds": 5.35,
+      "nan_count": 0
+    },
+    {
+      "config_name": "vector_top10_rerank5",
+      "num_questions": 3,
+      "avg_correctness": 0.5182,
+      "avg_relevancy": 0.9969,
+      "avg_faithfulness": 0.876,
+      "avg_composite": 0.8528,
+      "avg_latency_seconds": 4.8,
+      "p90_latency_seconds": 6.12,
+      "nan_count": 0
+    },
+    {
+      "config_name": "hybrid_top10_rerank5",
+      "num_questions": 3,
+      "avg_correctness": 0.4362,
+      "avg_relevancy": 0.6631,
+      "avg_faithfulness": 0.7778,
+      "avg_composite": 0.6636,
+      "avg_latency_seconds": 3.4,
+      "p90_latency_seconds": 3.82,
+      "nan_count": 0
+    }
+  ],
+  "winner": "vector_top5",
+  "winner_composite": 0.8829
+}
